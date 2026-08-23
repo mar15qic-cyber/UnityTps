@@ -1,0 +1,49 @@
+# ===== Unity 生成目录（可再生） =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+[Rr]ecordings/
+
+# ===== Unity 生成文件 =====
+sysinfo.txt
+crashlytics-build.properties
+
+# ===== IDE / 构建产物 =====
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.apk
+*.aab
+*.app
+*.unitypackage
+*.exe
+*.mp4
+
+# ===== Codely CLI 运行时（由工具自动恢复，不入库） =====
+.codely-cli/
+.codely.packages/
+
+# ===== 截图 / 临时输出 =====
+/screenshots/
+
+# ===== OS =====
+Thumbs.db
+.DS_Store
+Desktop.ini
