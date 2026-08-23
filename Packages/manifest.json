@@ -1,9 +1,12 @@
 {
   "dependencies": {
+    "cn.tuanjie.ai.generators": "file:../.codely-cli/extensions/TJGenerators/Packages/cn.tuanjie.ai.generators",
+    "cn.tuanjie.codely.bridge": "file:../.codely.packages/cn.tuanjie.codely.bridge@1.0.75",
+    "com.unity.cinemachine": "file:com.unity.cinemachine-3.1.7.tgz",
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.feature.development": "1.0.2",
     "com.unity.multiplayer.center": "1.0.0",
-    "com.unity.render-pipelines.high-definition": "17.0.4",
+    "com.unity.render-pipelines.universal": "17.0.4",
     "com.unity.timeline": "1.8.12",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.11",
@@ -38,8 +41,6 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0",
-    "cn.tuanjie.codely.bridge": "file:../.codely.packages/cn.tuanjie.codely.bridge@1.0.75",
-    "cn.tuanjie.ai.generators": "file:../.codely-cli/extensions/TJGenerators/Packages/cn.tuanjie.ai.generators"
+    "com.unity.modules.xr": "1.0.0"
   }
 }
