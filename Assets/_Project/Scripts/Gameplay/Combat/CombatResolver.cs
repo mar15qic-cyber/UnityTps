@@ -28,14 +28,14 @@ namespace Game.Gameplay.Combat
     public sealed class CombatResolver : MonoBehaviour
     {
         public HitscanResult ResolveHitscan(
-            Vector3 origin, Vector3 direction, float maxRange, int damage, int layerMask, UnityEngine.Object ignoreRoot)
+            Vector3 origin, Vector3 direction, float maxRange, int damage, int layerMask, Transform ignoreRoot)
         {
             var ray = new Ray(origin, direction);
             if (!Physics.Raycast(ray, out var hitInfo, maxRange, layerMask, QueryTriggerInteraction.Ignore))
                 return new HitscanResult(false, false, origin + direction * maxRange, Vector3.up, null);
 
             // 忽略 shooter 自身（root 比较）
-            if (ignoreRoot != null && hitInfo.collider.transform.root == ignoreRoot.transform)
+            if (ignoreRoot != null && hitInfo.collider.transform.root == ignoreRoot)
                 return new HitscanResult(false, false, hitInfo.point, hitInfo.normal, null);
 
             var target = hitInfo.collider.GetComponentInParent<DamageableTarget>();
