@@ -1,10 +1,10 @@
 {
-  "unity_port": 53165,
-  "stream_port": 53292,
+  "unity_port": 62341,
+  "stream_port": 64005,
   "created_date": "2026-08-23T18:42:16.741Z",
   "project_path": "E:/UnityProject/UnityFps/Assets",
   "reloading": false,
   "reason": "ready",
-  "seq": 2820,
-  "last_heartbeat": "2026-08-24T18:11:11.834Z"
+  "seq": 265,
+  "last_heartbeat": "2026-08-24T18:31:44.142Z"
 }
