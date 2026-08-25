@@ -211,6 +211,9 @@ namespace Game.Presentation.Animation
                 : _actionClips.ReloadAmmoLeft;
             if (clip == null) return;
             var state = _animancer.Layers[ActionLayer].Play(clip, actionFadeSeconds, FadeMode.FromStart);
+            // ActionSystem remains authoritative at Stat.ReloadTime. Fit the entire clip
+            // into that window so the completion callback never cuts a long rifle reload.
+            state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.Stat.ReloadTime);
             state.Events(this).OnEnd = FadeOutActionLayer;
         }
 
@@ -221,5 +224,6 @@ namespace Game.Presentation.Animation
         {
             _animancer.Layers[ActionLayer].StartFade(0f, layerFadeOutSeconds);
         }
+
     }
 }

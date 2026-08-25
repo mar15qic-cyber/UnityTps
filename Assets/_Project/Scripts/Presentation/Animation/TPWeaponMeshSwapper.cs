@@ -16,6 +16,13 @@ namespace Game.Presentation.Animation
 
         private GameObject _current;
 
+        /// <summary>当前 TP 武器实例（TPWeaponFX / TPLeftHandIK 只读消费）。</summary>
+        public GameObject CurrentInstance => _current;
+        /// <summary>当前武器枪口挂点（prefab 内 "Muzzle" 子节点）。</summary>
+        public Transform CurrentMuzzle { get; private set; }
+        /// <summary>当前武器左手持枪挂点（prefab 内 "LeftHandTarget" 子节点）。</summary>
+        public Transform CurrentLeftHandTarget { get; private set; }
+
         private void Awake()
         {
             if (arsenal == null) arsenal = GetComponentInParent<Arsenal>();
@@ -60,6 +67,10 @@ namespace Game.Presentation.Animation
             foreach (var t in _current.GetComponentsInChildren<Transform>(true))
                 t.gameObject.layer = bodyLayer;
             _current.name = definition.ThirdPersonViewPrefab.name;
+
+            // 枪口/左手挂点（Day4.2：TPWeaponFX 与 TPLeftHandIK 消费）
+            CurrentMuzzle = _current.transform.Find("Muzzle");
+            CurrentLeftHandTarget = _current.transform.Find("LeftHandTarget");
         }
     }
 }

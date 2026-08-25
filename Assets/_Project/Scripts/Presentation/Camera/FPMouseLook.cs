@@ -4,8 +4,11 @@ namespace Game.Presentation.Camera
 {
     /// <summary>
     /// FP 相机 Pitch（俯仰）唯一写者：Yaw 由 Locomotor 写身体，本组件只把
-    /// 鼠标垂直增量应用到相机俯仰并夹紧。Day4 替换为 CinemachineCamera + 自定义组件。
+    /// 鼠标垂直增量应用到相机俯仰并夹紧。挂在 CameraPivot 上，CinemachineCamera
+    /// Follow 该节点（HardLock + RotateWithFollowTarget），Main Camera 由 Brain 驱动。
+    /// 执行顺序需早于 CinemachineBrain（默认 0）的 LateUpdate，避免俯仰滞后一帧。
     /// </summary>
+    [DefaultExecutionOrder(-20)]
     public sealed class FPMouseLook : MonoBehaviour
     {
         [SerializeField, Range(0.01f, 1f)] private float pitchSensitivity = 0.1f;

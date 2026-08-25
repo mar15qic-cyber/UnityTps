@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2265743883194168007
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8882209764369626616}
+  m_Layer: 9
+  m_Name: Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8882209764369626616
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2265743883194168007}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.82745105, y: 0.012124459, z: 0.012124459, w: 0.56127596}
+  m_LocalPosition: {x: 0.01480969, y: 0.20561929, z: 0.388109}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2925572873735534658}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2925572873735135980
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -148,6 +179,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 9
       objectReference: {fileID: 0}
+    - target: {fileID: 100066, guid: b3236689d20e81b4493519925058781a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 100068, guid: b3236689d20e81b4493519925058781a, type: 3}
       propertyPath: m_Layer
       value: 9
@@ -228,9 +263,16 @@ PrefabInstance:
       propertyPath: m_Avatar
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: b3236689d20e81b4493519925058781a, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 03ecf8889a246e743b8b08837229b299, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 400046, guid: b3236689d20e81b4493519925058781a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8882209764369626616}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: b3236689d20e81b4493519925058781a, type: 3}
       insertIndex: -1
@@ -310,7 +352,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
-  muzzle: {fileID: 0}
+  muzzle: {fileID: 8882209764369626616}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
+  muzzleFlashDespawnSeconds: 0.15
+  shellCasingPrefab: {fileID: 1309345429585892, guid: 7be59128a5ee3424faf33d7a408c0b2e, type: 3}
+  shellPort: {fileID: 2925572873735534632}
+  impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
+  damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
+--- !u!4 &2925572873735534632 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400068, guid: b3236689d20e81b4493519925058781a, type: 3}
+  m_PrefabInstance: {fileID: 2925572873735135980}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2925572873735534658 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400046, guid: b3236689d20e81b4493519925058781a, type: 3}
+  m_PrefabInstance: {fileID: 2925572873735135980}
+  m_PrefabAsset: {fileID: 0}

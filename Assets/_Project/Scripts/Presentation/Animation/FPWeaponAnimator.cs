@@ -111,12 +111,15 @@ namespace Game.Presentation.Animation
             AnimationClip clip = empty ? _clips.ReloadOutOfAmmo : _clips.ReloadAmmoLeft;
             if (clip == null) return;
             var state = _animancer.Play(clip, actionFadeSeconds, FadeMode.FromStart);
+            // ActionSystem remains authoritative at Stat.ReloadTime. Fit the entire clip
+            // into that window so the completion callback never cuts a long rifle reload.
+            state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.Stat.ReloadTime);
             state.Events(this).OnEnd = PlayIdle;
         }
 
         private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _) => PlayIdle();
 
-        /// <summary>计时器到点即换弹完成（真相），动画未播完也强制回 Idle（架构 §6.5）。</summary>
+        /// <summary>计时器到点即换弹完成（真相）；clip 播放速度已适配该窗口。</summary>
         private void HandleReloadCompleted() => PlayIdle();
 
         private void PlayIdle()

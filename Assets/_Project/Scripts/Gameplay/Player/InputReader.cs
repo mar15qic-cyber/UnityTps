@@ -27,6 +27,9 @@ namespace Game.Gameplay.Player
         /// <summary>鼠标左键本帧按下。</summary>
         public bool FirePressed { get; private set; }
 
+        /// <summary>鼠标右键按住（ADS 意图，只做表现，不改 Gameplay 数值）。</summary>
+        public bool AimHeld { get; private set; }
+
         /// <summary>R 键本帧按下。</summary>
         public bool ReloadPressed { get; private set; }
 
@@ -55,6 +58,7 @@ namespace Game.Gameplay.Player
             FirePressed = false;
             ReloadPressed = false;
             SlotPressed = -1;
+            AimHeld = false;
             if (kb == null) return;
 
             if (kb.wKey.wasPressedThisFrame) _wOrder = ++_pressSequence;
@@ -90,6 +94,7 @@ namespace Game.Gameplay.Player
                 LookDelta = mouse.delta.ReadValue();
                 FireHeld = mouse.leftButton.isPressed;
                 FirePressed = mouse.leftButton.wasPressedThisFrame;
+                AimHeld = mouse.rightButton.isPressed;
             }
         }
 

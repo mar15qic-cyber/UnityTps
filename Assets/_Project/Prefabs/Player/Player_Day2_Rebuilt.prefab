@@ -819,7 +819,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100072, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
-      insertIndex: -1
+      insertIndex: 1
       addedObject: {fileID: 310276798754351518}
     - targetCorrespondingSourceObject: {fileID: 100072, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
       insertIndex: -1
@@ -865,7 +865,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _Animator: {fileID: 7835557378559077638}
   _Transitions: {fileID: 0}
-  _ActionOnDisable: 0
+  _ActionOnDisable: 3
 --- !u!114 &4291813819806620568
 MonoBehaviour:
   m_ObjectHideFlags: 0

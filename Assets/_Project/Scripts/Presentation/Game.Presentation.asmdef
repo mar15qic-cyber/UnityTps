@@ -5,6 +5,7 @@
         "Game.Core",
         "Game.Gameplay",
         "Kybernetik.Animancer",
+        "Unity.Cinemachine",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],
