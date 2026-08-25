@@ -13,24 +13,24 @@ MonoBehaviour:
   m_Name: Animancer Settings
   m_EditorClassIdentifier: 
   _Data:
-  - rid: 1066747842225504256
-  - rid: 1066747842225504257
-  - rid: 1066747842225504258
-  - rid: 1066747842225504259
-  - rid: 1066747842225504260
-  - rid: 1066747842225504261
+  - rid: 1066747853316292682
+  - rid: 1066747853316292683
+  - rid: 1066747853316292684
+  - rid: 1066747853316292685
+  - rid: 1066747853316292686
+  - rid: 1066747853316292687
   references:
     version: 2
     RefIds:
-    - rid: 1066747842225504256
+    - rid: 1066747853316292682
       type: {class: AnimancerComponentPreviewSettings, ns: Animancer.Editor.Previews, asm: Kybernetik.Animancer.Editor}
       data:
         _RepaintRate: 30
-    - rid: 1066747842225504257
+    - rid: 1066747853316292683
       type: {class: AnimancerGraphControls, ns: Animancer.Editor, asm: Kybernetik.Animancer.Editor}
       data:
         _FrameStep: 0.02
-    - rid: 1066747842225504258
+    - rid: 1066747853316292684
       type: {class: TransitionPreviewSettings, ns: Animancer.Editor.Previews, asm: Kybernetik.Animancer.Editor}
       data:
         _AutoClose: 1
@@ -39,18 +39,18 @@ MonoBehaviour:
         _FrameStep: 0.02
         _SceneEnvironment: {fileID: 0}
         _Models: []
-    - rid: 1066747842225504259
+    - rid: 1066747853316292685
       type: {class: SerializableEventSequenceDrawerSettings, ns: Animancer.Editor, asm: Kybernetik.Animancer.Editor}
       data:
         _HideEventCallbacks: 0
-    - rid: 1066747842225504260
+    - rid: 1066747853316292686
       type: {class: AnimationTimeAttributeSettings, ns: Animancer.Units.Editor, asm: Kybernetik.Animancer.Editor}
       data:
         showApproximations: 1
         showNormalized: 1
         showSeconds: 1
         showFrames: 1
-    - rid: 1066747842225504261
+    - rid: 1066747853316292687
       type: {class: GenerateSpriteAnimationsSettings, ns: Animancer.Editor.Tools, asm: Kybernetik.Animancer.Editor}
       data:
         _FrameRate: 12

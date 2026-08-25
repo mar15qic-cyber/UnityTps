@@ -18,37 +18,38 @@ MonoBehaviour:
   firstPersonViewPrefab: {fileID: 7125712017163613421, guid: 0e79b307bab4d604d81ce1f7a80f3614, type: 3}
   thirdPersonViewPrefab: {fileID: 7707036890514972092, guid: 00b5bb45ca5329c4aa7d80498cc8eabc, type: 3}
   firstPersonAnimations:
-    Idle: {fileID: -1978303741906493279, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
-    Fire: {fileID: -3576926933002285359, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
-    ReloadAmmoLeft: {fileID: -4664933875709458943, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
-    ReloadOutOfAmmo: {fileID: 3638896267497754418, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
-    Draw: {fileID: 2817076742215024215, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
-    Holster: {fileID: 5618134620196096371, guid: 9d42cf15c16d2a34e9ac24f3b5656eff, type: 3}
+    Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadAmmoLeft: {fileID: 7400054, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400056, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Draw: {fileID: 7400060, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Holster: {fileID: 7400044, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
     DryFire: {fileID: 0}
   thirdPersonLocomotion:
-    Idle: {fileID: -6402510106671311804, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkForward: {fileID: -2877009577184900375, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkForwardRight: {fileID: -258016986650022536, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkRight: {fileID: -1039450743810875905, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkBackRight: {fileID: -4729614895957314072, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkBackward: {fileID: 1843169660150346438, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkBackLeft: {fileID: -6515219810039688302, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkLeft: {fileID: 5168478682777592985, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    WalkForwardLeft: {fileID: 8839320133553717253, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunForward: {fileID: 7637694446283831542, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunForwardRight: {fileID: -1976918087766968892, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunRight: {fileID: -2524767007645027730, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunBackRight: {fileID: -2865813906697108261, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunBackward: {fileID: -2193575382500418074, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunBackLeft: {fileID: 4737662797229083478, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunLeft: {fileID: 2689959853693773999, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    RunForwardLeft: {fileID: 88037303359335680, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    JumpStart: {fileID: 5668507693511442493, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    JumpLoop: {fileID: -7786344409107577783, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    JumpLand: {fileID: -2612178169519133210, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
+    Idle: {fileID: 7400016, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForward: {fileID: 7400054, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForwardRight: {fileID: 7400052, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkRight: {fileID: 7400058, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackRight: {fileID: 7400048, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackward: {fileID: 7400060, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackLeft: {fileID: 7400046, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkLeft: {fileID: 7400056, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForwardLeft: {fileID: 7400050, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForward: {fileID: 7400040, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForwardRight: {fileID: 7400036, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunRight: {fileID: 7400044, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackRight: {fileID: 7400032, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackward: {fileID: 7400038, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackLeft: {fileID: 7400030, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunLeft: {fileID: 7400042, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForwardLeft: {fileID: 7400034, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpStart: {fileID: 7400024, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpLoop: {fileID: 7400022, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpLand: {fileID: 7400020, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+  thirdPersonRootMotionProfile: {fileID: 11400000, guid: 8cedc7bf992f2d042a7b1c02fa05b544, type: 2}
   thirdPersonActions:
-    Fire: {fileID: 4820524880508465260, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    ReloadAmmoLeft: {fileID: -6626967596930732248, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
-    ReloadOutOfAmmo: {fileID: -6770426770512188080, guid: a40b16983d78a2846986abdcbb4ad1c5, type: 3}
+    Fire: {fileID: 7400002, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    ReloadAmmoLeft: {fileID: 7400026, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400028, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
   drawTime: 1.37
   holsterTime: 0.4

@@ -33,3 +33,83 @@ MonoBehaviour:
       Spread: 1.2
       MaxRange: 150
       AdsFov: 45
+  - WeaponId: handgun.02
+    Stat:
+      Damage: 30
+      Rpm: 300
+      MagSize: 15
+      ReserveAmmo: 60
+      ReloadTime: 1.5
+      Spread: 0.4
+      MaxRange: 100
+      AdsFov: 50
+  - WeaponId: rifle.02
+    Stat:
+      Damage: 24
+      Rpm: 640
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.1
+      Spread: 1
+      MaxRange: 140
+      AdsFov: 45
+  - WeaponId: rifle.03
+    Stat:
+      Damage: 28
+      Rpm: 520
+      MagSize: 25
+      ReserveAmmo: 100
+      ReloadTime: 2.3
+      Spread: 0.8
+      MaxRange: 150
+      AdsFov: 45
+  - WeaponId: smg.01
+    Stat:
+      Damage: 18
+      Rpm: 850
+      MagSize: 32
+      ReserveAmmo: 160
+      ReloadTime: 1.8
+      Spread: 1.8
+      MaxRange: 90
+      AdsFov: 50
+  - WeaponId: smg.02
+    Stat:
+      Damage: 20
+      Rpm: 780
+      MagSize: 30
+      ReserveAmmo: 150
+      ReloadTime: 1.9
+      Spread: 1.6
+      MaxRange: 95
+      AdsFov: 50
+  - WeaponId: shotgun.01
+    Stat:
+      Damage: 60
+      Rpm: 90
+      MagSize: 6
+      ReserveAmmo: 36
+      ReloadTime: 2.8
+      Spread: 3.5
+      MaxRange: 40
+      AdsFov: 55
+  - WeaponId: sniper.01
+    Stat:
+      Damage: 95
+      Rpm: 45
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3
+      Spread: 0.05
+      MaxRange: 300
+      AdsFov: 20
+  - WeaponId: sniper.02
+    Stat:
+      Damage: 110
+      Rpm: 35
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3.2
+      Spread: 0.03
+      MaxRange: 350
+      AdsFov: 15

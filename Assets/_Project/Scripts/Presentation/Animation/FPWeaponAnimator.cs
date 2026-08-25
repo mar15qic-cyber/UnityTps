@@ -38,7 +38,6 @@ namespace Game.Presentation.Animation
             controller.OnReloadStarted += HandleReloadStarted;
             controller.OnReloadCompleted += HandleReloadCompleted;
             controller.OnReloadInterrupted += HandleReloadInterrupted;
-            controller.OnWeaponEquipped += HandleWeaponEquipped;
         }
 
         private void Start()
@@ -58,7 +57,6 @@ namespace Game.Presentation.Animation
             controller.OnReloadStarted -= HandleReloadStarted;
             controller.OnReloadCompleted -= HandleReloadCompleted;
             controller.OnReloadInterrupted -= HandleReloadInterrupted;
-            controller.OnWeaponEquipped -= HandleWeaponEquipped;
         }
 
         /// <summary>换枪交换点：加载新武器 clip 集并播出枪动画。</summary>
@@ -73,13 +71,17 @@ namespace Game.Presentation.Animation
                 _animancer.Play(_clips.Idle);
         }
 
-        /// <summary>切枪开始：收旧枪动画。</summary>
+        /// <summary>切枪开始：收旧枪动画。播完保持收枪末姿态直到交换点视图停用——
+        /// 若 OnEnd 回 Idle，旧枪会在交换点前"放下又拿起"（交换点=(holsterTime+drawTime)*0.5，
+        /// 长出枪武器如步枪 drawTime=1.37s 会把交换点拉后，空窗可达半秒）。
+        /// 交换被打断时由 OnWeaponEquipped→PlayDraw 重播出枪兜底。</summary>
         public void PlayHolster()
         {
             LoadClips();
             _playedBeforeStart = true;
-            if (_clipsReady && _clips.Holster != null)
-                PlayAction(_clips.Holster);
+            if (!_clipsReady) return;
+            if (_clips.Holster != null)
+                _animancer.Play(_clips.Holster, actionFadeSeconds, FadeMode.FromStart);
         }
 
         private void HandleShot(WeaponShot _) => PlayFire();
@@ -116,8 +118,6 @@ namespace Game.Presentation.Animation
 
         /// <summary>计时器到点即换弹完成（真相），动画未播完也强制回 Idle（架构 §6.5）。</summary>
         private void HandleReloadCompleted() => PlayIdle();
-
-        private void HandleWeaponEquipped(WeaponDefinition _) => PlayDraw();
 
         private void PlayIdle()
         {

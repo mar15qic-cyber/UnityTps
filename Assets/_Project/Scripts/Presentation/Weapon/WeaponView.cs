@@ -121,7 +121,7 @@ namespace Game.Presentation.Weapon
             string weapon = controller.Definition != null ? controller.Definition.DisplayName : "";
             GUI.Label(new Rect(Screen.width - 360f, Screen.height - 118f, 340f, 30f), weapon, _hintStyle);
             GUI.Label(new Rect(18f, 18f, 760f, 80f),
-                "LMB FIRE    R RELOAD    WASD MOVE    SHIFT SPRINT    1/2 SWITCH", _hintStyle);
+                "LMB FIRE    R RELOAD    WASD MOVE    SHIFT SPRINT    0-9 SWITCH", _hintStyle);
         }
 
         private void EnsureStyles()

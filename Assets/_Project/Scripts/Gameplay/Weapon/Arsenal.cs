@@ -7,7 +7,7 @@ namespace Game.Gameplay.Weapon
 {
     /// <summary>
     /// 武器槽位唯一写者（架构表A）：数字键选槽 → ActionSystem.SwitchWeapon 动作
-    /// （可打断 Reload，见打断矩阵）→ 计时器过半 EquipDefinition 交换武器 → 完成收尾。
+    /// （可打断 Reload，见打断矩阵）→ 收枪时长耗尽即 EquipDefinition 交换武器 → 完成收尾。
     /// 真相在 ActionSystem 计时器；动画只订阅事件做表现。
     /// </summary>
     [DefaultExecutionOrder(-60)]
@@ -17,7 +17,6 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private WeaponController controller;
         [SerializeField] private ActionSystem actionSystem;
         [SerializeField] private InputReader input;
-        [SerializeField, Range(0f, 1f)] private float swapProgressPoint = 0.5f;
         [SerializeField] private bool equipInitialWeaponOnStart = true;
 
         public int ActiveIndex { get; private set; } = -1;
@@ -26,7 +25,7 @@ namespace Game.Gameplay.Weapon
 
         /// <summary>切枪开始（旧武器收枪表现）。参数：旧武器、目标槽位。</summary>
         public event Action<WeaponDefinition, int> OnSwitchStarted;
-        /// <summary>计时器过半，武器已实际交换（唯一交换点）。参数：新武器。</summary>
+        /// <summary>收枪时长耗尽，武器已实际交换（唯一交换点）。参数：新武器。</summary>
         public event Action<WeaponDefinition> OnActiveWeaponChanged;
         /// <summary>切枪完整结束（新武器出枪完成）。</summary>
         public event Action<WeaponDefinition> OnSwitchCompleted;
@@ -35,6 +34,7 @@ namespace Game.Gameplay.Weapon
 
         private bool _swapped;
         private int _pendingIndex;
+        private float _swapElapsedThreshold;
 
         private void Awake()
         {
@@ -74,7 +74,9 @@ namespace Game.Gameplay.Weapon
             EvaluateSwap();
         }
 
-        /// <summary>交换点求值：计时器过半才真正换武器（前半收旧枪、后半出新枪）。与 ActionSystem.Tick 同款可测入口。</summary>
+        /// <summary>交换点求值：旧枪收枪时长耗尽即交换——新枪出枪恰好接续收枪完成帧，
+        /// 无空窗（按比例过半会在长出枪武器上把交换点推后，制造持收枪姿态的死区）。
+        /// 与 ActionSystem.Tick 同款可测入口。</summary>
         public void EvaluateSwap()
         {
             var actions = ResolveActionSystem();
@@ -82,7 +84,7 @@ namespace Game.Gameplay.Weapon
 
             if (actions.CurrentAction == PlayerActionType.SwitchWeapon
                 && !_swapped
-                && actions.NormalizedProgress >= swapProgressPoint)
+                && actions.Elapsed >= _swapElapsedThreshold)
             {
                 _swapped = true;
                 ActiveIndex = _pendingIndex;
@@ -110,11 +112,13 @@ namespace Game.Gameplay.Weapon
 
             if (slotIndex == ActiveIndex && actions.CurrentAction != PlayerActionType.SwitchWeapon) return false;
 
-            float duration = CurrentHolsterTime() + slots[slotIndex].DrawTime;
+            float holsterTime = CurrentHolsterTime();
+            float duration = holsterTime + slots[slotIndex].DrawTime;
             if (!actions.TryStart(PlayerActionType.SwitchWeapon, duration)) return false;
 
             _pendingIndex = slotIndex;
             _swapped = false;
+            _swapElapsedThreshold = holsterTime;
             OnSwitchStarted?.Invoke(ActiveWeapon, slotIndex);
             return true;
         }

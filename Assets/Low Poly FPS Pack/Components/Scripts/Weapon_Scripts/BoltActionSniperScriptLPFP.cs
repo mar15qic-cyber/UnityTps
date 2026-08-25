@@ -449,7 +449,7 @@ public class BoltActionSniperScriptLPFP : MonoBehaviour {
 					Spawnpoints.bulletSpawnPoint.transform.rotation);
 
 				//Add velocity to the bullet
-				bullet.GetComponent<Rigidbody>().velocity = 
+				bullet.GetComponent<Rigidbody>().linearVelocity = 
 					bullet.transform.forward * bulletForce;
 				
 				StartCoroutine (CasingDelay ());

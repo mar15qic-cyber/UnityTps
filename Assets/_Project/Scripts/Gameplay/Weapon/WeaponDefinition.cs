@@ -1,4 +1,5 @@
 using System;
+using Game.Gameplay.Movement;
 using UnityEngine;
 
 namespace Game.Gameplay.Weapon
@@ -68,6 +69,7 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private GameObject thirdPersonViewPrefab;
         [SerializeField] private WeaponAnimationSet firstPersonAnimations;
         [SerializeField] private TpLocomotionSet thirdPersonLocomotion;
+        [SerializeField] private RootMotionProfile thirdPersonRootMotionProfile;
         [SerializeField] private TpActionSet thirdPersonActions;
         [SerializeField, Min(0f)] private float drawTime = 0.6f;
         [SerializeField, Min(0f)] private float holsterTime = 0.5f;
@@ -79,6 +81,7 @@ namespace Game.Gameplay.Weapon
         public GameObject ThirdPersonViewPrefab => thirdPersonViewPrefab;
         public WeaponAnimationSet FirstPersonAnimations => firstPersonAnimations;
         public TpLocomotionSet ThirdPersonLocomotion => thirdPersonLocomotion;
+        public RootMotionProfile ThirdPersonRootMotionProfile => thirdPersonRootMotionProfile;
         public TpActionSet ThirdPersonActions => thirdPersonActions;
         public float DrawTime => drawTime;
         public float HolsterTime => holsterTime;

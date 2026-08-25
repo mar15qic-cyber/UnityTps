@@ -5,7 +5,9 @@ namespace Game.Presentation.Animation
 {
     /// <summary>
     /// TP 武器挂点 mesh 切换：订阅 Arsenal 交换点事件，把当前武器的
-    /// ThirdPersonViewPrefab 实例挂到角色 weapon 骨骼下（远端可见的武器外形）。
+    /// ThirdPersonViewPrefab 实例挂到右手骨骼下（远端可见的武器外形）。
+    /// 挂点局部偏移烘焙在各武器预制体根 Transform 上（LPFP 原厂约定：
+    /// 武器挂 hand_R + 每武器一个握把对齐偏移，本组件不覆盖该变换）。
     /// </summary>
     public sealed class TPWeaponMeshSwapper : MonoBehaviour
     {
@@ -22,7 +24,7 @@ namespace Game.Presentation.Animation
                 var anim = GetComponentInParent<Animator>();
                 if (anim != null)
                 {
-                    var bone = anim.GetBoneTransform(HumanBodyBones.Chest);
+                    var bone = anim.GetBoneTransform(HumanBodyBones.RightHand);
                     if (bone != null) weaponBone = bone;
                 }
             }
@@ -50,9 +52,13 @@ namespace Game.Presentation.Animation
         {
             if (weaponBone == null || definition?.ThirdPersonViewPrefab == null) return;
             if (_current != null) Destroy(_current);
+            // 握把对齐偏移保留在武器预制体根 Transform 上（Instantiate 挂到父骨骼时原样生效）
             _current = Instantiate(definition.ThirdPersonViewPrefab, weaponBone);
-            _current.transform.localPosition = Vector3.zero;
-            _current.transform.localRotation = Quaternion.identity;
+            // 武器与 TP 身体同层：本地主相机剔除 LocalPlayerBody（不渲染自己的 TP 武器），
+            // 远端代理渲染身体时武器随之可见。Instantiate 保留 prefab 层（Default），子节点不继承父骨骼层，须显式同步。
+            int bodyLayer = weaponBone.gameObject.layer;
+            foreach (var t in _current.GetComponentsInChildren<Transform>(true))
+                t.gameObject.layer = bodyLayer;
             _current.name = definition.ThirdPersonViewPrefab.name;
         }
     }

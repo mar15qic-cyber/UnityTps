@@ -7,6 +7,7 @@ namespace Game.Gameplay.Player
     /// 输入唯一采样点（架构表A）：所有玩家输入只经此组件读取，其余系统只读其属性。
     /// Day1 直接轮询设备；后续替换为 InputActionAsset 时对外接口保持不变。
     /// </summary>
+    [DefaultExecutionOrder(-300)]
     public class InputReader : MonoBehaviour
     {
         [SerializeField] private float jumpBufferTime = 0.15f;
@@ -36,6 +37,11 @@ namespace Game.Gameplay.Player
         public bool JumpQueued => _jumpBufferTimer > 0f;
 
         private float _jumpBufferTimer;
+        private uint _pressSequence;
+        private uint _wOrder;
+        private uint _sOrder;
+        private uint _aOrder;
+        private uint _dOrder;
 
         public void ConsumeJump() => _jumpBufferTimer = 0f;
 
@@ -51,11 +57,14 @@ namespace Game.Gameplay.Player
             SlotPressed = -1;
             if (kb == null) return;
 
-            var move = Vector2.zero;
-            if (kb.wKey.isPressed) move.y += 1f;
-            if (kb.sKey.isPressed) move.y -= 1f;
-            if (kb.dKey.isPressed) move.x += 1f;
-            if (kb.aKey.isPressed) move.x -= 1f;
+            if (kb.wKey.wasPressedThisFrame) _wOrder = ++_pressSequence;
+            if (kb.sKey.wasPressedThisFrame) _sOrder = ++_pressSequence;
+            if (kb.aKey.wasPressedThisFrame) _aOrder = ++_pressSequence;
+            if (kb.dKey.wasPressedThisFrame) _dOrder = ++_pressSequence;
+
+            var move = new Vector2(
+                ResolveOpposingAxis(kb.dKey.isPressed, _dOrder, kb.aKey.isPressed, _aOrder),
+                ResolveOpposingAxis(kb.wKey.isPressed, _wOrder, kb.sKey.isPressed, _sOrder));
             Move = Vector2.ClampMagnitude(move, 1f);
 
             Sprint = kb.leftShiftKey.isPressed;
@@ -65,6 +74,13 @@ namespace Game.Gameplay.Player
             if (kb.digit1Key.wasPressedThisFrame) SlotPressed = 0;
             else if (kb.digit2Key.wasPressedThisFrame) SlotPressed = 1;
             else if (kb.digit3Key.wasPressedThisFrame) SlotPressed = 2;
+            else if (kb.digit4Key.wasPressedThisFrame) SlotPressed = 3;
+            else if (kb.digit5Key.wasPressedThisFrame) SlotPressed = 4;
+            else if (kb.digit6Key.wasPressedThisFrame) SlotPressed = 5;
+            else if (kb.digit7Key.wasPressedThisFrame) SlotPressed = 6;
+            else if (kb.digit8Key.wasPressedThisFrame) SlotPressed = 7;
+            else if (kb.digit9Key.wasPressedThisFrame) SlotPressed = 8;
+            else if (kb.digit0Key.wasPressedThisFrame) SlotPressed = 9;
 
             _jumpBufferTimer -= Time.deltaTime;
 
@@ -75,6 +91,19 @@ namespace Game.Gameplay.Player
                 FireHeld = mouse.leftButton.isPressed;
                 FirePressed = mouse.leftButton.wasPressedThisFrame;
             }
+        }
+
+        private static float ResolveOpposingAxis(
+            bool positivePressed,
+            uint positiveOrder,
+            bool negativePressed,
+            uint negativeOrder)
+        {
+            if (positivePressed && negativePressed)
+                return positiveOrder >= negativeOrder ? 1f : -1f;
+            if (positivePressed) return 1f;
+            if (negativePressed) return -1f;
+            return 0f;
         }
     }
 }

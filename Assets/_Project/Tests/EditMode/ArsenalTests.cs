@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace Game.Gameplay.Tests
 {
     /// <summary>
-    /// Day3 切枪流：计时器真相、0.5 交换点、打断矩阵、弹药不回滚。
+    /// Day3 切枪流：计时器真相、收枪完成交换点（旧枪 holsterTime 耗尽即换，新枪出枪接续）、打断矩阵、弹药不回滚。
     /// EditMode 要点：AddComponent 不跑 Awake/Start/OnEnable（引用字段需反射解析）；
     /// SerializedObject 的 objectReferenceValue 对内存 SO 静默丢弃（值字段正常）——引用一律反射直写。
     /// </summary>
@@ -79,7 +79,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Switch_WeaponSwapsAtHalfProgress()
+        public void Switch_WeaponSwapsAtHolsterCompletion()
         {
             WeaponDefinition changed = null;
             _arsenal.OnActiveWeaponChanged += def => changed = def;
@@ -88,13 +88,13 @@ namespace Game.Gameplay.Tests
             Assert.That(_actions.CurrentAction, Is.EqualTo(PlayerActionType.SwitchWeapon));
             Assert.That(_actions.Duration, Is.EqualTo(1.0f).Within(0.001f), "总时长 = 旧枪 holster(0.4) + 新枪 draw(0.6)");
 
-            // 前半段（<0.5s）：不换
-            _actions.Tick(0.49f);
+            // 收枪未完成（<0.4s）：不换（此时若按比例过半需等到 0.5s，长出枪武器会产生空窗死区）
+            _actions.Tick(0.39f);
             _arsenal.EvaluateSwap();
             Assert.That(_controller.Definition, Is.SameAs(_pistol));
             Assert.That(changed, Is.Null);
 
-            // 过半（≥0.5s）：换（新 Runtime、新武器身份）
+            // 收枪耗尽（≥0.4s）：换（新 Runtime、新武器身份），新枪出枪恰好在收枪完成帧接续
             _actions.Tick(0.02f);
             _arsenal.EvaluateSwap();
             Assert.That(changed, Is.SameAs(_rifle));
@@ -102,6 +102,28 @@ namespace Game.Gameplay.Tests
             Assert.That(_controller.Runtime.MagazineSize, Is.EqualTo(30));
             Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(30), "新武器满弹匣");
             Assert.That(_arsenal.ActiveIndex, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Switch_LongDrawWeapon_SwapsAtHolsterTime_NotAtHalfProgress()
+        {
+            // 手枪(0.4收) → 长出枪步枪(1.6出)：总 2.0s，比例过半=1.0s，收枪完成=0.4s。
+            // 本测试锁定修复目标：交换点取 0.4s，避免 0.4~1.0s 持收枪姿态的死区。
+            var longRifle = NewWeapon("test.longrifle", 1.6f, 0.4f);
+            try
+            {
+                SetField(_arsenal, "slots", new[] { _pistol, longRifle });
+                Assert.That(_arsenal.TrySelectSlot(1), Is.True);
+                Assert.That(_actions.Duration, Is.EqualTo(2.0f).Within(0.001f));
+
+                _actions.Tick(0.4f);
+                _arsenal.EvaluateSwap();
+                Assert.That(_controller.Definition, Is.SameAs(longRifle), "收枪完成(0.4s)即交换，不等比例过半(1.0s)");
+            }
+            finally
+            {
+                Object.DestroyImmediate(longRifle);
+            }
         }
 
         [Test]
@@ -142,7 +164,7 @@ namespace Game.Gameplay.Tests
             Assert.That(_arsenal.TrySelectSlot(1), Is.True);
 
             // 交换点之后被打断：保留新武器（与换弹被打断不回滚弹药同理）
-            _actions.Tick(0.5f);
+            _actions.Tick(0.45f);
             _arsenal.EvaluateSwap();
             Assert.That(_controller.Definition, Is.SameAs(_rifle));
 

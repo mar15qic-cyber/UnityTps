@@ -760,7 +760,7 @@ public class PumpShotgunScriptLPFP : MonoBehaviour {
 						Spawnpoints.bulletSpawnPoint [i].transform.rotation);
 
 					//Add velocity to the bullets
-					bullet.GetComponent<Rigidbody>().velocity = 
+					bullet.GetComponent<Rigidbody>().linearVelocity = 
 						bullet.transform.forward * bulletForce;
 				}
 
