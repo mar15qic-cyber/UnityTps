@@ -53,3 +53,4 @@ MonoBehaviour:
     ReloadOutOfAmmo: {fileID: 7400028, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
   drawTime: 0.533
   holsterTime: 0.4
+  audioProfile: {fileID: 11400000, guid: 1d1c9c40a3a8df640913796cac66eaef, type: 2}

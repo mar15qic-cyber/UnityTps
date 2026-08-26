@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799a8f0838ccf2e4e90a31c7967a4c2d, type: 3}
+  m_Name: AudioProfile_Handgun
+  m_EditorClassIdentifier: 
+  FireVariants:
+  - Clip: {fileID: 8300000, guid: 38b450e2adcb6f542acc8c1d423bd8dc, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
+  DryFire:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  ReloadAmmoLeft:
+    Clip: {fileID: 8300000, guid: b0d51244fd32fc647960320540b32f66, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
+  ReloadOutOfAmmo:
+    Clip: {fileID: 8300000, guid: fee3a21f251a4914cabce25b13e7d2a8, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
+  MagOut:
+    Clip: {fileID: 0}
+    NormalizedTime: 0
+  MagIn:
+    Clip: {fileID: 0}
+    NormalizedTime: 0
+  BoltRack:
+    Clip: {fileID: 0}
+    NormalizedTime: 0
+  Draw:
+    Clip: {fileID: 8300000, guid: 2ae41e984ff1f3e4a840a1a46b6a8816, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
+  Holster:
+    Clip: {fileID: 8300000, guid: 33a4a9bf1a1dbca4cb379a1118c6b20d, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
+  WeaponSwitch:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  ShellEject:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  Pump:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  SniperBolt:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  Jam:
+    Clip: {fileID: 0}
+    VolumeRange: {x: 0, y: 0}
+    PitchRange: {x: 0, y: 0}
+  MixerGroup: {fileID: 0}
+  SpatialBlend: 0

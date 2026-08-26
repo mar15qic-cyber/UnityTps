@@ -23,6 +23,32 @@ MonoBehaviour:
       Spread: 0.25
       MaxRange: 120
       AdsFov: 50
+      Recoil:
+        PitchDeg: 0.8
+        YawDeg: 0.25
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: rifle.day3
     Stat:
       Damage: 26
@@ -33,6 +59,32 @@ MonoBehaviour:
       Spread: 1.2
       MaxRange: 150
       AdsFov: 45
+      Recoil:
+        PitchDeg: 1.1
+        YawDeg: 0.3
+        FirstShotMultiplier: 1.25
+        Accumulation: 1.15
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 6
+        SpringFrequency: 9
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.3
+        ViewModelKickBack: 0.045
+        ViewModelKickPitch: 4
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.2
+        BaseAdsSpread: 0.3
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        ShotBloomPerShot: 0.22
+        MaxBloom: 2.5
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: handgun.02
     Stat:
       Damage: 30
@@ -43,6 +95,32 @@ MonoBehaviour:
       Spread: 0.4
       MaxRange: 100
       AdsFov: 50
+      Recoil:
+        PitchDeg: 0.9
+        YawDeg: 0.3
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.22
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3.2
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.4
+        BaseAdsSpread: 0.12
+        MovementSpreadMax: 0.9
+        SprintSpreadExtra: 1.2
+        ShotBloomPerShot: 0.4
+        MaxBloom: 2.2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: rifle.02
     Stat:
       Damage: 24
@@ -53,6 +131,32 @@ MonoBehaviour:
       Spread: 1
       MaxRange: 140
       AdsFov: 45
+      Recoil:
+        PitchDeg: 1
+        YawDeg: 0.3
+        FirstShotMultiplier: 1.25
+        Accumulation: 1.15
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 6
+        SpringFrequency: 9
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.3
+        ViewModelKickBack: 0.042
+        ViewModelKickPitch: 3.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1
+        BaseAdsSpread: 0.28
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        ShotBloomPerShot: 0.2
+        MaxBloom: 2.5
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: rifle.03
     Stat:
       Damage: 28
@@ -63,6 +167,32 @@ MonoBehaviour:
       Spread: 0.8
       MaxRange: 150
       AdsFov: 45
+      Recoil:
+        PitchDeg: 1.2
+        YawDeg: 0.35
+        FirstShotMultiplier: 1.25
+        Accumulation: 1.15
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 6
+        SpringFrequency: 9
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.32
+        ViewModelKickBack: 0.05
+        ViewModelKickPitch: 4.2
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.8
+        BaseAdsSpread: 0.25
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        ShotBloomPerShot: 0.2
+        MaxBloom: 2.5
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: smg.01
     Stat:
       Damage: 18
@@ -73,6 +203,32 @@ MonoBehaviour:
       Spread: 1.8
       MaxRange: 90
       AdsFov: 50
+      Recoil:
+        PitchDeg: 0.7
+        YawDeg: 0.45
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.8
+        BaseAdsSpread: 0.5
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: smg.02
     Stat:
       Damage: 20
@@ -83,6 +239,32 @@ MonoBehaviour:
       Spread: 1.6
       MaxRange: 95
       AdsFov: 50
+      Recoil:
+        PitchDeg: 0.65
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.028
+        ViewModelKickPitch: 2.6
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.6
+        BaseAdsSpread: 0.45
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: shotgun.01
     Stat:
       Damage: 60
@@ -93,6 +275,32 @@ MonoBehaviour:
       Spread: 3.5
       MaxRange: 40
       AdsFov: 55
+      Recoil:
+        PitchDeg: 2.6
+        YawDeg: 0.6
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.5
+        BaseAdsSpread: 1.5
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
   - WeaponId: sniper.01
     Stat:
       Damage: 95
@@ -103,6 +311,32 @@ MonoBehaviour:
       Spread: 0.05
       MaxRange: 300
       AdsFov: 20
+      Recoil:
+        PitchDeg: 2.8
+        YawDeg: 0.2
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
   - WeaponId: sniper.02
     Stat:
       Damage: 110
@@ -113,3 +347,29 @@ MonoBehaviour:
       Spread: 0.03
       MaxRange: 350
       AdsFov: 15
+      Recoil:
+        PitchDeg: 3
+        YawDeg: 0.15
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.1
+        ViewModelKickPitch: 8.5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.03
+        BaseAdsSpread: 0.01
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0

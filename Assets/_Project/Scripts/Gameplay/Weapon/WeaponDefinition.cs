@@ -73,6 +73,8 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private TpActionSet thirdPersonActions;
         [SerializeField, Min(0f)] private float drawTime = 0.6f;
         [SerializeField, Min(0f)] private float holsterTime = 0.5f;
+        [Tooltip("音频配置（CP3）：族共享 Profile；空 = 无音频（CP6 前 WeaponAudioView 静默）")]
+        [SerializeField] private WeaponAudioProfile audioProfile;
 
         public string WeaponId => weaponId;
         public string DisplayName => displayName;
@@ -85,5 +87,6 @@ namespace Game.Gameplay.Weapon
         public TpActionSet ThirdPersonActions => thirdPersonActions;
         public float DrawTime => drawTime;
         public float HolsterTime => holsterTime;
+        public WeaponAudioProfile AudioProfile => audioProfile;
     }
 }
