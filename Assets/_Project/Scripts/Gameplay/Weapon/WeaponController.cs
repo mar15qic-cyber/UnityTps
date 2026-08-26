@@ -22,6 +22,12 @@ namespace Game.Gameplay.Weapon
     }
 
     /// <summary>武器运行时的唯一写者。只发 gameplay 事件，不操作 Animator、特效或 HUD。</summary>
+    /// <remarks>
+    /// CP2 瞄准权威（Docs/13 §5.3-1）：FireRay 与相机中心射线同源同线——
+    /// AimOrigin = CameraPivot.position（头部权威挂点，不取 Brain 驱动的 Main Camera 位置）；
+    /// AimDirection = CameraPivot.rotation × WeaponRecoilState.CurrentOffset（后坐弹簧唯一存在处，
+    /// CmFPCameraRecoil 只是该 Offset 的视觉回声）。射线不再经过任何 CM 修正（sway/bob 等扩展）。
+    /// </remarks>
     [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(ActionSystem), typeof(CombatResolver))]
     public sealed class WeaponController : MonoBehaviour
@@ -31,15 +37,30 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private InputReader input;
         [SerializeField] private ActionSystem actionSystem;
         [SerializeField] private CombatResolver combatResolver;
-        [SerializeField] private Camera aimCamera;
+        [Tooltip("瞄准权威挂点（CameraPivot，头部 y=1.62）。射线原点与前向基准取自它，而非最终相机。")]
+        [SerializeField] private Transform aimPivot;
         [SerializeField] private LayerMask hitMask = ~0;
         [SerializeField] private bool processLocalInput = true;
+
+        [Header("CP2 过渡后坐参数（等价自旧 CmFPCameraRecoil 硬编码；CP4 迁入 WeaponStat）")]
+        [SerializeField, Min(0f)] private float recoilPitchKickDegrees = 1.1f;
+        [SerializeField, Min(0f)] private float recoilYawKickDegrees = 0.3f;
+        [SerializeField, Min(0.1f)] private float recoilSpringFrequency = 9f;
+        [SerializeField, Range(0.1f, 1f)] private float recoilSpringDamping = 0.75f;
 
         public WeaponDefinition Definition => definition;
         public WeaponRuntime Runtime { get; private set; }
         public WeaponStat Stat { get; private set; }
         public ActionSystem Actions => actionSystem;
         public bool IsInitialized => Runtime != null;
+
+        /// <summary>当前瞄准偏移（度，x=pitch/y=yaw）。CmFPCameraRecoil 回声与 FireRay 共用（恒等约束）。</summary>
+        public Vector2 CurrentRecoilOffset => _recoil.CurrentOffset;
+        /// <summary>权威射线原点：CameraPivot 头位（与 Brain 硬锁后的相机位置一致）。</summary>
+        public Vector3 AimOrigin => aimPivot != null ? aimPivot.position : transform.position;
+        /// <summary>权威瞄准方向：pivot 旋转 × 后坐偏移。开火射线与相机最终朝向同源。</summary>
+        public Vector3 AimDirection => (aimPivot != null ? aimPivot.rotation : transform.rotation)
+            * _recoil.OffsetRotation * Vector3.forward;
 
         public event System.Action<WeaponShot> OnShotFired;
         public event System.Action OnDryFire;
@@ -50,13 +71,21 @@ namespace Game.Gameplay.Weapon
         public event System.Action<WeaponDefinition> OnWeaponEquipped;
 
         private IBalanceConfig _balance;
+        private WeaponRecoilState _recoil = new();
 
         private void Awake()
         {
             if (input == null) input = GetComponentInParent<InputReader>();
             if (actionSystem == null) actionSystem = GetComponent<ActionSystem>();
             if (combatResolver == null) combatResolver = GetComponent<CombatResolver>();
-            if (aimCamera == null) aimCamera = Camera.main;
+            if (aimPivot == null)
+            {
+                // 兜底：CameraPivot 是 Main Camera 的父级（Player prefab 结构）；无相机时退回自身。
+                var mainCam = UnityEngine.Camera.main;
+                aimPivot = mainCam != null && mainCam.transform.parent != null
+                    ? mainCam.transform.parent
+                    : transform;
+            }
             _balance = balanceConfigAsset as IBalanceConfig;
         }
 
@@ -89,6 +118,7 @@ namespace Game.Gameplay.Weapon
         {
             if (Runtime == null) return;
             Runtime.Tick(Time.deltaTime);
+            _recoil.Tick(Time.deltaTime, recoilSpringFrequency, recoilSpringDamping);
             if (Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.SyncReloadRemaining(actionSystem.Remaining);
 
@@ -113,6 +143,8 @@ namespace Game.Gameplay.Weapon
             if (next == null) throw new ArgumentNullException(nameof(next));
             if (Runtime != null && Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.CancelReload();
+            // 切枪硬重置：后坐弹簧归零（Docs/13 §5.3-4；停火/换弹不重置，自然恢复）
+            _recoil.HardReset();
             Initialize(next, _balance);
             OnWeaponEquipped?.Invoke(next);
         }
@@ -127,14 +159,20 @@ namespace Game.Gameplay.Weapon
             }
 
             Runtime.StartCooldown(60f / Mathf.Max(1, Stat.Rpm));
-            var ray = aimCamera != null
-                ? aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f))
-                : new Ray(transform.position, transform.forward);
-            Vector3 direction = ApplySpread(ray.direction, Stat.Spread);
-            var result = combatResolver.ResolveHitscan(
-                ray.origin, direction, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
 
-            OnShotFired?.Invoke(new WeaponShot(ray.origin, direction, result));
+            // CP2 瞄准权威五步顺序（Docs/13 §5.3-5）：
+            // ① 用开火前状态算本发弹道：AimOrigin/Direction 取 CameraPivot×当前后坐偏移（未含本发冲量）
+            Vector3 origin = AimOrigin;
+            Vector3 aimDirection = AimDirection;
+            Vector3 direction = ApplySpread(aimDirection, Stat.Spread);
+            // ② 命中结算
+            var result = combatResolver.ResolveHitscan(
+                origin, direction, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+            // ③ Bloom 累计（CP4 接入 WeaponAccuracyState，本检查点无操作）
+            // ④ 后坐冲量（影响下一发；弹道方向已在 ① 取定）
+            _recoil.OnShot(recoilPitchKickDegrees, recoilYawKickDegrees, recoilSpringFrequency);
+            // ⑤ 广播，表现层消费同一份结果
+            OnShotFired?.Invoke(new WeaponShot(origin, direction, result));
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             return true;
         }

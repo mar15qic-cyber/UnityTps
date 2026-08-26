@@ -11,8 +11,10 @@ namespace Game.Presentation.Camera
     /// Day4 第一人称武器 viewmodel 动效（FP_Weapon_Root 本地姿态唯一写者）：
     /// sway（鼠标反向滞后）/ bob（与相机共用 GaitPhase，步频一致）/ breathing（Idle）/
     /// recoil（开火后坐：后移+上抬，弹簧回中）/ ADS（枪口自动对准屏幕中心的程序化瞄准姿态）。
-    /// ADS 姿态在换枪时按当前激活视图的 Muzzle 自动推导（把枪口平移到 FP View Camera
-    /// 视口中心线），后续如需逐武器精调可改由 WeaponDefinition 提供覆盖值。
+    /// CP2 起 viewmodel 独自承担全部位置/旋转手感——相机侧 Sway/Bob 组件已删除、
+    /// Breathing 位置通道已按 Docs/13 §5.3-2 迁移（相机零位置修正，保 FireRay 与
+    /// 屏幕中心射线同线），本组件的 sway/bob/breathing 即全部剩余观感来源。
+    /// ADS 姿态在换枪时按当前激活视图的 SightReference/Muzzle 自动推导。
     /// 只写本 Transform 的本地位置/旋转，不触碰 Gameplay。
     /// </summary>
     [DefaultExecutionOrder(20)]

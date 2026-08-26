@@ -109,9 +109,13 @@ namespace Game.Gameplay.Tests
         {
             // 手枪(0.4收) → 长出枪步枪(1.6出)：总 2.0s，比例过半=1.0s，收枪完成=0.4s。
             // 本测试锁定修复目标：交换点取 0.4s，避免 0.4~1.0s 持收枪姿态的死区。
+            // 注：longRifle 需要数值条目——EquipDefinition→Initialize 按 weaponId 查表，
+            // 缺条目 LogError 会使 EditMode 测试失败（CP2 补齐，预存缺陷）。
             var longRifle = NewWeapon("test.longrifle", 1.6f, 0.4f);
+            var balance3 = NewBalance(("test.pistol", 34, 12, 48, 1.35f), ("test.rifle", 26, 30, 120, 2.2f), ("test.longrifle", 26, 30, 120, 2.2f));
             try
             {
+                _controller.Initialize(_pistol, balance3); // 换三武器数值表（含 longrifle）
                 SetField(_arsenal, "slots", new[] { _pistol, longRifle });
                 Assert.That(_arsenal.TrySelectSlot(1), Is.True);
                 Assert.That(_actions.Duration, Is.EqualTo(2.0f).Within(0.001f));
@@ -123,6 +127,7 @@ namespace Game.Gameplay.Tests
             finally
             {
                 Object.DestroyImmediate(longRifle);
+                Object.DestroyImmediate(balance3);
             }
         }
 

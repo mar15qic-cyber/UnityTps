@@ -742,8 +742,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cinemachineCamera: {fileID: 1401204788}
+  aimState: {fileID: 1370295988}
   hipFov: 60
-  adsTransitionSeconds: 0.16
 --- !u!114 &334710563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2056,7 +2056,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1278647793941249110, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.358
+      value: -0.299
       objectReference: {fileID: 0}
     - target: {fileID: 1669561635355348179, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
       propertyPath: m_Enabled
@@ -2168,6 +2168,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 278442313}
   m_SourcePrefab: {fileID: 100100000, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
+--- !u!114 &1370295988 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3363524389732625157, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
+  m_PrefabInstance: {fileID: 1370295987}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 025e77eae6e47c44cb00dbac486b8901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1401204780
 GameObject:
   m_ObjectHideFlags: 0
@@ -2180,8 +2191,6 @@ GameObject:
   - component: {fileID: 1401204788}
   - component: {fileID: 1401204787}
   - component: {fileID: 1401204786}
-  - component: {fileID: 1401204785}
-  - component: {fileID: 1401204784}
   - component: {fileID: 1401204783}
   - component: {fileID: 1401204782}
   m_Layer: 0
@@ -2218,10 +2227,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c806acde10ac364aaf0b3135477755a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  kickPitchDegrees: 1.1
-  kickYawDegrees: 0.3
-  springFrequency: 9
-  dampingRatio: 0.75
 --- !u!114 &1401204783
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2235,43 +2240,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cyclesPerSecond: 0.28
-  verticalAmplitude: 0.006
   rollDegrees: 0.1
   settleSeconds: 0.4
---- !u!114 &1401204784
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1401204780}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a25497f7e4731b646bf9849d9a3769fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  verticalAmplitude: 0.028
-  lateralAmplitude: 0.018
-  referenceSpeed: 3.44
-  settleSeconds: 0.15
-  adsDamping: 0.75
---- !u!114 &1401204785
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1401204780}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e1856e31d6e9664a83e231320cafdda, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  yawDegreesPerPixel: 0.02
-  pitchDegreesPerPixel: 0.014
-  maxDegrees: 2.2
-  smoothingSeconds: 0.09
-  adsDamping: 0.7
 --- !u!114 &1401204786
 MonoBehaviour:
   m_ObjectHideFlags: 0

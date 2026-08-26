@@ -17,6 +17,8 @@ GameObject:
   - component: {fileID: 855243591563818381}
   - component: {fileID: 6818082484072410924}
   - component: {fileID: 1812796085846998161}
+  - component: {fileID: 3363524389732625157}
+  - component: {fileID: 76528896329180648}
   m_Layer: 0
   m_Name: Player_Day2_Rebuilt
   m_TagString: Player
@@ -144,11 +146,15 @@ MonoBehaviour:
   input: {fileID: 2494146238021465283}
   actionSystem: {fileID: 2146627187524351515}
   combatResolver: {fileID: 3526661773904797485}
-  aimCamera: {fileID: 6410670699039346199}
+  aimPivot: {fileID: 5618196239438535339}
   hitMask:
     serializedVersion: 2
     m_Bits: 55
   processLocalInput: 1
+  recoilPitchKickDegrees: 1.1
+  recoilYawKickDegrees: 0.3
+  recoilSpringFrequency: 9
+  recoilSpringDamping: 0.75
 --- !u!114 &6818082484072410924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -191,6 +197,34 @@ MonoBehaviour:
   locomotor: {fileID: 0}
   actionSystem: {fileID: 0}
   weaponController: {fileID: 0}
+--- !u!114 &3363524389732625157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 76916340750071695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 025e77eae6e47c44cb00dbac486b8901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  adsTransitionSeconds: 0.16
+--- !u!114 &76528896329180648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 76916340750071695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b3f9a2c81d4e5f7a901c3e8452d7f60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aimState: {fileID: 3363524389732625157}
+  locomotor: {fileID: 4254005646773817214}
+  sprintReferenceSpeed: 3.44
 --- !u!1 &2554193943839985104
 GameObject:
   m_ObjectHideFlags: 0
