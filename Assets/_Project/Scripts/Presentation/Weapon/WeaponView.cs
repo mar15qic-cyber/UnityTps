@@ -1,5 +1,4 @@
 using Game.Gameplay.Weapon;
-using Game.Presentation.Camera;
 using UnityEngine;
 
 namespace Game.Presentation.Weapon
@@ -46,16 +45,11 @@ namespace Game.Presentation.Weapon
         private Material _tracerMaterial;
         private float _tracerTimer;
         private float _flashTimer;
-        private float _hitMarkerTimer;
-        private GUIStyle _ammoStyle;
-        private GUIStyle _hintStyle;
-        private FPCameraRig _cameraRig;
 
         private void Awake()
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
             if (muzzle == null) muzzle = transform;
-            _cameraRig = GetComponentInParent<FPCameraRig>();
             BuildEffects();
         }
 
@@ -82,7 +76,6 @@ namespace Game.Presentation.Weapon
         {
             _tracerTimer -= Time.deltaTime;
             _flashTimer -= Time.deltaTime;
-            _hitMarkerTimer -= Time.deltaTime;
             if (_tracer != null) _tracer.enabled = _tracerTimer > 0f;
             if (_muzzleLight != null) _muzzleLight.enabled = _flashTimer > 0f;
         }
@@ -116,7 +109,7 @@ namespace Game.Presentation.Weapon
             SpawnMuzzleFlash();
             SpawnShellCasing();
             SpawnImpact(shot);
-            if (shot.Result.Damaged) _hitMarkerTimer = 0.12f;
+            // 命中标记已迁 CrosshairPresenter（CP5）；本组件只剩武器表现
         }
 
         private void HandleDryFire() => _flashTimer = 0f;
@@ -208,50 +201,7 @@ namespace Game.Presentation.Weapon
             _muzzleLight.enabled = false;
         }
 
-        private void OnGUI()
-        {
-            if (controller == null || !controller.IsInitialized) return;
-            EnsureStyles();
-
-            float cx = Screen.width * 0.5f;
-            float cy = Screen.height * 0.5f;
-            // ADS 时枪瞄具对准屏幕中心，程序准星隐藏
-            bool showCrosshair = _cameraRig == null || _cameraRig.AdsBlend < 0.5f;
-            if (showCrosshair)
-            {
-                GUI.DrawTexture(new Rect(cx - 8f, cy - 1f, 16f, 2f), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(cx - 1f, cy - 8f, 2f, 16f), Texture2D.whiteTexture);
+                // CP5：准心/命中标记/弹药/操作提示已全部迁出 OnGUI → uGUI MVC
+                //（CrosshairPresenter/View + WeaponHudView，Docs/13 检查点 5）。OnGUI 及样式字段删除。
             }
-            if (_hitMarkerTimer > 0f)
-            {
-                GUI.Label(new Rect(cx - 20f, cy - 22f, 40f, 40f), "×", _ammoStyle);
-            }
-
-            var runtime = controller.Runtime;
-            string ammo = $"{runtime.CurrentAmmo:00} / {runtime.ReserveAmmo:000}";
-            if (runtime.State == WeaponRuntimeState.Reloading)
-                ammo += $"  RELOAD {controller.Actions.NormalizedProgress * 100f:0}%";
-            GUI.Label(new Rect(Screen.width - 360f, Screen.height - 80f, 340f, 50f), ammo, _ammoStyle);
-            string weapon = controller.Definition != null ? controller.Definition.DisplayName : "";
-            GUI.Label(new Rect(Screen.width - 360f, Screen.height - 118f, 340f, 30f), weapon, _hintStyle);
-            GUI.Label(new Rect(18f, 18f, 760f, 80f),
-                "LMB FIRE    RMB ADS    R RELOAD    WASD MOVE    SHIFT SPRINT    0-9 SWITCH", _hintStyle);
         }
-
-        private void EnsureStyles()
-        {
-            if (_ammoStyle != null) return;
-            _ammoStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 26,
-                alignment = TextAnchor.MiddleRight,
-                normal = { textColor = Color.white }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 16,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.85f) }
-            };
-        }
-    }
-}

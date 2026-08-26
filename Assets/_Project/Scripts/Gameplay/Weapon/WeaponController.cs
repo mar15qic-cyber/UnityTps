@@ -7,26 +7,48 @@ using UnityEngine;
 
 namespace Game.Gameplay.Weapon
 {
+    /// <summary>
+    /// 单发开火载荷：全部表现（Tracer/火光/TP/动画/准心 Bloom/音频）消费同一份。
+    /// CP4 扩展（Docs/13 §5.2）：FinalSpreadDegrees/Recoil/ShotIndex/Seed/Pellets。
+    /// Pellets：单发武器为 null；Shotgun 每次开火独立分配（上限 16，不池化——readonly 载荷内
+    /// 复用数组会让订阅者读到被改写数据，§5.3-10）。主 Result=首个 Damaged，否则首个 Hit，
+    /// 否则主 pellet 未命中终点。
+    /// </summary>
     public readonly struct WeaponShot
     {
         public readonly Vector3 Origin;
         public readonly Vector3 Direction;
         public readonly HitscanResult Result;
+        public readonly float FinalSpreadDegrees;      // 本发合成散布锥角（不含 PelletSpread）
+        public readonly ShotRecoilResult Recoil;       // 本发后坐（相机回声/Viewmodel/Shake 同源）
+        public readonly int ShotIndex;                 // burst 内 0 基序号
+        public readonly int Seed;                      // 随机种子快照（网络回放预留）
+        public readonly HitscanResult[] Pellets;       // null=单发；Shotgun=全弹丸结果
 
         public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result)
+            : this(origin, direction, result, 0f, default, 0, 0, null) { }
+
+        public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result,
+            float finalSpreadDegrees, ShotRecoilResult recoil, int shotIndex, int seed,
+            HitscanResult[] pellets)
         {
             Origin = origin;
             Direction = direction;
             Result = result;
+            FinalSpreadDegrees = finalSpreadDegrees;
+            Recoil = recoil;
+            ShotIndex = shotIndex;
+            Seed = seed;
+            Pellets = pellets;
         }
     }
 
     /// <summary>武器运行时的唯一写者。只发 gameplay 事件，不操作 Animator、特效或 HUD。</summary>
     /// <remarks>
-    /// CP2 瞄准权威（Docs/13 §5.3-1）：FireRay 与相机中心射线同源同线——
-    /// AimOrigin = CameraPivot.position（头部权威挂点，不取 Brain 驱动的 Main Camera 位置）；
-    /// AimDirection = CameraPivot.rotation × WeaponRecoilState.CurrentOffset（后坐弹簧唯一存在处，
-    /// CmFPCameraRecoil 只是该 Offset 的视觉回声）。射线不再经过任何 CM 修正（sway/bob 等扩展）。
+    /// 瞄准权威（Docs/13 §5.3-1）：FireRay 与相机中心射线同源同线——AimOrigin=CameraPivot；
+    /// AimDirection=pivot×WeaponRecoilState.CurrentOffset（弹簧唯一存在处，相机仅回声）。
+    /// CP4：五步顺序消费 ResolvedWeaponStats + WeaponFireContext；散布走 WeaponAccuracyState
+    /// 动态合成（腰射/ADS/移动/冲刺/Bloom）；Shotgun 多弹丸聚合后单次广播；随机源可播种。
     /// </remarks>
     [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(ActionSystem), typeof(CombatResolver))]
@@ -39,14 +61,10 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private CombatResolver combatResolver;
         [Tooltip("瞄准权威挂点（CameraPivot，头部 y=1.62）。射线原点与前向基准取自它，而非最终相机。")]
         [SerializeField] private Transform aimPivot;
+        [Tooltip("开火情境快照提供者（PlayerAimState+Locomotor 聚合）；空=Default（静止腰射）")]
+        [SerializeField] private WeaponFireContextProvider fireContextProvider;
         [SerializeField] private LayerMask hitMask = ~0;
         [SerializeField] private bool processLocalInput = true;
-
-        [Header("CP2 过渡后坐参数（等价自旧 CmFPCameraRecoil 硬编码；CP4 迁入 WeaponStat）")]
-        [SerializeField, Min(0f)] private float recoilPitchKickDegrees = 1.1f;
-        [SerializeField, Min(0f)] private float recoilYawKickDegrees = 0.3f;
-        [SerializeField, Min(0.1f)] private float recoilSpringFrequency = 9f;
-        [SerializeField, Range(0.1f, 1f)] private float recoilSpringDamping = 0.75f;
 
         public WeaponDefinition Definition => definition;
         public WeaponRuntime Runtime { get; private set; }
@@ -54,13 +72,17 @@ namespace Game.Gameplay.Weapon
         public ActionSystem Actions => actionSystem;
         public bool IsInitialized => Runtime != null;
 
-        /// <summary>当前瞄准偏移（度，x=pitch/y=yaw）。CmFPCameraRecoil 回声与 FireRay 共用（恒等约束）。</summary>
+        /// <summary>解析后数值（唯一持有者；Initialize/EquipDefinition 重算，CP4 起为消费源）。</summary>
+        public ResolvedWeaponStats Resolved { get; private set; }
+        /// <summary>当前瞄准偏移（度）。CmFPCameraRecoil 回声与 FireRay 共用（恒等约束）。</summary>
         public Vector2 CurrentRecoilOffset => _recoil.CurrentOffset;
-        /// <summary>权威射线原点：CameraPivot 头位（与 Brain 硬锁后的相机位置一致）。</summary>
+        /// <summary>权威射线原点：CameraPivot 头位。</summary>
         public Vector3 AimOrigin => aimPivot != null ? aimPivot.position : transform.position;
-        /// <summary>权威瞄准方向：pivot 旋转 × 后坐偏移。开火射线与相机最终朝向同源。</summary>
+        /// <summary>权威瞄准方向：pivot 旋转 × 后坐偏移。</summary>
         public Vector3 AimDirection => (aimPivot != null ? aimPivot.rotation : transform.rotation)
             * _recoil.OffsetRotation * Vector3.forward;
+        /// <summary>当前合成散布锥角（度）——弹道与准心 HUD 的同一数据源。</summary>
+        public float CurrentSpreadDegrees => _accuracy.CurrentSpread(FireContext, Resolved);
 
         public event System.Action<WeaponShot> OnShotFired;
         public event System.Action OnDryFire;
@@ -72,12 +94,19 @@ namespace Game.Gameplay.Weapon
 
         private IBalanceConfig _balance;
         private WeaponRecoilState _recoil = new();
+        private readonly WeaponAccuracyState _accuracy = new();
+        private System.Random _random = new();     // 可播种（seed=0 随机）；弹道散布唯一随机源
+        private int _seed;
+
+        private WeaponFireContext FireContext
+            => fireContextProvider != null ? fireContextProvider.Context : WeaponFireContext.Default;
 
         private void Awake()
         {
             if (input == null) input = GetComponentInParent<InputReader>();
             if (actionSystem == null) actionSystem = GetComponent<ActionSystem>();
             if (combatResolver == null) combatResolver = GetComponent<CombatResolver>();
+            if (fireContextProvider == null) fireContextProvider = GetComponentInParent<WeaponFireContextProvider>();
             if (aimPivot == null)
             {
                 // 兜底：CameraPivot 是 Main Camera 的父级（Player prefab 结构）；无相机时退回自身。
@@ -117,8 +146,10 @@ namespace Game.Gameplay.Weapon
         private void Update()
         {
             if (Runtime == null) return;
-            Runtime.Tick(Time.deltaTime);
-            _recoil.Tick(Time.deltaTime, recoilSpringFrequency, recoilSpringDamping);
+            float dt = Time.deltaTime;
+            Runtime.Tick(dt);
+            _recoil.Tick(dt, Resolved);
+            _accuracy.Tick(dt, Resolved);
             if (Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.SyncReloadRemaining(actionSystem.Remaining);
 
@@ -133,20 +164,29 @@ namespace Game.Gameplay.Weapon
             definition = weaponDefinition != null ? weaponDefinition : throw new ArgumentNullException(nameof(weaponDefinition));
             _balance = balance ?? throw new ArgumentNullException(nameof(balance));
             Stat = _balance.GetWeaponStat(definition.WeaponId);
+            Resolved = WeaponStatResolver.Resolve(Stat, null);   // Modifier 来源 Day4 无；接口就绪
             Runtime = new WeaponRuntime(Stat.MagSize, Stat.ReserveAmmo);
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
         }
 
-        /// <summary>切枪中途换装（Arsenal 在交换点调用）：重置运行时并广播，供 FP/TP 表现切换视图与动画集。</summary>
+        /// <summary>切枪中途换装（Arsenal 在交换点调用）：硬重置运行时并广播，供 FP/TP 表现切换。</summary>
         public void EquipDefinition(WeaponDefinition next)
         {
             if (next == null) throw new ArgumentNullException(nameof(next));
             if (Runtime != null && Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.CancelReload();
-            // 切枪硬重置：后坐弹簧归零（Docs/13 §5.3-4；停火/换弹不重置，自然恢复）
+            // 硬重置（Docs/13 §5.3-4）：仅切枪；停火/换弹自然恢复
             _recoil.HardReset();
+            _accuracy.HardReset();
             Initialize(next, _balance);
             OnWeaponEquipped?.Invoke(next);
+        }
+
+        /// <summary>注入随机种子（测试/网络回放）；seed=0 恢复随机。</summary>
+        public void SetRandomSeed(int seed)
+        {
+            _seed = seed;
+            _random = seed == 0 ? new System.Random() : new System.Random(seed);
         }
 
         public bool TryFire()
@@ -160,19 +200,45 @@ namespace Game.Gameplay.Weapon
 
             Runtime.StartCooldown(60f / Mathf.Max(1, Stat.Rpm));
 
-            // CP2 瞄准权威五步顺序（Docs/13 §5.3-5）：
-            // ① 用开火前状态算本发弹道：AimOrigin/Direction 取 CameraPivot×当前后坐偏移（未含本发冲量）
+            // 五步顺序（Docs/13 §5.3-5）
+            // ① 开火前状态算弹道：权威瞄准 + 动态散布锥（腰射/ADS/移动/冲刺/Bloom 均已合成）
+            var ctx = FireContext;
+            float spreadDeg = _accuracy.CurrentSpread(ctx, Resolved);
             Vector3 origin = AimOrigin;
             Vector3 aimDirection = AimDirection;
-            Vector3 direction = ApplySpread(aimDirection, Stat.Spread);
-            // ② 命中结算
-            var result = combatResolver.ResolveHitscan(
-                origin, direction, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
-            // ③ Bloom 累计（CP4 接入 WeaponAccuracyState，本检查点无操作）
-            // ④ 后坐冲量（影响下一发；弹道方向已在 ① 取定）
-            _recoil.OnShot(recoilPitchKickDegrees, recoilYawKickDegrees, recoilSpringFrequency);
-            // ⑤ 广播，表现层消费同一份结果
-            OnShotFired?.Invoke(new WeaponShot(origin, direction, result));
+
+            // ② 命中结算（含 Shotgun 多弹丸：主方向一次取样，每弹丸围绕主方向独立 PelletSpread 锥，聚合单次广播）
+            HitscanResult[] pellets = null;
+            HitscanResult result;
+            int pelletCount = Stat.Ballistic.PelletCount;
+            Vector3 mainDirection = ApplySpread(aimDirection, spreadDeg);
+            if (pelletCount > 1)
+            {
+                pellets = new HitscanResult[pelletCount];
+                HitscanResult? primary = null, firstHit = null;
+                for (int i = 0; i < pelletCount; i++)
+                {
+                    Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread);
+                    pellets[i] = combatResolver.ResolveHitscan(
+                        origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+                    if (primary == null && pellets[i].Damaged) primary = pellets[i];
+                    if (firstHit == null && pellets[i].Hit) firstHit = pellets[i];
+                }
+                result = primary ?? firstHit ?? pellets[0];
+            }
+            else
+            {
+                result = combatResolver.ResolveHitscan(
+                    origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+            }
+
+            // ③ Bloom 累计（影响下一发）
+            _accuracy.OnShot(Resolved);
+            // ④ 后坐冲量（影响下一发；产出本发完整结果供表现消费）
+            var recoil = _recoil.OnShot(ctx, Resolved);
+            // ⑤ 单次广播
+            OnShotFired?.Invoke(new WeaponShot(origin, aimDirection, result,
+                spreadDeg, recoil, recoil.ShotIndex, _seed, pellets));
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             return true;
         }
@@ -205,12 +271,20 @@ namespace Game.Gameplay.Weapon
             OnReloadInterrupted?.Invoke(reason);
         }
 
-        private static Vector3 ApplySpread(Vector3 forward, float spreadDegrees)
+        /// <summary>弹道锥取样（可播种随机源为参数——网络回放/测试确定性；几何=CP0 基线）。</summary>
+        internal static Vector3 ApplySpread(Vector3 forward, float spreadDegrees, System.Random rng)
         {
             if (spreadDegrees <= 0f) return forward.normalized;
-            var offset = UnityEngine.Random.insideUnitCircle * Mathf.Tan(spreadDegrees * Mathf.Deg2Rad);
+            Vector2 unit = new(
+                (float)rng.NextDouble() * 2f - 1f,
+                (float)rng.NextDouble() * 2f - 1f);
+            if (unit.sqrMagnitude > 1f) unit /= unit.sqrMagnitude; // 拒绝采样≈均匀圆盘
+            var offset = unit * Mathf.Tan(spreadDegrees * Mathf.Deg2Rad);
             var rotation = Quaternion.LookRotation(forward.normalized);
             return (rotation * new Vector3(offset.x, offset.y, 1f)).normalized;
         }
+
+        private Vector3 ApplySpread(Vector3 forward, float spreadDegrees)
+            => ApplySpread(forward, spreadDegrees, _random);
     }
 }

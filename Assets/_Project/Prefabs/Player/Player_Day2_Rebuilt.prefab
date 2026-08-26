@@ -147,14 +147,11 @@ MonoBehaviour:
   actionSystem: {fileID: 2146627187524351515}
   combatResolver: {fileID: 3526661773904797485}
   aimPivot: {fileID: 5618196239438535339}
+  fireContextProvider: {fileID: 76528896329180648}
   hitMask:
     serializedVersion: 2
     m_Bits: 55
   processLocalInput: 1
-  recoilPitchKickDegrees: 1.1
-  recoilYawKickDegrees: 0.3
-  recoilSpringFrequency: 9
-  recoilSpringDamping: 0.75
 --- !u!114 &6818082484072410924
 MonoBehaviour:
   m_ObjectHideFlags: 0

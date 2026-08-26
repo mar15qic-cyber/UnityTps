@@ -35,10 +35,8 @@ namespace Game.Presentation.Camera
         [SerializeField, Min(0f)] private float breathingCyclesPerSecond = 0.28f;
         [SerializeField, Min(0f)] private float breathingAmplitude = 0.004f;
 
-        [Header("Recoil（开火后坐）")]
-        [SerializeField, Min(0f)] private float recoilBackDistance = 0.045f;
-        [SerializeField, Min(0f)] private float recoilPitchDegrees = 4f;
-        [SerializeField, Min(0f)] private float recoilSpringFrequency = 11f;
+        [Header("Recoil（kick 幅度来自 WeaponShot.Recoil=数据驱动；此处仅视觉回中弹簧参数）")]
+        [SerializeField, Min(0.1f)] private float recoilSpringFrequency = 11f;
         [SerializeField, Range(0f, 1f)] private float recoilDampingRatio = 0.6f;
 
         [Header("ADS")]
@@ -82,10 +80,14 @@ namespace Game.Presentation.Camera
             if (_weapon != null) _weapon.OnShotFired -= HandleShot;
         }
 
-        private void HandleShot(WeaponShot _) =>
-            // 弹簧冲量：v0 = 峰值·ω（x=上抬角度°，y=后坐距离 m）
-            _recoilVelocity += new Vector2(recoilPitchDegrees, recoilBackDistance)
+        private void HandleShot(WeaponShot shot)
+        {
+            // CP5：kick 幅度数据驱动——来自 WeaponShot.Recoil（Gameplay 五步顺序第④步产物，
+            // 已含首枪/累计/ADS/ViewModelKick 修饰）。回中弹簧频率/阻尼是视觉层参数（与相机
+            // 弹簧独立、不影响弹道），保留组件序列化（Docs/13 §13.3 决策记录）。
+            _recoilVelocity += new Vector2(shot.Recoil.ViewModelPitchDeg, shot.Recoil.ViewModelBackM)
                 * (recoilSpringFrequency * Mathf.PI * 2f);
+        }
 
         private void LateUpdate()
         {
