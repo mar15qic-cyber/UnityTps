@@ -24,8 +24,39 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2918059486482996577}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.9919356, y: 0.02961774, z: 0.0548619, w: -0.11034831}
-  m_LocalPosition: {x: -0.022158582, y: 0.22999234, z: 0.19559593}
+  m_LocalRotation: {x: -0.28629574, y: -0.0000007690785, z: -0.00000022980335, w: 0.9581413}
+  m_LocalPosition: {x: -0.0004458527, y: 0.3532528, z: 0.4811779}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 379035595196351084}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6742420203730414801
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7754797299860848564}
+  m_Layer: 9
+  m_Name: SightReference
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7754797299860848564
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6742420203730414801}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.022158582, y: 0.22999218, z: 0.1955961}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -289,6 +320,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1099752553604117598}
+    - targetCorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7754797299860848564}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       insertIndex: -1
@@ -382,9 +416,11 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
   shellCasingPrefab: {fileID: 1995811803360308, guid: 58ad70332ff860e439314b337c4609bc, type: 3}
   shellPort: {fileID: 379035595196351090}
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
+  sightReference: {fileID: 7754797299860848564}

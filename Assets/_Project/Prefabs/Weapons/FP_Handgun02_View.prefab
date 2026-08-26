@@ -24,12 +24,43 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2204958433014284715}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.583934, y: 0.018995255, z: -0.000040177158, w: 0.81157887}
-  m_LocalPosition: {x: 0.009410998, y: 0.23923074, z: 0.084883876}
+  m_LocalRotation: {x: 0.0000018158552, y: -0.7055542, z: -0.70865595, w: -0.0000017455084}
+  m_LocalPosition: {x: 0.0004438998, y: 0.11270668, z: -0.013302045}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3029508402480714233}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4302019569242958158
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3987313924678896150}
+  m_Layer: 9
+  m_Name: SightReference
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3987313924678896150
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4302019569242958158}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.009411745, y: 0.29478407, z: 0.18542784}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3029508402480714215}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3029508402480581425
 PrefabInstance:
@@ -282,6 +313,9 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 400086, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3987313924678896150}
     - targetCorrespondingSourceObject: {fileID: 400072, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8774634089874407361}
@@ -368,12 +402,19 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
   shellCasingPrefab: {fileID: 1492315059354262, guid: b1995a53a949fac4db5722fc1df9efe4, type: 3}
   shellPort: {fileID: 3029508402480714233}
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
+  sightReference: {fileID: 3987313924678896150}
+--- !u!4 &3029508402480714215 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400086, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+  m_PrefabInstance: {fileID: 3029508402480581425}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3029508402480714233 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400072, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}

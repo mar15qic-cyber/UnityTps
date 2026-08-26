@@ -5,6 +5,9 @@ using UnityEngine;
 namespace Game.Presentation.Weapon
 {
     /// <summary>WeaponController 事件的只读表现端：弹道、枪口光、Day4 枪口特效/弹壳/命中反馈、Day2 调试 HUD。</summary>
+    /// LateUpdate 顺序说明：必须在 FPWeaponMotion（order 20，写 viewmodel 后坐/姿态）之后执行，
+    /// 拖尾起点逐帧贴枪口时才能取到"当帧最终枪口位"——否则后坐动画期间起点滞后一帧（审计清单：后坐动画期间仍与枪管重合）。
+    [DefaultExecutionOrder(30)]
     public sealed class WeaponView : MonoBehaviour
     {
         [SerializeField] private WeaponController controller;
@@ -124,7 +127,12 @@ namespace Game.Presentation.Weapon
             var flash = Instantiate(muzzleFlashPrefab, muzzle.position, muzzle.rotation, muzzle);
             flash.transform.localPosition = Vector3.zero;
             flash.transform.localRotation = Quaternion.identity;
-            SetLayerRecursive(flash, muzzle.gameObject.layer);
+            // 火光必须与武器同层（FirstPersonView，overlay 相机渲染）。muzzle 挂点若被误配到
+            // 其他层，回退用视图根层兜底，避免被主相机（FOV 60）渲染造成投影错位。
+            int flashLayer = muzzle.gameObject.layer == gameObject.layer
+                ? muzzle.gameObject.layer
+                : gameObject.layer;
+            SetLayerRecursive(flash, flashLayer);
             // LPFP 枪口粒子 playOnAwake=false（原版靠脚本启停），这里显式触发
             var particle = flash.GetComponent<ParticleSystem>();
             if (particle != null) particle.Play();
