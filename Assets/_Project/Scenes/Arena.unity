@@ -3820,6 +3820,7 @@ GameObject:
   - component: {fileID: 2111996913}
   - component: {fileID: 2111996912}
   - component: {fileID: 2111996911}
+  - component: {fileID: 2111996914}
   m_Layer: 0
   m_Name: WeaponHudCanvas
   m_TagString: Untagged
@@ -3971,6 +3972,22 @@ MonoBehaviour:
   aimState: {fileID: 1370295988}
   playerState: {fileID: 1370295990}
   config: {fileID: 11400000, guid: 793cecd7ac182f3438591972c9c81e6b, type: 2}
+--- !u!114 &2111996914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2111996906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fde09af019ec554cac7faecbca66a80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  controller: {fileID: 1370295992}
+  arsenal: {fileID: 1370295991}
+  animators: []
+  fireVoiceCount: 3
 --- !u!1001 &2121465704
 PrefabInstance:
   m_ObjectHideFlags: 0

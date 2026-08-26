@@ -1,13 +1,23 @@
+using System;
 using Animancer;
 using Game.Gameplay.Weapon;
 using UnityEngine;
 
 namespace Game.Presentation.Animation
 {
+    /// <summary>换弹/切枪动画的阶段（归一化时间点由 WeaponAudioProfile 提供数据驱动时机）。</summary>
+    public enum WeaponAnimEventType
+    {
+        MagOut,   // 弹匣抽出
+        MagIn,    // 弹匣插入
+        BoltRack, // 拉栓/上膛
+    }
+
     /// <summary>
     /// Day3 第一人称手臂动画唯一写者（Animancer 版）：WeaponController 事件 → clip 播放。
-    /// clip 取自 WeaponDefinition.FirstPersonAnimations（数据驱动，无 AnimatorController）。
-    /// 换弹完成仍由 ActionSystem 计时器决定，本类只做表现。
+    /// CP6 扩展：换弹阶段事件（MagOut/MagIn/BoltRack，归一化时间由 AudioProfile 数据驱动）
+    /// + actionVersion 版本号——动作被打断后旧版本回调被丢弃（Docs/13 §5.3-7），
+    /// 换弹/切枪中断不会误触发分阶段音频。
     /// </summary>
     [RequireComponent(typeof(AnimancerComponent))]
     public sealed class FPWeaponAnimator : MonoBehaviour
@@ -15,6 +25,12 @@ namespace Game.Presentation.Animation
         [SerializeField] private WeaponController controller;
         [SerializeField, Min(0f)] private float fireFadeSeconds = 0.04f;
         [SerializeField, Min(0f)] private float actionFadeSeconds = 0.12f;
+
+        /// <summary>动作版本号：每次 Reload/Switch 递增；阶段事件携带版本，回调校验失效即丢弃。</summary>
+        public int CurrentActionVersion { get; private set; }
+
+        /// <summary>换弹阶段事件（参数：类型、动作版本号）。订阅方校验版本 == CurrentActionVersion。</summary>
+        public event Action<WeaponAnimEventType, int> OnAnimStage;
 
         private AnimancerComponent _animancer;
         private WeaponAnimationSet _clips;
@@ -115,12 +131,42 @@ namespace Game.Presentation.Animation
             // into that window so the completion callback never cuts a long rifle reload.
             state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.Stat.ReloadTime);
             state.Events(this).OnEnd = PlayIdle;
+
+            // CP6 分阶段事件：归一化时间点由 AudioProfile 数据驱动（版本号防打断误触发）
+            var profile = controller.Definition.AudioProfile;
+            if (profile != null) RegisterStageEvents(state, profile, ++CurrentActionVersion);
         }
 
-        private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _) => PlayIdle();
+        /// <summary>注册归一化时间阶段事件（MagOut/MagIn/BoltRack）。版本不匹配的回调被丢弃。</summary>
+        private void RegisterStageEvents(AnimancerState state, WeaponAudioProfile profile, int version)
+        {
+            var events = state.Events(this);
+            if (profile.MagOut.Clip != null && profile.MagOut.NormalizedTime > 0f)
+                events.Add(profile.MagOut.NormalizedTime, () => RaiseStage(WeaponAnimEventType.MagOut, version));
+            if (profile.MagIn.Clip != null && profile.MagIn.NormalizedTime > 0f)
+                events.Add(profile.MagIn.NormalizedTime, () => RaiseStage(WeaponAnimEventType.MagIn, version));
+            if (profile.BoltRack.Clip != null && profile.BoltRack.NormalizedTime > 0f)
+                events.Add(profile.BoltRack.NormalizedTime, () => RaiseStage(WeaponAnimEventType.BoltRack, version));
+        }
+
+        private void RaiseStage(WeaponAnimEventType type, int version)
+        {
+            if (version != CurrentActionVersion) return; // 动作已被打断/替换——旧回调丢弃
+            OnAnimStage?.Invoke(type, version);
+        }
+
+        private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _)
+        {
+            CurrentActionVersion++; // 使在途阶段回调全部失效
+            PlayIdle();
+        }
 
         /// <summary>计时器到点即换弹完成（真相）；clip 播放速度已适配该窗口。</summary>
-        private void HandleReloadCompleted() => PlayIdle();
+        private void HandleReloadCompleted()
+        {
+            CurrentActionVersion++; // 正常完成同样推进版本（OnEnd 已到，防御性失效）
+            PlayIdle();
+        }
 
         private void PlayIdle()
         {
