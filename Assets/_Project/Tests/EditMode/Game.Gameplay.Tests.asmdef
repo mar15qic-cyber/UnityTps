@@ -4,6 +4,10 @@
     "references": [
         "Game.Core",
         "Game.Gameplay",
+        "Game.Presentation",
+        "Game.Account",
+        "Game.UI",
+        "Newtonsoft.Json",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
