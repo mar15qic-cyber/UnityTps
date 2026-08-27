@@ -1,0 +1,38 @@
+@host = http://127.0.0.1:5080
+@token = replace-with-login-token
+
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{"username":"demo_user","password":"DemoPass123!"}
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{"username":"demo_user","password":"DemoPass123!"}
+
+###
+GET {{host}}/api/profile
+Authorization: Bearer {{token}}
+
+###
+PUT {{host}}/api/loadout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"primaryWeaponId":"rifle.day3","secondaryWeaponId":"pistol.day2","throwableId":null}
+
+###
+PUT {{host}}/api/profile/upgrades
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"upDamage":1,"upAmmoCap":0,"upMaxHealth":0}
+
+###
+POST {{host}}/api/matches
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"kills":4,"deaths":1,"score":500}
