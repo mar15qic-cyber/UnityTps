@@ -9,7 +9,7 @@ public sealed class AuthController(AuthService auth) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthSessionDto>> Register(RegisterRequest request, CancellationToken cancellationToken) =>
-        Created("api/auth/me", await auth.RegisterAsync(request, cancellationToken));
+        StatusCode(StatusCodes.Status201Created, await auth.RegisterAsync(request, cancellationToken));
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthSessionDto>> Login(LoginRequest request, CancellationToken cancellationToken) =>
