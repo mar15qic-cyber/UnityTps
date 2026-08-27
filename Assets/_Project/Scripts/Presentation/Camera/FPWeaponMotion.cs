@@ -36,11 +36,22 @@ namespace Game.Presentation.Camera
         [SerializeField, Min(0f)] private float breathingAmplitude = 0.004f;
 
         [Header("Recoil（kick 幅度来自 WeaponShot.Recoil=数据驱动；此处仅视觉回中弹簧参数）")]
-        [SerializeField, Min(0.1f)] private float recoilSpringFrequency = 11f;
-        [SerializeField, Range(0f, 1f)] private float recoilDampingRatio = 0.6f;
+        [SerializeField, Min(0.1f)] private float recoilSpringFrequency = 8f;
+        [SerializeField, Range(0f, 1f)] private float recoilDampingRatio = 0.7f;
+        [SerializeField, Min(0f)] private float recoilYawMultiplier = 2f;
+        [SerializeField, Min(0f)] private float recoilRollMultiplier = 0.75f;
+        [SerializeField, Min(0f)] private float recoilLateralPerYaw = 0.01f;
+        [SerializeField, Min(0f)] private float recoilMaxPitch = 10f;
+        [SerializeField, Min(0f)] private float recoilMaxYaw = 4f;
+        [SerializeField, Min(0f)] private float recoilMaxRoll = 2f;
+        [SerializeField, Min(0f)] private float recoilMaxBack = 0.1f;
+        [SerializeField, Min(0f)] private float recoilMaxLateral = 0.02f;
 
         [Header("ADS")]
+        [Tooltip("ADS 时 sway/bob 位置阻尼（0=无阻尼 1=全阻）")]
         [SerializeField, Range(0f, 1f)] private float adsMotionDamping = 0.85f;
+        [Tooltip("ADS 时开火后坐的视觉保持系数（Day4 审计 §4：满 ADS 不得只剩 15% 反馈）。1=与腰射同强度")]
+        [SerializeField, Range(0.3f, 1f)] private float adsRecoilRetention = 0.75f;
 
         private readonly List<WeaponView> _viewBuffer = new();
         private InputReader _input;
@@ -54,8 +65,10 @@ namespace Game.Presentation.Camera
         private Vector2 _swayVelocity;
         private float _bobWeight;
         private float _bobWeightVelocity;
-        private Vector2 _recoil;
-        private Vector2 _recoilVelocity;
+        private Vector3 _recoilRotation;
+        private Vector3 _recoilRotationVelocity;
+        private Vector3 _recoilPosition;
+        private Vector3 _recoilPositionVelocity;
         private float _time;
         private Vector3 _aimLocalPosition;
         private bool _aimPoseDirty = true;
@@ -82,11 +95,23 @@ namespace Game.Presentation.Camera
 
         private void HandleShot(WeaponShot shot)
         {
-            // CP5：kick 幅度数据驱动——来自 WeaponShot.Recoil（Gameplay 五步顺序第④步产物，
-            // 已含首枪/累计/ADS/ViewModelKick 修饰）。回中弹簧频率/阻尼是视觉层参数（与相机
-            // 弹簧独立、不影响弹道），保留组件序列化（Docs/13 §13.3 决策记录）。
-            _recoilVelocity += new Vector2(shot.Recoil.ViewModelPitchDeg, shot.Recoil.ViewModelBackM)
-                * (recoilSpringFrequency * Mathf.PI * 2f);
+            // 只消费本发 ShotRecoilResult，不重新随机。Unity 局部 +X 欧拉角会让枪口下压，
+            // 因而“上抬”为负 X；枪口朝局部 +Z，后移为负 Z。
+            float yaw = shot.Recoil.YawKickDeg * recoilYawMultiplier;
+            _recoilRotation += new Vector3(
+                -shot.Recoil.ViewModelPitchDeg,
+                yaw,
+                -shot.Recoil.YawKickDeg * recoilRollMultiplier);
+            _recoilPosition += new Vector3(
+                -shot.Recoil.YawKickDeg * recoilLateralPerYaw,
+                0f,
+                -shot.Recoil.ViewModelBackM);
+
+            _recoilRotation.x = Mathf.Clamp(_recoilRotation.x, -recoilMaxPitch, 0f);
+            _recoilRotation.y = Mathf.Clamp(_recoilRotation.y, -recoilMaxYaw, recoilMaxYaw);
+            _recoilRotation.z = Mathf.Clamp(_recoilRotation.z, -recoilMaxRoll, recoilMaxRoll);
+            _recoilPosition.x = Mathf.Clamp(_recoilPosition.x, -recoilMaxLateral, recoilMaxLateral);
+            _recoilPosition.z = Mathf.Clamp(_recoilPosition.z, -recoilMaxBack, 0f);
         }
 
         private void LateUpdate()
@@ -103,6 +128,9 @@ namespace Game.Presentation.Camera
 
             float adsBlend = _rig != null ? _rig.AdsBlend : 0f;
             float motionScale = 1f - adsBlend * adsMotionDamping;
+            // Day4 审计 §4：开火后坐独立保持系数——旧版与 sway/bob 共用 motionScale
+            // （满 ADS 仅剩 15%），玩家最关注的 ADS 连射恰好反馈最弱。此处后坐通道单独缩放。
+            float recoilScale = Mathf.Lerp(1f, adsRecoilRetention, adsBlend);
 
             // ---- sway：鼠标增量反向滞后 ----
             Vector2 look = _input != null ? _input.LookDelta : Vector2.zero;
@@ -127,22 +155,24 @@ namespace Game.Presentation.Camera
             bool idle = _state != null && _state.LocomotionState == LocomotionState.Idle;
             float breath = idle ? Mathf.Sin(_time * breathingCyclesPerSecond * Mathf.PI * 2f) : 0f;
 
-            // ---- recoil 弹簧（x=上抬°，y=后坐 m）----
+            // ---- recoil 弹簧（rotation=x pitch/y yaw/z roll；position=x lateral/z back）----
             float omega = recoilSpringFrequency * Mathf.PI * 2f;
             float damping = 2f * recoilDampingRatio * omega;
-            _recoilVelocity += (-omega * omega * _recoil - damping * _recoilVelocity) * dt;
-            _recoil += _recoilVelocity * dt;
+            _recoilRotationVelocity += (-omega * omega * _recoilRotation - damping * _recoilRotationVelocity) * dt;
+            _recoilRotation += _recoilRotationVelocity * dt;
+            _recoilPositionVelocity += (-omega * omega * _recoilPosition - damping * _recoilPositionVelocity) * dt;
+            _recoilPosition += _recoilPositionVelocity * dt;
 
             // ---- 合成：腰射姿态（identity）↔ ADS 姿态 + 各动效 ----
             Vector3 basePos = Vector3.Lerp(Vector3.zero, _aimLocalPosition, adsBlend);
             transform.localPosition = basePos + new Vector3(
                 (swayX + bobX) * motionScale,
                 (swayY + bobY) * motionScale + breath * breathingAmplitude,
-                _recoil.y * motionScale);
+                0f) + _recoilPosition * recoilScale;
             transform.localRotation = Quaternion.Euler(
-                (swayPitch + _recoil.x) * motionScale,
-                swayYaw * motionScale,
-                0f);
+                swayPitch * motionScale + _recoilRotation.x * recoilScale,
+                swayYaw * motionScale + _recoilRotation.y * recoilScale,
+                _recoilRotation.z * recoilScale);
         }
 
         /// <summary>把激活视图的瞄准参考点平移到 FP View Camera 视口中心线（程序化 ADS 姿态）。

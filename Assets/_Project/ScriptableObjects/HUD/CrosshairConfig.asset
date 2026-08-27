@@ -15,12 +15,15 @@ MonoBehaviour:
   LineColor: {r: 1, g: 1, b: 1, a: 0.9}
   LineLength: 14
   LineThickness: 2
-  ShowCenterDot: 1
+  ShowCenterDot: 0
   DotSize: 3
   GapScale: 1
   MinGap: 6
   MaxGap: 160
-  SmoothSpeed: 240
+  SmoothSpeed: 180
   HideOnSprint: 0
+  ShotPulsePerShotPx: 0
+  ShotPulseMaxPx: 0
+  ShotPulseDecayPxPerSec: 0
   HitMarkerColor: {r: 1, g: 0.3, b: 0.3, a: 1}
   HitMarkerSeconds: 0.25

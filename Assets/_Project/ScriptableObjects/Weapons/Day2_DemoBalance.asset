@@ -42,6 +42,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.1
         MovementSpreadMax: 0.8
         SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
         ShotBloomPerShot: 0.35
         MaxBloom: 2
         BloomRecoveryDelay: 0.15
@@ -56,32 +57,33 @@ MonoBehaviour:
       MagSize: 30
       ReserveAmmo: 120
       ReloadTime: 2.2
-      Spread: 1.2
+      Spread: 2.2
       MaxRange: 150
       AdsFov: 45
       Recoil:
-        PitchDeg: 1.1
-        YawDeg: 0.3
-        FirstShotMultiplier: 1.25
-        Accumulation: 1.15
+        PitchDeg: 1.35
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
         MaxAccumulation: 8
         RecoveryDelay: 0.18
-        RecoverySpeed: 6
-        SpringFrequency: 9
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
         SpringDamping: 0.75
-        ShakePositionAmplitude: 0.3
-        ViewModelKickBack: 0.045
-        ViewModelKickPitch: 4
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
         AdsRecoilMultiplier: 0.6
       Accuracy:
-        BaseHipSpread: 1.2
-        BaseAdsSpread: 0.3
+        BaseHipSpread: 2.2
+        BaseAdsSpread: 0.55
         MovementSpreadMax: 1.5
         SprintSpreadExtra: 1.8
-        ShotBloomPerShot: 0.22
-        MaxBloom: 2.5
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
         BloomRecoveryDelay: 0.18
-        BloomRecoverySpeed: 5
+        BloomRecoverySpeed: 3.5
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
@@ -114,6 +116,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.12
         MovementSpreadMax: 0.9
         SprintSpreadExtra: 1.2
+        AirborneSpreadExtra: 1.25
         ShotBloomPerShot: 0.4
         MaxBloom: 2.2
         BloomRecoveryDelay: 0.15
@@ -128,32 +131,33 @@ MonoBehaviour:
       MagSize: 30
       ReserveAmmo: 120
       ReloadTime: 2.1
-      Spread: 1
+      Spread: 1.2
       MaxRange: 140
       AdsFov: 45
       Recoil:
-        PitchDeg: 1
-        YawDeg: 0.3
-        FirstShotMultiplier: 1.25
-        Accumulation: 1.15
+        PitchDeg: 0.85
+        YawDeg: 0.22
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.1
         MaxAccumulation: 8
         RecoveryDelay: 0.18
-        RecoverySpeed: 6
-        SpringFrequency: 9
+        RecoverySpeed: 7
+        SpringFrequency: 10
         SpringDamping: 0.75
-        ShakePositionAmplitude: 0.3
-        ViewModelKickBack: 0.042
-        ViewModelKickPitch: 3.8
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.04
+        ViewModelKickPitch: 3.2
         AdsRecoilMultiplier: 0.6
       Accuracy:
-        BaseHipSpread: 1
-        BaseAdsSpread: 0.28
+        BaseHipSpread: 1.2
+        BaseAdsSpread: 0.35
         MovementSpreadMax: 1.5
         SprintSpreadExtra: 1.8
-        ShotBloomPerShot: 0.2
-        MaxBloom: 2.5
+        AirborneSpreadExtra: 1.5
+        ShotBloomPerShot: 0.28
+        MaxBloom: 2.2
         BloomRecoveryDelay: 0.18
-        BloomRecoverySpeed: 5
+        BloomRecoverySpeed: 6
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
@@ -186,6 +190,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.25
         MovementSpreadMax: 1.5
         SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 1.6
         ShotBloomPerShot: 0.2
         MaxBloom: 2.5
         BloomRecoveryDelay: 0.18
@@ -222,6 +227,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.5
         MovementSpreadMax: 2
         SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
         ShotBloomPerShot: 0.15
         MaxBloom: 2.8
         BloomRecoveryDelay: 0.2
@@ -258,6 +264,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.45
         MovementSpreadMax: 2
         SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
         ShotBloomPerShot: 0.15
         MaxBloom: 2.8
         BloomRecoveryDelay: 0.2
@@ -294,6 +301,7 @@ MonoBehaviour:
         BaseAdsSpread: 1.5
         MovementSpreadMax: 2.5
         SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
         ShotBloomPerShot: 0.8
         MaxBloom: 2
         BloomRecoveryDelay: 0.25
@@ -330,6 +338,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.02
         MovementSpreadMax: 3
         SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
         ShotBloomPerShot: 0.6
         MaxBloom: 1.5
         BloomRecoveryDelay: 0.3
@@ -366,6 +375,7 @@ MonoBehaviour:
         BaseAdsSpread: 0.01
         MovementSpreadMax: 3
         SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
         ShotBloomPerShot: 0.6
         MaxBloom: 1.5
         BloomRecoveryDelay: 0.3

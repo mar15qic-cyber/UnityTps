@@ -46,6 +46,17 @@ namespace Game.EditorTools
             if (canvasGo.GetComponent<GraphicRaycaster>() == null) canvasGo.AddComponent<GraphicRaycaster>();
             Undo.RegisterCreatedObjectUndo(canvasGo, "Build Weapon HUD");
 
+            // Day4 实机审计 §2：只归一化位置/旋转。Screen Space-Overlay 的根
+            // RectTransform 尺寸与缩放由 Canvas/CanvasScaler 驱动，不能在运行时把
+            // scale 当作 HUD 像素单位写回，否则会与 CrosshairView 的像素换算叠加。
+            var rootRt = canvasGo.GetComponent<RectTransform>();
+            if (rootRt != null)
+            {
+                rootRt.localPosition = Vector3.zero;
+                rootRt.localRotation = Quaternion.identity;
+            }
+            canvasGo.layer = 0;   // Overlay UI 不需要专门层（历史防御：防止被误设为剔除层）
+
             RectTransform Line(string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 size, Color color)
             {
                 var t = canvasGo.transform.Find(name);

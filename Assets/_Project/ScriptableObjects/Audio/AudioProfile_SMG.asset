@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: AudioProfile_SMG
   m_EditorClassIdentifier: 
   FireVariants:
-  - Clip: {fileID: 8300000, guid: 38b450e2adcb6f542acc8c1d423bd8dc, type: 3}
-    VolumeRange: {x: 1, y: 1}
-    PitchRange: {x: 0.97, y: 1.03}
+  - Clip: {fileID: 8300000, guid: db9022ce59e799a4ca80983dfc5b2baa, type: 3}
+    VolumeRange: {x: 0.85, y: 0.92}
+    PitchRange: {x: 1.02, y: 1.08}
   DryFire:
     Clip: {fileID: 0}
     VolumeRange: {x: 0, y: 0}

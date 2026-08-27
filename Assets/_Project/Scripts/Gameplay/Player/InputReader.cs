@@ -12,6 +12,9 @@ namespace Game.Gameplay.Player
     {
         [SerializeField] private float jumpBufferTime = 0.15f;
 
+        /// <summary>光标是否已锁定（游戏运行中）。Escape 可切换。</summary>
+        public bool CursorLocked { get; private set; }
+
         /// <summary>WASD 移动向量，已归一化（幅值 ≤ 1）。</summary>
         public Vector2 Move { get; private set; }
 
@@ -48,6 +51,24 @@ namespace Game.Gameplay.Player
 
         public void ConsumeJump() => _jumpBufferTimer = 0f;
 
+        private void OnEnable()
+        {
+            LockCursor();
+        }
+
+        private void OnDisable()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        private void LockCursor()
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            CursorLocked = true;
+        }
+
         private void Update()
         {
             var kb = Keyboard.current;
@@ -60,6 +81,23 @@ namespace Game.Gameplay.Player
             SlotPressed = -1;
             AimHeld = false;
             if (kb == null) return;
+
+            // Escape 切换光标锁定，便于编辑器调试时操作其他窗口
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                if (CursorLocked)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                    CursorLocked = false;
+                }
+                else
+                {
+                    LockCursor();
+                }
+                return;
+            }
+            if (!CursorLocked) return;
 
             if (kb.wKey.wasPressedThisFrame) _wOrder = ++_pressSequence;
             if (kb.sKey.wasPressedThisFrame) _sOrder = ++_pressSequence;

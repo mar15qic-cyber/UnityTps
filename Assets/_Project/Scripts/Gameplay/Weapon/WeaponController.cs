@@ -18,6 +18,10 @@ namespace Game.Gameplay.Weapon
     {
         public readonly Vector3 Origin;
         public readonly Vector3 Direction;
+        /// <summary>本发的实际弹道方向（散布后的 mainDirection；霰弹=弹丸锥主方向）。
+        /// Day4 实机审计 §1：拖尾必须从枪口沿本方向延伸——Direction 是散布前瞄准方向，
+        /// 两者不可混用（沿 Direction 画拖尾会与真实弹道平行偏移）。</summary>
+        public readonly Vector3 FiredDirection;
         public readonly HitscanResult Result;
         public readonly float FinalSpreadDegrees;      // 本发合成散布锥角（不含 PelletSpread）
         public readonly ShotRecoilResult Recoil;       // 本发后坐（相机回声/Viewmodel/Shake 同源）
@@ -26,14 +30,15 @@ namespace Game.Gameplay.Weapon
         public readonly HitscanResult[] Pellets;       // null=单发；Shotgun=全弹丸结果
 
         public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result)
-            : this(origin, direction, result, 0f, default, 0, 0, null) { }
+            : this(origin, direction, direction, result, 0f, default, 0, 0, null) { }
 
-        public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result,
+        public WeaponShot(Vector3 origin, Vector3 direction, Vector3 firedDirection, HitscanResult result,
             float finalSpreadDegrees, ShotRecoilResult recoil, int shotIndex, int seed,
             HitscanResult[] pellets)
         {
             Origin = origin;
             Direction = direction;
+            FiredDirection = firedDirection;
             Result = result;
             FinalSpreadDegrees = finalSpreadDegrees;
             Recoil = recoil;
@@ -65,6 +70,9 @@ namespace Game.Gameplay.Weapon
         [SerializeField] private WeaponFireContextProvider fireContextProvider;
         [SerializeField] private LayerMask hitMask = ~0;
         [SerializeField] private bool processLocalInput = true;
+        [Header("调试")]
+        [Tooltip("开发期后坐诊断日志（每发 Pitch/Yaw/ShotIndex/ADS 倍率/当前 Offset）。正式构建必须关闭")]
+        [SerializeField] private bool debugRecoil;
 
         public WeaponDefinition Definition => definition;
         public WeaponRuntime Runtime { get; private set; }
@@ -74,13 +82,20 @@ namespace Game.Gameplay.Weapon
 
         /// <summary>解析后数值（唯一持有者；Initialize/EquipDefinition 重算，CP4 起为消费源）。</summary>
         public ResolvedWeaponStats Resolved { get; private set; }
-        /// <summary>当前瞄准偏移（度）。CmFPCameraRecoil 回声与 FireRay 共用（恒等约束）。</summary>
+        /// <summary>当前瞄准偏移（度；Pitch 向上为正、Yaw 向右为正）。CmFPCameraRecoil 回声与 FireRay 共用。</summary>
         public Vector2 CurrentRecoilOffset => _recoil.CurrentOffset;
+        public Quaternion CurrentRecoilRotation => _recoil.OffsetRotation;
         /// <summary>权威射线原点：CameraPivot 头位。</summary>
         public Vector3 AimOrigin => aimPivot != null ? aimPivot.position : transform.position;
         /// <summary>权威瞄准方向：pivot 旋转 × 后坐偏移。</summary>
         public Vector3 AimDirection => (aimPivot != null ? aimPivot.rotation : transform.rotation)
             * _recoil.OffsetRotation * Vector3.forward;
+
+        /// <summary>
+        /// 让玩家输入优先抵消后坐债务；返回仍应写入基础视角的剩余“向上/向右”角度。
+        /// </summary>
+        public Vector2 ConsumeRecoilCompensation(Vector2 requestedAimDeltaDeg)
+            => _recoil.ConsumeCompensation(requestedAimDeltaDeg);
         /// <summary>当前合成散布锥角（度）——弹道与准心 HUD 的同一数据源。</summary>
         public float CurrentSpreadDegrees => _accuracy.CurrentSpread(FireContext, Resolved);
 
@@ -236,10 +251,14 @@ namespace Game.Gameplay.Weapon
             _accuracy.OnShot(Resolved);
             // ④ 后坐冲量（影响下一发；产出本发完整结果供表现消费）
             var recoil = _recoil.OnShot(ctx, Resolved);
-            // ⑤ 单次广播
-            OnShotFired?.Invoke(new WeaponShot(origin, aimDirection, result,
+            // ⑤ 单次广播（FiredDirection=本发实际弹道方向，拖尾/表现消费；Direction 保持瞄准语义）
+            OnShotFired?.Invoke(new WeaponShot(origin, aimDirection, mainDirection, result,
                 spreadDeg, recoil, recoil.ShotIndex, _seed, pellets));
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+            if (debugRecoil)
+                Debug.Log($"[Recoil] {definition.WeaponId} #{recoil.ShotIndex} kick=({recoil.PitchKickDeg:F2}°, {recoil.YawKickDeg:F2}°) " +
+                          $"ads01={ctx.Ads01:F2} vmBack={recoil.ViewModelBackM:F3} offsetNow={_recoil.CurrentOffset:F2} " +
+                          $"burstAcc={_recoil.BurstAccumulation:F1}", this);
             return true;
         }
 

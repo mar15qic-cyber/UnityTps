@@ -15,7 +15,7 @@ namespace Game.Presentation.HUD
         public float LineThickness = 2f;        // px
 
         [Header("中心点")]
-        public bool ShowCenterDot = true;       // §9-8 拍板：默认开
+        public bool ShowCenterDot = false;      // Day4 回归：纯四线十字，不显示中心点
         public float DotSize = 3f;              // px
 
         [Header("间距映射")]
@@ -25,9 +25,17 @@ namespace Game.Presentation.HUD
         public float MaxGap = 160f;             // px（防极端分辨率/数值越界）
 
         [Header("动态")]
-        [Tooltip("显示值向目标 Gap 的收敛速度（px/s）；Bloom/恢复由 Gameplay 数值驱动")]
-        public float SmoothSpeed = 240f;
+        [Tooltip("散布收拢速度（实际屏幕 px/s）；扩张不平滑，保证跳跃/开火反馈即时")]
+        public float SmoothSpeed = 180f;
         public bool HideOnSprint;               // 冲刺时隐藏准心
+
+        [Header("开火脉冲")]
+        [Tooltip("已废弃：准心只显示真实散布/Bloom，避免固定脉冲掩盖武器差异")]
+        public float ShotPulsePerShotPx = 0f;
+        [Tooltip("已废弃：保留字段以兼容旧资产")]
+        public float ShotPulseMaxPx = 0f;
+        [Tooltip("已废弃：保留字段以兼容旧资产")]
+        public float ShotPulseDecayPxPerSec = 0f;
 
         [Header("命中标记")]
         public Color HitMarkerColor = new(1f, 0.3f, 0.3f, 1f);

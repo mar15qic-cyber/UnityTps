@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: AudioProfile_Handgun
   m_EditorClassIdentifier: 
   FireVariants:
-  - Clip: {fileID: 8300000, guid: 38b450e2adcb6f542acc8c1d423bd8dc, type: 3}
-    VolumeRange: {x: 1, y: 1}
-    PitchRange: {x: 0.97, y: 1.03}
+  - Clip: {fileID: 8300000, guid: 0d57b9447052d4a49b2ce961178633ea, type: 3}
+    VolumeRange: {x: 0.85, y: 0.92}
+    PitchRange: {x: 1, y: 1.06}
   DryFire:
     Clip: {fileID: 0}
     VolumeRange: {x: 0, y: 0}

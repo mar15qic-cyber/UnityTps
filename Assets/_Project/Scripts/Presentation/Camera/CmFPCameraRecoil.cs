@@ -34,9 +34,9 @@ namespace Game.Presentation.Camera
                 if (_weapon == null) return;
             }
 
-            // 回声：与 WeaponController.AimDirection 完全同源的偏移（x=pitch 正=抬头，y=yaw）
-            var offset = _weapon.CurrentRecoilOffset;
-            state.OrientationCorrection *= Quaternion.Euler(offset.x, offset.y, 0f);
+            // 回声：与 WeaponController.AimDirection 完全同源；OffsetRotation 已统一
+            // 处理“Pitch 向上为正”与 Unity +X 欧拉角方向相反的问题。
+            state.OrientationCorrection *= _weapon.CurrentRecoilRotation;
         }
     }
 }

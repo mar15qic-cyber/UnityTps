@@ -10,33 +10,33 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 799a8f0838ccf2e4e90a31c7967a4c2d, type: 3}
-  m_Name: AudioProfile_Shotgun
+  m_Name: AudioProfile_Rifle02
   m_EditorClassIdentifier: 
   FireVariants:
-  - Clip: {fileID: 8300000, guid: ffb0eb0e8bcac9443980191485e034da, type: 3}
-    VolumeRange: {x: 1, y: 1}
-    PitchRange: {x: 0.95, y: 1}
+  - Clip: {fileID: 8300000, guid: 78a53bd6630cb3a4698fb0adea5da088, type: 3}
+    VolumeRange: {x: 0.9, y: 0.95}
+    PitchRange: {x: 0.98, y: 1.04}
   DryFire:
     Clip: {fileID: 0}
     VolumeRange: {x: 0, y: 0}
     PitchRange: {x: 0, y: 0}
   ReloadAmmoLeft:
-    Clip: {fileID: 0}
-    VolumeRange: {x: 0, y: 0}
-    PitchRange: {x: 0, y: 0}
+    Clip: {fileID: 8300000, guid: f7ce534a0633b9847910ba117e2245d1, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
   ReloadOutOfAmmo:
-    Clip: {fileID: 0}
-    VolumeRange: {x: 0, y: 0}
-    PitchRange: {x: 0, y: 0}
+    Clip: {fileID: 8300000, guid: 5b907074256e36d41b92e89fb0790633, type: 3}
+    VolumeRange: {x: 1, y: 1}
+    PitchRange: {x: 0.97, y: 1.03}
   MagOut:
-    Clip: {fileID: 8300000, guid: bc2495e629fa1834993cd2b63eb5354d, type: 3}
-    NormalizedTime: 0.25
+    Clip: {fileID: 0}
+    NormalizedTime: 0
   MagIn:
-    Clip: {fileID: 8300000, guid: 627283682cdb8784f9b8f4279751facf, type: 3}
-    NormalizedTime: 0.55
+    Clip: {fileID: 0}
+    NormalizedTime: 0
   BoltRack:
-    Clip: {fileID: 8300000, guid: 43d60630705c9c34c8a114be2f9fff0c, type: 3}
-    NormalizedTime: 0.85
+    Clip: {fileID: 0}
+    NormalizedTime: 0
   Draw:
     Clip: {fileID: 8300000, guid: 2ae41e984ff1f3e4a840a1a46b6a8816, type: 3}
     VolumeRange: {x: 1, y: 1}

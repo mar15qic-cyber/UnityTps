@@ -1916,9 +1916,18 @@ MonoBehaviour:
   bobReferenceSpeed: 3.44
   breathingCyclesPerSecond: 0.28
   breathingAmplitude: 0.004
-  recoilSpringFrequency: 11
-  recoilDampingRatio: 0.6
+  recoilSpringFrequency: 8
+  recoilDampingRatio: 0.7
+  recoilYawMultiplier: 2
+  recoilRollMultiplier: 0.75
+  recoilLateralPerYaw: 0.01
+  recoilMaxPitch: 10
+  recoilMaxYaw: 4
+  recoilMaxRoll: 2
+  recoilMaxBack: 0.1
+  recoilMaxLateral: 0.02
   adsMotionDamping: 0.85
+  adsRecoilRetention: 0.75
 --- !u!1001 &1267986180
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3972,6 +3981,7 @@ MonoBehaviour:
   aimState: {fileID: 1370295988}
   playerState: {fileID: 1370295990}
   config: {fileID: 11400000, guid: 793cecd7ac182f3438591972c9c81e6b, type: 2}
+  debugGap: 0
 --- !u!114 &2111996914
 MonoBehaviour:
   m_ObjectHideFlags: 0

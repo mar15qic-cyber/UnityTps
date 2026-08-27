@@ -109,7 +109,12 @@ namespace Game.Gameplay.Movement
             _jumpConsumedThisStep = false;
             _lastCommand = command;
             _lastCommand.Move = Vector2.ClampMagnitude(command.Move, 1f);
-            transform.Rotate(0f, command.YawDelta, 0f);
+            // Yaw 后坐由同一 WeaponRecoilState 提供；鼠标反向输入先消费债务，
+            // 剩余部分才真正旋转玩家身体，保证水平压枪与相机/射线同源。
+            float yawDelta = command.YawDelta;
+            if (_weaponController != null)
+                yawDelta = _weaponController.ConsumeRecoilCompensation(new Vector2(0f, yawDelta)).y;
+            transform.Rotate(0f, yawDelta, 0f);
 
             bool groundedBeforeMove = _cc.isGrounded;
             if (groundedBeforeMove)

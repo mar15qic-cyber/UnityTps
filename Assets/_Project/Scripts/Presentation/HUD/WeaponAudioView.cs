@@ -13,18 +13,22 @@ namespace Game.Presentation.HUD
     /// 池：Fire 用 3 路轮换 OneShot（高速连射不截断）；音量/音高随机；本地 2D 混合
     /// （远端 3D 预留 anchor）。换弹分阶段经 OnAnimStage（版本号校验，中断不误触发）。
     /// 缺失 clip 静默（Editor Validator 报告，§9-11 拍板：不用近义 clip 假装完成）。
+    /// Day4 实机审计 §5：动画器订阅改为动态重建（含未激活视图）——旧版 Awake 时
+    /// FindObjectsOfType 只收集当刻激活的视图，切枪后才激活的武器分阶段换弹音全部漏订阅。
     /// </summary>
     public sealed class WeaponAudioView : MonoBehaviour
     {
         [SerializeField] private WeaponController controller;
         [SerializeField] private Arsenal arsenal;
-        [Tooltip("各武器 FP 视图上的动画器（换弹分阶段事件源）；空=自动收集")]
+        [Tooltip("显式指定动画器列表（非空时禁用自动扫描；留空=按切枪/换弹/开火事件动态重建）")]
         [SerializeField] private FPWeaponAnimator[] animators;
 
         [Header("Fire 轮换池")]
         [SerializeField, Min(1)] private int fireVoiceCount = 3;
 
         private readonly List<AudioSource> _fireVoices = new();
+        private readonly List<FPWeaponAnimator> _subscribed = new();
+        private readonly List<FPWeaponAnimator> _scanBuffer = new();
         private int _fireVoiceIndex;
         private WeaponAudioProfile _profile;
 
@@ -32,8 +36,6 @@ namespace Game.Presentation.HUD
         {
             if (controller == null) controller = FindObjectOfType<WeaponController>();
             if (arsenal == null) arsenal = FindObjectOfType<Arsenal>();
-            if (animators == null || animators.Length == 0)
-                animators = FindObjectsOfType<FPWeaponAnimator>();
             BuildFireVoices();
         }
 
@@ -48,11 +50,10 @@ namespace Game.Presentation.HUD
             {
                 arsenal.OnSwitchStarted += HandleSwitchStarted;
                 arsenal.OnSwitchCompleted += HandleSwitchCompleted;
+                arsenal.OnActiveWeaponChanged += HandleActiveWeaponChanged;
             }
-            if (animators != null)
-                foreach (var a in animators)
-                    if (a != null) a.OnAnimStage += HandleAnimStage;
             RefreshProfile();
+            ResubscribeAnimators();
         }
 
         private void OnDisable()
@@ -66,10 +67,9 @@ namespace Game.Presentation.HUD
             {
                 arsenal.OnSwitchStarted -= HandleSwitchStarted;
                 arsenal.OnSwitchCompleted -= HandleSwitchCompleted;
+                arsenal.OnActiveWeaponChanged -= HandleActiveWeaponChanged;
             }
-            if (animators != null)
-                foreach (var a in animators)
-                    if (a != null) a.OnAnimStage -= HandleAnimStage;
+            UnsubscribeAll();
         }
 
         // ---------------- 事件 → 音频 ----------------
@@ -80,6 +80,8 @@ namespace Game.Presentation.HUD
 
         private void HandleReloadStarted()
         {
+            // 换弹开始：先确保当前激活视图的动画器已订阅（覆盖初始武器未经切枪事件的路径）
+            ResubscribeAnimators();
             // 整段换弹音（分阶段经 HandleAnimStage；两轨并存时整段作底噪）
             if (_profile == null) return;
             bool empty = controller.Runtime != null && controller.Runtime.CurrentAmmo == 0;
@@ -103,9 +105,52 @@ namespace Game.Presentation.HUD
             => PlayEntry(_profile != null ? _profile.Holster : default, "Holster");
 
         private void HandleSwitchCompleted(Game.Gameplay.Weapon.WeaponDefinition newWeapon)
-            => PlayEntry(_profile != null ? _profile.Draw : default, "Draw");
+        {
+            // 出枪完成：新视图已激活，重建订阅
+            ResubscribeAnimators();
+            PlayEntry(_profile != null ? _profile.Draw : default, "Draw");
+        }
+
+        private void HandleActiveWeaponChanged(Game.Gameplay.Weapon.WeaponDefinition _)
+            => ResubscribeAnimators();   // 交换点：新视图实例化后（幂等，重复调用安全）
 
         private void HandleWeapon(Game.Gameplay.Weapon.WeaponDefinition _) => RefreshProfile();
+
+        // ---------------- 动画器订阅（Day4 审计 §5） ----------------
+
+        /// <summary>重建动画器订阅：含未激活视图（GetComponentsInChildren(true)）——
+        /// 事件只会在激活视图上触发，未激活订阅无害；旧订阅全部先解除，幂等。</summary>
+        private void ResubscribeAnimators()
+        {
+            if (animators != null && animators.Length > 0)
+            {
+                // 显式列表模式：只在首次接线
+                if (_subscribed.Count == 0)
+                {
+                    foreach (var a in animators)
+                        if (a != null) { a.OnAnimStage += HandleAnimStage; _subscribed.Add(a); }
+                }
+                return;
+            }
+
+            UnsubscribeAll();
+            if (controller == null) return;
+            controller.GetComponentsInChildren(true, _scanBuffer);
+            foreach (var a in _scanBuffer)
+            {
+                if (a == null) continue;
+                a.OnAnimStage += HandleAnimStage;
+                _subscribed.Add(a);
+            }
+            _scanBuffer.Clear();
+        }
+
+        private void UnsubscribeAll()
+        {
+            foreach (var a in _subscribed)
+                if (a != null) a.OnAnimStage -= HandleAnimStage;
+            _subscribed.Clear();
+        }
 
         // ---------------- 播放 ----------------
 

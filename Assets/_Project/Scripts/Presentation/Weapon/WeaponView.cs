@@ -37,6 +37,10 @@ namespace Game.Presentation.Weapon
         [Tooltip("ADS 瞄准线参考点（照门/瞄具线上）；空则回退用 Muzzle。物理 Muzzle 位于膛口，与瞄具线有 sight-height 高度差，ADS 必须对齐瞄具线而非膛线。")]
         [SerializeField] private Transform sightReference;
 
+        [Header("调试")]
+        [Tooltip("每发输出拖尾诊断日志（origin/firedDirection/selfHitSkip/visualEnd）——排查异常拖尾用，默认关")]
+        [SerializeField] private bool debugShotDiagnostics;
+
         /// <summary>ADS 瞄准线参考点；空表示该武器未单独配置（回退 Muzzle）。</summary>
         public Transform SightReference => sightReference;
 
@@ -45,6 +49,8 @@ namespace Game.Presentation.Weapon
         private Material _tracerMaterial;
         private float _tracerTimer;
         private float _flashTimer;
+        private Vector3 _firedDirection = Vector3.forward;   // 本发弹道方向（拖尾姿态基准）
+        private float _tracerLength;                          // 本发视觉长度（命中距离投影并限长）
 
         private void Awake()
         {
@@ -80,31 +86,45 @@ namespace Game.Presentation.Weapon
             if (_muzzleLight != null) _muzzleLight.enabled = _flashTimer > 0f;
         }
 
-        /// <summary>开火事件在动画求值前发生，HandleShot 记录的第 0 点是动画前的旧枪口位；
-        /// 这里在 Animancer/Animator 更新骨骼后（LateUpdate）持续贴回当前帧真实枪口，
-        /// 使拖尾起点与火光/枪口动画逐帧重合。终点（命中点）不在此更新。</summary>
+        /// <summary>开火事件在动画求值前发生，HandleShot 记录的方向/长度在 LateUpdate 持续
+        /// 贴回当前帧真实枪口（Animancer/Animator 更新骨骼后），使拖尾起点与枪口动画逐帧重合、
+        /// 且始终平行于本发弹道方向（Day4 实机审计 §1：不再直接使用 Result.Point 作终点——
+        /// 自身命中/贴脸命中点会形成竖直/向下短线；命中点沿相机射线，与枪口弹道线平行偏移）。</summary>
         private void LateUpdate()
         {
             if (_tracer == null || !_tracer.enabled || muzzle == null) return;
-            _tracer.SetPosition(0, muzzle.position);
-            // 视觉终点限长：拖尾由 overlay 相机渲染（far clip 5m），命中点常在远裁剪面外，
-            // 直接用真实命中点会被生硬截断。沿弹道方向把视觉终点钳制在枪口前方 maxTracerLength。
-            Vector3 end = _tracer.GetPosition(1);
             Vector3 start = muzzle.position;
-            Vector3 delta = end - start;
-            if (delta.sqrMagnitude > maxTracerLength * maxTracerLength)
-                _tracer.SetPosition(1, start + delta.normalized * maxTracerLength);
+            _tracer.SetPosition(0, start);
+            _tracer.SetPosition(1, start + _firedDirection * _tracerLength);
         }
 
         private void HandleShot(WeaponShot shot)
         {
             Vector3 start = muzzle != null ? muzzle.position : shot.Origin;
+
+            // 拖尾几何（审计 §1）：起点=枪口；方向=本发 FiredDirection（散布后真实弹道）；
+            // 长度=命中点在枪口弹道线上的投影，钳制 [0, maxTracerLength]（overlay 相机 far clip 5m）。
+            // 无命中时 Result.Point 已是 origin+dir*maxRange 远点，投影结果≈maxRange，同样被限长截断。
+            _firedDirection = shot.FiredDirection.sqrMagnitude > 1e-8f
+                ? shot.FiredDirection.normalized
+                : Vector3.forward;
+            float projected = Vector3.Dot(shot.Result.Point - start, _firedDirection);
+            _tracerLength = Mathf.Clamp(projected, 0f, maxTracerLength);
+
             _tracer.SetPosition(0, start);
-            _tracer.SetPosition(1, shot.Result.Point);
+            _tracer.SetPosition(1, start + _firedDirection * _tracerLength);
             _tracer.enabled = true;
             _tracerTimer = tracerDuration;
             _muzzleLight.enabled = true;
             _flashTimer = muzzleFlashDuration;
+
+            if (debugShotDiagnostics)
+            {
+                Vector3 visualEnd = start + _firedDirection * _tracerLength;
+                Debug.Log($"[WeaponView] shot: origin={shot.Origin:F2} firedDir={_firedDirection:F3} " +
+                          $"hit={shot.Result.Hit} damaged={shot.Result.Damaged} selfSkip={shot.Result.SelfHitsSkipped} " +
+                          $"resultPoint={shot.Result.Point:F2} visualEnd={visualEnd:F2} len={_tracerLength:F2}", this);
+            }
 
             SpawnMuzzleFlash();
             SpawnShellCasing();
