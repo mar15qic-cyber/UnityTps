@@ -126,8 +126,8 @@ public sealed class LobbyBootstrap : MonoBehaviour
         mainProfile = TextObject("Profile", card.transform, "", 32, Text, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.70f), new Vector2(0.92f, 0.90f));
         mainXp = TextObject("Xp", card.transform, "", 20, Teal, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.56f), new Vector2(0.92f, 0.68f));
         mainXpFill = ProgressBar("XpBar", card.transform, new Vector2(0.08f, 0.49f), new Vector2(0.92f, 0.54f));
-        mainSkillPoints = TextObject("SkillPoints", card.transform, "", 20, Yellow, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.44f), new Vector2(0.92f, 0.54f));
-        mainLoadout = TextObject("Loadout", card.transform, "", 18, Muted, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.30f), new Vector2(0.92f, 0.42f));
+        mainSkillPoints = TextObject("SkillPoints", card.transform, "", 20, Yellow, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.40f), new Vector2(0.92f, 0.48f));
+        mainLoadout = TextObject("Loadout", card.transform, "", 18, Muted, TextAnchor.MiddleLeft, new Vector2(0.08f, 0.28f), new Vector2(0.92f, 0.38f));
         var loadout = ButtonObject("Loadout", card.transform, "配 装", Teal, new Vector2(0.08f, 0.10f), new Vector2(0.28f, 0.22f));
         loadout.onClick.AddListener(() => ShowPage(LobbyFlowState.Loadout));
         var upgrade = ButtonObject("Upgrade", card.transform, "升 级", Yellow, new Vector2(0.31f, 0.10f), new Vector2(0.51f, 0.22f));
