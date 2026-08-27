@@ -39,6 +39,8 @@ crashlytics-build.properties
 # ===== Backend solution (tracked intentionally; Unity's generated project rules above are global) =====
 !fps-backend/**/*.sln
 !fps-backend/**/*.csproj
+fps-backend/**/bin/
+fps-backend/**/obj/
 
 # ===== Codely CLI 运行时（由工具自动恢复，不入库） =====
 .codely-cli/
