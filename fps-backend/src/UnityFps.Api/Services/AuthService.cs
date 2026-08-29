@@ -20,6 +20,9 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow };
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
+        user.Wallet = new PlayerWallet { User = user, Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
+        foreach (var itemId in CatalogSeeder.InitialWeapons)
+            user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         db.Users.Add(user);
         try { await db.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateException) { throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.UsernameTaken, "用户名已存在"); }
@@ -30,7 +33,9 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
     public async Task<AuthSessionDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var normalized = Normalize(request.Username.Trim());
-        var user = await db.Users.Include(x => x.Profile).Include(x => x.Loadout).SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, cancellationToken);
+        var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet)
+            .Include(x => x.Loadout!).ThenInclude(x => x.Attachments)
+            .SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, cancellationToken);
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "用户名或密码错误");
         user.LastLoginAtUtc = DateTime.UtcNow;
@@ -43,7 +48,8 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         var profile = user.Profile ?? throw new InvalidOperationException("Profile missing");
         var loadout = user.Loadout ?? throw new InvalidOperationException("Loadout missing");
         var token = jwt.Create(user);
-        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user.Username, rules), loadout.ToDto());
+        var coins = user.Wallet?.Coins ?? 0;
+        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user.Username, coins, rules), loadout.ToDto(), coins);
     }
 
     public static long GetUserId(System.Security.Claims.ClaimsPrincipal principal) =>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,11 +26,14 @@ public sealed class ApiClient : IApiClient, IDisposable
         if (config == null) throw new ArgumentNullException(nameof(config));
         baseUrl = ApiClientConfig.NormalizeBaseUrl(config.BaseUrl);
         timeoutSeconds = config.TimeoutSeconds;
-        if (string.IsNullOrWhiteSpace(baseUrl)) throw new ArgumentException("API BaseUrl 不能为空", nameof(config));
+        if (!config.TryValidate(out var validationError)) throw new ArgumentException(validationError, nameof(config));
     }
 
     public void SetToken(string value) => token = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     public void ClearToken() => token = null;
+
+    public Task<ApiResult<HealthDto>> GetHealthAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<HealthDto>("health", UnityWebRequest.kHttpVerbGET, "/health", null, cancellationToken);
 
     public Task<ApiResult<AuthSessionDto>> RegisterAsync(string username, string password, CancellationToken cancellationToken = default) =>
         SendAsync<AuthSessionDto>("register", UnityWebRequest.kHttpVerbPOST, "/api/auth/register", new RegisterRequest { username = username, password = password }, cancellationToken);
@@ -49,6 +53,24 @@ public sealed class ApiClient : IApiClient, IDisposable
     public Task<ApiResult<LoadoutDto>> UpdateLoadoutAsync(LoadoutRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<LoadoutDto>("loadout-update", UnityWebRequest.kHttpVerbPUT, "/api/loadout", request, cancellationToken);
 
+    public Task<ApiResult<LoadoutAttachmentsDto>> GetLoadoutAttachmentsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-get", UnityWebRequest.kHttpVerbGET, "/api/loadout/attachments", null, cancellationToken);
+
+    public Task<ApiResult<LoadoutAttachmentsDto>> UpdateLoadoutAttachmentsAsync(LoadoutAttachmentsRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-update", UnityWebRequest.kHttpVerbPUT, "/api/loadout/attachments", request, cancellationToken);
+
+    public Task<ApiResult<AttachmentCompatibilityDto[]>> GetAttachmentCompatibilityAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<AttachmentCompatibilityDto[]>("attachment-compatibility-get", UnityWebRequest.kHttpVerbGET, "/api/loadout/compatibility", null, cancellationToken);
+
+    public Task<ApiResult<ShopCatalogDto>> GetShopCatalogAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<ShopCatalogDto>("shop-catalog-get", UnityWebRequest.kHttpVerbGET, "/api/shop/catalog", null, cancellationToken);
+
+    public Task<ApiResult<InventoryDto>> GetInventoryAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<InventoryDto>("inventory-get", UnityWebRequest.kHttpVerbGET, "/api/inventory", null, cancellationToken);
+
+    public Task<ApiResult<PurchaseResultDto>> PurchaseAsync(PurchaseRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<PurchaseResultDto>("purchase-" + (request?.idempotencyKey ?? string.Empty), UnityWebRequest.kHttpVerbPOST, "/api/shop/purchases", request, cancellationToken);
+
     public Task<ApiResult<MatchResultDto>> SubmitMatchAsync(MatchSubmissionRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<MatchResultDto>("match-submit", UnityWebRequest.kHttpVerbPOST, "/api/matches", request, cancellationToken);
 
@@ -63,57 +85,137 @@ public sealed class ApiClient : IApiClient, IDisposable
 
         try
         {
-        using var request = new UnityWebRequest(baseUrl + path, method)
-        {
-            timeout = timeoutSeconds,
-            downloadHandler = new DownloadHandlerBuffer()
-        };
-        if (payload != null)
-        {
-            var json = JsonConvert.SerializeObject(payload);
-            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-            request.uploadHandler.contentType = "application/json";
-            request.SetRequestHeader("Content-Type", "application/json");
+            var targetUrl = baseUrl + path;
+            var stopwatch = Stopwatch.StartNew();
+            using var request = new UnityWebRequest(targetUrl, method)
+            {
+                // Unity's native timeout remains a last line of defence. The
+                // explicit timer below tells us whether it was our timeout,
+                // instead of guessing from responseCode == 0.
+                timeout = timeoutSeconds,
+                downloadHandler = new DownloadHandlerBuffer()
+            };
+            if (payload != null)
+            {
+                var json = JsonConvert.SerializeObject(payload);
+                request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+                request.uploadHandler.contentType = "application/json";
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
+            if (!string.IsNullOrWhiteSpace(token)) request.SetRequestHeader("Authorization", "Bearer " + token);
+
+            var completion = new TaskCompletionSource<UnityWebRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var cancellationCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = cancellationToken.Register(() =>
+            {
+                request.Abort();
+                ReleaseOperation(operationKey);
+                cancellationCompletion.TrySetResult(true);
+            });
+            using var timeoutCancellation = new CancellationTokenSource();
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds), timeoutCancellation.Token);
+            UnityWebRequestAsyncOperation operation;
+            try
+            {
+                operation = request.SendWebRequest();
+                operation.completed += _ => completion.TrySetResult(request);
+            }
+            catch (Exception ex)
+            {
+                timeoutCancellation.Cancel();
+                LogFailure(method, targetUrl, stopwatch.ElapsedMilliseconds, UnityWebRequest.Result.ConnectionError, 0, ApiClientErrorCodes.Request, ex.Message);
+                return ApiResult<T>.Fail(0, ApiClientErrorCodes.Request, "请求无法启动");
+            }
+
+            var winner = await Task.WhenAny(completion.Task, timeoutTask, cancellationCompletion.Task);
+            if (winner == cancellationCompletion.Task || cancellationToken.IsCancellationRequested)
+            {
+                timeoutCancellation.Cancel();
+                ReleaseOperation(operationKey);
+                return ApiResult<T>.Fail(0, ApiClientErrorCodes.Cancelled, "请求已取消");
+            }
+
+            if (winner == timeoutTask && !completion.Task.IsCompleted)
+            {
+                request.Abort();
+                LogFailure(method, targetUrl, stopwatch.ElapsedMilliseconds, UnityWebRequest.Result.ConnectionError, 0, ApiClientErrorCodes.Timeout, "客户端请求超时");
+                ReleaseOperation(operationKey);
+                return ApiResult<T>.Fail(0, ApiClientErrorCodes.Timeout, "服务器响应超时");
+            }
+
+            var completedRequest = await completion.Task;
+            timeoutCancellation.Cancel();
+
+            if (cancellationToken.IsCancellationRequested)
+                return ApiResult<T>.Fail(0, ApiClientErrorCodes.Cancelled, "请求已取消");
+
+            var text = completedRequest.downloadHandler?.text ?? string.Empty;
+            if (completedRequest.result == UnityWebRequest.Result.Success)
+            {
+                try
+                {
+                    return ApiResult<T>.Ok(string.IsNullOrWhiteSpace(text) ? default : JsonConvert.DeserializeObject<T>(text), completedRequest.responseCode);
+                }
+                catch (Exception ex)
+                {
+                    LogFailure(method, targetUrl, stopwatch.ElapsedMilliseconds, completedRequest.result, completedRequest.responseCode, ApiClientErrorCodes.InvalidJson, ex.Message);
+                    return ApiResult<T>.Fail(completedRequest.responseCode, ApiClientErrorCodes.InvalidJson, "服务器响应格式无效");
+                }
+            }
+
+            return ParseFailure<T>(method, targetUrl, stopwatch.ElapsedMilliseconds, completedRequest.responseCode, text, completedRequest.error, completedRequest.result, false);
         }
-        if (!string.IsNullOrWhiteSpace(token)) request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        var completion = new TaskCompletionSource<UnityWebRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = cancellationToken.Register(() => request.Abort());
-        var operation = request.SendWebRequest();
-        operation.completed += _ => completion.TrySetResult(request);
-        var completedRequest = await completion.Task;
-        if (cancellationToken.IsCancellationRequested) return ApiResult<T>.Fail(0, "CLIENT_CANCELLED", "请求已取消");
-
-        var text = completedRequest.downloadHandler?.text ?? string.Empty;
-        if (completedRequest.result == UnityWebRequest.Result.Success)
+        catch (Exception ex)
         {
-            try { return ApiResult<T>.Ok(string.IsNullOrWhiteSpace(text) ? default : JsonConvert.DeserializeObject<T>(text), completedRequest.responseCode); }
-            catch (Exception ex) { return ApiResult<T>.Fail(completedRequest.responseCode, "CLIENT_INVALID_JSON", ex.Message); }
-        }
-
-        return ParseFailure<T>(completedRequest.responseCode, text, completedRequest.error);
+            // Do not let a client-side request construction/dispatch problem
+            // escape as an unhandled task exception from the UI.
+            LogFailure(method, baseUrl + path, 0, UnityWebRequest.Result.ConnectionError, 0, ApiClientErrorCodes.Request, ex.Message);
+            return ApiResult<T>.Fail(0, ApiClientErrorCodes.Request, "请求无法启动");
         }
         finally
         {
-            lock (operationGate) inFlightOperations.Remove(operationKey);
+            ReleaseOperation(operationKey);
         }
     }
 
-    private ApiResult<T> ParseFailure<T>(long status, string body, string transportError)
+    private void ReleaseOperation(string operationKey)
+    {
+        lock (operationGate) inFlightOperations.Remove(operationKey);
+    }
+
+    private ApiResult<T> ParseFailure<T>(string method, string targetUrl, long elapsedMilliseconds, long status, string body, string transportError, UnityWebRequest.Result result, bool explicitTimeout)
     {
         try
         {
             var problem = JsonConvert.DeserializeObject<ProblemDetailsDto>(body);
             if (problem != null)
+            {
+                LogFailure(method, targetUrl, elapsedMilliseconds, result, status, problem.code, transportError);
                 return ApiResult<T>.Fail(status, problem.code, problem.detail ?? problem.title, problem.errors);
+            }
         }
         catch (JsonException) { }
-        var code = status == 0 ? "CLIENT_NETWORK_ERROR"
+        var code = status == 0 ? ApiTransportFailureClassifier.Classify(result, transportError, explicitTimeout)
             : status == 400 ? "CLIENT_BAD_REQUEST"
             : status == 401 ? "AUTH_UNAUTHORIZED"
             : status == 409 ? "CLIENT_CONFLICT"
             : "CLIENT_HTTP_ERROR";
+        LogFailure(method, targetUrl, elapsedMilliseconds, result, status, code, transportError);
         return ApiResult<T>.Fail(status, code, string.IsNullOrWhiteSpace(transportError) ? "请求失败" : transportError);
+    }
+
+    private static void LogFailure(string method, string targetUrl, long elapsedMilliseconds, UnityWebRequest.Result result, long status, string code, string detail)
+    {
+        var safeDetail = (detail ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Trim();
+        if (safeDetail.Length > 160) safeDetail = safeDetail.Substring(0, 160);
+        UnityEngine.Debug.LogWarning($"[ApiClient] {method} {SanitizeUrl(targetUrl)} failed code={code} result={result} status={status} elapsedMs={elapsedMilliseconds} detail={safeDetail}");
+    }
+
+    private static string SanitizeUrl(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)) return "<invalid-url>";
+        var port = uri.IsDefaultPort ? string.Empty : ":" + uri.Port;
+        return uri.Scheme + "://" + uri.Host + port + uri.AbsolutePath;
     }
 
     public void Dispose()

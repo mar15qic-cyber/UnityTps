@@ -16,8 +16,11 @@ public sealed class ServiceFlowTests
         var session = await auth.RegisterAsync(new RegisterRequest { Username = "  Alice ", Password = "Password123!" }, CancellationToken.None);
 
         Assert.Equal("Alice", session.Profile.Username);
-        Assert.Equal("rifle.day3", session.Loadout.PrimaryWeaponId);
-        Assert.Equal("pistol.day2", session.Loadout.SecondaryWeaponId);
+        Assert.Equal("weapon.m4", session.Loadout.PrimaryWeaponId);
+        Assert.Equal("weapon.service_pistol", session.Loadout.SecondaryWeaponId);
+        Assert.Equal(1, session.Loadout.Version);
+        Assert.Equal(CatalogSeeder.InitialCoins, session.Coins);
+        Assert.Equal(3, await db.InventoryItems.CountAsync());
         Assert.Equal(0, session.Profile.SkillPoints);
     }
 

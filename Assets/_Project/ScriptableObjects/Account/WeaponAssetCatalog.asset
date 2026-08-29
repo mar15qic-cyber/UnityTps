@@ -1,0 +1,561 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e605f89948068f48b6e2d990f333523, type: 3}
+  m_Name: WeaponAssetCatalog
+  m_EditorClassIdentifier: 
+  entries:
+  - itemId: weapon.m4
+    assetKey: rifle.day3/Assault_Rifle_01
+    definitionId: rifle.day3
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    supportsVerifiedAttachments: 1
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: ec4a9c0361c85394099680e9fda83d32, type: 2}
+    previewPrefab: {fileID: 7707036890514972092, guid: 00b5bb45ca5329c4aa7d80498cc8eabc, type: 3}
+    stats:
+      damage: 26
+      roundsPerMinute: 600
+      magazineSize: 30
+      recoil: 1.35
+  - itemId: weapon.ak
+    assetKey: rifle.02/Assault_Rifle_02
+    definitionId: rifle.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: 799d1740b91c1fc4b9d408815506a442, type: 2}
+    previewPrefab: {fileID: 5313730131039769789, guid: d6128c4ed61111a41a3adecbdfecf348, type: 3}
+    stats:
+      damage: 24
+      roundsPerMinute: 640
+      magazineSize: 30
+      recoil: 0.85
+  - itemId: weapon.service_pistol
+    assetKey: pistol.day2/Pistol_01
+    definitionId: pistol.day2
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    supportsVerifiedAttachments: 1
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 3c44ee751d67bf4428d9b46804337f15, type: 2}
+    previewPrefab: {fileID: 8213130621444502490, guid: 95aeb185d6221804885ea0fe87c6aef1, type: 3}
+    stats:
+      damage: 34
+      roundsPerMinute: 360
+      magazineSize: 12
+      recoil: 0.8
+  - itemId: weapon.rifle03
+    assetKey: rifle.03/Assault_Rifle_03
+    definitionId: rifle.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: 68a9bc08a732c194682aee76f8a2b766, type: 2}
+    previewPrefab: {fileID: 6531982378343359995, guid: 1f872d3d9cf52e94599ac62c2fe16092, type: 3}
+    stats:
+      damage: 28
+      roundsPerMinute: 520
+      magazineSize: 25
+      recoil: 1.2
+  - itemId: weapon.smg01
+    assetKey: smg.01/SMG_01
+    definitionId: smg.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: b4a33812478f1b04f9251f147dcfde24, type: 2}
+    previewPrefab: {fileID: 3924758656610726626, guid: 07cccf1c327b02346b818246b2846d83, type: 3}
+    stats:
+      damage: 18
+      roundsPerMinute: 850
+      magazineSize: 32
+      recoil: 0.7
+  - itemId: weapon.smg02
+    assetKey: smg.02/SMG_02
+    definitionId: smg.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_02.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: 85dca2a47fe4ff149b23be76266290a5, type: 2}
+    previewPrefab: {fileID: 3843627004293600021, guid: 3a6d4094df6899645b06ff6e60bf599f, type: 3}
+    stats:
+      damage: 20
+      roundsPerMinute: 780
+      magazineSize: 30
+      recoil: 0.65
+  - itemId: weapon.shotgun01
+    assetKey: shotgun.01/Shotgun_01
+    definitionId: shotgun.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: 50637f508a4a40a40a6df39903194abe, type: 2}
+    previewPrefab: {fileID: 5225663059114905009, guid: 5ea1fa58f83609546a3196eaea93f018, type: 3}
+    stats:
+      damage: 60
+      roundsPerMinute: 90
+      magazineSize: 6
+      recoil: 2.6
+  - itemId: weapon.sniper01
+    assetKey: sniper.01/Sniper_Rifle_01
+    definitionId: sniper.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 4f0ab5b65ebdbdd44be508830825daf7, type: 2}
+    previewPrefab: {fileID: 7670982791927436342, guid: e10276abf7f52ca46b75b5bc8edcd355, type: 3}
+    stats:
+      damage: 95
+      roundsPerMinute: 45
+      magazineSize: 5
+      recoil: 2.8
+  - itemId: weapon.sniper02
+    assetKey: sniper.02/Sniper_Rifle_02
+    definitionId: sniper.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_02.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: d8f07e4f2646e3f4eaac34b0823110f4, type: 2}
+    previewPrefab: {fileID: 1030842309789348031, guid: 1194cf96d29f0994f950847170d4b7a8, type: 3}
+    stats:
+      damage: 110
+      roundsPerMinute: 35
+      magazineSize: 5
+      recoil: 3
+  - itemId: weapon.handgun02
+    assetKey: handgun.02/Pistol_02
+    definitionId: handgun.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 2da393a3ba9a51a4db48905e7b5b63f2, type: 2}
+    previewPrefab: {fileID: 6573219461991808529, guid: 0ad99d0949cbada418106986c05e6184, type: 3}
+    stats:
+      damage: 30
+      roundsPerMinute: 300
+      magazineSize: 15
+      recoil: 0.9
+  - itemId: weapon.lpw.rifle.01
+    assetKey: lpw/AssaultRifle1_01
+    definitionId: lpw.rifle.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle1_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: ceb141a4588872a4ea277db86b6d3594, type: 2}
+    previewPrefab: {fileID: 3840638362329388781, guid: e430332a7caa08741bea83f868c5e775, type: 3}
+    stats:
+      damage: 23
+      roundsPerMinute: 670
+      magazineSize: 25
+      recoil: 1.51
+  - itemId: weapon.lpw.rifle.02
+    assetKey: lpw/AssaultRifle2_01
+    definitionId: lpw.rifle.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle2_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: db404be0fe9c92240bc07d9bc72cf813, type: 2}
+    previewPrefab: {fileID: 1667249104935145169, guid: c87dfea73a502a140937f6ead0fd3d1a, type: 3}
+    stats:
+      damage: 25
+      roundsPerMinute: 640
+      magazineSize: 30
+      recoil: 1.43
+  - itemId: weapon.lpw.rifle.03
+    assetKey: lpw/AssaultRifle3_01
+    definitionId: lpw.rifle.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle3_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: 0f276b78e7a7dab449b46f44be66c25d, type: 2}
+    previewPrefab: {fileID: 474788089253185186, guid: e0d9e744266d9e2459e1c5386601996b, type: 3}
+    stats:
+      damage: 27
+      roundsPerMinute: 600
+      magazineSize: 30
+      recoil: 1.35
+  - itemId: weapon.lpw.rifle.04
+    assetKey: lpw/AssaultRifle4_01
+    definitionId: lpw.rifle.04
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle4_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: 01d2d0bda39d3244dba8c23e456cbba3, type: 2}
+    previewPrefab: {fileID: 2651337030568052895, guid: 06044a7207402b44ca8b9dc5737dfe37, type: 3}
+    stats:
+      damage: 28
+      roundsPerMinute: 570
+      magazineSize: 35
+      recoil: 1.28
+  - itemId: weapon.lpw.rifle.05
+    assetKey: lpw/AssaultRifle5_01
+    definitionId: lpw.rifle.05
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle5_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: 1815e53a56e93764f92a3531d0e9ba63, type: 2}
+    previewPrefab: {fileID: 420443441992288786, guid: af4001cd96364bf49b9da3aebda96c71, type: 3}
+    stats:
+      damage: 30
+      roundsPerMinute: 540
+      magazineSize: 35
+      recoil: 1.22
+  - itemId: weapon.lpw.rifle.06
+    assetKey: lpw/AssaultRifle6_01
+    definitionId: lpw.rifle.06
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle6_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 0
+    slotType: 0
+    definition: {fileID: 11400000, guid: ff624b8b2034cec4591fe4093b9b4853, type: 2}
+    previewPrefab: {fileID: 3708691896409438843, guid: ac62f9e086f1187408aa4af0d064e60e, type: 3}
+    stats:
+      damage: 32
+      roundsPerMinute: 510
+      magazineSize: 40
+      recoil: 1.15
+  - itemId: weapon.lpw.pistol.01
+    assetKey: lpw/Pistol1_01
+    definitionId: lpw.pistol.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol1_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 201f8ac4cdebdc74e8ee44b5d89d1979, type: 2}
+    previewPrefab: {fileID: 4155258203427289805, guid: 9bc3defc442db0a4a95eafe053ff8982, type: 3}
+    stats:
+      damage: 31
+      roundsPerMinute: 400
+      magazineSize: 10
+      recoil: 0.9
+  - itemId: weapon.lpw.pistol.02
+    assetKey: lpw/Pistol2_01
+    definitionId: lpw.pistol.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol2_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: e4efb090cabbab24bb0047f6f129e09b, type: 2}
+    previewPrefab: {fileID: 7991595151135156830, guid: 0e9ee0ec0ab85304a85383761a2c0303, type: 3}
+    stats:
+      damage: 33
+      roundsPerMinute: 380
+      magazineSize: 12
+      recoil: 0.85
+  - itemId: weapon.lpw.pistol.03
+    assetKey: lpw/Pistol3_01
+    definitionId: lpw.pistol.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol3_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: c08258b6190ee044c9038c95e9354030, type: 2}
+    previewPrefab: {fileID: 5038926296028911505, guid: 8be3cc7a263dfda4eb971b708583cb1c, type: 3}
+    stats:
+      damage: 35
+      roundsPerMinute: 360
+      magazineSize: 14
+      recoil: 0.8
+  - itemId: weapon.lpw.pistol.04
+    assetKey: lpw/Pistol4_01
+    definitionId: lpw.pistol.04
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol4_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 99f32695072c27140ae4cfd0e0373160, type: 2}
+    previewPrefab: {fileID: 7308890105951434546, guid: 9386c79fbe11c4d4b9b8839d9560eba7, type: 3}
+    stats:
+      damage: 37
+      roundsPerMinute: 340
+      magazineSize: 15
+      recoil: 0.76
+  - itemId: weapon.lpw.pistol.05
+    assetKey: lpw/Pistol5_01
+    definitionId: lpw.pistol.05
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol5_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 231eeaf4e427934409a3322801a8ad1f, type: 2}
+    previewPrefab: {fileID: 2074819618416088035, guid: 67399dd166391ca4e9853a174eb5765d, type: 3}
+    stats:
+      damage: 39
+      roundsPerMinute: 320
+      magazineSize: 17
+      recoil: 0.72
+  - itemId: weapon.lpw.pistol.06
+    assetKey: lpw/Pistol6_01
+    definitionId: lpw.pistol.06
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol6_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 1
+    slotType: 1
+    definition: {fileID: 11400000, guid: 2e12cb8f4682d264ea7b6f772230e1c2, type: 2}
+    previewPrefab: {fileID: 6308981412165192297, guid: f4ffd589575b490439c9be4e1711d6ff, type: 3}
+    stats:
+      damage: 41
+      roundsPerMinute: 310
+      magazineSize: 18
+      recoil: 0.68
+  - itemId: weapon.lpw.shotgun.01
+    assetKey: lpw/Shotgun1_01
+    definitionId: lpw.shotgun.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun1_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: 8eaaac6e3bd3a794282e8828d1a4faa5, type: 2}
+    previewPrefab: {fileID: 254630196779302637, guid: 6bc6fa13bd387ec48b7a175e6bc55195, type: 3}
+    stats:
+      damage: 54
+      roundsPerMinute: 100
+      magazineSize: 6
+      recoil: 2.91
+  - itemId: weapon.lpw.shotgun.02
+    assetKey: lpw/Shotgun2_01
+    definitionId: lpw.shotgun.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun2_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: 3e2c804d942d2324cad11728c5da4e3e, type: 2}
+    previewPrefab: {fileID: 7680029480780038924, guid: 54e1546e45b1abd4a85359018a9f25ed, type: 3}
+    stats:
+      damage: 58
+      roundsPerMinute: 100
+      magazineSize: 7
+      recoil: 2.76
+  - itemId: weapon.lpw.shotgun.03
+    assetKey: lpw/Shotgun3_01
+    definitionId: lpw.shotgun.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun3_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: 5f7738999b892614cbae546310779472, type: 2}
+    previewPrefab: {fileID: 584482890052867144, guid: 4c49589969dd5a64f824352425bbc2a2, type: 3}
+    stats:
+      damage: 61
+      roundsPerMinute: 90
+      magazineSize: 8
+      recoil: 2.6
+  - itemId: weapon.lpw.shotgun.04
+    assetKey: lpw/Shotgun4_01
+    definitionId: lpw.shotgun.04
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun4_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: fa7effbe45bd06a4c8e2cf6105b61f48, type: 2}
+    previewPrefab: {fileID: 1200991056512827373, guid: 5d8a307c52c4230408126ced35db68f9, type: 3}
+    stats:
+      damage: 65
+      roundsPerMinute: 90
+      magazineSize: 9
+      recoil: 2.47
+  - itemId: weapon.lpw.shotgun.05
+    assetKey: lpw/Shotgun5_01
+    definitionId: lpw.shotgun.05
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun5_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 2
+    slotType: 0
+    definition: {fileID: 11400000, guid: a8fcf9f64a14d0c4fb8a4aacea7ff5f2, type: 2}
+    previewPrefab: {fileID: 2468123205237503273, guid: f94c27e264ff736479468c5939a045d2, type: 3}
+    stats:
+      damage: 69
+      roundsPerMinute: 80
+      magazineSize: 10
+      recoil: 2.34
+  - itemId: weapon.lpw.smg.01
+    assetKey: lpw/SMG1_01
+    definitionId: lpw.smg.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG1_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: 24e898cf544cabd419539c0dcbfcc77c, type: 2}
+    previewPrefab: {fileID: 3044477709272595268, guid: 21dffd2d5249a76458e08d994a595dcb, type: 3}
+    stats:
+      damage: 16
+      roundsPerMinute: 950
+      magazineSize: 27
+      recoil: 0.78
+  - itemId: weapon.lpw.smg.02
+    assetKey: lpw/SMG2_01
+    definitionId: lpw.smg.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG2_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: 82339deb034a29243a55d730ebe230d0, type: 2}
+    previewPrefab: {fileID: 6141642887079008621, guid: 2097b27ed4fab5744a4b9a1840fc50d3, type: 3}
+    stats:
+      damage: 17
+      roundsPerMinute: 900
+      magazineSize: 32
+      recoil: 0.74
+  - itemId: weapon.lpw.smg.03
+    assetKey: lpw/SMG3_01
+    definitionId: lpw.smg.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG3_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: 2556846c08000b4499886ba3b94a351f, type: 2}
+    previewPrefab: {fileID: 936032796186281702, guid: b7b143686e1703c4497f6f26222d512d, type: 3}
+    stats:
+      damage: 18
+      roundsPerMinute: 850
+      magazineSize: 32
+      recoil: 0.7
+  - itemId: weapon.lpw.smg.04
+    assetKey: lpw/SMG4_01
+    definitionId: lpw.smg.04
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG4_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: acc079f5ac663374ba0476c2028fef75, type: 2}
+    previewPrefab: {fileID: 6307570170429633510, guid: 58dc8b17587108646a3893f5a721305a, type: 3}
+    stats:
+      damage: 19
+      roundsPerMinute: 810
+      magazineSize: 37
+      recoil: 0.66
+  - itemId: weapon.lpw.smg.05
+    assetKey: lpw/SMG5_01
+    definitionId: lpw.smg.05
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG5_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: 31493694f26d890419402ff1e04fa3da, type: 2}
+    previewPrefab: {fileID: 7086408782400579369, guid: 6280cd9585028874dadc41988b9662d0, type: 3}
+    stats:
+      damage: 21
+      roundsPerMinute: 760
+      magazineSize: 37
+      recoil: 0.63
+  - itemId: weapon.lpw.smg.06
+    assetKey: lpw/SMG6_01
+    definitionId: lpw.smg.06
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG6_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 3
+    slotType: 0
+    definition: {fileID: 11400000, guid: aca367a09ed38fc459ffbf528e770131, type: 2}
+    previewPrefab: {fileID: 3681200395821806763, guid: 9f9b8cdcf4b51b24283afef27d3466e6, type: 3}
+    stats:
+      damage: 22
+      roundsPerMinute: 720
+      magazineSize: 42
+      recoil: 0.6
+  - itemId: weapon.lpw.sniper.01
+    assetKey: lpw/SniperRifle1_01
+    definitionId: lpw.sniper.01
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle1_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 2424618570bf1e04693ee4aaea04707b, type: 2}
+    previewPrefab: {fileID: 4684383829861267678, guid: 1fbea47fc1c55f243acd30e30d5a9a12, type: 3}
+    stats:
+      damage: 86
+      roundsPerMinute: 50
+      magazineSize: 5
+      recoil: 3.14
+  - itemId: weapon.lpw.sniper.02
+    assetKey: lpw/SniperRifle2_01
+    definitionId: lpw.sniper.02
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle2_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 903ccd3bfc0a6194098887e6897ff0ab, type: 2}
+    previewPrefab: {fileID: 3408095026208577084, guid: 7d8af3a456d10f44abdc9383cc5eac06, type: 3}
+    stats:
+      damage: 91
+      roundsPerMinute: 50
+      magazineSize: 5
+      recoil: 2.97
+  - itemId: weapon.lpw.sniper.03
+    assetKey: lpw/SniperRifle3_01
+    definitionId: lpw.sniper.03
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle3_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: c23d6ac0cba41e84fafe1194c9b3bc1e, type: 2}
+    previewPrefab: {fileID: 7321255307327752149, guid: 5528aafd6034a4e40a736897b780e03b, type: 3}
+    stats:
+      damage: 97
+      roundsPerMinute: 40
+      magazineSize: 6
+      recoil: 2.8
+  - itemId: weapon.lpw.sniper.04
+    assetKey: lpw/SniperRifle4_01
+    definitionId: lpw.sniper.04
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle4_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 25a11a4c165d0bb429c98b9ed329c193, type: 2}
+    previewPrefab: {fileID: 43134628660408449, guid: dc7ff566d1eb7484bb86517c19fb74f5, type: 3}
+    stats:
+      damage: 103
+      roundsPerMinute: 40
+      magazineSize: 7
+      recoil: 2.66
+  - itemId: weapon.lpw.sniper.05
+    assetKey: lpw/SniperRifle5_01
+    definitionId: lpw.sniper.05
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle5_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 0cde99d4a0e68024e89266a6afe6d1a8, type: 2}
+    previewPrefab: {fileID: 5335179293991756607, guid: baae970d064969847b6662ad3105e1c9, type: 3}
+    stats:
+      damage: 109
+      roundsPerMinute: 40
+      magazineSize: 8
+      recoil: 2.52
+  - itemId: weapon.lpw.sniper.06
+    assetKey: lpw/SniperRifle6_01
+    definitionId: lpw.sniper.06
+    previewPrefabPath: Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle6_01.prefab
+    supportsVerifiedAttachments: 0
+    category: 4
+    slotType: 0
+    definition: {fileID: 11400000, guid: 142764adecd558048906624bcd532e81, type: 2}
+    previewPrefab: {fileID: 3021119977465460900, guid: f0c10408435dec64483da955c28bdc58, type: 3}
+    stats:
+      damage: 116
+      roundsPerMinute: 40
+      magazineSize: 9
+      recoil: 2.38

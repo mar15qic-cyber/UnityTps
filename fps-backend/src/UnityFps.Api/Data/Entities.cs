@@ -10,6 +10,9 @@ public sealed class UserAccount
     public DateTime? LastLoginAtUtc { get; set; }
     public PlayerProfile? Profile { get; set; }
     public PlayerLoadout? Loadout { get; set; }
+    public PlayerWallet? Wallet { get; set; }
+    public List<PlayerInventoryItem> Inventory { get; set; } = [];
+    public List<ShopPurchase> Purchases { get; set; } = [];
     public List<MatchRecord> Matches { get; set; } = [];
 }
 
@@ -30,11 +33,83 @@ public sealed class PlayerLoadout
 {
     public long Id { get; set; }
     public long UserId { get; set; }
-    public string PrimaryWeaponId { get; set; } = "rifle.day3";
-    public string SecondaryWeaponId { get; set; } = "pistol.day2";
+    public string PrimaryWeaponId { get; set; } = "weapon.m4";
+    public string SecondaryWeaponId { get; set; } = "weapon.service_pistol";
     public string? ThrowableId { get; set; }
+    public long Version { get; set; } = 1;
     public DateTime UpdatedAtUtc { get; set; }
     public UserAccount User { get; set; } = null!;
+    public List<PlayerLoadoutAttachment> Attachments { get; set; } = [];
+}
+
+public sealed class CatalogItem
+{
+    public string ItemId { get; set; } = string.Empty;
+    public string ItemType { get; set; } = "Weapon";
+    public string SlotType { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string AssetKey { get; set; } = string.Empty;
+    public long PriceCoins { get; set; }
+    public int UnlockLevel { get; set; } = 1;
+    public bool IsActive { get; set; } = true;
+    public bool IsImplemented { get; set; } = true;
+    public string CalibrationKey { get; set; } = string.Empty;
+}
+
+public sealed class PlayerWallet
+{
+    public long UserId { get; set; }
+    public long Coins { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+    public UserAccount User { get; set; } = null!;
+}
+
+public sealed class PlayerInventoryItem
+{
+    public long Id { get; set; }
+    public long UserId { get; set; }
+    public string ItemId { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public DateTime AcquiredAtUtc { get; set; }
+    public UserAccount User { get; set; } = null!;
+    public CatalogItem Item { get; set; } = null!;
+}
+
+public sealed class ShopPurchase
+{
+    public string PurchaseId { get; set; } = Guid.NewGuid().ToString("N");
+    public long UserId { get; set; }
+    public string ItemId { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public long UnitPriceCoins { get; set; }
+    public long TotalPriceCoins { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; }
+    public UserAccount User { get; set; } = null!;
+    public CatalogItem Item { get; set; } = null!;
+}
+
+public sealed class WalletLedgerEntry
+{
+    public long Id { get; set; }
+    public long UserId { get; set; }
+    public long DeltaCoins { get; set; }
+    public long BalanceAfter { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string ReferenceId { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; }
+}
+
+public sealed class PlayerLoadoutAttachment
+{
+    public long Id { get; set; }
+    public long LoadoutId { get; set; }
+    public string WeaponSlot { get; set; } = string.Empty;
+    public string AttachmentSlot { get; set; } = string.Empty;
+    public string AttachmentItemId { get; set; } = string.Empty;
+    public PlayerLoadout Loadout { get; set; } = null!;
 }
 
 public sealed class MatchRecord

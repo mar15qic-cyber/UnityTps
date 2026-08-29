@@ -10,6 +10,7 @@ public sealed class AccountSession
     public PlayerProfileDto Profile { get; private set; }
     public LoadoutDto Loadout { get; private set; }
     public bool IsAuthenticated => !string.IsNullOrWhiteSpace(Token) && ExpiresAtUtc > DateTime.UtcNow;
+    public string GameplayError { get; private set; }
 
     public event Action Changed;
 
@@ -35,12 +36,26 @@ public sealed class AccountSession
         Changed?.Invoke();
     }
 
+    public void SetGameplayError(string message)
+    {
+        GameplayError = message;
+        Changed?.Invoke();
+    }
+
+    public string ConsumeGameplayError()
+    {
+        var value = GameplayError;
+        GameplayError = null;
+        return value;
+    }
+
     public void Clear()
     {
         Token = null;
         ExpiresAtUtc = null;
         Profile = null;
         Loadout = null;
+        GameplayError = null;
         Changed?.Invoke();
     }
 }

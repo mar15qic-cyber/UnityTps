@@ -9,5 +9,14 @@ public static class ApiErrorCodes
     public const string InvalidWeapon = "LOADOUT_INVALID_WEAPON";
     public const string InvalidUpgrade = "UPGRADE_INVALID_TARGET";
     public const string InsufficientPoints = "UPGRADE_INSUFFICIENT_POINTS";
+    public const string ItemNotFound = "SHOP_ITEM_NOT_FOUND";
+    public const string ItemDisabled = "SHOP_ITEM_DISABLED";
+    public const string LevelLocked = "SHOP_LEVEL_LOCKED";
+    public const string InsufficientCoins = "SHOP_INSUFFICIENT_COINS";
+    public const string AlreadyOwned = "SHOP_ALREADY_OWNED";
+    public const string IdempotencyConflict = "SHOP_IDEMPOTENCY_CONFLICT";
+    public const string LoadoutNotOwned = "LOADOUT_ITEM_NOT_OWNED";
+    public const string LoadoutVersionConflict = "LOADOUT_VERSION_CONFLICT";
+    public const string AttachmentsUnsupported = "ATTACHMENTS_NOT_ADAPTED";
     public const string ServerError = "SERVER_ERROR";
 }

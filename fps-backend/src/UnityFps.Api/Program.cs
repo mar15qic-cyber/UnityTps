@@ -79,6 +79,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProfileService>();
 builder.Services.AddScoped<LoadoutService>();
+builder.Services.AddScoped<CommerceService>();
 builder.Services.AddScoped<MatchService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -116,6 +117,7 @@ if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     if (db.Database.IsRelational()) await db.Database.MigrateAsync();
     else await db.Database.EnsureCreatedAsync();
+    await CatalogSeeder.SeedAsync(db);
     await DemoSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
 }
 

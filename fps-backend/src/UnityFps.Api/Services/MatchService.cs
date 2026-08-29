@@ -9,7 +9,7 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
     public async Task<MatchResultDto> SubmitAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
     {
         await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken) : null;
-        var user = await db.Users.Include(x => x.Profile).SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+        var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet).SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new Common.ApiException(StatusCodes.Status404NotFound, "PROFILE_NOT_FOUND", "档案不存在");
         var profile = user.Profile!;
         var clamped = rules.ClampMatch(request.Kills, request.Deaths, request.Score);
@@ -27,6 +27,6 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         profile.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-        return new MatchResultDto(xp, levelUps, profile.ToDto(user.Username, rules));
+        return new MatchResultDto(xp, levelUps, profile.ToDto(user.Username, user.Wallet?.Coins ?? 0, rules));
     }
 }

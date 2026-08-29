@@ -22,8 +22,11 @@ public static class DemoSeeder
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
             CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { SkillPoints = 6, UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow }
+            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
+            Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };
+        foreach (var itemId in CatalogSeeder.InitialWeapons)
+            user.Inventory.Add(new PlayerInventoryItem { ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         db.Users.Add(user);
         await db.SaveChangesAsync();
     }

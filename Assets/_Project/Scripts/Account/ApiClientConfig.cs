@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 namespace Game.Account
 {
@@ -11,6 +12,25 @@ public sealed class ApiClientConfig : ScriptableObject
 
     public string BaseUrl => NormalizeBaseUrl(baseUrl);
     public int TimeoutSeconds => Mathf.Max(1, timeoutSeconds);
+
+    public bool TryValidate(out string error)
+    {
+        var endpoint = BaseUrl;
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || string.IsNullOrWhiteSpace(uri.Host))
+        {
+            error = "API BaseUrl 必须是有效的 http/https 地址";
+            return false;
+        }
+
+        if (timeoutSeconds < 1)
+        {
+            error = "API TimeoutSeconds 必须大于 0";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
 
     public static string NormalizeBaseUrl(string value)
     {
