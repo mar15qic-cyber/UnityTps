@@ -71,7 +71,7 @@ namespace Game.Presentation.Camera
         private Vector3 _recoilPositionVelocity;
         private float _time;
         private Vector3 _aimLocalPosition;
-        private bool _aimPoseDirty = true;
+        private bool _animationAds;   // 动画 ADS 轨道（Docs/18 §4.3）：对位策略切换开关（§12 修订）
 
         private void Awake()
         {
@@ -122,11 +122,18 @@ namespace Game.Presentation.Camera
             if (_weapon != null && _weapon.Definition != _currentDefinition)
             {
                 _currentDefinition = _weapon.Definition;
-                _aimPoseDirty = true;
+                // Docs/18 §4.3 双轨：武器配齐 aim_in/aim_out 时 ADS 姿态由动画驱动
+                // （FPWeaponAnimator）；对位策略也随之切换（§12 修订，见 ComputeAimAlignmentOffset）
+                _animationAds = _currentDefinition != null
+                    && _currentDefinition.FirstPersonAnimations.HasAimClips;
             }
-            if (_aimPoseDirty) TryComputeAimPose();
 
             float adsBlend = _rig != null ? _rig.AdsBlend : 0f;
+            // ADS 对位每帧重算（Docs/18 §12 修订）：aim_in 过渡中姿态逐帧变化；
+            // 测量经 InverseTransformPoint 抵消 root 自身变换——与本组件的写入无反馈回路
+            if (adsBlend > 0f)
+                _aimLocalPosition = ComputeAimAlignmentOffset();
+
             float motionScale = 1f - adsBlend * adsMotionDamping;
             // Day4 审计 §4：开火后坐独立保持系数——旧版与 sway/bob 共用 motionScale
             // （满 ADS 仅剩 15%），玩家最关注的 ADS 连射恰好反馈最弱。此处后坐通道单独缩放。
@@ -175,20 +182,43 @@ namespace Game.Presentation.Camera
                 _recoilRotation.z * recoilScale);
         }
 
-        /// <summary>把激活视图的瞄准参考点平移到 FP View Camera 视口中心线（程序化 ADS 姿态）。
-        /// 优先 SightReference（瞄具线，物理 Muzzle 与瞄具线有 sight-height 高度差）；
-        /// 未配置的武器回退 Muzzle（行为与旧版一致）。</summary>
-        private void TryComputeAimPose()
+        /// <summary>ADS 对位偏移（Docs/18 §12 实机审计修订）。
+        /// 实测（AnimationMode + BakeMesh 探针）：LPFP aim 动画把枪模铁瞄前后瞄尖对中到
+        /// Armature/camera 节点（作者相机标记，与 LPFP 原版 Gun Camera (0,0.09,-0.18) 重合，
+        /// 前后瞄尖恰在该高度 ±7mm 且同高=瞄准线水平）。我们的 FP View Camera 与该节点差
+        /// (−0.05, −0.006, −0.12)，导致开镜后照门停在屏幕中心下方 ~10%（腰射感）。
+        /// 修复：动画 ADS 武器把 viewmodel 根平移 (相机−节点)，使相机精确落到作者相机位置，
+        /// 铁瞄按原设计对中（z 分量一并修正，瞄具画面尺寸=作者设计）。
+        /// 无 aim clip 武器（程序化轨道）：照门/枪口 x/y 对中，z 不动。
+        /// 注意旧实现符号相反（+偏差而非−偏差），武器向远离中线方向平移——
+        /// Day4 以来"ADS 只是变焦"的根因之一。</summary>
+        private Vector3 ComputeAimAlignmentOffset()
         {
             if (_viewCamera == null) _viewCamera = ResolveViewCamera();
+            if (_viewCamera == null || transform.parent == null) return Vector3.zero;
             var view = FindActiveView();
-            var aimPoint = view != null ? (view.SightReference != null ? view.SightReference : view.Muzzle) : null;
-            if (aimPoint == null || _viewCamera == null) return;
+            if (view == null) return Vector3.zero;
 
-            // 参考点在 viewCam 本地空间的 (x,y) 就是要抵消的偏差（两相机朝向一致，平移同空间可加）
-            Vector3 aimInViewCam = _viewCamera.transform.InverseTransformPoint(aimPoint.position);
-            _aimLocalPosition = new Vector3(aimInViewCam.x, aimInViewCam.y, 0f);
-            _aimPoseDirty = false;
+            // 相机在父系位置（父系与相机系旋转一致，平移差不影响 delta 方向）
+            Vector3 camParent = transform.parent.InverseTransformPoint(_viewCamera.transform.position);
+
+            if (_animationAds)
+            {
+                var camNode = view.transform.Find("Armature/camera");
+                if (camNode != null)
+                {
+                    // root 自身变换经 InverseTransformPoint 抵消：测量稳定、与写入无反馈
+                    Vector3 nodeRoot = transform.InverseTransformPoint(camNode.position);
+                    return camParent - nodeRoot;
+                }
+                // 非常规底座（无作者相机节点）：退回标记对中
+            }
+
+            var aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
+            if (aimPoint == null) return Vector3.zero;
+            // 正确方向 = 相机位置 − 参考点位置（把参考点推到相机中线的 x/y 上）
+            Vector3 sightRoot = transform.InverseTransformPoint(aimPoint.position);
+            return new Vector3(camParent.x - sightRoot.x, camParent.y - sightRoot.y, 0f);
         }
 
         private WeaponView FindActiveView()

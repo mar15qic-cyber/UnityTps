@@ -25,6 +25,49 @@ MonoBehaviour:
     Draw: {fileID: 7400048, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
     Holster: {fileID: 7400028, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
     DryFire: {fileID: 7400038, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+    AimIn: {fileID: 7400012, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+    AimOut: {fileID: 7400018, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+    AimFire: {fileID: 7400000, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+    AimIdle: {fileID: 7400002, guid: 20d5945209bdc804891f29a868e7d4b0, type: 3}
+  firstPersonAnimationFamily: 0
+  rifleHasVerticalGrip: 0
+  rifleAnimationFamily: 1
+  rifle01Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  rifle02Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  rifle03Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
   thirdPersonLocomotion:
     Idle: {fileID: 7400016, guid: fcf9a63fb657653428b6d105737e3b3e, type: 3}
     WalkForward: {fileID: 7400054, guid: fcf9a63fb657653428b6d105737e3b3e, type: 3}

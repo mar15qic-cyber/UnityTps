@@ -18,6 +18,9 @@ namespace Game.Gameplay.Player
         /// <summary>ADS 混合值：0 = 腰射，1 = 完全瞄准。表现与数值消费者只读。</summary>
         public float Ads01 { get; private set; }
 
+        /// <summary>ADS 过渡窗时长（秒）。FPWeaponAnimator 用它做 aim clip 播速适配（Docs/18 §4.2）。</summary>
+        public float AdsTransitionSeconds => adsTransitionSeconds;
+
         private InputReader _input;
         private ActionSystem _actions;
 

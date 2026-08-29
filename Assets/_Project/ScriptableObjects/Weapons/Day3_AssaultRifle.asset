@@ -25,6 +25,49 @@ MonoBehaviour:
     Draw: {fileID: 7400060, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
     Holster: {fileID: 7400044, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
     DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  firstPersonAnimationFamily: 0
+  rifleHasVerticalGrip: 0
+  rifleAnimationFamily: 1
+  rifle01Animations:
+    Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadAmmoLeft: {fileID: 7400054, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400056, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Draw: {fileID: 7400060, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Holster: {fileID: 7400044, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 7400020, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimOut: {fileID: 7400030, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimFire: {fileID: 7400000, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimIdle: {fileID: 7400002, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+  rifle02Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  rifle03Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
   thirdPersonLocomotion:
     Idle: {fileID: 7400016, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
     WalkForward: {fileID: 7400054, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
