@@ -1,0 +1,1640 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf3cf68902365c4499c85ba9f047e448, type: 3}
+  m_Name: LPWWeaponManifest
+  m_EditorClassIdentifier: 
+  schemaVersion: 1
+  weapons:
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.01
+    definitionId: lpw.rifle.01
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 01"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle1_01.prefab
+    assetKey: lpw/AssaultRifle1_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 1
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 1
+    priceCoins: 3000
+    unlockLevel: 3
+    stat:
+      Damage: 23
+      Rpm: 670
+      MagSize: 25
+      ReserveAmmo: 100
+      ReloadTime: 2.38
+      Spread: 2.46
+      MaxRange: 135
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.51
+        YawDeg: 0.56
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.46
+        BaseAdsSpread: 0.62
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.02
+    definitionId: lpw.rifle.02
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 02"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle2_01.prefab
+    assetKey: lpw/AssaultRifle2_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 2
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 2
+    priceCoins: 4500
+    unlockLevel: 5
+    stat:
+      Damage: 25
+      Rpm: 640
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.29
+      Spread: 2.33
+      MaxRange: 145
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.43
+        YawDeg: 0.53
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.33
+        BaseAdsSpread: 0.58
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.03
+    definitionId: lpw.rifle.03
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 03"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle3_01.prefab
+    assetKey: lpw/AssaultRifle3_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 3
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 3
+    priceCoins: 6500
+    unlockLevel: 8
+    stat:
+      Damage: 27
+      Rpm: 600
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.2
+      Spread: 2.2
+      MaxRange: 150
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.35
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.2
+        BaseAdsSpread: 0.55
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.04
+    definitionId: lpw.rifle.04
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 04"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle4_01.prefab
+    assetKey: lpw/AssaultRifle4_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 1
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 4
+    priceCoins: 8500
+    unlockLevel: 11
+    stat:
+      Damage: 28
+      Rpm: 570
+      MagSize: 35
+      ReserveAmmo: 140
+      ReloadTime: 2.13
+      Spread: 2.09
+      MaxRange: 155
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.28
+        YawDeg: 0.48
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.09
+        BaseAdsSpread: 0.52
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.05
+    definitionId: lpw.rifle.05
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 05"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle5_01.prefab
+    assetKey: lpw/AssaultRifle5_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 1
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 5
+    priceCoins: 11000
+    unlockLevel: 14
+    stat:
+      Damage: 30
+      Rpm: 540
+      MagSize: 35
+      ReserveAmmo: 140
+      ReloadTime: 2.07
+      Spread: 1.98
+      MaxRange: 165
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.22
+        YawDeg: 0.45
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.98
+        BaseAdsSpread: 0.5
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.rifle.06
+    definitionId: lpw.rifle.06
+    displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 06"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/AssaultRifle/AssaultRifle6_01.prefab
+    assetKey: lpw/AssaultRifle6_01
+    category: 0
+    slotType: 0
+    fireMode: 1
+    animationFamily: 1
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+    tier: 6
+    priceCoins: 14000
+    unlockLevel: 18
+    stat:
+      Damage: 32
+      Rpm: 510
+      MagSize: 40
+      ReserveAmmo: 160
+      ReloadTime: 2
+      Spread: 1.87
+      MaxRange: 170
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.15
+        YawDeg: 0.42
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.87
+        BaseAdsSpread: 0.47
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.01
+    definitionId: lpw.pistol.01
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 01"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol1_01.prefab
+    assetKey: lpw/Pistol1_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 1
+    priceCoins: 1000
+    unlockLevel: 2
+    stat:
+      Damage: 31
+      Rpm: 400
+      MagSize: 10
+      ReserveAmmo: 40
+      ReloadTime: 1.46
+      Spread: 0.28
+      MaxRange: 110
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.9
+        YawDeg: 0.28
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.28
+        BaseAdsSpread: 0.11
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.02
+    definitionId: lpw.pistol.02
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 02"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol2_01.prefab
+    assetKey: lpw/Pistol2_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 2
+    priceCoins: 1800
+    unlockLevel: 3
+    stat:
+      Damage: 33
+      Rpm: 380
+      MagSize: 12
+      ReserveAmmo: 48
+      ReloadTime: 1.4
+      Spread: 0.26
+      MaxRange: 115
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.85
+        YawDeg: 0.26
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.26
+        BaseAdsSpread: 0.11
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.03
+    definitionId: lpw.pistol.03
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 03"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol3_01.prefab
+    assetKey: lpw/Pistol3_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 3
+    priceCoins: 2800
+    unlockLevel: 5
+    stat:
+      Damage: 35
+      Rpm: 360
+      MagSize: 14
+      ReserveAmmo: 56
+      ReloadTime: 1.35
+      Spread: 0.25
+      MaxRange: 120
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.8
+        YawDeg: 0.25
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.04
+    definitionId: lpw.pistol.04
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 04"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol4_01.prefab
+    assetKey: lpw/Pistol4_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 4
+    priceCoins: 4000
+    unlockLevel: 7
+    stat:
+      Damage: 37
+      Rpm: 340
+      MagSize: 15
+      ReserveAmmo: 60
+      ReloadTime: 1.31
+      Spread: 0.24
+      MaxRange: 125
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.76
+        YawDeg: 0.24
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.24
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.05
+    definitionId: lpw.pistol.05
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 05"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol5_01.prefab
+    assetKey: lpw/Pistol5_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 5
+    priceCoins: 5500
+    unlockLevel: 9
+    stat:
+      Damage: 39
+      Rpm: 320
+      MagSize: 17
+      ReserveAmmo: 68
+      ReloadTime: 1.27
+      Spread: 0.22
+      MaxRange: 130
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.72
+        YawDeg: 0.22
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.22
+        BaseAdsSpread: 0.09
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.pistol.06
+    definitionId: lpw.pistol.06
+    displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 06"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Pistols/Pistol6_01.prefab
+    assetKey: lpw/Pistol6_01
+    category: 1
+    slotType: 1
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+    tier: 6
+    priceCoins: 7500
+    unlockLevel: 12
+    stat:
+      Damage: 41
+      Rpm: 310
+      MagSize: 18
+      ReserveAmmo: 72
+      ReloadTime: 1.23
+      Spread: 0.21
+      MaxRange: 140
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.68
+        YawDeg: 0.21
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.21
+        BaseAdsSpread: 0.08
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.shotgun.01
+    definitionId: lpw.shotgun.01
+    displayName: "\u6218\u672F\u9730\u5F39\u67AA 01"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Shotguns/Shotgun1_01.prefab
+    assetKey: lpw/Shotgun1_01
+    category: 2
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    tier: 1
+    priceCoins: 3000
+    unlockLevel: 4
+    stat:
+      Damage: 54
+      Rpm: 100
+      MagSize: 6
+      ReserveAmmo: 30
+      ReloadTime: 3.02
+      Spread: 3.92
+      MaxRange: 35
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.91
+        YawDeg: 0.67
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.92
+        BaseAdsSpread: 1.68
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.shotgun.02
+    definitionId: lpw.shotgun.02
+    displayName: "\u6218\u672F\u9730\u5F39\u67AA 02"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Shotguns/Shotgun2_01.prefab
+    assetKey: lpw/Shotgun2_01
+    category: 2
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    tier: 2
+    priceCoins: 5000
+    unlockLevel: 7
+    stat:
+      Damage: 58
+      Rpm: 100
+      MagSize: 7
+      ReserveAmmo: 35
+      ReloadTime: 2.91
+      Spread: 3.71
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.76
+        YawDeg: 0.64
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.71
+        BaseAdsSpread: 1.59
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.shotgun.03
+    definitionId: lpw.shotgun.03
+    displayName: "\u6218\u672F\u9730\u5F39\u67AA 03"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Shotguns/Shotgun3_01.prefab
+    assetKey: lpw/Shotgun3_01
+    category: 2
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    tier: 3
+    priceCoins: 7500
+    unlockLevel: 10
+    stat:
+      Damage: 61
+      Rpm: 90
+      MagSize: 8
+      ReserveAmmo: 40
+      ReloadTime: 2.8
+      Spread: 3.5
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.6
+        YawDeg: 0.6
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.5
+        BaseAdsSpread: 1.5
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.shotgun.04
+    definitionId: lpw.shotgun.04
+    displayName: "\u6218\u672F\u9730\u5F39\u67AA 04"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Shotguns/Shotgun4_01.prefab
+    assetKey: lpw/Shotgun4_01
+    category: 2
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    tier: 4
+    priceCoins: 10000
+    unlockLevel: 14
+    stat:
+      Damage: 65
+      Rpm: 90
+      MagSize: 9
+      ReserveAmmo: 45
+      ReloadTime: 2.72
+      Spread: 3.32
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.47
+        YawDeg: 0.57
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.32
+        BaseAdsSpread: 1.42
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.shotgun.05
+    definitionId: lpw.shotgun.05
+    displayName: "\u6218\u672F\u9730\u5F39\u67AA 05"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/Shotguns/Shotgun5_01.prefab
+    assetKey: lpw/Shotgun5_01
+    category: 2
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+    tier: 5
+    priceCoins: 13500
+    unlockLevel: 18
+    stat:
+      Damage: 69
+      Rpm: 80
+      MagSize: 10
+      ReserveAmmo: 50
+      ReloadTime: 2.63
+      Spread: 3.15
+      MaxRange: 45
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.34
+        YawDeg: 0.54
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.15
+        BaseAdsSpread: 1.35
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.01
+    definitionId: lpw.smg.01
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 01"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG1_01.prefab
+    assetKey: lpw/SMG1_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 1
+    priceCoins: 2500
+    unlockLevel: 3
+    stat:
+      Damage: 16
+      Rpm: 950
+      MagSize: 27
+      ReserveAmmo: 108
+      ReloadTime: 1.94
+      Spread: 2.02
+      MaxRange: 80
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.78
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.02
+        BaseAdsSpread: 0.56
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.02
+    definitionId: lpw.smg.02
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 02"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG2_01.prefab
+    assetKey: lpw/SMG2_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 2
+    priceCoins: 4000
+    unlockLevel: 5
+    stat:
+      Damage: 17
+      Rpm: 900
+      MagSize: 32
+      ReserveAmmo: 128
+      ReloadTime: 1.87
+      Spread: 1.91
+      MaxRange: 85
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.74
+        YawDeg: 0.48
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.91
+        BaseAdsSpread: 0.53
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.03
+    definitionId: lpw.smg.03
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 03"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG3_01.prefab
+    assetKey: lpw/SMG3_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 3
+    priceCoins: 5500
+    unlockLevel: 7
+    stat:
+      Damage: 18
+      Rpm: 850
+      MagSize: 32
+      ReserveAmmo: 128
+      ReloadTime: 1.8
+      Spread: 1.8
+      MaxRange: 90
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.7
+        YawDeg: 0.45
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.8
+        BaseAdsSpread: 0.5
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.04
+    definitionId: lpw.smg.04
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 04"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG4_01.prefab
+    assetKey: lpw/SMG4_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 4
+    priceCoins: 7500
+    unlockLevel: 9
+    stat:
+      Damage: 19
+      Rpm: 810
+      MagSize: 37
+      ReserveAmmo: 148
+      ReloadTime: 1.75
+      Spread: 1.71
+      MaxRange: 95
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.66
+        YawDeg: 0.43
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.71
+        BaseAdsSpread: 0.48
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.05
+    definitionId: lpw.smg.05
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 05"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG5_01.prefab
+    assetKey: lpw/SMG5_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 5
+    priceCoins: 9500
+    unlockLevel: 12
+    stat:
+      Damage: 21
+      Rpm: 760
+      MagSize: 37
+      ReserveAmmo: 148
+      ReloadTime: 1.69
+      Spread: 1.62
+      MaxRange: 100
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.63
+        YawDeg: 0.4
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.62
+        BaseAdsSpread: 0.45
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.smg.06
+    definitionId: lpw.smg.06
+    displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 06"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SMG/SMG6_01.prefab
+    assetKey: lpw/SMG6_01
+    category: 3
+    slotType: 0
+    fireMode: 1
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+    tier: 6
+    priceCoins: 12000
+    unlockLevel: 15
+    stat:
+      Damage: 22
+      Rpm: 720
+      MagSize: 42
+      ReserveAmmo: 168
+      ReloadTime: 1.64
+      Spread: 1.53
+      MaxRange: 105
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.6
+        YawDeg: 0.38
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.53
+        BaseAdsSpread: 0.42
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.01
+    definitionId: lpw.sniper.01
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 01"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle1_01.prefab
+    assetKey: lpw/SniperRifle1_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 1
+    priceCoins: 4500
+    unlockLevel: 6
+    stat:
+      Damage: 86
+      Rpm: 50
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3.24
+      Spread: 0.06
+      MaxRange: 270
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 3.14
+        YawDeg: 0.22
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.06
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.02
+    definitionId: lpw.sniper.02
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 02"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle2_01.prefab
+    assetKey: lpw/SniperRifle2_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 2
+    priceCoins: 7000
+    unlockLevel: 10
+    stat:
+      Damage: 91
+      Rpm: 50
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3.12
+      Spread: 0.05
+      MaxRange: 290
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.97
+        YawDeg: 0.21
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.03
+    definitionId: lpw.sniper.03
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 03"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle3_01.prefab
+    assetKey: lpw/SniperRifle3_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 3
+    priceCoins: 10000
+    unlockLevel: 14
+    stat:
+      Damage: 97
+      Rpm: 40
+      MagSize: 6
+      ReserveAmmo: 30
+      ReloadTime: 3
+      Spread: 0.05
+      MaxRange: 300
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.8
+        YawDeg: 0.2
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.04
+    definitionId: lpw.sniper.04
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 04"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle4_01.prefab
+    assetKey: lpw/SniperRifle4_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 4
+    priceCoins: 14000
+    unlockLevel: 18
+    stat:
+      Damage: 103
+      Rpm: 40
+      MagSize: 7
+      ReserveAmmo: 35
+      ReloadTime: 2.91
+      Spread: 0.05
+      MaxRange: 315
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.66
+        YawDeg: 0.19
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.05
+    definitionId: lpw.sniper.05
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 05"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle5_01.prefab
+    assetKey: lpw/SniperRifle5_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 5
+    priceCoins: 19000
+    unlockLevel: 23
+    stat:
+      Damage: 109
+      Rpm: 40
+      MagSize: 8
+      ReserveAmmo: 40
+      ReloadTime: 2.82
+      Spread: 0.04
+      MaxRange: 330
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.52
+        YawDeg: 0.18
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.04
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0
+  - schemaVersion: 1
+    itemId: weapon.lpw.sniper.06
+    definitionId: lpw.sniper.06
+    displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 06"
+    sourcePrefabPath: Assets/LowPolyWeapons/Prefabs/SniperRifle/SniperRifle6_01.prefab
+    assetKey: lpw/SniperRifle6_01
+    category: 4
+    slotType: 0
+    fireMode: 0
+    animationFamily: 0
+    firstPersonTemplatePath: Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+    thirdPersonTemplatePath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+    tier: 6
+    priceCoins: 25000
+    unlockLevel: 28
+    stat:
+      Damage: 116
+      Rpm: 40
+      MagSize: 9
+      ReserveAmmo: 45
+      ReloadTime: 2.73
+      Spread: 0.04
+      MaxRange: 345
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.38
+        YawDeg: 0.17
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.04
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+    fpRootPosition: {x: 0, y: 0, z: 0}
+    fpRootEuler: {x: 0, y: 90, z: 0}
+    tpRootPosition: {x: 0, y: 0, z: 0}
+    tpRootEuler: {x: 0, y: 90, z: 0}
+    supportsVerifiedAttachments: 0

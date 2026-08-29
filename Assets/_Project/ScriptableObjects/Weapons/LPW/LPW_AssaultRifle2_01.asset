@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fb647c445745f24e9f1004741f1316b, type: 3}
+  m_Name: LPW_AssaultRifle2_01
+  m_EditorClassIdentifier: 
+  weaponId: lpw.rifle.02
+  displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 02"
+  fireMode: 1
+  firstPersonViewPrefab: {fileID: 1511576656899370472, guid: 0d4878b177031de4aadcf802ecd86715, type: 3}
+  thirdPersonViewPrefab: {fileID: 1667249104935145169, guid: c87dfea73a502a140937f6ead0fd3d1a, type: 3}
+  firstPersonAnimations:
+    Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadAmmoLeft: {fileID: 7400054, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400056, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Draw: {fileID: 7400060, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Holster: {fileID: 7400044, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  firstPersonAnimationFamily: 2
+  rifleHasVerticalGrip: 0
+  rifleAnimationFamily: 1
+  rifle01Animations:
+    Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadAmmoLeft: {fileID: 7400054, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400056, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Draw: {fileID: 7400060, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    Holster: {fileID: 7400044, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 7400020, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimOut: {fileID: 7400030, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimFire: {fileID: 7400000, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+    AimIdle: {fileID: 7400002, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
+  rifle02Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  rifle03Animations:
+    Idle: {fileID: 0}
+    Fire: {fileID: 0}
+    ReloadAmmoLeft: {fileID: 0}
+    ReloadOutOfAmmo: {fileID: 0}
+    Draw: {fileID: 0}
+    Holster: {fileID: 0}
+    DryFire: {fileID: 0}
+    AimIn: {fileID: 0}
+    AimOut: {fileID: 0}
+    AimFire: {fileID: 0}
+    AimIdle: {fileID: 0}
+  thirdPersonLocomotion:
+    Idle: {fileID: 7400016, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForward: {fileID: 7400054, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForwardRight: {fileID: 7400052, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkRight: {fileID: 7400058, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackRight: {fileID: 7400048, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackward: {fileID: 7400060, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkBackLeft: {fileID: 7400046, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkLeft: {fileID: 7400056, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    WalkForwardLeft: {fileID: 7400050, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForward: {fileID: 7400040, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForwardRight: {fileID: 7400036, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunRight: {fileID: 7400044, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackRight: {fileID: 7400032, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackward: {fileID: 7400038, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunBackLeft: {fileID: 7400030, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunLeft: {fileID: 7400042, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    RunForwardLeft: {fileID: 7400034, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpStart: {fileID: 7400024, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpLoop: {fileID: 7400022, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    JumpLand: {fileID: 7400020, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+  thirdPersonRootMotionProfile: {fileID: 11400000, guid: 8cedc7bf992f2d042a7b1c02fa05b544, type: 2}
+  thirdPersonActions:
+    Fire: {fileID: 7400002, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    ReloadAmmoLeft: {fileID: 7400026, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400028, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
+  drawTime: 1.37
+  holsterTime: 0.4
+  audioProfile: {fileID: 11400000, guid: 91be82cde70e9014dbd8e6c3558c0061, type: 2}

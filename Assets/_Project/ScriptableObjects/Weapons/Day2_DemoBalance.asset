@@ -383,3 +383,1076 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+  - WeaponId: lpw.rifle.01
+    Stat:
+      Damage: 23
+      Rpm: 670
+      MagSize: 25
+      ReserveAmmo: 100
+      ReloadTime: 2.38
+      Spread: 2.46
+      MaxRange: 135
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.51
+        YawDeg: 0.56
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.46
+        BaseAdsSpread: 0.62
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.rifle.02
+    Stat:
+      Damage: 25
+      Rpm: 640
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.29
+      Spread: 2.33
+      MaxRange: 145
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.43
+        YawDeg: 0.53
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.33
+        BaseAdsSpread: 0.58
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.rifle.03
+    Stat:
+      Damage: 27
+      Rpm: 600
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.2
+      Spread: 2.2
+      MaxRange: 150
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.35
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.2
+        BaseAdsSpread: 0.55
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.rifle.04
+    Stat:
+      Damage: 28
+      Rpm: 570
+      MagSize: 35
+      ReserveAmmo: 140
+      ReloadTime: 2.13
+      Spread: 2.09
+      MaxRange: 155
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.28
+        YawDeg: 0.48
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.09
+        BaseAdsSpread: 0.52
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.rifle.05
+    Stat:
+      Damage: 30
+      Rpm: 540
+      MagSize: 35
+      ReserveAmmo: 140
+      ReloadTime: 2.07
+      Spread: 1.98
+      MaxRange: 165
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.22
+        YawDeg: 0.45
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.98
+        BaseAdsSpread: 0.5
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.rifle.06
+    Stat:
+      Damage: 32
+      Rpm: 510
+      MagSize: 40
+      ReserveAmmo: 160
+      ReloadTime: 2
+      Spread: 1.87
+      MaxRange: 170
+      AdsFov: 45
+      Recoil:
+        PitchDeg: 1.15
+        YawDeg: 0.42
+        FirstShotMultiplier: 1.3
+        Accumulation: 1.45
+        MaxAccumulation: 8
+        RecoveryDelay: 0.18
+        RecoverySpeed: 4.5
+        SpringFrequency: 8
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.35
+        ViewModelKickBack: 0.06
+        ViewModelKickPitch: 5
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.87
+        BaseAdsSpread: 0.47
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.01
+    Stat:
+      Damage: 31
+      Rpm: 400
+      MagSize: 10
+      ReserveAmmo: 40
+      ReloadTime: 1.46
+      Spread: 0.28
+      MaxRange: 110
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.9
+        YawDeg: 0.28
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.28
+        BaseAdsSpread: 0.11
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.02
+    Stat:
+      Damage: 33
+      Rpm: 380
+      MagSize: 12
+      ReserveAmmo: 48
+      ReloadTime: 1.4
+      Spread: 0.26
+      MaxRange: 115
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.85
+        YawDeg: 0.26
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.26
+        BaseAdsSpread: 0.11
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.03
+    Stat:
+      Damage: 35
+      Rpm: 360
+      MagSize: 14
+      ReserveAmmo: 56
+      ReloadTime: 1.35
+      Spread: 0.25
+      MaxRange: 120
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.8
+        YawDeg: 0.25
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.04
+    Stat:
+      Damage: 37
+      Rpm: 340
+      MagSize: 15
+      ReserveAmmo: 60
+      ReloadTime: 1.31
+      Spread: 0.24
+      MaxRange: 125
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.76
+        YawDeg: 0.24
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.24
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.05
+    Stat:
+      Damage: 39
+      Rpm: 320
+      MagSize: 17
+      ReserveAmmo: 68
+      ReloadTime: 1.27
+      Spread: 0.22
+      MaxRange: 130
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.72
+        YawDeg: 0.22
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.22
+        BaseAdsSpread: 0.09
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.pistol.06
+    Stat:
+      Damage: 41
+      Rpm: 310
+      MagSize: 18
+      ReserveAmmo: 72
+      ReloadTime: 1.23
+      Spread: 0.21
+      MaxRange: 140
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.68
+        YawDeg: 0.21
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 4
+        RecoveryDelay: 0.15
+        RecoverySpeed: 7
+        SpringFrequency: 10
+        SpringDamping: 0.75
+        ShakePositionAmplitude: 0.2
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 3
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.21
+        BaseAdsSpread: 0.08
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.shotgun.01
+    Stat:
+      Damage: 54
+      Rpm: 100
+      MagSize: 6
+      ReserveAmmo: 30
+      ReloadTime: 3.02
+      Spread: 3.92
+      MaxRange: 35
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.91
+        YawDeg: 0.67
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.92
+        BaseAdsSpread: 1.68
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+  - WeaponId: lpw.shotgun.02
+    Stat:
+      Damage: 58
+      Rpm: 100
+      MagSize: 7
+      ReserveAmmo: 35
+      ReloadTime: 2.91
+      Spread: 3.71
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.76
+        YawDeg: 0.64
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.71
+        BaseAdsSpread: 1.59
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+  - WeaponId: lpw.shotgun.03
+    Stat:
+      Damage: 61
+      Rpm: 90
+      MagSize: 8
+      ReserveAmmo: 40
+      ReloadTime: 2.8
+      Spread: 3.5
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.6
+        YawDeg: 0.6
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.5
+        BaseAdsSpread: 1.5
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+  - WeaponId: lpw.shotgun.04
+    Stat:
+      Damage: 65
+      Rpm: 90
+      MagSize: 9
+      ReserveAmmo: 45
+      ReloadTime: 2.72
+      Spread: 3.32
+      MaxRange: 40
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.47
+        YawDeg: 0.57
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.32
+        BaseAdsSpread: 1.42
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+  - WeaponId: lpw.shotgun.05
+    Stat:
+      Damage: 69
+      Rpm: 80
+      MagSize: 10
+      ReserveAmmo: 50
+      ReloadTime: 2.63
+      Spread: 3.15
+      MaxRange: 45
+      AdsFov: 55
+      Recoil:
+        PitchDeg: 2.34
+        YawDeg: 0.54
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.3
+        RecoverySpeed: 3
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.7
+        ViewModelKickBack: 0.08
+        ViewModelKickPitch: 7
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 3.15
+        BaseAdsSpread: 1.35
+        MovementSpreadMax: 2.5
+        SprintSpreadExtra: 3
+        AirborneSpreadExtra: 3
+        ShotBloomPerShot: 0.8
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.25
+        BloomRecoverySpeed: 3
+      Ballistic:
+        PelletCount: 9
+        PelletSpread: 3
+  - WeaponId: lpw.smg.01
+    Stat:
+      Damage: 16
+      Rpm: 950
+      MagSize: 27
+      ReserveAmmo: 108
+      ReloadTime: 1.94
+      Spread: 2.02
+      MaxRange: 80
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.78
+        YawDeg: 0.5
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 2.02
+        BaseAdsSpread: 0.56
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.smg.02
+    Stat:
+      Damage: 17
+      Rpm: 900
+      MagSize: 32
+      ReserveAmmo: 128
+      ReloadTime: 1.87
+      Spread: 1.91
+      MaxRange: 85
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.74
+        YawDeg: 0.48
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.91
+        BaseAdsSpread: 0.53
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.smg.03
+    Stat:
+      Damage: 18
+      Rpm: 850
+      MagSize: 32
+      ReserveAmmo: 128
+      ReloadTime: 1.8
+      Spread: 1.8
+      MaxRange: 90
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.7
+        YawDeg: 0.45
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.8
+        BaseAdsSpread: 0.5
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.smg.04
+    Stat:
+      Damage: 19
+      Rpm: 810
+      MagSize: 37
+      ReserveAmmo: 148
+      ReloadTime: 1.75
+      Spread: 1.71
+      MaxRange: 95
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.66
+        YawDeg: 0.43
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.71
+        BaseAdsSpread: 0.48
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.smg.05
+    Stat:
+      Damage: 21
+      Rpm: 760
+      MagSize: 37
+      ReserveAmmo: 148
+      ReloadTime: 1.69
+      Spread: 1.62
+      MaxRange: 100
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.63
+        YawDeg: 0.4
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.62
+        BaseAdsSpread: 0.45
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.smg.06
+    Stat:
+      Damage: 22
+      Rpm: 720
+      MagSize: 42
+      ReserveAmmo: 168
+      ReloadTime: 1.64
+      Spread: 1.53
+      MaxRange: 105
+      AdsFov: 50
+      Recoil:
+        PitchDeg: 0.6
+        YawDeg: 0.38
+        FirstShotMultiplier: 1.15
+        Accumulation: 1.3
+        MaxAccumulation: 10
+        RecoveryDelay: 0.2
+        RecoverySpeed: 5
+        SpringFrequency: 12
+        SpringDamping: 0.7
+        ShakePositionAmplitude: 0.25
+        ViewModelKickBack: 0.03
+        ViewModelKickPitch: 2.8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 1.53
+        BaseAdsSpread: 0.42
+        MovementSpreadMax: 2
+        SprintSpreadExtra: 2.2
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.15
+        MaxBloom: 2.8
+        BloomRecoveryDelay: 0.2
+        BloomRecoverySpeed: 4.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.01
+    Stat:
+      Damage: 86
+      Rpm: 50
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3.24
+      Spread: 0.06
+      MaxRange: 270
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 3.14
+        YawDeg: 0.22
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.06
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.02
+    Stat:
+      Damage: 91
+      Rpm: 50
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 3.12
+      Spread: 0.05
+      MaxRange: 290
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.97
+        YawDeg: 0.21
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.03
+    Stat:
+      Damage: 97
+      Rpm: 40
+      MagSize: 6
+      ReserveAmmo: 30
+      ReloadTime: 3
+      Spread: 0.05
+      MaxRange: 300
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.8
+        YawDeg: 0.2
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.04
+    Stat:
+      Damage: 103
+      Rpm: 40
+      MagSize: 7
+      ReserveAmmo: 35
+      ReloadTime: 2.91
+      Spread: 0.05
+      MaxRange: 315
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.66
+        YawDeg: 0.19
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.05
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.05
+    Stat:
+      Damage: 109
+      Rpm: 40
+      MagSize: 8
+      ReserveAmmo: 40
+      ReloadTime: 2.82
+      Spread: 0.04
+      MaxRange: 330
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.52
+        YawDeg: 0.18
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.04
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0
+  - WeaponId: lpw.sniper.06
+    Stat:
+      Damage: 116
+      Rpm: 40
+      MagSize: 9
+      ReserveAmmo: 45
+      ReloadTime: 2.73
+      Spread: 0.04
+      MaxRange: 345
+      AdsFov: 20
+      Recoil:
+        PitchDeg: 2.38
+        YawDeg: 0.17
+        FirstShotMultiplier: 1
+        Accumulation: 1
+        MaxAccumulation: 1
+        RecoveryDelay: 0.35
+        RecoverySpeed: 2.5
+        SpringFrequency: 7
+        SpringDamping: 0.8
+        ShakePositionAmplitude: 0.8
+        ViewModelKickBack: 0.09
+        ViewModelKickPitch: 8
+        AdsRecoilMultiplier: 0.6
+      Accuracy:
+        BaseHipSpread: 0.04
+        BaseAdsSpread: 0.02
+        MovementSpreadMax: 3
+        SprintSpreadExtra: 4
+        AirborneSpreadExtra: 4
+        ShotBloomPerShot: 0.6
+        MaxBloom: 1.5
+        BloomRecoveryDelay: 0.3
+        BloomRecoverySpeed: 2.5
+      Ballistic:
+        PelletCount: 1
+        PelletSpread: 0

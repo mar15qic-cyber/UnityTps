@@ -19,7 +19,9 @@ namespace Game.Presentation.Animation
     public sealed class TPLeftHandIK : MonoBehaviour
     {
         [SerializeField] private TPWeaponMeshSwapper swapper;
+        [SerializeField] private WeaponController controller;
         [SerializeField, Range(0f, 1f)] private float weight = 1f;
+        [SerializeField, Range(0f, 1f)] private float rotationWeight = 1f;
         [SerializeField, Min(0f)] private float blendSeconds = 0.15f;
 
         private Animator _animator;
@@ -27,11 +29,13 @@ namespace Game.Presentation.Animation
         private Transform _lowerArm;
         private Transform _hand;
         private float _currentWeight;
+        private bool _reloadSuppressed;
 
         private void Awake()
         {
             _animator = GetComponentInChildren<Animator>(true);
             if (swapper == null) swapper = GetComponentInParent<TPWeaponMeshSwapper>() ?? GetComponent<TPWeaponMeshSwapper>();
+            if (controller == null) controller = GetComponentInParent<WeaponController>();
             if (_animator != null)
             {
                 _upperArm = _animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
@@ -40,42 +44,49 @@ namespace Game.Presentation.Animation
             }
         }
 
+        private void OnEnable()
+        {
+            if (controller == null) controller = GetComponentInParent<WeaponController>();
+            if (controller == null) return;
+            controller.OnReloadStarted += HandleReloadStarted;
+            controller.OnReloadCompleted += HandleReloadEnded;
+            controller.OnReloadInterrupted += HandleReloadInterrupted;
+            _reloadSuppressed = controller.Runtime != null
+                && controller.Runtime.State == WeaponRuntimeState.Reloading;
+        }
+
+        private void OnDisable()
+        {
+            if (controller == null) return;
+            controller.OnReloadStarted -= HandleReloadStarted;
+            controller.OnReloadCompleted -= HandleReloadEnded;
+            controller.OnReloadInterrupted -= HandleReloadInterrupted;
+        }
+
         private void LateUpdate()
         {
             var target = swapper != null ? swapper.CurrentLeftHandTarget : null;
-            float goal = target != null ? weight : 0f;
+            float goal = target != null && !_reloadSuppressed ? weight : 0f;
             _currentWeight = blendSeconds <= 0f
                 ? goal
                 : Mathf.MoveTowards(_currentWeight, goal, Time.deltaTime / blendSeconds);
             if (_currentWeight <= 0.001f || _upperArm == null || _lowerArm == null || _hand == null) return;
 
-            Vector3 goalPos = Vector3.Lerp(_hand.position, target.position, _currentWeight);
-            Quaternion goalRot = Quaternion.Slerp(_hand.rotation, target.rotation, _currentWeight);
-
-            // Step1：整臂指向目标（upperArm 世界旋转补 shoulder→wrist 与 shoulder→goal 的差）
-            Vector3 shoulderWrist = _hand.position - _upperArm.position;
-            Vector3 shoulderGoal = goalPos - _upperArm.position;
-            if (shoulderWrist.sqrMagnitude > 0.000001f && shoulderGoal.sqrMagnitude > 0.000001f)
-                ApplyWorldDelta(_upperArm, Quaternion.FromToRotation(shoulderWrist.normalized, shoulderGoal.normalized));
-
-            // Step2：小臂精确把腕送到目标（lowerArm 世界旋转补 elbow→wrist 与 elbow→goal 的差）
-            Vector3 elbowWrist = _hand.position - _lowerArm.position;
-            Vector3 elbowGoal = goalPos - _lowerArm.position;
-            if (elbowWrist.sqrMagnitude > 0.000001f && elbowGoal.sqrMagnitude > 0.000001f)
-                ApplyWorldDelta(_lowerArm, Quaternion.FromToRotation(elbowWrist.normalized, elbowGoal.normalized));
-
-            // Step3：手部旋转对齐握把姿态
-            Quaternion parentWorld = _hand.parent != null ? _hand.parent.rotation : Quaternion.identity;
-            Quaternion worldRot = parentWorld * _hand.localRotation;
-            _hand.localRotation = Quaternion.Inverse(parentWorld)
-                * Quaternion.Slerp(worldRot, goalRot, _currentWeight);
+            float rotation = weight <= 0.0001f
+                ? 0f
+                : rotationWeight * (_currentWeight / weight);
+            TwoBoneIKSolver.Solve(
+                _upperArm,
+                _lowerArm,
+                _hand,
+                target.position,
+                target.rotation,
+                _currentWeight,
+                rotation);
         }
 
-        private static void ApplyWorldDelta(Transform bone, Quaternion delta)
-        {
-            Quaternion parentWorld = bone.parent != null ? bone.parent.rotation : Quaternion.identity;
-            Quaternion worldRot = parentWorld * bone.localRotation;
-            bone.localRotation = Quaternion.Inverse(parentWorld) * (delta * worldRot);
-        }
+        private void HandleReloadStarted() => _reloadSuppressed = true;
+        private void HandleReloadEnded() => _reloadSuppressed = false;
+        private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _) => _reloadSuppressed = false;
     }
 }

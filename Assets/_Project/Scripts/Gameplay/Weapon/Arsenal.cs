@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Gameplay.Action;
 using Game.Gameplay.Player;
 using UnityEngine;
@@ -35,6 +36,24 @@ namespace Game.Gameplay.Weapon
         private bool _swapped;
         private int _pendingIndex;
         private float _swapElapsedThreshold;
+        private int _configuredInitialIndex;
+        private bool _hasStarted;
+
+        /// <summary>Replaces authored debug slots with an authoritative runtime loadout.</summary>
+        public void ConfigureSlots(IReadOnlyList<WeaponDefinition> definitions, int initialIndex = 0)
+        {
+            if (definitions == null) throw new ArgumentNullException(nameof(definitions));
+            var next = new List<WeaponDefinition>(definitions.Count);
+            for (int i = 0; i < definitions.Count; i++)
+                if (definitions[i] != null) next.Add(definitions[i]);
+
+            slots = next.ToArray();
+            ActiveIndex = -1;
+            _pendingIndex = -1;
+            _swapped = false;
+            _configuredInitialIndex = slots.Length == 0 ? 0 : Mathf.Clamp(initialIndex, 0, slots.Length - 1);
+            if (_hasStarted && slots.Length > 0) TrySelectSlot(_configuredInitialIndex);
+        }
 
         private void Awake()
         {
@@ -53,9 +72,10 @@ namespace Game.Gameplay.Weapon
 
         private void Start()
         {
+            _hasStarted = true;
             // 初始武器：槽 0（等价 TrySelectSlot(0) 的初始化分支；Controller.Start 已用 definition 初始化）
             if (equipInitialWeaponOnStart && slots.Length > 0 && ActiveIndex < 0)
-                TrySelectSlot(0);
+                TrySelectSlot(_configuredInitialIndex);
         }
 
         private void OnDisable()

@@ -172,6 +172,7 @@ GameObject:
   - component: {fileID: 3490744944749180067}
   - component: {fileID: 2104117884122464319}
   - component: {fileID: 8401420010827792929}
+  - component: {fileID: 1904928889576653325}
   m_Layer: 9
   m_Name: FP_ServicePistol_View
   m_TagString: Untagged
@@ -270,6 +271,7 @@ MonoBehaviour:
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
   sightReference: {fileID: 540033518944850530}
+  debugShotDiagnostics: 0
 --- !u!114 &8401420010827792929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -285,6 +287,18 @@ MonoBehaviour:
   _Animator: {fileID: 1945405394279985050}
   _Transitions: {fileID: 0}
   _ActionOnDisable: 0
+--- !u!114 &1904928889576653325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097454739981807468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 156369912738d334b8a678a86e5742d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1113075888509428344
 GameObject:
   m_ObjectHideFlags: 0

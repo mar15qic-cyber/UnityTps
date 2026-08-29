@@ -72,10 +72,22 @@ namespace Game.Presentation.Animation
             _activeView = next;
             _activeDefinition = definition;
             _activeView.SetActive(true);
+            ApplyPersistedAttachments(_activeView, definition);
 
             if (playDraw && _activeView.TryGetComponent(out FPWeaponAnimator animator))
                 animator.PlayDraw();
         }
+
+        private static void ApplyPersistedAttachments(GameObject view, WeaponDefinition definition)
+        {
+            if (view == null || definition == null || !view.TryGetComponent(out FPWeaponAttachmentView attachments))
+                return;
+
+            var stableId = FPWeaponAttachmentView.ResolveStableWeaponId(definition.WeaponId);
+            FPWeaponAttachmentView.LoadPersisted(stableId, out var opticId, out var muzzleId, out var magazineId);
+            attachments.Apply(opticId, muzzleId, magazineId);
+        }
+
 
         private GameObject GetOrCreateView(WeaponDefinition definition)
         {
