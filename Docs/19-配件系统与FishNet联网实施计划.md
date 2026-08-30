@@ -166,4 +166,24 @@ WeaponAnimationSet 增 AimScopeVariants[4]（19 族×4 变体 clip 批量填充�
 
 ## 8. 执行记录
 
-- 2026-08-30：v2 制定（N 线先行），待开工 N1。
+- 2026-08-30：v2 制定（N 线先行）。
+- 2026-08-30 晚：**N1~N4 全部交付**（详见下方 N 线交付记录）。
+
+### N 线交付记录（2026-08-30）
+
+| Phase | 交付物 | 提交 |
+|---|---|---|
+| N1 | PlayerNetworkAdapter（Owner/远端组件门控+移动通道）、NetworkHud（F1/F2/F3，Input System）、OfflinePlayerGate（联网禁用离线玩家/断线恢复）、Arena NetworkSystems（NM+Spawner+Spawn_0）、Player prefab（NetworkObject/NetworkTransform/Adapter）| 71491cf8 |
+| N2 | NetworkLocomotionState（State/MoveInput/GaitPhase SyncVar 采集）、NetworkWeaponState（weaponId 同步+开火/换弹 ObserversRpc）、RemotePlayerStateView+反射接线（TPAnimDriver stateView 重指）、WeaponController 远端表现入口 | fef8cfc8 |
+| N3 | NetworkCombatAuthority（FireRequest ServerRpc→服务器 TryFire 全链路、生命值 SyncVar、死亡广播、3s 重生回出生点）、Player prefab + DamageableTarget(TP_Model) | 763a7fa4 |
+| N4 | 后端 GameRoom/GameRoomMember+迁移（房间码 6 位无混淆字符、30s 心跳懒清理、房主离房解散、一人一房）、RoomService/RoomsController（create/list/join/heartbeat/leave，JWT）、6 个房间契约测试；Unity 大厅联机入口（房主/加入按钮→Arena+F1/F2） | bb00260e + 本提交 |
+
+**验证证据**：
+- Unity 侧每 Phase PlayMode Host 单实例冒烟（spawn/门控/Owner 配置/移动 Simulate/Sprint 状态采集/开火换弹事件链/伤害→死亡→重生循环）全绿、0 Console 错误；
+- 后端 17/18 测试通过（1 跳过=显式 MySQL 集成测试）；
+- 修复的两个存量后端 bug：①`UseExceptionHandler()` 无参重载吞 ApiException→业务码降级 500（删除，让 ApiExceptionMiddleware 全权处理）；②AuthService 注册事务与 `EnableRetryOnFailure` 冲突（移除冗余事务包裹，唯一约束冲突由 catch 转 409）；
+- 开发/测试库因 GPT 会话迁移文件改名产生 schema 漂移——已重建并全量迁移（数据由 seeder 恢复）。
+
+**双实例 M7 验收（需用户实机）**：两个 Unity 实例（或一编辑器一构建包）→ 实例 A 按 F1 开房 → 实例 B NetworkHud.clientAddress 填 A 的 IPv4 后按 F2 → 双方互看互跑（TP 动画/切枪/开火/换弹由 N2 同步，命中扣血由 N3 服务器结算，死亡 3s 重生）。
+
+**已知边界（后续打磨项）**：大厅房间码列表 UI（后端 API 就绪未接 UI，当前 LAN 直连+提示语）、移动无预测（远端玩家命令 1x 重放，高延迟下有操作延迟——预留 FishNet PredictedOwner 升级位）、LagCompensator（Docs/04 Day9 范畴）。

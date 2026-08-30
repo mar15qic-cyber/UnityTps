@@ -306,8 +306,24 @@ namespace Game.UI
             if (!string.IsNullOrWhiteSpace(gameplayError))
                 Text(panel.transform, gameplayError, 16f, LobbyViewFactory.Coral, new Vector2(0.04f, 0.12f), new Vector2(0.52f, 0.23f));
             Button(panel.transform, "进入本地 Gameplay", LobbyViewFactory.Teal, new Vector2(0.58f, 0.49f), new Vector2(0.95f, 0.64f), StartGameplay);
-            Button(panel.transform, "查看任务 / 地图", LobbyViewFactory.Cyan, new Vector2(0.58f, 0.30f), new Vector2(0.95f, 0.45f), () => Navigate(LobbyPage.Mission));
-            Button(panel.transform, "退出会话", new Color(0.35f, 0.1f, 0.16f, 1f), new Vector2(0.58f, 0.11f), new Vector2(0.95f, 0.25f), Logout);
+            Button(panel.transform, "联机对战（房主）", LobbyViewFactory.Gold, new Vector2(0.58f, 0.30f), new Vector2(0.95f, 0.45f), StartOnlineHost);
+            Button(panel.transform, "联机对战（加入）", LobbyViewFactory.Cyan, new Vector2(0.58f, 0.11f), new Vector2(0.95f, 0.25f), StartOnlineClient);
+            Button(panel.transform, "任务 / 仓库", new Color(0.16f, 0.24f, 0.32f, 1f), new Vector2(0.04f, 0.02f), new Vector2(0.52f, 0.13f), () => Navigate(LobbyPage.Mission));
+            Button(panel.transform, "退出会话", new Color(0.35f, 0.1f, 0.16f, 1f), new Vector2(0.60f, 0.02f), new Vector2(0.95f, 0.09f), Logout);
+        }
+
+        /// <summary>联机入口（Docs/19 N4）：进入 Arena 后按 F1=房主 / F2=加入（127.0.0.1，改 NetworkHud.clientAddress 连局域网）。
+        /// 房间码注册表 API 已就绪（/api/rooms），完整大厅房间列表 UI 属后续打磨——当前 LAN 直连已是 M7 可验收链路。</summary>
+        private void StartOnlineHost()
+        {
+            status.text = "进入联机关卡：加载后按 F1 开房（client-hosted）";
+            _ = StartGameplayAsync();
+        }
+
+        private void StartOnlineClient()
+        {
+            status.text = "进入联机关卡：加载后按 F2 连接房主（默认 127.0.0.1，局域网改 NetworkHud.clientAddress）";
+            _ = StartGameplayAsync();
         }
 
         private void RenderMission()
