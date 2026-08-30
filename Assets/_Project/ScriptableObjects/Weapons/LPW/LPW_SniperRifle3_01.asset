@@ -15,8 +15,8 @@ MonoBehaviour:
   weaponId: lpw.sniper.03
   displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 03"
   fireMode: 0
-  firstPersonViewPrefab: {fileID: 5463038123753195884, guid: f62e50c0c281c314fbce350ec7603bce, type: 3}
-  thirdPersonViewPrefab: {fileID: 7321255307327752149, guid: 5528aafd6034a4e40a736897b780e03b, type: 3}
+  firstPersonViewPrefab: {fileID: 5546343675786833765, guid: f62e50c0c281c314fbce350ec7603bce, type: 3}
+  thirdPersonViewPrefab: {fileID: 6128028975687927659, guid: 5528aafd6034a4e40a736897b780e03b, type: 3}
   firstPersonAnimations:
     Idle: {fileID: 7400014, guid: b3236689d20e81b4493519925058781a, type: 3}
     Fire: {fileID: 7400008, guid: b3236689d20e81b4493519925058781a, type: 3}

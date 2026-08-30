@@ -71,6 +71,7 @@ namespace Game.Presentation.Camera
         private Vector3 _recoilPositionVelocity;
         private float _time;
         private Vector3 _aimLocalPosition;
+        private Quaternion _aimLocalRotation = Quaternion.identity;
         private bool _animationAds;   // 动画 ADS 轨道（Docs/18 §4.3）：对位策略切换开关（§12 修订）
 
         private void Awake()
@@ -130,9 +131,10 @@ namespace Game.Presentation.Camera
 
             float adsBlend = _rig != null ? _rig.AdsBlend : 0f;
             // ADS 对位每帧重算（Docs/18 §12 修订）：aim_in 过渡中姿态逐帧变化；
-            // 测量经 InverseTransformPoint 抵消 root 自身变换——与本组件的写入无反馈回路
+            // 测量经 InverseTransformPoint 抵消 root 自身变换——与本组件的写入无反馈回路。
+            // LPW 替换枪还会用显式 SightReference 旋转修正机械瞄准轴。
             if (adsBlend > 0f)
-                _aimLocalPosition = ComputeAimAlignmentOffset();
+                ComputeAimAlignmentPose(out _aimLocalPosition, out _aimLocalRotation);
 
             float motionScale = 1f - adsBlend * adsMotionDamping;
             // Day4 审计 §4：开火后坐独立保持系数——旧版与 sway/bob 共用 motionScale
@@ -176,13 +178,16 @@ namespace Game.Presentation.Camera
                 (swayX + bobX) * motionScale,
                 (swayY + bobY) * motionScale + breath * breathingAmplitude,
                 0f) + _recoilPosition * recoilScale;
-            transform.localRotation = Quaternion.Euler(
+            Quaternion motionRotation = Quaternion.Euler(
                 swayPitch * motionScale + _recoilRotation.x * recoilScale,
                 swayYaw * motionScale + _recoilRotation.y * recoilScale,
                 _recoilRotation.z * recoilScale);
+            transform.localRotation = Quaternion.Slerp(Quaternion.identity, _aimLocalRotation, adsBlend)
+                * motionRotation;
+
         }
 
-        /// <summary>ADS 对位偏移（Docs/18 §12 实机审计修订）。
+        /// <summary>ADS 对位姿态（Docs/18 §12 实机审计修订）。
         /// 实测（AnimationMode + BakeMesh 探针）：LPFP aim 动画把枪模铁瞄前后瞄尖对中到
         /// Armature/camera 节点（作者相机标记，与 LPFP 原版 Gun Camera (0,0.09,-0.18) 重合，
         /// 前后瞄尖恰在该高度 ±7mm 且同高=瞄准线水平）。我们的 FP View Camera 与该节点差
@@ -192,15 +197,35 @@ namespace Game.Presentation.Camera
         /// 无 aim clip 武器（程序化轨道）：照门/枪口 x/y 对中，z 不动。
         /// 注意旧实现符号相反（+偏差而非−偏差），武器向远离中线方向平移——
         /// Day4 以来"ADS 只是变焦"的根因之一。</summary>
-        private Vector3 ComputeAimAlignmentOffset()
+        private void ComputeAimAlignmentPose(out Vector3 localPosition, out Quaternion localRotation)
         {
+            localPosition = Vector3.zero;
+            localRotation = Quaternion.identity;
             if (_viewCamera == null) _viewCamera = ResolveViewCamera();
-            if (_viewCamera == null || transform.parent == null) return Vector3.zero;
+            if (_viewCamera == null || transform.parent == null) return;
             var view = FindActiveView();
-            if (view == null) return Vector3.zero;
+            if (view == null) return;
 
             // 相机在父系位置（父系与相机系旋转一致，平移差不影响 delta 方向）
             Vector3 camParent = transform.parent.InverseTransformPoint(_viewCamera.transform.position);
+            var aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
+
+            if (view.AlignAdsToSightAxis && aimPoint != null)
+            {
+                // LPW guns keep one statically calibrated prefab transform for hip and ADS.
+                // This root motion only preserves the authored LPFP arm/camera relationship;
+                // no per-ADS translation is applied to LPW_Gun at runtime.
+                if (_animationAds)
+                {
+                    var authorCamera = view.transform.Find("Armature/camera");
+                    if (authorCamera != null)
+                    {
+                        Vector3 authorCameraRoot = transform.InverseTransformPoint(authorCamera.position);
+                        localPosition = camParent - authorCameraRoot;
+                    }
+                }
+                return;
+            }
 
             if (_animationAds)
             {
@@ -209,16 +234,16 @@ namespace Game.Presentation.Camera
                 {
                     // root 自身变换经 InverseTransformPoint 抵消：测量稳定、与写入无反馈
                     Vector3 nodeRoot = transform.InverseTransformPoint(camNode.position);
-                    return camParent - nodeRoot;
+                    localPosition = camParent - nodeRoot;
+                    return;
                 }
                 // 非常规底座（无作者相机节点）：退回标记对中
             }
 
-            var aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
-            if (aimPoint == null) return Vector3.zero;
+            if (aimPoint == null) return;
             // 正确方向 = 相机位置 − 参考点位置（把参考点推到相机中线的 x/y 上）
             Vector3 sightRoot = transform.InverseTransformPoint(aimPoint.position);
-            return new Vector3(camParent.x - sightRoot.x, camParent.y - sightRoot.y, 0f);
+            localPosition = new Vector3(camParent.x - sightRoot.x, camParent.y - sightRoot.y, 0f);
         }
 
         private WeaponView FindActiveView()

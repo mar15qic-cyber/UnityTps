@@ -36,6 +36,8 @@ namespace Game.Presentation.Weapon
         [Header("Day4.4 ADS 瞄准参考")]
         [Tooltip("ADS 瞄准线参考点（照门/瞄具线上）；空则回退用 Muzzle。物理 Muzzle 位于膛口，与瞄具线有 sight-height 高度差，ADS 必须对齐瞄具线而非膛线。")]
         [SerializeField] private Transform sightReference;
+        [Tooltip("LPW 瞄具参考标记。枪模位置由 Prefab 静态校准，运行时不会为 ADS 单独移动枪模。")]
+        [SerializeField] private bool alignAdsToSightAxis;
 
         [Header("调试")]
         [Tooltip("每发输出拖尾诊断日志（origin/firedDirection/selfHitSkip/visualEnd）——排查异常拖尾用，默认关")]
@@ -43,6 +45,8 @@ namespace Game.Presentation.Weapon
 
         /// <summary>ADS 瞄准线参考点；空表示该武器未单独配置（回退 Muzzle）。</summary>
         public Transform SightReference => sightReference;
+        /// <summary>替换枪模是否以显式 SightReference 修正动画底座的瞄准位置。</summary>
+        public bool AlignAdsToSightAxis => alignAdsToSightAxis;
 
         private LineRenderer _tracer;
         private Light _muzzleLight;

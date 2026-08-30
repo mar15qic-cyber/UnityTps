@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
 using Game.Presentation.Weapon;
+using Game.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.Debugging
 {
@@ -19,18 +21,34 @@ namespace Game.Debugging
         [SerializeField] private Camera firstPersonViewCamera;
         [SerializeField] private PlayerAimState aimState;
         [SerializeField] private WeaponController weaponController;
+        [SerializeField] private Arsenal arsenal;
+        [SerializeField] private LPWWeaponManifest productionManifest;
+        [SerializeField] private WeaponAssetCatalog weaponAssets;
 
         private readonly List<WeaponView> viewBuffer = new();
         private GUIStyle labelStyle;
         private WeaponView activeView;
         private Vector3 markerScreenPosition;
         private bool markerVisible;
+        private readonly List<WeaponDefinition> productionWeapons = new();
 
         private void Awake()
         {
             aimState ??= GetComponent<PlayerAimState>();
             weaponController ??= GetComponent<WeaponController>();
+            arsenal ??= GetComponent<Arsenal>();
             firstPersonViewCamera ??= ResolveFirstPersonViewCamera();
+            ConfigureProductionWeapons();
+        }
+
+        private void Update()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null || arsenal == null || productionWeapons.Count == 0) return;
+            if (keyboard.pageDownKey.wasPressedThisFrame || keyboard.rightBracketKey.wasPressedThisFrame)
+                SelectRelative(1);
+            else if (keyboard.pageUpKey.wasPressedThisFrame || keyboard.leftBracketKey.wasPressedThisFrame)
+                SelectRelative(-1);
         }
 
         private void LateUpdate()
@@ -57,10 +75,13 @@ namespace Game.Debugging
             string weaponId = weaponController != null && weaponController.Definition != null
                 ? weaponController.Definition.WeaponId
                 : "未装备";
+            string indexText = arsenal != null && arsenal.ActiveIndex >= 0 && productionWeapons.Count > 0
+                ? $"{arsenal.ActiveIndex + 1}/{productionWeapons.Count}"
+                : $"0/{productionWeapons.Count}";
             GUI.Label(new Rect(16f, 112f, 560f, 24f),
-                "LPW AIM-IN TEST  |  1/2/3 切枪，按住 RMB 开镜", labelStyle);
+                "LPW AIM-IN TEST  |  [ / ] 或 PageUp/PageDown 切换 29 枪，按住 RMB 开镜", labelStyle);
             GUI.Label(new Rect(16f, 136f, 560f, 24f),
-                $"{weaponId}  ·  ADS {ads01:0.00}", labelStyle);
+                $"{indexText}  ·  {weaponId}  ·  ADS {ads01:0.00}", labelStyle);
 
             Vector2 center = new(Screen.width * 0.5f, Screen.height * 0.5f);
             DrawCross(center, 7f, Color.white);
@@ -86,6 +107,26 @@ namespace Game.Debugging
             GUI.color = Color.white;
             GUI.Label(new Rect(16f, 184f, 780f, 24f),
                 "白色＝摄像机中心；绿色/红色＝SightReference。请以真实照门/准星是否压住白十字为最终结论。", labelStyle);
+        }
+
+        private void ConfigureProductionWeapons()
+        {
+            productionWeapons.Clear();
+            if (arsenal == null || productionManifest == null || weaponAssets == null) return;
+            foreach (LPWWeaponSpec spec in productionManifest.Weapons)
+                if (spec != null && weaponAssets.TryResolveDefinition(spec.itemId, out WeaponDefinition definition))
+                    productionWeapons.Add(definition);
+            if (productionWeapons.Count == 29)
+                arsenal.ConfigureSlots(productionWeapons, 0);
+            else
+                Debug.LogError($"[LPWAimInTestOverlay] 期望 29 把 LPW，实际解析 {productionWeapons.Count} 把。", this);
+        }
+
+        private void SelectRelative(int direction)
+        {
+            int current = Mathf.Clamp(arsenal.ActiveIndex, 0, productionWeapons.Count - 1);
+            int next = (current + direction + productionWeapons.Count) % productionWeapons.Count;
+            arsenal.TrySelectSlot(next);
         }
 
         private WeaponView FindActiveView()

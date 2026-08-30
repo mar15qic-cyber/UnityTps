@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4385013784093545583
+--- !u!1 &1488196668473047608
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,7 +8,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2882284303065921452}
+  - component: {fileID: 6758188225967035367}
   m_Layer: 0
   m_Name: LeftHandTarget
   m_TagString: Untagged
@@ -16,22 +16,22 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2882284303065921452
+--- !u!4 &6758188225967035367
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4385013784093545583}
+  m_GameObject: {fileID: 1488196668473047608}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0012410954, y: 0.019009434, z: 0.10795254}
+  m_LocalPosition: {x: 0.0012410935, y: 0.07084547, z: 0.078540646}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1056023657289713626}
+  m_Father: {fileID: 3617975211478874239}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &4717284286934726059
+--- !u!1 &4722671375799157266
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -39,7 +39,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6930213884911504455}
+  - component: {fileID: 3371738853387622713}
   m_Layer: 0
   m_Name: LPW_Gun
   m_TagString: Untagged
@@ -47,23 +47,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6930213884911504455
+--- !u!4 &3371738853387622713
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4717284286934726059}
+  m_GameObject: {fileID: 4722671375799157266}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0.20242597, y: -0.67751294, z: 0.20242597, w: -0.67751294}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8280089984032734701}
-  m_Father: {fileID: 1056023657289713626}
+  - {fileID: 6540233915003672265}
+  m_Father: {fileID: 3617975211478874239}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7308890105951434546
+--- !u!1 &6175459645639949516
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -71,41 +71,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1056023657289713626}
-  m_Layer: 0
-  m_Name: TP_Pistol4_01
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1056023657289713626
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7308890105951434546}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.05631295, y: -0.7153779, z: -0.69100964, w: -0.0870004}
-  m_LocalPosition: {x: 0.0405, y: 0.1316, z: 0.0419}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 6930213884911504455}
-  - {fileID: 2300790778466695583}
-  - {fileID: 2882284303065921452}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &8656801500275136992
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2300790778466695583}
+  - component: {fileID: 3389184288531580835}
   m_Layer: 0
   m_Name: Muzzle
   m_TagString: Untagged
@@ -113,28 +79,62 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2300790778466695583
+--- !u!4 &3389184288531580835
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8656801500275136992}
+  m_GameObject: {fileID: 6175459645639949516}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000031199303, y: 0.000000014901159, z: 0.00000001117587, w: 1}
-  m_LocalPosition: {x: 0.0012411028, y: 0.019009396, z: 0.19965824}
+  m_LocalRotation: {x: 0.28627354, y: 0.0000000074505797, z: 0.00000001117587, w: -0.958148}
+  m_LocalPosition: {x: 0.0012411047, y: 0.11677568, z: 0.14854267}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1056023657289713626}
+  m_Father: {fileID: 3617975211478874239}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1173238859925267916
+--- !u!1 &6644325396884467453
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3617975211478874239}
+  m_Layer: 0
+  m_Name: TP_Pistol4_01
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3617975211478874239
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6644325396884467453}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.05631295, y: -0.7153779, z: -0.69100964, w: -0.0870004}
+  m_LocalPosition: {x: 0.0405, y: 0.1316, z: 0.0419}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3371738853387622713}
+  - {fileID: 3389184288531580835}
+  - {fileID: 6758188225967035367}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &4063218173020491496
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 6930213884911504455}
+    m_TransformParent: {fileID: 3371738853387622713}
     m_Modifications:
     - target: {fileID: 7106934742826238977, guid: 0b652d1f8740ca84e896665741f79bd5, type: 3}
       propertyPath: m_Name
@@ -189,8 +189,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0b652d1f8740ca84e896665741f79bd5, type: 3}
---- !u!4 &8280089984032734701 stripped
+--- !u!4 &6540233915003672265 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7106934742826473505, guid: 0b652d1f8740ca84e896665741f79bd5, type: 3}
-  m_PrefabInstance: {fileID: 1173238859925267916}
+  m_PrefabInstance: {fileID: 4063218173020491496}
   m_PrefabAsset: {fileID: 0}

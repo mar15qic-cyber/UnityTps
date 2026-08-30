@@ -15,20 +15,20 @@ MonoBehaviour:
   weaponId: lpw.sniper.04
   displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 04"
   fireMode: 0
-  firstPersonViewPrefab: {fileID: 1210403474532665814, guid: d32e4e2ec9661ad4aa97c36bc38e0aa6, type: 3}
-  thirdPersonViewPrefab: {fileID: 43134628660408449, guid: dc7ff566d1eb7484bb86517c19fb74f5, type: 3}
+  firstPersonViewPrefab: {fileID: 1977619397190479287, guid: d32e4e2ec9661ad4aa97c36bc38e0aa6, type: 3}
+  thirdPersonViewPrefab: {fileID: 8859113908407395807, guid: dc7ff566d1eb7484bb86517c19fb74f5, type: 3}
   firstPersonAnimations:
-    Idle: {fileID: 7400014, guid: b3236689d20e81b4493519925058781a, type: 3}
-    Fire: {fileID: 7400008, guid: b3236689d20e81b4493519925058781a, type: 3}
+    Idle: {fileID: 7400014, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+    Fire: {fileID: 7400008, guid: 776f88d95c576834c81e01185e23a857, type: 3}
     ReloadAmmoLeft: {fileID: 7400026, guid: b3236689d20e81b4493519925058781a, type: 3}
     ReloadOutOfAmmo: {fileID: 7400026, guid: b3236689d20e81b4493519925058781a, type: 3}
-    Draw: {fileID: 7400032, guid: b3236689d20e81b4493519925058781a, type: 3}
-    Holster: {fileID: 7400012, guid: b3236689d20e81b4493519925058781a, type: 3}
+    Draw: {fileID: 7400030, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+    Holster: {fileID: 7400012, guid: 776f88d95c576834c81e01185e23a857, type: 3}
     DryFire: {fileID: 0}
-    AimIn: {fileID: 7400004, guid: b3236689d20e81b4493519925058781a, type: 3}
-    AimOut: {fileID: 7400006, guid: b3236689d20e81b4493519925058781a, type: 3}
-    AimFire: {fileID: 7400000, guid: b3236689d20e81b4493519925058781a, type: 3}
-    AimIdle: {fileID: 7400002, guid: b3236689d20e81b4493519925058781a, type: 3}
+    AimIn: {fileID: 7400004, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+    AimOut: {fileID: 7400006, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+    AimFire: {fileID: 7400000, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+    AimIdle: {fileID: 7400002, guid: 776f88d95c576834c81e01185e23a857, type: 3}
   firstPersonAnimationFamily: 0
   rifleHasVerticalGrip: 0
   rifleAnimationFamily: 1
@@ -94,6 +94,6 @@ MonoBehaviour:
     Fire: {fileID: 7400002, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
     ReloadAmmoLeft: {fileID: 7400026, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
     ReloadOutOfAmmo: {fileID: 7400028, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
-  drawTime: 0.9
+  drawTime: 0.767
   holsterTime: 0.467
   audioProfile: {fileID: 11400000, guid: 87b0ef6c0dcb5574986ff8be49d9e1aa, type: 2}

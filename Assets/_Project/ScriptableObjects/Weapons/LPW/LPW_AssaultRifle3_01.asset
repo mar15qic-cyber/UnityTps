@@ -15,8 +15,8 @@ MonoBehaviour:
   weaponId: lpw.rifle.03
   displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 03"
   fireMode: 1
-  firstPersonViewPrefab: {fileID: 320857761751843206, guid: 46ac6584187f32c4e8e9a3f4ca33dc82, type: 3}
-  thirdPersonViewPrefab: {fileID: 474788089253185186, guid: e0d9e744266d9e2459e1c5386601996b, type: 3}
+  firstPersonViewPrefab: {fileID: 1465570991445236452, guid: 46ac6584187f32c4e8e9a3f4ca33dc82, type: 3}
+  thirdPersonViewPrefab: {fileID: 3996764598284662925, guid: e0d9e744266d9e2459e1c5386601996b, type: 3}
   firstPersonAnimations:
     Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
     Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
@@ -29,7 +29,7 @@ MonoBehaviour:
     AimOut: {fileID: 0}
     AimFire: {fileID: 0}
     AimIdle: {fileID: 0}
-  firstPersonAnimationFamily: 3
+  firstPersonAnimationFamily: 1
   rifleHasVerticalGrip: 0
   rifleAnimationFamily: 1
   rifle01Animations:

@@ -32,6 +32,41 @@ namespace Game.EditorTools
         private static readonly float[] ReloadFactors = { 1.08f, 1.04f, 1f, .97f, .94f, .91f };
         private static readonly float[] RangeFactors = { .90f, .96f, 1f, 1.05f, 1.10f, 1.15f };
 
+        // Arena_LPWTest full-ADS measurements. Values are weapon-bone-local translations,
+        // applied once to LPW_Gun in the generated prefab (never as a runtime ADS offset).
+        private static readonly Dictionary<string, Vector3> AdsCenterOffsets = new(StringComparer.Ordinal)
+        {
+            ["lpw.rifle.01"] = new(-0.00709672645f, 0.026902508f, -0.0176532734f),
+            ["lpw.rifle.02"] = new(-0.007203249f, 0.021839533f, -0.0143229961f),
+            ["lpw.rifle.03"] = new(-0.00744907f, -0.00689503457f, 0.00452566938f),
+            ["lpw.rifle.04"] = new(-0.00716905948f, 0.009624661f, -0.006312889f),
+            ["lpw.rifle.05"] = new(-0.0071404255f, 0.00906890351f, -0.00594929047f),
+            ["lpw.rifle.06"] = new(-0.007261397f, 0.008282381f, -0.005428978f),
+            ["lpw.pistol.01"] = new(-0.011141805f, 0.0274923f, -0.0180239175f),
+            ["lpw.pistol.02"] = new(-0.011142401f, 0.0278185718f, -0.018237872f),
+            ["lpw.pistol.03"] = new(-0.0110884625f, 0.007913175f, -0.00518570142f),
+            ["lpw.pistol.04"] = new(-0.0114465309f, 0.0296814125f, -0.0194422137f),
+            ["lpw.pistol.05"] = new(-0.0114128459f, 0.0217011981f, -0.014212098f),
+            ["lpw.pistol.06"] = new(-0.0114186676f, -0.009855288f, 0.00646967068f),
+            ["lpw.shotgun.01"] = new(-0.014481782f, -0.06356f, 0.04170766f),
+            ["lpw.shotgun.02"] = new(-0.0148476446f, -0.0228339732f, 0.0149801709f),
+            ["lpw.shotgun.03"] = new(-0.0149791734f, -0.0235786829f, 0.0154676307f),
+            ["lpw.shotgun.04"] = new(-0.0146823106f, 0.0101366807f, -0.006644414f),
+            ["lpw.shotgun.05"] = new(-0.0147261592f, -0.0235016327f, 0.0154190045f),
+            ["lpw.smg.01"] = new(-0.0130786123f, -0.02393478f, 0.0156952329f),
+            ["lpw.smg.02"] = new(-0.0123052914f, -0.01765124f, 0.0115811834f),
+            ["lpw.smg.03"] = new(-0.01213762f, -0.0257722456f, 0.0169115681f),
+            ["lpw.smg.04"] = new(-0.0122092329f, 0.001664157f, -0.00108994136f),
+            ["lpw.smg.05"] = new(-0.0125228344f, -0.00407646829f, 0.0026827862f),
+            ["lpw.smg.06"] = new(-0.012365181f, -0.03387809f, 0.0222215671f),
+            ["lpw.sniper.01"] = new(-0.009077851f, 0.00610472355f, -0.00399799831f),
+            ["lpw.sniper.02"] = new(-0.004354446f, 0.0457377248f, -0.0299980827f),
+            ["lpw.sniper.03"] = new(-0.009088043f, 0.003685093f, -0.002411804f),
+            ["lpw.sniper.04"] = new(-0.00439165f, 0.0313020647f, -0.0205273721f),
+            ["lpw.sniper.05"] = new(-0.00482531125f, 0.0407760665f, -0.026704926f),
+            ["lpw.sniper.06"] = new(-0.00469668629f, 0.0564183f, -0.03696983f),
+        };
+
         private sealed class Family
         {
             public string Folder;
@@ -119,20 +154,16 @@ namespace Game.EditorTools
             List<LPWWeaponSpec> specs = BuildSpecs(balance);
             if (specs.Count != 29) throw new InvalidOperationException("Expected 29 LPW specs, got " + specs.Count);
 
-            AssetDatabase.StartAssetEditing();
-            try
+            // Staging prefabs must be imported immediately: SaveAsPrefabAsset returns
+            // null while asset importing is suspended, so StartAssetEditing cannot wrap
+            // this loop.  The direct target overwrite performed after each staging save
+            // still preserves every existing prefab GUID.
+            foreach (LPWWeaponSpec spec in specs)
             {
-                foreach (LPWWeaponSpec spec in specs)
-                {
-                    GenerateFp(spec);
-                    GenerateTp(spec);
-                }
+                GenerateFp(spec);
+                GenerateTp(spec);
             }
-            finally
-            {
-                AssetDatabase.StopAssetEditing();
-                AssetDatabase.Refresh();
-            }
+            AssetDatabase.Refresh();
 
             // Prefabs must be imported before definitions can hold stable direct references.
             foreach (LPWWeaponSpec spec in specs)
@@ -155,7 +186,11 @@ namespace Game.EditorTools
             List<string> errors = new();
             LPWWeaponManifest manifest = AssetDatabase.LoadAssetAtPath<LPWWeaponManifest>(ManifestPath);
             if (manifest == null) errors.Add("Manifest missing");
-            else if (manifest.Weapons.Count != 29) errors.Add("Manifest count=" + manifest.Weapons.Count);
+            else
+            {
+                if (manifest.SchemaVersion != 5) errors.Add("Manifest schema=" + manifest.SchemaVersion + " (expected 5)");
+                if (manifest.Weapons.Count != 29) errors.Add("Manifest count=" + manifest.Weapons.Count);
+            }
 
             WeaponAssetCatalog catalog = AssetDatabase.LoadAssetAtPath<WeaponAssetCatalog>(CatalogPath);
             if (catalog == null) errors.Add("Catalog missing");
@@ -179,6 +214,17 @@ namespace Game.EditorTools
                 {
                     if (!ids.Add(spec.itemId)) errors.Add("Duplicate item id " + spec.itemId);
                     if (!spec.sourcePrefabPath.EndsWith("_01.prefab", StringComparison.Ordinal)) errors.Add("Non-canonical source " + spec.sourcePrefabPath);
+                    if (spec.schemaVersion != 5) errors.Add("Spec schema " + spec.itemId + "=" + spec.schemaVersion);
+                    if (!AdsCenterOffsets.ContainsKey(spec.definitionId)) errors.Add("ADS static offset missing " + spec.itemId);
+                    if (spec.category == WeaponCatalogCategory.Rifle && spec.tier == 3
+                        && spec.animationFamily != FirstPersonAnimationFamily.Rifle01)
+                        errors.Add("G36C must use Rifle01 (no vertical grip) " + spec.itemId);
+                    if (spec.category == WeaponCatalogCategory.Sniper)
+                    {
+                        string expected = spec.usesBoltAction ? "sniper.01" : "sniper.02";
+                        if (spec.animationDefinitionId != expected)
+                            errors.Add("Sniper action/template mismatch " + spec.itemId + " -> " + spec.animationDefinitionId);
+                    }
                     ValidateSpecAssets(spec, errors);
                 }
             }
@@ -298,9 +344,21 @@ namespace Game.EditorTools
                     if (AssetDatabase.LoadAssetAtPath<GameObject>(source) == null)
                         throw new FileNotFoundException("Canonical LPW source missing", source);
 
+                    // All six LPW assault rifles, including the G36C (tier 3), have a
+                    // conventional handguard and no vertical foregrip.  Rifle02/03 pose
+                    // the support hand on a vertical grip and therefore cannot be chosen
+                    // from the model number alone.
+                    FirstPersonAnimationFamily animationFamily = family.Category == WeaponCatalogCategory.Rifle
+                        ? FirstPersonAnimationFamily.Rifle01
+                        : FirstPersonAnimationFamily.Native;
+                    // LPW sniper 1 and 3 are manually cycled bolt-action rifles.  The
+                    // SVD/DMR/lever/self-loading models must use Sniper02 so the Fire clip
+                    // does not play a nonexistent bolt cycle.
+                    bool usesBoltAction = family.Category == WeaponCatalogCategory.Sniper
+                        && (tier == 1 || tier == 3);
                     specs.Add(new LPWWeaponSpec
                     {
-                        schemaVersion = 1,
+                        schemaVersion = 5,
                         itemId = $"weapon.lpw.{family.IdSegment}.{tier:00}",
                         definitionId = $"lpw.{family.IdSegment}.{tier:00}",
                         displayName = family.Names[i],
@@ -309,24 +367,56 @@ namespace Game.EditorTools
                         category = family.Category,
                         slotType = family.Slot,
                         fireMode = family.FireMode,
-                        animationFamily = family.Category == WeaponCatalogCategory.Rifle
-                            ? tier == 2 ? FirstPersonAnimationFamily.Rifle02
-                            : tier == 3 ? FirstPersonAnimationFamily.Rifle03
-                            : FirstPersonAnimationFamily.Rifle01
-                            : FirstPersonAnimationFamily.Native,
-                        firstPersonTemplatePath = family.FpTemplate,
+                        animationFamily = animationFamily,
+                        usesBoltAction = usesBoltAction,
+                        animationDefinitionId = ResolveAnimationDefinitionId(family.Category, animationFamily, usesBoltAction),
+                        firstPersonTemplatePath = ResolveFpTemplate(family.FpTemplate, animationFamily, family.Category, usesBoltAction),
                         thirdPersonTemplatePath = family.TpTemplate,
                         tier = tier,
                         priceCoins = family.Prices[i],
                         unlockLevel = family.Levels[i],
                         stat = ScaleStat(baseStat, i, family.MagazineOffsets[i], family.Category),
-                        fpRootEuler = new Vector3(0f, 90f, 0f),
-                        tpRootEuler = new Vector3(0f, 90f, 0f),
+                        // LPW source meshes are authored about 33.27 degrees off the LPFP
+                        // weapon-bone horizontal axis.  Omitting this roll is what made every
+                        // generated gun stand upright/sideways in both hip and ADS poses.
+                        fpRootEuler = new Vector3(0f, 90f, 326.73f),
+                        fpAdsCenterOffset = AdsCenterOffsets.TryGetValue($"lpw.{family.IdSegment}.{tier:00}", out Vector3 adsOffset)
+                            ? adsOffset : Vector3.zero,
+                        fpSightReferenceEuler = new Vector3(0f, -90f, 0f),
+                        tpRootEuler = new Vector3(0f, 90f, 326.73f),
                         supportsVerifiedAttachments = false
                     });
                 }
             }
             return specs;
+        }
+
+        private static string ResolveAnimationDefinitionId(WeaponCatalogCategory category, FirstPersonAnimationFamily family, bool usesBoltAction)
+        {
+            if (category == WeaponCatalogCategory.Rifle)
+            {
+                if (family == FirstPersonAnimationFamily.Rifle02) return "rifle.02";
+                if (family == FirstPersonAnimationFamily.Rifle03) return "rifle.03";
+                return "rifle.day3";
+            }
+            if (category == WeaponCatalogCategory.Pistol) return "pistol.day2";
+            if (category == WeaponCatalogCategory.Shotgun) return "shotgun.01";
+            if (category == WeaponCatalogCategory.Smg) return "smg.01";
+            return usesBoltAction ? "sniper.01" : "sniper.02";
+        }
+
+        private static string ResolveFpTemplate(string fallback, FirstPersonAnimationFamily family,
+            WeaponCatalogCategory category, bool usesBoltAction)
+        {
+            if (category == WeaponCatalogCategory.Sniper)
+                return usesBoltAction
+                    ? "Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab"
+                    : "Assets/_Project/Prefabs/Weapons/FP_Sniper02_View.prefab";
+            if (family == FirstPersonAnimationFamily.Rifle02)
+                return "Assets/_Project/Prefabs/Weapons/FP_Rifle02_View.prefab";
+            if (family == FirstPersonAnimationFamily.Rifle03)
+                return "Assets/_Project/Prefabs/Weapons/FP_Rifle03_View.prefab";
+            return fallback;
         }
 
         private static WeaponStat ScaleStat(WeaponStat stat, int index, int magazineOffset, WeaponCatalogCategory category)
@@ -348,8 +438,10 @@ namespace Game.EditorTools
         private static void GenerateFp(LPWWeaponSpec spec)
         {
             string path = FpPath(spec);
-            ReplaceWithCopy(spec.firstPersonTemplatePath, path);
-            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            // Work from the source template directly.  Saving the template into the
+            // destination first caused Unity's atomic rename to collide with editor/file
+            // watcher read handles before the actual LPW modifications were even applied.
+            GameObject root = PrefabUtility.LoadPrefabContents(spec.firstPersonTemplatePath);
             try
             {
                 root.name = "FP_" + Token(spec) + "_View";
@@ -378,14 +470,23 @@ namespace Game.EditorTools
                 Bounds bounds = CalculateLocalBounds(wrapper, gun);
                 Transform rightHand = FindDeep(root.transform, "hand_R");
                 Transform leftHand = FindDeep(root.transform, "hand_L");
-                AlignEstimatedGrip(wrapper, bounds, rightHand);
+                Vector3 rightHandGripPosition = EstimatedGrip(bounds, spec);
+                Vector3 leftSupportGripPosition = EstimatedSupportGrip(bounds, spec, rightHandGripPosition);
+                AlignEstimatedGrips(wrapper, rightHandGripPosition, leftSupportGripPosition, rightHand, leftHand);
+                wrapper.localPosition += spec.fpAdsCenterOffset;
+
+                Vector3 sightLocalPosition = new(bounds.center.x, bounds.max.y, bounds.center.z);
 
                 Transform muzzle = NewMarker(wrapper, "Muzzle", new Vector3(bounds.min.x, bounds.center.y, bounds.center.z), new Vector3(0f, -90f, 0f));
                 Transform shell = NewMarker(wrapper, "ShellPort", new Vector3(bounds.center.x, bounds.center.y, bounds.max.z), Vector3.zero);
-                Transform sight = NewMarker(wrapper, "SightReference", new Vector3(bounds.center.x, bounds.max.y, bounds.center.z), new Vector3(0f, -90f, 0f));
-                Transform rightGrip = NewMarker(wrapper, "RightHandGrip", rightHand != null ? wrapper.InverseTransformPoint(rightHand.position) : EstimatedGrip(bounds), Vector3.zero);
+                spec.fpRootPosition = wrapper.localPosition;
+                spec.fpRootEuler = wrapper.localEulerAngles;
+                spec.fpRightHandGripPosition = rightHandGripPosition;
+                spec.fpSightReferencePosition = sightLocalPosition;
+                Transform sight = NewMarker(wrapper, "SightReference", spec.fpSightReferencePosition, spec.fpSightReferenceEuler);
+                Transform rightGrip = NewMarker(wrapper, "RightHandGrip", rightHandGripPosition, Vector3.zero);
                 if (rightHand != null) rightGrip.rotation = rightHand.rotation;
-                Transform leftGrip = NewMarker(wrapper, "LeftSupportGrip", new Vector3(bounds.center.x - bounds.size.x * .15f, bounds.center.y, bounds.center.z), Vector3.zero);
+                Transform leftGrip = NewMarker(wrapper, "LeftSupportGrip", leftSupportGripPosition, Vector3.zero);
                 Transform trigger = NewMarker(wrapper, "Trigger", rightGrip.localPosition + new Vector3(-.04f, .01f, 0f), Vector3.zero);
                 Transform magWell = NewMarker(wrapper, "MagazineWell", new Vector3(bounds.center.x + bounds.size.x * .08f, bounds.min.y + bounds.size.y * .25f, bounds.center.z), Vector3.zero);
                 Transform magGrip = NewMarker(wrapper, "MagazineGrip", magWell.localPosition + new Vector3(0f, -Mathf.Max(.08f, bounds.size.y * .25f), 0f), Vector3.zero);
@@ -396,6 +497,7 @@ namespace Game.EditorTools
                 viewSo.FindProperty("muzzle").objectReferenceValue = muzzle;
                 viewSo.FindProperty("shellPort").objectReferenceValue = shell;
                 viewSo.FindProperty("sightReference").objectReferenceValue = sight;
+                viewSo.FindProperty("alignAdsToSightAxis").boolValue = true;
                 viewSo.ApplyModifiedPropertiesWithoutUndo();
 
                 foreach (FPWeaponPoseProfile old in root.GetComponents<FPWeaponPoseProfile>()) Object.DestroyImmediate(old);
@@ -411,7 +513,14 @@ namespace Game.EditorTools
                 SetObject(profileSo, "trigger", trigger);
                 SetObject(profileSo, "magazineWell", magWell);
                 SetObject(profileSo, "magazineGrip", magGrip);
-                profileSo.FindProperty("hasRootCalibration").boolValue = false;
+                profileSo.FindProperty("hasRootCalibration").boolValue = true;
+                profileSo.FindProperty("calibratedRootLocalPosition").vector3Value = wrapper.localPosition;
+                profileSo.FindProperty("calibratedRootLocalEulerAngles").vector3Value = wrapper.localEulerAngles;
+                profileSo.FindProperty("manualRootTransform").boolValue = false;
+                // The generated local transform is the source of truth.  Re-aligning the
+                // wrapper to one hand in Awake undoes the two-hand static calibration and
+                // is what made the model jump away from the support hand in Play Mode.
+                profileSo.FindProperty("alignRootToRightHand").boolValue = false;
                 profileSo.ApplyModifiedPropertiesWithoutUndo();
 
                 FPLeftHandIK ik = root.AddComponent<FPLeftHandIK>();
@@ -424,7 +533,7 @@ namespace Game.EditorTools
                 ikSo.FindProperty("reloadOnly").boolValue = true;
                 ikSo.ApplyModifiedPropertiesWithoutUndo();
 
-                PrefabUtility.SaveAsPrefabAsset(root, path);
+                SavePrefabToTarget(root, path);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
@@ -456,17 +565,14 @@ namespace Game.EditorTools
                 Transform muzzle = NewMarker(root.transform, "Muzzle", wrapper.TransformPoint(new Vector3(bounds.min.x, bounds.center.y, bounds.center.z)), Vector3.zero, true);
                 muzzle.rotation = wrapper.rotation * Quaternion.Euler(0f, -90f, 0f);
                 NewMarker(root.transform, "LeftHandTarget", wrapper.TransformPoint(new Vector3(bounds.center.x - bounds.size.x * .15f, bounds.center.y, bounds.center.z)), Vector3.zero, true);
-                PrefabUtility.SaveAsPrefabAsset(root, TpPath(spec));
+                SavePrefabToTarget(root, TpPath(spec));
             }
             finally { Object.DestroyImmediate(root); }
         }
 
         private static void GenerateDefinition(LPWWeaponSpec spec)
         {
-            WeaponDefinition template = FindDefinition(spec.category == WeaponCatalogCategory.Rifle ? "rifle.day3"
-                : spec.category == WeaponCatalogCategory.Pistol ? "pistol.day2"
-                : spec.category == WeaponCatalogCategory.Shotgun ? "shotgun.01"
-                : spec.category == WeaponCatalogCategory.Smg ? "smg.01" : "sniper.01");
+            WeaponDefinition template = FindDefinition(spec.animationDefinitionId);
             if (template == null) throw new InvalidOperationException("Base definition missing for " + spec.definitionId);
 
             string path = DefinitionPath(spec);
@@ -517,7 +623,7 @@ namespace Game.EditorTools
                 AssetDatabase.CreateAsset(manifest, ManifestPath);
             }
             SerializedObject so = new(manifest);
-            so.FindProperty("schemaVersion").intValue = 1;
+            so.FindProperty("schemaVersion").intValue = 5;
             SerializedProperty list = so.FindProperty("weapons");
             list.arraySize = specs.Count;
             for (int i = 0; i < specs.Count; i++) WriteSpec(list.GetArrayElementAtIndex(i), specs[i]);
@@ -615,7 +721,21 @@ namespace Game.EditorTools
             if (def == null) errors.Add("Definition missing " + spec.itemId);
             if (def != null && def.WeaponId != spec.definitionId) errors.Add("Definition ID mismatch " + spec.itemId + " -> " + def.WeaponId);
             if (def != null && (def.FirstPersonViewPrefab == null || def.ThirdPersonViewPrefab == null)) errors.Add("Definition views missing " + spec.itemId);
+            if (def != null && !def.FirstPersonAnimations.HasAimClips) errors.Add("Definition AimIn/AimOut missing " + spec.itemId);
             if (fp != null && FindDeep(fp.transform, "LPW_Gun") == null) errors.Add("FP LPW_Gun missing " + spec.itemId);
+            if (fp != null)
+            {
+                WeaponView view = fp.GetComponent<WeaponView>();
+                if (view == null || view.SightReference == null || !view.AlignAdsToSightAxis)
+                    errors.Add("FP ADS sight-axis contract missing " + spec.itemId);
+                Transform gun = FindDeep(fp.transform, "LPW_Gun");
+                if (gun == null || Quaternion.Angle(gun.localRotation, Quaternion.Euler(spec.fpRootEuler)) > .1f)
+                    errors.Add("FP LPW_Gun rotation missing " + spec.itemId);
+                FPWeaponPoseProfile profile = fp.GetComponent<FPWeaponPoseProfile>();
+                if (profile == null || !profile.HasRootCalibration || !profile.HasCompleteInterfaceLayout
+                    || profile.WeaponRoot != gun || profile.RightHandGrip == null)
+                    errors.Add("FP palm/root calibration contract missing " + spec.itemId);
+            }
             if (tp != null && (tp.transform.Find("Muzzle") == null || tp.transform.Find("LeftHandTarget") == null)) errors.Add("TP root markers missing " + spec.itemId);
             if (fp != null && fp.GetComponentsInChildren<Collider>(true).Length > 0) errors.Add("FP collider " + spec.itemId);
             if (tp != null && tp.GetComponentsInChildren<Collider>(true).Length > 0) errors.Add("TP collider " + spec.itemId);
@@ -623,21 +743,27 @@ namespace Game.EditorTools
 
         private static void WriteSpec(SerializedProperty row, LPWWeaponSpec spec)
         {
-            row.FindPropertyRelative("schemaVersion").intValue = 1;
+            row.FindPropertyRelative("schemaVersion").intValue = 5;
             SetString(row, "itemId", spec.itemId); SetString(row, "definitionId", spec.definitionId);
             SetString(row, "displayName", spec.displayName); SetString(row, "sourcePrefabPath", spec.sourcePrefabPath);
             SetString(row, "assetKey", spec.assetKey); SetString(row, "firstPersonTemplatePath", spec.firstPersonTemplatePath);
+            SetString(row, "animationDefinitionId", spec.animationDefinitionId);
             SetString(row, "thirdPersonTemplatePath", spec.thirdPersonTemplatePath);
             row.FindPropertyRelative("category").enumValueIndex = (int)spec.category;
             row.FindPropertyRelative("slotType").enumValueIndex = (int)spec.slotType;
             row.FindPropertyRelative("fireMode").enumValueIndex = (int)spec.fireMode;
             row.FindPropertyRelative("animationFamily").enumValueIndex = (int)spec.animationFamily;
+            row.FindPropertyRelative("usesBoltAction").boolValue = spec.usesBoltAction;
             row.FindPropertyRelative("tier").intValue = spec.tier;
             row.FindPropertyRelative("priceCoins").longValue = spec.priceCoins;
             row.FindPropertyRelative("unlockLevel").intValue = spec.unlockLevel;
             WriteWeaponStat(row.FindPropertyRelative("stat"), spec.stat);
             row.FindPropertyRelative("fpRootPosition").vector3Value = spec.fpRootPosition;
             row.FindPropertyRelative("fpRootEuler").vector3Value = spec.fpRootEuler;
+            row.FindPropertyRelative("fpAdsCenterOffset").vector3Value = spec.fpAdsCenterOffset;
+            row.FindPropertyRelative("fpRightHandGripPosition").vector3Value = spec.fpRightHandGripPosition;
+            row.FindPropertyRelative("fpSightReferencePosition").vector3Value = spec.fpSightReferencePosition;
+            row.FindPropertyRelative("fpSightReferenceEuler").vector3Value = spec.fpSightReferenceEuler;
             row.FindPropertyRelative("tpRootPosition").vector3Value = spec.tpRootPosition;
             row.FindPropertyRelative("tpRootEuler").vector3Value = spec.tpRootEuler;
             row.FindPropertyRelative("supportsVerifiedAttachments").boolValue = false;
@@ -726,14 +852,80 @@ namespace Game.EditorTools
                 if (renderer.transform != arms) renderer.enabled = false;
         }
 
-        private static void AlignEstimatedGrip(Transform wrapper, Bounds bounds, Transform hand)
+        private static void AlignEstimatedGrips(Transform wrapper, Vector3 rightGripLocalPosition,
+            Vector3 leftGripLocalPosition, Transform rightHand, Transform leftHand)
         {
-            if (hand == null) return;
-            Vector3 gripWorld = wrapper.TransformPoint(EstimatedGrip(bounds));
-            wrapper.position += hand.position - gripWorld;
+            if (rightHand == null) return;
+            Vector3 rightOffset = rightHand.position - wrapper.TransformPoint(rightGripLocalPosition);
+            if (leftHand == null)
+            {
+                wrapper.position += rightOffset;
+                return;
+            }
+            Vector3 leftOffset = leftHand.position - wrapper.TransformPoint(leftGripLocalPosition);
+            // Right hand owns the trigger/pistol grip, while a smaller support-hand share
+            // prevents long and compact receivers from visibly floating off the left palm.
+            wrapper.position += rightOffset * .75f + leftOffset * .25f;
         }
 
-        private static Vector3 EstimatedGrip(Bounds bounds) => new(bounds.max.x - bounds.size.x * .22f, bounds.min.y + bounds.size.y * .30f, bounds.center.z);
+        private static Vector3 EstimatedGrip(Bounds bounds, LPWWeaponSpec spec)
+        {
+            // After the common LPW roll correction, +X points toward the stock and
+            // -X toward the muzzle.  Grip coordinates are expressed as explicit,
+            // category-aware fractions of the corrected gun envelope.  This keeps
+            // the semantic palm anchor on the grip/trigger region instead of the
+            // old min-Y bounds corner that placed every weapon above the hands.
+            float backFraction;
+            float heightFraction;
+            switch (spec.category)
+            {
+                case WeaponCatalogCategory.Pistol:
+                    backFraction = .20f;
+                    heightFraction = .53f;
+                    break;
+                case WeaponCatalogCategory.Smg:
+                    backFraction = .22f;
+                    heightFraction = .575f;
+                    break;
+                case WeaponCatalogCategory.Shotgun:
+                    backFraction = .25f;
+                    heightFraction = .55f;
+                    break;
+                case WeaponCatalogCategory.Sniper:
+                    backFraction = .30f;
+                    heightFraction = .55f;
+                    break;
+                default:
+                    // AssaultRifle2 is the bullpup/AUG layout: its trigger grip is
+                    // farther back than the conventional rifle family.
+                    backFraction = spec.tier == 2 ? .14f : .25f;
+                    heightFraction = spec.tier == 2 ? .68f : .58f;
+                    break;
+            }
+            return new Vector3(
+                bounds.max.x - bounds.size.x * backFraction,
+                bounds.min.y + bounds.size.y * heightFraction,
+                bounds.center.z);
+        }
+
+        private static Vector3 EstimatedSupportGrip(Bounds bounds, LPWWeaponSpec spec, Vector3 rightGrip)
+        {
+            if (spec.category == WeaponCatalogCategory.Pistol)
+                return rightGrip + new Vector3(-Mathf.Min(.025f, bounds.size.x * .08f), .005f, 0f);
+
+            float forwardFraction;
+            switch (spec.category)
+            {
+                case WeaponCatalogCategory.Smg: forwardFraction = .36f; break;
+                case WeaponCatalogCategory.Shotgun: forwardFraction = .40f; break;
+                case WeaponCatalogCategory.Sniper: forwardFraction = .42f; break;
+                default: forwardFraction = .38f; break;
+            }
+            return new Vector3(
+                bounds.min.x + bounds.size.x * forwardFraction,
+                bounds.min.y + bounds.size.y * .42f,
+                bounds.center.z);
+        }
 
         private static Bounds CalculateLocalBounds(Transform reference, GameObject gun)
         {
@@ -742,15 +934,30 @@ namespace Game.EditorTools
             bool initialized = false; Bounds local = default;
             foreach (Renderer renderer in renderers)
             {
-                Bounds b = renderer.bounds;
-                Vector3 min = b.min, max = b.max;
+                Bounds sourceBounds;
+                Transform sourceTransform;
+                if (renderer is SkinnedMeshRenderer skinned)
+                {
+                    sourceBounds = skinned.localBounds;
+                    sourceTransform = skinned.transform;
+                }
+                else
+                {
+                    MeshFilter filter = renderer.GetComponent<MeshFilter>();
+                    if (filter == null || filter.sharedMesh == null) continue;
+                    sourceBounds = filter.sharedMesh.bounds;
+                    sourceTransform = filter.transform;
+                }
+                Vector3 min = sourceBounds.min, max = sourceBounds.max;
                 for (int x = 0; x < 2; x++) for (int y = 0; y < 2; y++) for (int z = 0; z < 2; z++)
                 {
-                    Vector3 point = reference.InverseTransformPoint(new Vector3(x == 0 ? min.x : max.x, y == 0 ? min.y : max.y, z == 0 ? min.z : max.z));
-                    if (!initialized) { local = new Bounds(point, Vector3.zero); initialized = true; } else local.Encapsulate(point);
+                    Vector3 meshPoint = new(x == 0 ? min.x : max.x, y == 0 ? min.y : max.y, z == 0 ? min.z : max.z);
+                    Vector3 point = reference.InverseTransformPoint(sourceTransform.TransformPoint(meshPoint));
+                    if (!initialized) { local = new Bounds(point, Vector3.zero); initialized = true; }
+                    else local.Encapsulate(point);
                 }
             }
-            return local;
+            return initialized ? local : new Bounds(Vector3.zero, Vector3.one);
         }
 
         private static Transform NewMarker(Transform parent, string name, Vector3 position, Vector3 euler, bool world = false)
@@ -795,17 +1002,29 @@ namespace Game.EditorTools
             throw new InvalidOperationException($"Animation clip missing: {assetPath}::{clipName}");
         }
 
-        private static void ReplaceWithCopy(string source, string target)
+        private static void SavePrefabToTarget(GameObject contents, string target)
         {
+            const string stagingRoot = ArtifactRoot + "/Staging";
+            EnsureFolder(stagingRoot);
+            string staging = stagingRoot + "/" + Path.GetFileName(target);
+            if (AssetDatabase.LoadAssetAtPath<Object>(staging) != null)
+                AssetDatabase.DeleteAsset(staging);
+
+            if (PrefabUtility.SaveAsPrefabAsset(contents, staging) == null)
+                throw new InvalidOperationException("Staging prefab save failed: " + staging);
+
             if (AssetDatabase.LoadAssetAtPath<Object>(target) == null)
             {
-                if (!AssetDatabase.CopyAsset(source, target)) throw new InvalidOperationException($"Copy failed: {source} -> {target}");
-                return;
+                if (!AssetDatabase.CopyAsset(staging, target))
+                    throw new InvalidOperationException($"Copy failed: {staging} -> {target}");
             }
-
-            GameObject contents = PrefabUtility.LoadPrefabContents(source);
-            try { PrefabUtility.SaveAsPrefabAsset(contents, target); }
-            finally { PrefabUtility.UnloadPrefabContents(contents); }
+            else
+            {
+                // Preserve the target .meta/GUID and overwrite only prefab YAML.  File.Copy
+                // does not require delete-sharing, unlike Unity's temp-file rename.
+                File.Copy(Path.GetFullPath(staging), Path.GetFullPath(target), true);
+            }
+            AssetDatabase.DeleteAsset(staging);
         }
 
         private static void EnsureFolders()

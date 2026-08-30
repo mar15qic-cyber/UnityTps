@@ -1,5 +1,7 @@
 using UnityEditor;
 using UnityEngine;
+using Game.Gameplay.Weapon;
+using Game.Presentation.Animation;
 
 namespace Game.EditorTools
 {
@@ -63,6 +65,8 @@ namespace Game.EditorTools
         {
             serializedObject.Update();
 
+            DrawPlayModeCaptureControls();
+
             EditorGUILayout.LabelField("Weapon Interfaces", EditorStyles.boldLabel);
             Draw(_weaponRoot);
             Draw(_rightHand);
@@ -94,6 +98,30 @@ namespace Game.EditorTools
             Draw(_magazineHeldLocalEulerAngles);
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawPlayModeCaptureControls()
+        {
+            if (!EditorApplication.isPlaying) return;
+
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.LabelField("Play Mode Pose Capture", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "可在运行时（建议按住 RMB 后暂停）调整 LPW_Gun。Capture 会把当前局部位置/旋转写回源 FP Prefab，并启用 Manual Root Transform。",
+                MessageType.Info);
+
+            Transform root = Profile.WeaponRoot;
+            using (new EditorGUI.DisabledScope(root == null))
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Select Runtime LPW_Gun"))
+                    Selection.activeGameObject = root.gameObject;
+                if (GUILayout.Button("Capture Runtime Pose To Prefab"))
+                    CaptureRuntimePoseToSourcePrefab(Profile);
+                EditorGUILayout.EndHorizontal();
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
         }
 
         private void Draw(SerializedProperty property)
@@ -188,7 +216,52 @@ namespace Game.EditorTools
         [MenuItem("Tools/LPW/Open AUG FP Pose Prefab")]
         private static void OpenAugPosePrefab()
         {
-            const string path = "Assets/_Project/Prefabs/Weapons/LPWTest/FP_LPW_Rifle2_02_View.prefab";
+            OpenPosePrefab("Assets/_Project/Prefabs/Weapons/LPWTest/FP_LPW_Rifle2_02_View.prefab");
+        }
+
+        [MenuItem("Tools/LPW/Open MAC FP Pose Prefab")]
+        private static void OpenMacPosePrefab()
+        {
+            OpenPosePrefab("Assets/_Project/Prefabs/Weapons/LPWTest/FP_LPW_SMG1_01_View.prefab");
+        }
+
+        [MenuItem("Tools/LPW/Pose Capture/Select Active Runtime LPW Gun", true)]
+        private static bool CanSelectActiveRuntimeWeaponRoot()
+            => EditorApplication.isPlaying && FindActiveRuntimeProfile() != null;
+
+        [MenuItem("Tools/LPW/Pose Capture/Select Active Runtime LPW Gun")]
+        private static void SelectActiveRuntimeWeaponRoot()
+        {
+            FPWeaponPoseProfile profile = FindActiveRuntimeProfile();
+            if (profile == null || profile.WeaponRoot == null)
+            {
+                Debug.LogWarning("[FPWeaponPoseProfileEditor] No active runtime LPW weapon root found.");
+                return;
+            }
+
+            Selection.activeGameObject = profile.WeaponRoot.gameObject;
+            EditorGUIUtility.PingObject(profile.WeaponRoot.gameObject);
+        }
+
+        [MenuItem("Tools/LPW/Pose Capture/Capture Active Runtime Pose To FP Prefab", true)]
+        private static bool CanCaptureActiveRuntimePose()
+            => EditorApplication.isPlaying && FindActiveRuntimeProfile() != null;
+
+        [MenuItem("Tools/LPW/Pose Capture/Capture Active Runtime Pose To FP Prefab")]
+        private static void CaptureActiveRuntimePose()
+        {
+            FPWeaponPoseProfile profile = FindActiveRuntimeProfile();
+            if (profile == null)
+            {
+                Debug.LogWarning("[FPWeaponPoseProfileEditor] No active runtime LPW pose profile found.");
+                return;
+            }
+
+            CaptureRuntimePoseToSourcePrefab(profile);
+        }
+
+        private static void OpenPosePrefab(string path)
+        {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null)
             {
@@ -199,6 +272,85 @@ namespace Game.EditorTools
             Selection.activeObject = prefab;
             EditorGUIUtility.PingObject(prefab);
             AssetDatabase.OpenAsset(prefab);
+        }
+
+        private static FPWeaponPoseProfile FindActiveRuntimeProfile()
+        {
+            foreach (FPWeaponPoseProfile profile in Resources.FindObjectsOfTypeAll<FPWeaponPoseProfile>())
+            {
+                if (profile == null || !profile.gameObject.scene.IsValid()) continue;
+                if (profile.isActiveAndEnabled && profile.gameObject.activeInHierarchy)
+                    return profile;
+            }
+            return null;
+        }
+
+        private static void CaptureRuntimePoseToSourcePrefab(FPWeaponPoseProfile runtimeProfile)
+        {
+            Transform runtimeRoot = runtimeProfile != null ? runtimeProfile.WeaponRoot : null;
+            if (runtimeRoot == null)
+            {
+                Debug.LogError("[FPWeaponPoseProfileEditor] Runtime profile has no WeaponRoot.");
+                return;
+            }
+
+            WeaponController controller = runtimeProfile.GetComponentInParent<WeaponController>();
+            WeaponDefinition definition = controller != null ? controller.Definition : null;
+            GameObject sourcePrefab = definition != null ? definition.FirstPersonViewPrefab : null;
+            string prefabPath = sourcePrefab != null ? AssetDatabase.GetAssetPath(sourcePrefab) : string.Empty;
+            if (string.IsNullOrEmpty(prefabPath))
+            {
+                prefabPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(runtimeProfile.gameObject);
+            }
+            if (string.IsNullOrEmpty(prefabPath))
+            {
+                Debug.LogError("[FPWeaponPoseProfileEditor] Cannot resolve the source FP prefab for " + runtimeProfile.name);
+                return;
+            }
+
+            Vector3 localPosition = runtimeRoot.localPosition;
+            Vector3 localEulerAngles = runtimeRoot.localEulerAngles;
+            GameObject contents = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                FPWeaponPoseProfile prefabProfile = contents.GetComponent<FPWeaponPoseProfile>();
+                Transform prefabRoot = prefabProfile != null ? prefabProfile.WeaponRoot : FindDeep(contents.transform, "LPW_Gun");
+                if (prefabProfile == null || prefabRoot == null)
+                    throw new System.InvalidOperationException("FP prefab is missing FPWeaponPoseProfile or LPW_Gun: " + prefabPath);
+
+                prefabRoot.localPosition = localPosition;
+                prefabRoot.localRotation = Quaternion.Euler(localEulerAngles);
+
+                SerializedObject profileObject = new(prefabProfile);
+                profileObject.FindProperty("hasRootCalibration").boolValue = true;
+                profileObject.FindProperty("manualRootTransform").boolValue = true;
+                profileObject.FindProperty("calibratedRootLocalPosition").vector3Value = localPosition;
+                profileObject.FindProperty("calibratedRootLocalEulerAngles").vector3Value = localEulerAngles;
+                profileObject.ApplyModifiedPropertiesWithoutUndo();
+
+                PrefabUtility.SaveAsPrefabAsset(contents, prefabPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+
+            Debug.Log($"[FPWeaponPoseProfileEditor] Captured runtime LPW pose to {prefabPath}: "
+                + $"position={localPosition:F5}, euler={localEulerAngles:F3}. Re-enter Play Mode to verify.");
+            EditorGUIUtility.PingObject(sourcePrefab);
+        }
+
+        private static Transform FindDeep(Transform root, string targetName)
+        {
+            if (root == null) return null;
+            if (root.name == targetName) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform found = FindDeep(root.GetChild(i), targetName);
+                if (found != null) return found;
+            }
+            return null;
         }
     }
 }

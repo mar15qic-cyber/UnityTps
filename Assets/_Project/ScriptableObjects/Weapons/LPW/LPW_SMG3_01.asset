@@ -15,8 +15,8 @@ MonoBehaviour:
   weaponId: lpw.smg.03
   displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 03"
   fireMode: 1
-  firstPersonViewPrefab: {fileID: 4876461641991338671, guid: 40840bccf1a96464e92c9ec6e071e397, type: 3}
-  thirdPersonViewPrefab: {fileID: 936032796186281702, guid: b7b143686e1703c4497f6f26222d512d, type: 3}
+  firstPersonViewPrefab: {fileID: 482060227546901348, guid: 40840bccf1a96464e92c9ec6e071e397, type: 3}
+  thirdPersonViewPrefab: {fileID: 1576748581593594402, guid: b7b143686e1703c4497f6f26222d512d, type: 3}
   firstPersonAnimations:
     Idle: {fileID: 7400046, guid: ee465ab9a24fe4949b0322fd28a3c579, type: 3}
     Fire: {fileID: 7400040, guid: ee465ab9a24fe4949b0322fd28a3c579, type: 3}

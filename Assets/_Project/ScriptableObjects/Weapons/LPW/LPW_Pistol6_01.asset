@@ -15,8 +15,8 @@ MonoBehaviour:
   weaponId: lpw.pistol.06
   displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 06"
   fireMode: 0
-  firstPersonViewPrefab: {fileID: 7786165334952193377, guid: 09c7e497512a9c14cbac833203e81209, type: 3}
-  thirdPersonViewPrefab: {fileID: 6308981412165192297, guid: f4ffd589575b490439c9be4e1711d6ff, type: 3}
+  firstPersonViewPrefab: {fileID: 6554612464572261587, guid: 09c7e497512a9c14cbac833203e81209, type: 3}
+  thirdPersonViewPrefab: {fileID: 1263040753540722421, guid: f4ffd589575b490439c9be4e1711d6ff, type: 3}
   firstPersonAnimations:
     Idle: {fileID: 7400030, guid: 56ec0b9a5b8762642811ea26a5242e04, type: 3}
     Fire: {fileID: 7400024, guid: 56ec0b9a5b8762642811ea26a5242e04, type: 3}

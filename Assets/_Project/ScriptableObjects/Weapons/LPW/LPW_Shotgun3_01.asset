@@ -15,8 +15,8 @@ MonoBehaviour:
   weaponId: lpw.shotgun.03
   displayName: "\u6218\u672F\u9730\u5F39\u67AA 03"
   fireMode: 0
-  firstPersonViewPrefab: {fileID: 2801456390740946154, guid: f23ae5ebfcf87c842957e144f8764768, type: 3}
-  thirdPersonViewPrefab: {fileID: 584482890052867144, guid: 4c49589969dd5a64f824352425bbc2a2, type: 3}
+  firstPersonViewPrefab: {fileID: 3266911541901880251, guid: f23ae5ebfcf87c842957e144f8764768, type: 3}
+  thirdPersonViewPrefab: {fileID: 6264488225395533638, guid: 4c49589969dd5a64f824352425bbc2a2, type: 3}
   firstPersonAnimations:
     Idle: {fileID: 7400046, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     Fire: {fileID: 7400038, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
