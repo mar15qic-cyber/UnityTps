@@ -48,6 +48,18 @@ public sealed class PurchaseRequest
 }
 public sealed record PurchaseResultDto(string PurchaseId, string ItemId, int Quantity, long UnitPriceCoins,
     long TotalPriceCoins, long Coins, bool Replayed, InventoryItemDto Item);
+
+// ---- 房间注册表（Docs/19 N4）----
+
+public sealed class CreateRoomRequest
+{
+    [Required, StringLength(64)] public string HostAddress { get; set; } = string.Empty;
+    [Range(1024, 65535)] public int HostPort { get; set; } = 7770;
+    [Range(2, 16)] public int MaxPlayers { get; set; } = 8;
+}
+
+public sealed record GameRoomDto(string RoomCode, string HostUsername, string HostAddress, int HostPort,
+    int JoinedPlayers, int MaxPlayers, bool IsOpen, DateTime CreatedAtUtc);
 public sealed record AttachmentCompatibilityDto(string WeaponId, string AttachmentId, string SlotType, bool IsImplemented, string CalibrationKey);
 public sealed record LoadoutAttachmentsDto(long Version, LoadoutAttachmentDto[] Attachments);
 public sealed class AttachmentSelectionRequest

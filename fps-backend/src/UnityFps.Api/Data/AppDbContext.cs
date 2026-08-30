@@ -14,6 +14,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<WalletLedgerEntry> WalletLedger => Set<WalletLedgerEntry>();
     public DbSet<PlayerLoadoutAttachment> LoadoutAttachments => Set<PlayerLoadoutAttachment>();
     public DbSet<MatchRecord> Matches => Set<MatchRecord>();
+    public DbSet<GameRoom> GameRooms => Set<GameRoom>();
+    public DbSet<GameRoomMember> GameRoomMembers => Set<GameRoomMember>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -114,6 +116,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(x => new { x.UserId, x.PlayedAtUtc });
             entity.Property(x => x.PlayedAtUtc).HasColumnType("datetime(6)");
             entity.HasOne(x => x.User).WithMany(x => x.Matches).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<GameRoom>(entity =>
+        {
+            entity.ToTable("GameRoom");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.RoomCode).HasMaxLength(6).IsRequired();
+            entity.HasIndex(x => x.RoomCode).IsUnique();
+            entity.Property(x => x.HostUsername).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.HostAddress).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+            entity.Property(x => x.LastHeartbeatUtc).HasColumnType("datetime(6)");
+            entity.HasOne(x => x.Host).WithMany().HasForeignKey(x => x.HostUserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<GameRoomMember>(entity =>
+        {
+            entity.ToTable("GameRoomMember");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.UserId).IsUnique(); // 一人同时只能在一个房间
+            entity.HasIndex(x => x.RoomId);
+            entity.Property(x => x.JoinedAtUtc).HasColumnType("datetime(6)");
+            entity.HasOne(x => x.Room).WithMany(x => x.Members).HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -18,5 +18,9 @@ public static class ApiErrorCodes
     public const string LoadoutNotOwned = "LOADOUT_ITEM_NOT_OWNED";
     public const string LoadoutVersionConflict = "LOADOUT_VERSION_CONFLICT";
     public const string AttachmentsUnsupported = "ATTACHMENTS_NOT_ADAPTED";
+    public const string RoomNotFound = "ROOM_NOT_FOUND";
+    public const string RoomClosed = "ROOM_CLOSED";
+    public const string RoomFull = "ROOM_FULL";
+    public const string RoomCodeExhausted = "ROOM_CODE_EXHAUSTED";
     public const string ServerError = "SERVER_ERROR";
 }

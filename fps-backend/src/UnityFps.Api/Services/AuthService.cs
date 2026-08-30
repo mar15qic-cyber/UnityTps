@@ -16,7 +16,8 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         if (await db.Users.AnyAsync(x => x.NormalizedUsername == normalized, cancellationToken))
             throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.UsernameTaken, "用户名已存在");
 
-        await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
+        // EnableRetryOnFailure 与显式事务不兼容（InvalidOperationException）——注册本身是
+        // 单次 SaveChanges 原子操作，事务包裹无必要；唯一约束冲突由 catch 转业务 409。
         var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow };
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
@@ -26,7 +27,6 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         db.Users.Add(user);
         try { await db.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateException) { throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.UsernameTaken, "用户名已存在"); }
-        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
         return CreateSession(user);
     }
 

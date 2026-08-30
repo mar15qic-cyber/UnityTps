@@ -81,6 +81,7 @@ builder.Services.AddScoped<ProfileService>();
 builder.Services.AddScoped<LoadoutService>();
 builder.Services.AddScoped<CommerceService>();
 builder.Services.AddScoped<MatchService>();
+builder.Services.AddScoped<RoomService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -100,13 +101,15 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+// ApiExceptionMiddleware 自带完整异常翻译（ApiException→业务码；其他→500 兜底），
+// 不再叠 UseExceptionHandler——.NET8 无参重载会吞异常写 generic 500，
+// 导致 ApiController 内抛出的业务异常（404/409）被错误降级（JoinUnknown 房间案）。
 app.UseMiddleware<ApiExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

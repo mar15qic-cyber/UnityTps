@@ -123,3 +123,39 @@ public sealed class MatchRecord
     public DateTime PlayedAtUtc { get; set; }
     public UserAccount User { get; set; } = null!;
 }
+
+/// <summary>
+/// 联机房间注册表（Docs/19 N4，轻量）：只做"房间码→房主 IP/端口"的发现服务；
+/// 实时对战仍走 FishNet client-hosted 直连（Docs/04：Dedicated Server 放弃）。
+/// 房间生命周期短：心跳过期自动清理（HostSession 每次列表查询时懒清理）。
+/// </summary>
+public sealed class GameRoom
+{
+    public long Id { get; set; }
+    /// <summary>房间码（6 位大写字母数字，用户口播/输入用）。</summary>
+    public string RoomCode { get; set; } = string.Empty;
+    public long HostUserId { get; set; }
+    public string HostUsername { get; set; } = string.Empty;
+    /// <summary>房主 Tugboat 监听地址（LAN IPv4）。</summary>
+    public string HostAddress { get; set; } = string.Empty;
+    public int HostPort { get; set; } = 7770;
+    public int MaxPlayers { get; set; } = 8;
+    public int JoinedPlayers { get; set; } = 1;
+    public bool IsOpen { get; set; } = true;
+    public DateTime CreatedAtUtc { get; set; }
+    /// <summary>房主心跳（存活判定：超过 30s 视为废弃，列表不显示并懒删除）。</summary>
+    public DateTime LastHeartbeatUtc { get; set; }
+    public UserAccount Host { get; set; } = null!;
+    public List<GameRoomMember> Members { get; set; } = [];
+}
+
+/// <summary>房间加入记录（一个玩家同时只能在一个房间）。</summary>
+public sealed class GameRoomMember
+{
+    public long Id { get; set; }
+    public long RoomId { get; set; }
+    public long UserId { get; set; }
+    public DateTime JoinedAtUtc { get; set; }
+    public GameRoom Room { get; set; } = null!;
+    public UserAccount User { get; set; } = null!;
+}
