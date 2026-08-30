@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 7240791216006930015}
   - component: {fileID: 2042343328968991647}
   - component: {fileID: 3929028931547267984}
+  - component: {fileID: 7458182200811983326}
   m_Layer: 0
   m_Name: Player_Day2_Rebuilt
   m_TagString: Player
@@ -375,6 +376,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a0cf7ebc77dd3946a1c41c602892e7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 823384800163209534}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &7458182200811983326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 76916340750071695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 652001d846fe5a1489119ba475b08c04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _componentIndexCache: 255
@@ -1022,6 +1038,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100072, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3678756418517931421}
+    - targetCorrespondingSourceObject: {fileID: 100072, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6085820936746708206}
   m_SourcePrefab: {fileID: 100100000, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
 --- !u!95 &7835557378559077638 stripped
 Animator:
@@ -1117,3 +1136,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   networkState: {fileID: 2042343328968991647}
+--- !u!114 &6085820936746708206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7835557378566463118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32da4ebb5a7cc7145aa916c8cb86ae28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100

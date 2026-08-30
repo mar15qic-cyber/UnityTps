@@ -136,8 +136,17 @@ namespace Game.Gameplay.Network
                 _locomotor.Simulate(cmd, Time.deltaTime);
                 if (cmd.Jump) _input.ConsumeJump();
                 ServerSubmitCommand(cmd);
+
+                // N3：开火意图转服务器权威结算（FireHeld 连发每帧请求；服务器 TryFire 自带闸）
+                if (_weaponController == null) _weaponController = GetComponentInParent<WeaponController>();
+                if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
+                if (_weaponController != null && _combatAuthority != null && _input.FireHeld)
+                    _combatAuthority.SubmitFireRequest();
             }
         }
+
+        private WeaponController _weaponController;
+        private NetworkCombatAuthority _combatAuthority;
 
         // ---- 远端玩家 → 服务器 输入通道 ----
 
