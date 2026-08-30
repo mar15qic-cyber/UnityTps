@@ -67,7 +67,31 @@ namespace Game.Gameplay.Network
                 SetActiveAll(localOnlyRoot, false);
                 SetBehaviours(ownerOnlyComponents, false);
                 SetBehaviours(remoteOnlyComponents, true);
+                WireRemotePresentation();
             }
+        }
+
+        /// <summary>远端表现接线（Docs/19 N2）：TPAnimDriver 的 stateView 重指
+        /// RemotePlayerStateView（读 NetworkLocomotionState 的 SyncVar 缓存），
+        /// 使远端 TP 动画由服务器广播的移动状态驱动。
+        /// 反向依赖规避：Game.Gameplay 不能引用 Game.Presentation——经反射写字段
+        /// （表现层组件类型按名查找，编译期无依赖）。</summary>
+        private void WireRemotePresentation()
+        {
+            if (GetComponent<NetworkLocomotionState>() == null) return;
+            MonoBehaviour remoteView = null, tpAnim = null;
+            foreach (var mb in GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (mb == null) continue;
+                var n = mb.GetType().Name;
+                if (n == "RemotePlayerStateView") remoteView = mb;
+                else if (n == "TPAnimDriver") tpAnim = mb;
+            }
+            if (remoteView == null || tpAnim == null) return;
+            var field = tpAnim.GetType().GetField("stateView",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field != null && field.FieldType.IsInstanceOfType(remoteView))
+                field.SetValue(tpAnim, remoteView);
         }
 
         public override void OnStartServer()

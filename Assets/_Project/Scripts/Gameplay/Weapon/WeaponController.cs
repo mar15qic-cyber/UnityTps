@@ -107,6 +107,11 @@ namespace Game.Gameplay.Weapon
         public event System.Action<ActionInterruptReason> OnReloadInterrupted;
         public event System.Action<WeaponDefinition> OnWeaponEquipped;
 
+        /// <summary>远端表现触发（Docs/19 N2，NetworkWeaponState RPC 调用）：
+        /// 只广播动画事件链，不结算弹道/弹药（服务器权威结算在 N3）。</summary>
+        internal void InvokeRemoteFireForPresentation() => OnShotFired?.Invoke(default);
+        internal void InvokeRemoteReloadForPresentation() => OnReloadStarted?.Invoke();
+
         private IBalanceConfig _balance;
         private WeaponRecoilState _recoil = new();
         private readonly WeaponAccuracyState _accuracy = new();

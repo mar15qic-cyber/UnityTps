@@ -4,6 +4,7 @@
     "references": [
         "Game.Core",
         "Game.Gameplay",
+        "FishNet.Runtime",
         "Kybernetik.Animancer",
         "Unity.Cinemachine",
         "Unity.InputSystem"
