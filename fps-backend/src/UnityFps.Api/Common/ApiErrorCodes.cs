@@ -22,5 +22,10 @@ public static class ApiErrorCodes
     public const string RoomClosed = "ROOM_CLOSED";
     public const string RoomFull = "ROOM_FULL";
     public const string RoomCodeExhausted = "ROOM_CODE_EXHAUSTED";
+    public const string PassSeasonInvalid = "PASS_SEASON_INVALID";
+    public const string PassRewardGrantConflict = "PASS_REWARD_GRANT_CONFLICT";
+    public const string AchievementInvalid = "ACHIEVEMENT_INVALID";
+    public const string MatchPayloadRejected = "MATCH_PAYLOAD_REJECTED";
+    public const string MatchIdempotencyConflict = "MATCH_IDEMPOTENCY_CONFLICT";
     public const string ServerError = "SERVER_ERROR";
 }

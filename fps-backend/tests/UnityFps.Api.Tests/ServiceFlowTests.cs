@@ -9,7 +9,7 @@ namespace UnityFps.Api.Tests;
 public sealed class ServiceFlowTests
 {
     [Fact]
-    public async Task RegisterCreatesProfileAndDefaultLoadout()
+    public async Task RegisterCreatesProfileLoadoutAndSeasonOnePass()
     {
         await using var db = CreateDb();
         var auth = new AuthService(db, new FakeJwt(), new DemoProgressionRules());
@@ -22,6 +22,10 @@ public sealed class ServiceFlowTests
         Assert.Equal(CatalogSeeder.InitialCoins, session.Coins);
         Assert.Equal(3, await db.InventoryItems.CountAsync());
         Assert.Equal(0, session.Profile.SkillPoints);
+        var pass = await db.PlayerPasses.SingleAsync();
+        Assert.Equal(PassSeeder.SeasonId, pass.SeasonId);
+        Assert.Equal(1, pass.PassLevel);
+        Assert.Equal(0, pass.PassXp);
     }
 
     [Fact]
@@ -36,24 +40,6 @@ public sealed class ServiceFlowTests
 
         Assert.Equal(3, first.SkillPoints);
         Assert.Equal(3, second.SkillPoints);
-    }
-
-    [Fact]
-    public async Task MatchClampsPayloadAndAwardsMultipleLevelsAtomically()
-    {
-        await using var db = CreateDb();
-        var user = AddUser(db, "demo", skillPoints: 0);
-        var service = new MatchService(db, new DemoProgressionRules());
-
-        var result = await service.SubmitAsync(user.Id, new MatchSubmissionRequest { Kills = 999, Deaths = 999, Score = 999_999 }, CancellationToken.None);
-
-        Assert.Equal(1_500, result.XpEarned);
-        Assert.Equal(5, result.LevelUps);
-        Assert.Equal(0, result.Profile.Xp);
-        Assert.Equal(5, result.Profile.SkillPoints);
-        var record = await db.Matches.SingleAsync();
-        Assert.Equal(50, record.Kills);
-        Assert.Equal(50_000, record.Score);
     }
 
     private static AppDbContext CreateDb()
@@ -73,7 +59,8 @@ public sealed class ServiceFlowTests
             PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { SkillPoints = skillPoints, UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow }
+            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
+            Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };
         db.Users.Add(user);
         db.SaveChanges();

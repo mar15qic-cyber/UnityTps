@@ -16,25 +16,32 @@ public sealed class ProfileService(AppDbContext db, IProgressionRules rules)
 
     public async Task<PlayerProfileDto> UpgradeAsync(long userId, UpgradeRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken) : null;
-        var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet).SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
-            ?? throw new ApiException(StatusCodes.Status404NotFound, "PROFILE_NOT_FOUND", "档案不存在");
-        var profile = user.Profile!;
-        ValidateTarget(profile, request);
-        var cost = 0;
-        cost += CostToTarget("damage", profile.UpDamage, request.UpDamage);
-        cost += CostToTarget("ammo", profile.UpAmmoCap, request.UpAmmoCap);
-        cost += CostToTarget("health", profile.UpMaxHealth, request.UpMaxHealth);
-        if (cost > profile.SkillPoints)
-            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.InsufficientPoints, "技能点不足");
-        profile.SkillPoints -= cost;
-        profile.UpDamage = request.UpDamage;
-        profile.UpAmmoCap = request.UpAmmoCap;
-        profile.UpMaxHealth = request.UpMaxHealth;
-        profile.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-        return profile.ToDto(user.Username, user.Wallet?.Coins ?? 0, rules);
+        // EnableRetryOnFailure 与显式事务唯一兼容组合（同 MatchService/CommerceService）
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken) : null;
+            var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet).SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+                ?? throw new ApiException(StatusCodes.Status404NotFound, "PROFILE_NOT_FOUND", "档案不存在");
+            var profile = user.Profile!;
+            ValidateTarget(profile, request);
+            var cost = 0;
+            cost += CostToTarget("damage", profile.UpDamage, request.UpDamage);
+            cost += CostToTarget("ammo", profile.UpAmmoCap, request.UpAmmoCap);
+            cost += CostToTarget("health", profile.UpMaxHealth, request.UpMaxHealth);
+            if (cost > profile.SkillPoints)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.InsufficientPoints, "技能点不足");
+            profile.SkillPoints -= cost;
+            profile.UpDamage = request.UpDamage;
+            profile.UpAmmoCap = request.UpAmmoCap;
+            profile.UpMaxHealth = request.UpMaxHealth;
+            profile.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            return profile.ToDto(user.Username, user.Wallet?.Coins ?? 0, rules);
+        });
     }
 
     private int CostToTarget(string stat, int current, int target)

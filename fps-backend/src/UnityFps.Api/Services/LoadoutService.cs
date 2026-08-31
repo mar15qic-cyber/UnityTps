@@ -16,22 +16,28 @@ public sealed class LoadoutService(AppDbContext db)
     {
         if (request.ThrowableId is not null)
             throw new ApiException(StatusCodes.Status400BadRequest, ApiErrorCodes.InvalidWeapon, "本轮不支持投掷物配装");
-        await using var transaction = db.Database.IsRelational()
-            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
-        var loadout = await db.Loadouts.Include(x => x.Attachments).SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken)
-            ?? throw new ApiException(StatusCodes.Status404NotFound, "LOADOUT_NOT_FOUND", "配装不存在");
-        if (loadout.Version != request.ExpectedVersion)
-            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LoadoutVersionConflict, "配装已在其他位置更新，请刷新后重试");
-        await ValidateOwnedSlotAsync(userId, request.PrimaryWeaponId, "Primary", cancellationToken);
-        await ValidateOwnedSlotAsync(userId, request.SecondaryWeaponId, "Secondary", cancellationToken);
-        loadout.PrimaryWeaponId = request.PrimaryWeaponId;
-        loadout.SecondaryWeaponId = request.SecondaryWeaponId;
-        loadout.ThrowableId = null;
-        loadout.Version++;
-        loadout.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-        return loadout.ToDto();
+        // EnableRetryOnFailure 与显式事务唯一兼容组合（同 MatchService/CommerceService）
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+            var loadout = await db.Loadouts.Include(x => x.Attachments).SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken)
+                ?? throw new ApiException(StatusCodes.Status404NotFound, "LOADOUT_NOT_FOUND", "配装不存在");
+            if (loadout.Version != request.ExpectedVersion)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LoadoutVersionConflict, "配装已在其他位置更新，请刷新后重试");
+            await ValidateOwnedSlotAsync(userId, request.PrimaryWeaponId, "Primary", cancellationToken);
+            await ValidateOwnedSlotAsync(userId, request.SecondaryWeaponId, "Secondary", cancellationToken);
+            loadout.PrimaryWeaponId = request.PrimaryWeaponId;
+            loadout.SecondaryWeaponId = request.SecondaryWeaponId;
+            loadout.ThrowableId = null;
+            loadout.Version++;
+            loadout.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            return loadout.ToDto();
+        });
     }
 
     public async Task<LoadoutAttachmentsDto> GetAttachmentsAsync(long userId, CancellationToken cancellationToken)
