@@ -6,6 +6,7 @@
         "Game.Gameplay",
         "Game.Account",
         "Unity.TextMeshPro",
+        "Unity.InputSystem",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],
