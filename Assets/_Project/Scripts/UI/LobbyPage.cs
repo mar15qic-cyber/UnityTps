@@ -16,6 +16,7 @@ namespace Game.UI
         Hud,
         Pause,
         Results,
+        Loading,
         Error,
         SessionExpired
     }
