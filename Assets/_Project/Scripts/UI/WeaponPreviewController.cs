@@ -47,7 +47,8 @@ namespace Game.UI
             {
                 modelInstance = Instantiate(prefab, modelRoot.transform);
                 modelInstance.name = prefab.name + "_ShopPreview";
-                // 归零 prefab 根节点自带的乱转,否则初始朝向被 TP 预览角度污染(Docs/20 修复)。
+                // 归零 prefab 根节点自带的位置/乱转,否则初始朝向与居中计算被 TP 预览姿态污染(Docs/20 修复)。
+                modelInstance.transform.localPosition = Vector3.zero;
                 modelInstance.transform.localRotation = Quaternion.identity;
                 SetLayerRecursively(modelInstance, PreviewLayer);
                 FrameModel();
