@@ -1,11 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.Gameplay.Settings;
 
 namespace Game.Gameplay.Player
 {
     /// <summary>
     /// 输入唯一采样点（架构表A）：所有玩家输入只经此组件读取，其余系统只读其属性。
-    /// Day1 直接轮询设备；后续替换为 InputActionAsset 时对外接口保持不变。
+    /// 键位经 SettingsKeyMap 可重绑；未自定义时与旧硬编码行为一致。
     /// </summary>
     [DefaultExecutionOrder(-300)]
     public class InputReader : MonoBehaviour
@@ -99,23 +100,23 @@ namespace Game.Gameplay.Player
             }
             if (!CursorLocked) return;
 
-            if (kb.wKey.wasPressedThisFrame) _wOrder = ++_pressSequence;
-            if (kb.sKey.wasPressedThisFrame) _sOrder = ++_pressSequence;
-            if (kb.aKey.wasPressedThisFrame) _aOrder = ++_pressSequence;
-            if (kb.dKey.wasPressedThisFrame) _dOrder = ++_pressSequence;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveForward)].wasPressedThisFrame) _wOrder = ++_pressSequence;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveBack)].wasPressedThisFrame) _sOrder = ++_pressSequence;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveLeft)].wasPressedThisFrame) _aOrder = ++_pressSequence;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveRight)].wasPressedThisFrame) _dOrder = ++_pressSequence;
 
             var move = new Vector2(
-                ResolveOpposingAxis(kb.dKey.isPressed, _dOrder, kb.aKey.isPressed, _aOrder),
-                ResolveOpposingAxis(kb.wKey.isPressed, _wOrder, kb.sKey.isPressed, _sOrder));
+                ResolveOpposingAxis(kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveRight)].isPressed, _dOrder, kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveLeft)].isPressed, _aOrder),
+                ResolveOpposingAxis(kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveForward)].isPressed, _wOrder, kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveBack)].isPressed, _sOrder));
             Move = Vector2.ClampMagnitude(move, 1f);
 
-            Sprint = kb.leftShiftKey.isPressed;
-            if (kb.spaceKey.wasPressedThisFrame)
+            Sprint = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Sprint)].isPressed;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Jump)].wasPressedThisFrame)
                 _jumpBufferTimer = jumpBufferTime;
-            ReloadPressed = kb.rKey.wasPressedThisFrame;
-            if (kb.digit1Key.wasPressedThisFrame) SlotPressed = 0;
-            else if (kb.digit2Key.wasPressedThisFrame) SlotPressed = 1;
-            else if (kb.digit3Key.wasPressedThisFrame) SlotPressed = 2;
+            ReloadPressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Reload)].wasPressedThisFrame;
+            if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot1)].wasPressedThisFrame) SlotPressed = 0;
+            else if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot2)].wasPressedThisFrame) SlotPressed = 1;
+            else if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot3)].wasPressedThisFrame) SlotPressed = 2;
             else if (kb.digit4Key.wasPressedThisFrame) SlotPressed = 3;
             else if (kb.digit5Key.wasPressedThisFrame) SlotPressed = 4;
             else if (kb.digit6Key.wasPressedThisFrame) SlotPressed = 5;

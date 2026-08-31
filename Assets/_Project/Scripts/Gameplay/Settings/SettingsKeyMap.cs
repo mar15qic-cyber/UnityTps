@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Game.UI
+namespace Game.Gameplay.Settings
 {
     /// <summary>
     /// 键位重绑映射（PlayerPrefs 持久化，InputReader 读取）。默认键与 InputReader 原硬编码一致，
