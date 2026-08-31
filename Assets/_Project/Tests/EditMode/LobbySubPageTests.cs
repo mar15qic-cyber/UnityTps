@@ -140,6 +140,9 @@ namespace Game.Gameplay.Tests
 
             var sliders = page.Find("AudioCard").GetComponentsInChildren<Slider>(true);
             Assert.That(sliders.Length, Is.EqualTo(3));
+            var adsToggle = page.Find("AudioCard").Find("AdsModeToggle");
+            Assert.That(adsToggle, Is.Not.Null, "设置页应有开镜方式切换按钮");
+            Assert.That(AllTexts(page.Find("AudioCard")), Has.Some.StartsWith("开镜方式："));
             var keyTexts = AllTexts(page.Find("KeybindCard"));
             Assert.That(keyTexts, Has.Member("前进"));
             Assert.That(keyTexts, Has.Member("换弹"));

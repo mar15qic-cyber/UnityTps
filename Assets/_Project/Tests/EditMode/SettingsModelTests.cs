@@ -18,6 +18,7 @@ namespace Game.Gameplay.Tests
             PlayerPrefs.DeleteKey(SettingsModel.ResolutionKey);
             PlayerPrefs.DeleteKey(SettingsModel.FullscreenKey);
             PlayerPrefs.DeleteKey(SettingsModel.FrameCapKey);
+            PlayerPrefs.DeleteKey(AdsInputMode.PrefsKey);
             foreach (var b in SettingsKeyMap.Bindings) PlayerPrefs.DeleteKey(b.prefsKey);
             SettingsKeyMap.InvalidateCache();
             PlayerPrefs.Save();
@@ -85,6 +86,28 @@ namespace Game.Gameplay.Tests
             SettingsModel.FrameCap = -1;
             SettingsModel.ApplyFrameCap();
             Assert.That(Application.targetFrameRate, Is.EqualTo(-1));
+        }
+
+        // ---- 开镜方式 ----
+
+        [Test]
+        public void AdsInputMode_DefaultsToHoldAndRoundTrips()
+        {
+            Assert.That(AdsInputMode.Toggle, Is.False, "默认应为长按模式");
+            Assert.That(AdsInputMode.DisplayName(), Is.EqualTo("长按"));
+
+            AdsInputMode.Toggle = true;
+            Assert.That(AdsInputMode.Toggle, Is.True);
+            Assert.That(AdsInputMode.DisplayName(), Is.EqualTo("切换"));
+            Assert.That(PlayerPrefs.GetInt(AdsInputMode.PrefsKey), Is.EqualTo(1), "应持久化到 PlayerPrefs");
+
+            AdsInputMode.Toggle = false;
+            Assert.That(AdsInputMode.Toggle, Is.False);
+            Assert.That(PlayerPrefs.GetInt(AdsInputMode.PrefsKey), Is.EqualTo(0));
+
+            AdsInputMode.Toggle = true;
+            AdsInputMode.Reset();
+            Assert.That(AdsInputMode.Toggle, Is.False, "Reset 应回到默认长按");
         }
 
         // ---- 键位映射 ----

@@ -406,6 +406,19 @@ namespace Game.UI
             var sens = UIComponents.SliderRow("SensitivitySlider", card.transform, new Vector2(0.08f, 0.14f), new Vector2(0.92f, 0.24f),
                 Mathf.InverseLerp(0.1f, 5f, SettingsModel.Sensitivity));
             sens.onValueChanged.AddListener(v => SettingsModel.Sensitivity = Mathf.Lerp(0.1f, 5f, v));
+
+            // 开镜方式：长按（按住右键）/ 切换（点按右键开收镜）
+            var adsBtn = UIComponents.Button("AdsModeToggle", card.transform,
+                "开镜方式：" + AdsInputMode.DisplayName(), UIComponents.ButtonKind.Info,
+                new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.12f));
+            adsBtn.onClick.AddListener(() =>
+            {
+                AdsInputMode.Toggle = !AdsInputMode.Toggle;
+                SettingsModel.Save();
+                var l = adsBtn.GetComponentInChildren<TMP_Text>();
+                if (l != null) l.text = "开镜方式：" + AdsInputMode.DisplayName();
+                status.text = "开镜方式已设为「" + AdsInputMode.DisplayName() + "」，进入对战后生效";
+            });
         }
 
         private void RenderKeybindCard(Transform page, Vector2 min, Vector2 max)
@@ -547,6 +560,7 @@ namespace Game.UI
             SettingsModel.Resolution = (1920, 1080);
             SettingsModel.Fullscreen = true;
             SettingsModel.FrameCap = 60;
+            AdsInputMode.Reset();
             foreach (var b in SettingsKeyMap.Bindings) SettingsKeyMap.Reset(b.action);
             SettingsModel.Save();
             SettingsModel.ApplyAll();

@@ -31,7 +31,7 @@ namespace Game.Gameplay.Player
         /// <summary>鼠标左键本帧按下。</summary>
         public bool FirePressed { get; private set; }
 
-        /// <summary>鼠标右键按住（ADS 意图，只做表现，不改 Gameplay 数值）。</summary>
+        /// <summary>开镜意图。长按模式 = 右键按住；切换模式 = 右键点按翻转（AdsInputMode）。</summary>
         public bool AimHeld { get; private set; }
 
         /// <summary>R 键本帧按下。</summary>
@@ -49,8 +49,14 @@ namespace Game.Gameplay.Player
         private uint _sOrder;
         private uint _aOrder;
         private uint _dOrder;
+        private bool _adsToggled;
+        private bool _lastAdsToggleMode;
 
         public void ConsumeJump() => _jumpBufferTimer = 0f;
+
+        /// <summary>复位开镜切换态。换弹/切枪占用动作槽或光标解锁时由 PlayerAimState/本组件调用，
+        /// 避免动作结束后 ADS 自动回弹（长按模式下无效果）。</summary>
+        public void ResetAimToggle() => _adsToggled = false;
 
         private void OnEnable()
         {
@@ -98,7 +104,11 @@ namespace Game.Gameplay.Player
                 }
                 return;
             }
-            if (!CursorLocked) return;
+            if (!CursorLocked)
+            {
+                _adsToggled = false; // 光标自由时开镜意图不保留（切换模式）
+                return;
+            }
 
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveForward)].wasPressedThisFrame) _wOrder = ++_pressSequence;
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveBack)].wasPressedThisFrame) _sOrder = ++_pressSequence;
@@ -133,7 +143,21 @@ namespace Game.Gameplay.Player
                 LookDelta = mouse.delta.ReadValue();
                 FireHeld = mouse.leftButton.isPressed;
                 FirePressed = mouse.leftButton.wasPressedThisFrame;
-                AimHeld = mouse.rightButton.isPressed;
+                var toggleMode = AdsInputMode.Toggle;
+                if (toggleMode != _lastAdsToggleMode)
+                {
+                    _lastAdsToggleMode = toggleMode;
+                    _adsToggled = false; // 设置页切换模式时清态，避免旧切换态带进新模式
+                }
+                if (toggleMode)
+                {
+                    if (mouse.rightButton.wasPressedThisFrame) _adsToggled = !_adsToggled;
+                    AimHeld = _adsToggled;
+                }
+                else
+                {
+                    AimHeld = mouse.rightButton.isPressed;
+                }
             }
         }
 

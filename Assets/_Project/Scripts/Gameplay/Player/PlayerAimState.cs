@@ -41,6 +41,11 @@ namespace Game.Gameplay.Player
             // 换弹/切枪占用上半身动作槽时强制收镜（与原 FPCameraRig 行为一致）
             bool wantsAim = _input != null && _input.AimHeld;
             bool actionFree = _actions == null || !_actions.IsBusy;
+            if (!actionFree)
+            {
+                // 切换开镜模式：动作收镜后不回弹，复位 InputReader 的切换态（长按模式无效果）
+                _input?.ResetAimToggle();
+            }
             float target = wantsAim && actionFree ? 1f : 0f;
             float speed = adsTransitionSeconds <= 0f
                 ? Mathf.Infinity
