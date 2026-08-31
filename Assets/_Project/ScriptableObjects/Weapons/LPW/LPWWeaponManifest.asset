@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf3cf68902365c4499c85ba9f047e448, type: 3}
   m_Name: LPWWeaponManifest
   m_EditorClassIdentifier: 
-  schemaVersion: 5
+  schemaVersion: 6
   weapons:
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.01
     definitionId: lpw.rifle.01
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 01"
@@ -67,16 +67,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.004687377, y: -0.009372883, z: -0.03182031}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.0070967264, y: 0.026902508, z: -0.017653273}
     fpRightHandGripPosition: {x: 0.06389232, y: 0.014679731, z: 0.0063444823}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.17655662, y: 0.11178082, z: 0.0063444823}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.02
     definitionId: lpw.rifle.02
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 02"
@@ -129,16 +142,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
-    fpRootPosition: {x: 0.013514487, y: 0.07506639, z: 0.13863853}
+    poseCalibrationMode: 0
+    hasGripCalibration: 1
+    fpRootPosition: {x: 0.037936226, y: 0.013502546, z: -0.044499304}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
-    fpAdsCenterOffset: {x: -0.007203249, y: 0.021839533, z: -0.014322996}
-    fpRightHandGripPosition: {x: 0.27837348, y: 0.039978538, z: -0.011963882}
-    fpSightReferencePosition: {x: -0.06546345, y: 0.12709057, z: -0.011963882}
-    fpSightReferenceEuler: {x: 0, y: -90, z: 0}
+    fpAdsCenterOffset: {x: 0, y: 0, z: 0}
+    fpRightHandGripPosition: {x: 0.06, y: -0.055, z: -0.011964}
+    fpRightHandGripEuler: {x: 84.94305, y: 27.613983, z: 123.515}
+    fpTriggerPosition: {x: -0.046275, y: 0.01985, z: 0}
+    fpTriggerEuler: {x: -0, y: 0, z: 0}
+    hasSightCalibration: 1
+    fpRearSightPosition: {x: 0.05, y: 0.12709, z: 0}
+    fpRearSightEuler: {x: 0, y: 270, z: 0}
+    fpFrontSightPosition: {x: -0.25, y: 0.12709, z: 0}
+    fpFrontSightEuler: {x: 0, y: 270, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
+    fpSightReferencePosition: {x: 0.05, y: 0.12709, z: 0}
+    fpSightReferenceEuler: {x: 0, y: 270, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.03
     definitionId: lpw.rifle.03
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 03"
@@ -191,16 +217,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0054466333, y: -0.009107924, z: 0.049010366}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.00744907, y: -0.0068950346, z: 0.0045256694}
     fpRightHandGripPosition: {x: 0.11806399, y: 0.02195887, z: 0.006751403}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.08575553, y: 0.15668294, z: 0.006751403}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.04
     definitionId: lpw.rifle.04
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 04"
@@ -253,16 +292,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0002746256, y: -0.01716746, z: -0.014528401}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.0071690595, y: 0.009624661, z: -0.006312889}
     fpRightHandGripPosition: {x: 0.07613066, y: 0.011183553, z: 0.0018593967}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.1698857, y: 0.12054655, z: 0.0018593967}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.05
     definitionId: lpw.rifle.05
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 05"
@@ -315,16 +367,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0020690928, y: -0.08378997, z: -0.047797345}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.0071404255, y: 0.0090689035, z: -0.0059492905}
     fpRightHandGripPosition: {x: 0.01653713, y: 0.04858894, z: 0.0036824942}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.24237013, y: 0.16443604, z: 0.0036824942}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.rifle.06
     definitionId: lpw.rifle.06
     displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 06"
@@ -377,16 +442,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: 0.0038337945, y: -0.033747647, z: 0.010239491}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.007261397, y: 0.008282381, z: -0.005428978}
     fpRightHandGripPosition: {x: 0.09561318, y: 0.037302338, z: -0.0023413524}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.17168021, y: 0.14956403, z: -0.0023413524}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.01
     definitionId: lpw.pistol.01
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 01"
@@ -439,16 +517,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00027557183, y: -0.08307628, z: -0.053703777}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011141805, y: 0.0274923, z: -0.018023917}
     fpRightHandGripPosition: {x: -0.0025668151, y: 0.020908572, z: 0.000000006519258}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.08027403, y: 0.09835422, z: 0.000000006519258}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.02
     definitionId: lpw.pistol.02
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 02"
@@ -501,16 +592,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0002761688, y: -0.06895058, z: -0.04732863}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011142401, y: 0.027818572, z: -0.018237872}
     fpRightHandGripPosition: {x: 0.010618745, y: 0.012985504, z: 0.0000000055879354}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.06868304, y: 0.08665235, z: 0.0000000055879354}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.03
     definitionId: lpw.pistol.03
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 03"
@@ -563,16 +667,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00022222754, y: -0.102464095, z: -0.023425506}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011088463, y: 0.007913175, z: -0.0051857014}
     fpRightHandGripPosition: {x: 0.013189184, y: 0.030315954, z: 0.0000000055879354}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.090165466, y: 0.12330906, z: 0.0000000055879354}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.04
     definitionId: lpw.pistol.04
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 04"
@@ -625,16 +742,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0018213764, y: -0.07748905, z: -0.05008302}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011446531, y: 0.029681413, z: -0.019442214}
     fpRightHandGripPosition: {x: 0.0031142377, y: 0.020831825, z: 0.0012410851}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.06865001, y: 0.09422511, z: 0.0012410851}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.05
     definitionId: lpw.pistol.05
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 05"
@@ -687,16 +817,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00054661743, y: -0.13169453, z: -0.058817647}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011412846, y: 0.021701198, z: -0.014212098}
     fpRightHandGripPosition: {x: -0.032454398, y: 0.051819608, z: 0.0000000055879354}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.14587593, y: 0.13639916, z: 0.0000000055879354}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.pistol.06
     definitionId: lpw.pistol.06
     displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 06"
@@ -749,16 +892,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00036499184, y: -0.11234206, z: -0.05585012}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.011418668, y: -0.009855288, z: 0.0064696707}
     fpRightHandGripPosition: {x: -0.019337261, y: -0.0004628851, z: -0.00018743798}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.12052493, y: 0.11555244, z: -0.00018743798}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.shotgun.01
     definitionId: lpw.shotgun.01
     displayName: "\u6218\u672F\u9730\u5F39\u67AA 01"
@@ -811,16 +967,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 9
         PelletSpread: 3
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0000015459955, y: -0.19727144, z: -0.06441161}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.014481782, y: -0.06356, z: 0.04170766}
     fpRightHandGripPosition: {x: 0.061381653, y: 0.041656952, z: 0}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.17392018, y: 0.18731624, z: 0}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.shotgun.02
     definitionId: lpw.shotgun.02
     displayName: "\u6218\u672F\u9730\u5F39\u67AA 02"
@@ -873,16 +1042,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 9
         PelletSpread: 3
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0037316, y: -0.15968372, z: -0.1012941}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.014847645, y: -0.022833973, z: 0.014980171}
     fpRightHandGripPosition: {x: 0.07449168, y: 0.035828322, z: 0.0033641905}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.227445, y: 0.14158845, z: 0.0033641905}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.shotgun.03
     definitionId: lpw.shotgun.03
     displayName: "\u6218\u672F\u9730\u5F39\u67AA 03"
@@ -935,16 +1117,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 9
         PelletSpread: 3
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00049894676, y: -0.10584162, z: -0.15453136}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.014979173, y: -0.023578683, z: 0.015467631}
     fpRightHandGripPosition: {x: 0.05711752, y: -0.03957614, z: 0.000000007450581}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.23796022, y: 0.06213993, z: 0.000000007450581}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.shotgun.04
     definitionId: lpw.shotgun.04
     displayName: "\u6218\u672F\u9730\u5F39\u67AA 04"
@@ -997,16 +1192,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 9
         PelletSpread: 3
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00020209514, y: -0.12445301, z: -0.161771}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.014682311, y: 0.010136681, z: -0.006644414}
     fpRightHandGripPosition: {x: -0.018130407, y: 0.009477034, z: 0.000000011175871}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.14470235, y: 0.071650624, z: 0.000000011175871}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.shotgun.05
     definitionId: lpw.shotgun.05
     displayName: "\u6218\u672F\u9730\u5F39\u67AA 05"
@@ -1059,16 +1267,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 9
         PelletSpread: 3
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0062592626, y: -0.25126234, z: -0.26485035}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.014726159, y: -0.023501633, z: 0.0154190045}
     fpRightHandGripPosition: {x: -0.1450394, y: 0.021879409, z: 0.0060133114}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.3539953, y: 0.12772226, z: 0.0060133114}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.01
     definitionId: lpw.smg.01
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 01"
@@ -1121,16 +1342,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
-    fpRootPosition: {x: -0.0009223344, y: 0.0043931585, z: 0.0322797}
+    poseCalibrationMode: 0
+    hasGripCalibration: 1
+    fpRootPosition: {x: 0.061554696, y: 0.0042148144, z: -0.026872894}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
-    fpAdsCenterOffset: {x: -0.013078612, y: -0.02393478, z: 0.015695233}
-    fpRightHandGripPosition: {x: 0.05169175, y: -0.024721244, z: 0.0000000018626451}
-    fpSightReferencePosition: {x: -0.026844189, y: 0.1012342, z: 0.0000000018626451}
-    fpSightReferenceEuler: {x: 0, y: -90, z: 0}
+    fpAdsCenterOffset: {x: 0, y: 0, z: 0}
+    fpRightHandGripPosition: {x: 0.045, y: -0.025, z: -0.03}
+    fpRightHandGripEuler: {x: 81.50905, y: 120.913025, z: 217.03203}
+    fpTriggerPosition: {x: -0.040075, y: 0.017685, z: 0}
+    fpTriggerEuler: {x: -0, y: 0, z: 0}
+    hasSightCalibration: 1
+    fpRearSightPosition: {x: 0.095, y: 0.1004, z: 0}
+    fpRearSightEuler: {x: 0, y: 270, z: 0}
+    fpFrontSightPosition: {x: -0.117, y: 0.0952, z: 0}
+    fpFrontSightEuler: {x: 0, y: 270, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
+    fpSightReferencePosition: {x: 0.095, y: 0.1004, z: 0}
+    fpSightReferenceEuler: {x: 0, y: 270, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.02
     definitionId: lpw.smg.02
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 02"
@@ -1183,16 +1417,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00007135235, y: -0.013462918, z: 0.094318695}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.012305291, y: -0.01765124, z: 0.011581183}
     fpRightHandGripPosition: {x: 0.13952552, y: 0.031656098, z: -0.0000776574}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.061053425, y: 0.15655388, z: -0.0000776574}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.03
     definitionId: lpw.smg.03
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 03"
@@ -1245,16 +1492,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.003543309, y: -0.017218988, z: 0.04831694}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.01213762, y: -0.025772246, z: 0.016911568}
     fpRightHandGripPosition: {x: 0.07250992, y: -0.0000020435189, z: 0.003561968}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.057424664, y: 0.12655617, z: 0.003561968}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.04
     definitionId: lpw.smg.04
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 04"
@@ -1307,16 +1567,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.000052951276, y: 0.038628355, z: 0.17332944}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.012209233, y: 0.001664157, z: -0.0010899414}
     fpRightHandGripPosition: {x: 0.222593, y: 0.052616075, z: 0.000000014901161}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: 0.052860737, y: 0.15633014, z: 0.000000014901161}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.05
     definitionId: lpw.smg.05
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 05"
@@ -1369,16 +1642,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.00084932987, y: 0.00019674562, z: 0.09846897}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.012522834, y: -0.0040764683, z: 0.0026827862}
     fpRightHandGripPosition: {x: 0.16820033, y: 0.036781244, z: 0.00048277527}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.07962781, y: 0.1401583, z: 0.00048277527}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.smg.06
     definitionId: lpw.smg.06
     displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 06"
@@ -1431,16 +1717,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: 0.0024606073, y: 0.020756941, z: 0.112691246}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.012365181, y: -0.03387809, z: 0.022221567}
     fpRightHandGripPosition: {x: 0.17396885, y: -0.0046281335, z: -0.0026695058}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.027421474, y: 0.13839278, z: -0.0026695058}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.01
     definitionId: lpw.sniper.01
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 01"
@@ -1493,16 +1792,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.018427685, y: -0.14650843, z: -0.19300203}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.009077851, y: 0.0061047236, z: -0.0039979983}
     fpRightHandGripPosition: {x: -0.07631579, y: 0.027060162, z: 0.017526992}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.35346657, y: 0.11182636, z: 0.017526992}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.02
     definitionId: lpw.sniper.02
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 02"
@@ -1555,16 +1867,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.01000192, y: -0.16762362, z: -0.24905823}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.004354446, y: 0.045737725, z: -0.029998083}
     fpRightHandGripPosition: {x: -0.12705196, y: 0.025822388, z: 0.009811431}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.42959964, y: 0.120378554, z: 0.009811431}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.03
     definitionId: lpw.sniper.03
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 03"
@@ -1617,16 +1942,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.018018924, y: -0.08639604, z: -0.1888}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.009088043, y: 0.003685093, z: -0.002411804}
     fpRightHandGripPosition: {x: -0.05130551, y: -0.023316547, z: 0.017108038}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.29565376, y: 0.06797093, z: 0.017108038}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.04
     definitionId: lpw.sniper.04
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 04"
@@ -1679,16 +2017,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.012369951, y: -0.14130253, z: -0.16172275}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.00439165, y: 0.031302065, z: -0.020527372}
     fpRightHandGripPosition: {x: -0.04839143, y: 0.035354376, z: 0.012142263}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.3257953, y: 0.14227504, z: 0.012142263}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.05
     definitionId: lpw.sniper.05
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 05"
@@ -1741,16 +2092,29 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.0006613615, y: -0.025351092, z: -0.12759015}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.0048253112, y: 0.040776066, z: -0.026704926}
     fpRightHandGripPosition: {x: 0.02730584, y: -0.031790588, z: 0.000000029802322}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.20319027, y: 0.07190053, z: 0.000000029802322}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}
     tpRootEuler: {x: 0, y: 90, z: 326.73}
     supportsVerifiedAttachments: 0
-  - schemaVersion: 5
+  - schemaVersion: 6
     itemId: weapon.lpw.sniper.06
     definitionId: lpw.sniper.06
     displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 06"
@@ -1803,10 +2167,23 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+    poseCalibrationMode: 0
+    hasGripCalibration: 0
     fpRootPosition: {x: -0.004609044, y: -0.03919445, z: -0.082689784}
     fpRootEuler: {x: -0, y: 90, z: 326.73}
     fpAdsCenterOffset: {x: -0.0046966863, y: 0.0564183, z: -0.03696983}
     fpRightHandGripPosition: {x: 0.043132823, y: 0.02138005, z: 0.0040763393}
+    fpRightHandGripEuler: {x: 0, y: 0, z: 0}
+    fpTriggerPosition: {x: 0, y: 0, z: 0}
+    fpTriggerEuler: {x: 0, y: 0, z: 0}
+    hasSightCalibration: 0
+    fpRearSightPosition: {x: 0, y: 0, z: 0}
+    fpRearSightEuler: {x: 0, y: -90, z: 0}
+    fpFrontSightPosition: {x: 0, y: 0, z: 0}
+    fpFrontSightEuler: {x: 0, y: -90, z: 0}
+    hasAdsCalibration: 0
+    fpAdsViewmodelPosition: {x: 0, y: 0, z: 0}
+    fpAdsViewmodelEuler: {x: 0, y: 0, z: 0}
     fpSightReferencePosition: {x: -0.14701751, y: 0.10091126, z: 0.0040763393}
     fpSightReferenceEuler: {x: 0, y: -90, z: 0}
     tpRootPosition: {x: 0, y: 0, z: 0}

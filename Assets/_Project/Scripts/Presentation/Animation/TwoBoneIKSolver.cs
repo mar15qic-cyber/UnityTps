@@ -16,7 +16,8 @@ namespace Game.Presentation.Animation
             Vector3 targetPosition,
             Quaternion targetRotation,
             float positionWeight,
-            float rotationWeight)
+            float rotationWeight,
+            Vector3? polePosition = null)
         {
             if (upperArm == null || lowerArm == null || hand == null) return;
 
@@ -45,7 +46,9 @@ namespace Game.Presentation.Animation
 
             Vector3 currentUpper = (elbow - shoulder).normalized;
             Vector3 currentLower = (wrist - elbow).normalized;
-            Vector3 planeNormal = Vector3.Cross(currentUpper, currentLower);
+            Vector3 planeNormal = polePosition.HasValue
+                ? Vector3.Cross(direction, polePosition.Value - shoulder)
+                : Vector3.Cross(currentUpper, currentLower);
             if (planeNormal.sqrMagnitude <= 0.000001f)
             {
                 planeNormal = Vector3.Cross(currentUpper, direction);

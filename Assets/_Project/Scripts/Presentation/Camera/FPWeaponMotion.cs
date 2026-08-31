@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Gameplay.Movement;
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
+using Game.Presentation.Animation;
 using Game.Presentation.Weapon;
 using UnityEngine;
 
@@ -137,6 +138,7 @@ namespace Game.Presentation.Camera
                 ComputeAimAlignmentPose(out _aimLocalPosition, out _aimLocalRotation);
 
             float motionScale = 1f - adsBlend * adsMotionDamping;
+            float adsStableMotionScale = motionScale * (1f - adsBlend);
             // Day4 审计 §4：开火后坐独立保持系数——旧版与 sway/bob 共用 motionScale
             // （满 ADS 仅剩 15%），玩家最关注的 ADS 连射恰好反馈最弱。此处后坐通道单独缩放。
             float recoilScale = Mathf.Lerp(1f, adsRecoilRetention, adsBlend);
@@ -172,18 +174,24 @@ namespace Game.Presentation.Camera
             _recoilPositionVelocity += (-omega * omega * _recoilPosition - damping * _recoilPositionVelocity) * dt;
             _recoilPosition += _recoilPositionVelocity * dt;
 
-            // ---- 合成：腰射姿态（identity）↔ ADS 姿态 + 各动效 ----
+            // ---- 合成：先写不含后坐的视模根，再让枪械独立 ADS 枢轴求解 ----
             Vector3 basePos = Vector3.Lerp(Vector3.zero, _aimLocalPosition, adsBlend);
             transform.localPosition = basePos + new Vector3(
-                (swayX + bobX) * motionScale,
-                (swayY + bobY) * motionScale + breath * breathingAmplitude,
-                0f) + _recoilPosition * recoilScale;
-            Quaternion motionRotation = Quaternion.Euler(
-                swayPitch * motionScale + _recoilRotation.x * recoilScale,
-                swayYaw * motionScale + _recoilRotation.y * recoilScale,
-                _recoilRotation.z * recoilScale);
+                (swayX + bobX) * adsStableMotionScale,
+                (swayY + bobY) * adsStableMotionScale + breath * breathingAmplitude * (1f - adsBlend),
+                0f);
+            Quaternion stableMotionRotation = Quaternion.Euler(
+                swayPitch * adsStableMotionScale,
+                swayYaw * adsStableMotionScale,
+                0f);
             transform.localRotation = Quaternion.Slerp(Quaternion.identity, _aimLocalRotation, adsBlend)
-                * motionRotation;
+                * stableMotionRotation;
+
+            // 枪体只绕右手握点修正瞄准轴；让整套视模共同承担剩余平移。
+            // 这样枪不会从双手之间被单独拉走，同时整套手臂也不会因瞄具校正而旋转穿模。
+            transform.position += ApplyDynamicLpwGunAdsPose(adsBlend);
+            transform.localPosition += _recoilPosition * recoilScale;
+            transform.localRotation *= Quaternion.Euler(_recoilRotation * recoilScale);
 
         }
 
@@ -206,23 +214,21 @@ namespace Game.Presentation.Camera
             var view = FindActiveView();
             if (view == null) return;
 
+            FPWeaponPoseProfile profile = view.GetComponent<FPWeaponPoseProfile>();
+
             // 相机在父系位置（父系与相机系旋转一致，平移差不影响 delta 方向）
             Vector3 camParent = transform.parent.InverseTransformPoint(_viewCamera.transform.position);
             var aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
 
-            if (view.AlignAdsToSightAxis && aimPoint != null)
+            if (view.AlignAdsToSightAxis && aimPoint != null && profile != null && profile.AdsPivot != null)
             {
-                // LPW guns keep one statically calibrated prefab transform for hip and ADS.
-                // This root motion only preserves the authored LPFP arm/camera relationship;
-                // no per-ADS translation is applied to LPW_Gun at runtime.
-                if (_animationAds)
+                // The authored aim animation owns the armature/camera placement. Exact
+                // gun-axis correction is applied later to profile.AdsPivot only.
+                Transform camNode = view.transform.Find("Armature/camera");
+                if (camNode != null)
                 {
-                    var authorCamera = view.transform.Find("Armature/camera");
-                    if (authorCamera != null)
-                    {
-                        Vector3 authorCameraRoot = transform.InverseTransformPoint(authorCamera.position);
-                        localPosition = camParent - authorCameraRoot;
-                    }
+                    Vector3 nodeRoot = transform.InverseTransformPoint(camNode.position);
+                    localPosition = camParent - nodeRoot;
                 }
                 return;
             }
@@ -245,6 +251,104 @@ namespace Game.Presentation.Camera
             Vector3 sightRoot = transform.InverseTransformPoint(aimPoint.position);
             localPosition = new Vector3(camParent.x - sightRoot.x, camParent.y - sightRoot.y, 0f);
         }
+
+        private Vector3 ApplyDynamicLpwGunAdsPose(float adsBlend)
+        {
+            WeaponView view = FindActiveView();
+            FPWeaponPoseProfile profile = view != null ? view.GetComponent<FPWeaponPoseProfile>() : null;
+            Transform pivot = profile != null ? profile.AdsPivot : null;
+            if (pivot == null) return Vector3.zero;
+
+            // Identity is the authored Idle layer. Reset before measuring so the solve
+            // never feeds last frame's ADS correction back into itself.
+            pivot.localPosition = Vector3.zero;
+            pivot.localRotation = Quaternion.identity;
+            if (adsBlend <= 0f || view == null || !view.AlignAdsToSightAxis) return Vector3.zero;
+            if (_viewCamera == null) _viewCamera = ResolveViewCamera();
+            if (_viewCamera == null) return Vector3.zero;
+
+            Transform aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
+            if (!TryComputeDynamicLpwAdsPivotPose(view, profile, pivot, aimPoint,
+                    out Vector3 gripPivot, out Quaternion targetRotation, out Vector3 desiredRearWorld))
+                return Vector3.zero;
+
+            // Interpolate the rotation itself, then derive the matching orbital offset.
+            // Lerp'ing a precomputed position would not preserve the grip during aim-in.
+            Quaternion blendedRotation = Quaternion.Slerp(Quaternion.identity, targetRotation, adsBlend);
+            pivot.localRotation = blendedRotation;
+            pivot.localPosition = gripPivot - blendedRotation * gripPivot;
+
+            if (!profile.TryGetSightLine(aimPoint, out Vector3 blendedRearWorld, out _))
+                return Vector3.zero;
+
+            // The root translation is shared by the animated arms and the gun. At full
+            // ADS the rear sight is exact; during aim-in it converges without snapping.
+            Vector3 sharedTranslation = (desiredRearWorld - blendedRearWorld) * adsBlend;
+            return IsFinite(sharedTranslation) ? sharedTranslation : Vector3.zero;
+        }
+
+        private bool TryComputeDynamicLpwAdsPivotPose(WeaponView view, FPWeaponPoseProfile profile,
+            Transform pivot, Transform aimPoint, out Vector3 gripPivot, out Quaternion localRotation,
+            out Vector3 desiredRearWorld)
+        {
+            gripPivot = Vector3.zero;
+            localRotation = Quaternion.identity;
+            desiredRearWorld = Vector3.zero;
+            if (profile == null || profile.WeaponRoot == null || pivot.parent == null || aimPoint == null)
+                return false;
+
+            if (!profile.TryGetSightLine(aimPoint, out Vector3 rearWorld, out Vector3 frontWorld))
+                return false;
+
+            Vector3 rearPivot = pivot.InverseTransformPoint(rearWorld);
+            Vector3 frontPivot = pivot.InverseTransformPoint(frontWorld);
+            Vector3 sourceForward = frontPivot - rearPivot;
+            if (sourceForward.sqrMagnitude < .000001f) return false;
+            sourceForward.Normalize();
+
+            Vector3 sourceUp = pivot.InverseTransformDirection(profile.WeaponRoot.up);
+            sourceUp = Vector3.ProjectOnPlane(sourceUp, sourceForward).normalized;
+            if (sourceUp.sqrMagnitude < .000001f) return false;
+
+            Vector3 targetForwardWorld = _viewCamera.transform.forward.normalized;
+            Vector3 targetUpWorld = Vector3.ProjectOnPlane(_viewCamera.transform.up, targetForwardWorld).normalized;
+            Quaternion sourceFrame = Quaternion.LookRotation(sourceForward, sourceUp);
+            Quaternion targetFrameWorld = Quaternion.LookRotation(targetForwardWorld, targetUpWorld);
+            Quaternion targetFrameParent = Quaternion.Inverse(pivot.parent.rotation) * targetFrameWorld;
+            localRotation = targetFrameParent * Quaternion.Inverse(sourceFrame);
+
+            float authoredDepth = ResolveAuthoredSightDepth(view, rearWorld);
+            if (authoredDepth <= _viewCamera.nearClipPlane) return false;
+            desiredRearWorld = _viewCamera.transform.position + targetForwardWorld * authoredDepth;
+
+            // The pivot is identity while measuring, so this is also the original point
+            // in pivot-parent space. Keeping it invariant makes the gun rotate around the
+            // weapon-specific RightHandGrip instead of around the armature origin.
+            Transform rightGrip = profile.RightHandGrip;
+            if (rightGrip == null) return false;
+            gripPivot = pivot.InverseTransformPoint(rightGrip.position);
+            return IsFinite(gripPivot) && IsFinite(localRotation) && IsFinite(desiredRearWorld);
+        }
+
+        private float ResolveAuthoredSightDepth(WeaponView view, Vector3 fallbackRearWorld)
+        {
+            Transform authoredSight = view.transform.Find("Armature/weapon/SightReference");
+            Vector3 referenceWorld = authoredSight != null ? authoredSight.position : fallbackRearWorld;
+            // Measure with FP_Weapon_Root at identity. Reading the already aligned world
+            // position feeds the ADS translation back into depth and clamps every gun to
+            // the near plane, producing the full-screen black receiver seen in testing.
+            Vector3 referenceRoot = transform.InverseTransformPoint(referenceWorld);
+            Vector3 referenceAtIdentityWorld = transform.parent.TransformPoint(referenceRoot);
+            float depth = Vector3.Dot(referenceAtIdentityWorld - _viewCamera.transform.position,
+                _viewCamera.transform.forward);
+            return Mathf.Clamp(depth, _viewCamera.nearClipPlane + .02f, 1.5f);
+        }
+
+        private static bool IsFinite(Vector3 value) => float.IsFinite(value.x)
+            && float.IsFinite(value.y) && float.IsFinite(value.z);
+
+        private static bool IsFinite(Quaternion value) => float.IsFinite(value.x)
+            && float.IsFinite(value.y) && float.IsFinite(value.z) && float.IsFinite(value.w);
 
         private WeaponView FindActiveView()
         {

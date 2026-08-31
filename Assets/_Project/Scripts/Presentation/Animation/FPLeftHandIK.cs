@@ -1,4 +1,5 @@
 using Game.Gameplay.Action;
+using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ namespace Game.Presentation.Animation
         [SerializeField] private Transform lowerArm;
         [SerializeField] private Transform hand;
         [SerializeField] private FPWeaponPoseProfile poseProfile;
+        [SerializeField] private PlayerAimState aimState;
         [SerializeField, Range(0f, 1f)] private float positionWeight = 1f;
         [SerializeField, Range(0f, 1f)] private float rotationWeight = 0.35f;
         [SerializeField, Min(0f)] private float blendSeconds = 0.08f;
@@ -38,6 +40,7 @@ namespace Game.Presentation.Animation
         private Quaternion _smoothedTargetRotation = Quaternion.identity;
         private Vector3 _targetPositionVelocity;
         private bool _hasSmoothedTarget;
+        private Transform _viewCamera;
 
         public Transform LeftHandTarget => leftHandTarget;
         public bool ReloadOnly => reloadOnly;
@@ -48,9 +51,11 @@ namespace Game.Presentation.Animation
         {
             _controller = GetComponentInParent<WeaponController>();
             poseProfile ??= GetComponent<FPWeaponPoseProfile>();
+            aimState ??= GetComponentInParent<PlayerAimState>();
             upperArm ??= FindDeep(transform, "arm_L");
             lowerArm ??= FindDeep(transform, "lower_arm_L");
             hand ??= FindDeep(transform, "hand_L");
+            _viewCamera = ResolveViewCamera();
         }
 
         private void OnEnable()
@@ -85,8 +90,13 @@ namespace Game.Presentation.Animation
         {
             bool reloading = _reloadActive || (_controller?.Runtime?.State == WeaponRuntimeState.Reloading);
             float normalized = GetReloadProgress();
-            bool ikWindow = IsIkWindow(reloading, normalized);
-            Transform target = ikWindow
+            float ads = aimState != null ? aimState.Ads01 : 0f;
+            bool adsSupport = !reloading && ads > .0001f
+                && poseProfile != null && poseProfile.LeftSupportGrip != null;
+            bool ikWindow = adsSupport || IsIkWindow(reloading, normalized);
+            Transform target = adsSupport
+                ? poseProfile.LeftSupportGrip
+                : ikWindow
                 ? poseProfile != null
                     ? poseProfile.GetLeftHandTarget(reloading, normalized)
                     : leftHandTarget
@@ -96,7 +106,7 @@ namespace Game.Presentation.Animation
             // changes at the authored phase boundary, but the world-space
             // marker itself is smoothed so the hand never snaps from grip to
             // magazine well.
-            float targetWeight = ikWindow ? positionWeight : 0f;
+            float targetWeight = adsSupport ? positionWeight * ads : ikWindow ? positionWeight : 0f;
             if (reloading && poseProfile != null && target != null)
             {
                 var phase = poseProfile.GetReloadHandPhase(normalized);
@@ -117,7 +127,16 @@ namespace Game.Presentation.Animation
             // drop the constraint in one frame even though the weight is
             // configured to blend out over reloadExitBlendSeconds.
             if (target != null)
-                SmoothTarget(target);
+            {
+                // ADS target and weapon share the same moving viewmodel frame. World-space
+                // damping here makes the hand chase yesterday's gun position whenever the
+                // camera moves, which reads as hand sliding/jitter. Reload phase changes
+                // still use smoothing because those targets intentionally jump.
+                if (adsSupport)
+                    SetTargetImmediate(target);
+                else
+                    SmoothTarget(target);
+            }
             if (_currentWeight <= 0.0001f)
             {
                 if (target == null)
@@ -129,9 +148,14 @@ namespace Game.Presentation.Animation
             }
             if (!_hasSmoothedTarget) return;
 
-            float rotation = targetWeight <= 0.0001f
+            float rotation = adsSupport || targetWeight <= 0.0001f
                 ? 0f
                 : rotationWeight * Mathf.Clamp01(_currentWeight / targetWeight);
+            if (_viewCamera == null) _viewCamera = ResolveViewCamera();
+            Vector3? elbowPole = adsSupport && upperArm != null && _viewCamera != null
+                ? upperArm.position - _viewCamera.right * .35f - _viewCamera.up * .80f
+                    + _viewCamera.forward * .10f
+                : null;
             TwoBoneIKSolver.Solve(
                 upperArm,
                 lowerArm,
@@ -139,7 +163,17 @@ namespace Game.Presentation.Animation
                 _smoothedTargetPosition,
                 _smoothedTargetRotation,
                 _currentWeight,
-                rotation);
+                rotation,
+                elbowPole);
+        }
+
+        private Transform ResolveViewCamera()
+        {
+            PlayerAimState owner = aimState != null ? aimState : GetComponentInParent<PlayerAimState>();
+            if (owner == null) return null;
+            foreach (UnityEngine.Camera candidate in owner.GetComponentsInChildren<UnityEngine.Camera>(true))
+                if (candidate != null && candidate.name == "FP View Camera") return candidate.transform;
+            return null;
         }
 
         private bool IsIkWindow(bool reloading, float normalized)
@@ -199,6 +233,15 @@ namespace Game.Presentation.Animation
                 _smoothedTargetRotation,
                 target.rotation,
                 rotationAlpha);
+        }
+
+        private void SetTargetImmediate(Transform target)
+        {
+            _activeTarget = target;
+            _smoothedTargetPosition = target.position;
+            _smoothedTargetRotation = target.rotation;
+            _targetPositionVelocity = Vector3.zero;
+            _hasSmoothedTarget = true;
         }
 
         private float GetReloadProgress()

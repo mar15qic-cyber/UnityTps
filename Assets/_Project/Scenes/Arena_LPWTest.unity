@@ -2126,6 +2126,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 823384800163209534, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
+      propertyPath: SceneId
+      value: 851936243
+      objectReference: {fileID: 0}
+    - target: {fileID: 823384800163209534, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
+      propertyPath: WasActiveDuringEdit
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 855243591563818381, guid: c3de1bc92f2f99c40a041a113fab97e4, type: 3}
       propertyPath: hitMask.m_Bits
       value: 55
@@ -2332,10 +2340,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4167998827f973a438cecb353a4a8957, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  centeredTolerancePixels: 18
-  firstPersonViewCamera: {fileID: 0}
-  aimState: {fileID: 0}
-  weaponController: {fileID: 0}
   arsenal: {fileID: 1370295991}
   productionManifest: {fileID: 11400000, guid: 2c5e2207e0d62cc4f8a1a729bb4fee87, type: 2}
   weaponAssets: {fileID: 11400000, guid: 41c9d0c8f8e4bd2488145b027cf0f557, type: 2}

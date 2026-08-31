@@ -25,6 +25,7 @@ namespace Game.EditorTools
         private const string RuntimeRegistryPath = "Assets/_Project/Resources/LPWProductionRuntimeRegistry.asset";
         private const string BalancePath = "Assets/_Project/ScriptableObjects/Weapons/Day2_DemoBalance.asset";
         private const string ArtifactRoot = "Assets/_Project/Artifacts/LPWProduction";
+        private static readonly string[] StageOneDefinitionIds = { "lpw.rifle.02", "lpw.smg.01" };
 
         private static readonly float[] DamageFactors = { .90f, .96f, 1.02f, 1.08f, 1.15f, 1.22f };
         private static readonly float[] RpmFactors = { 1.12f, 1.06f, 1f, .95f, .90f, .85f };
@@ -148,11 +149,14 @@ namespace Game.EditorTools
         public static void GenerateAll()
         {
             EnsureFolders();
-            DemoBalanceConfig balance = AssetDatabase.LoadAssetAtPath<DemoBalanceConfig>(BalancePath);
-            if (balance == null) throw new InvalidOperationException("Missing balance asset: " + BalancePath);
-
-            List<LPWWeaponSpec> specs = BuildSpecs(balance);
+            LPWWeaponManifest manifest = LoadSchemaSixManifest();
+            List<LPWWeaponSpec> specs = manifest.Weapons.ToList();
             if (specs.Count != 29) throw new InvalidOperationException("Expected 29 LPW specs, got " + specs.Count);
+            List<string> legacy = specs.Where(x => x.poseCalibrationMode != LPWPoseCalibrationMode.DualLayerVerified)
+                .Select(x => x.definitionId).ToList();
+            if (legacy.Count > 0)
+                throw new InvalidOperationException("Full generation is locked until every weapon is DualLayerVerified: "
+                    + string.Join(", ", legacy));
 
             // Staging prefabs must be imported immediately: SaveAsPrefabAsset returns
             // null while asset importing is suspended, so StartAssetEditing cannot wrap
@@ -171,13 +175,33 @@ namespace Game.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            WriteManifest(specs);
             UpdateBalance(specs);
             UpdateCatalog(specs);
             UpdateRuntimeRegistry();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[LPWProduction] Generated 29 canonical FP/TP/Definition assets, manifest, balance and catalog entries.");
+        }
+
+        [MenuItem("Tools/LPW Production/Generate Stage 1 AUG + MAC")]
+        public static void GenerateStageOne()
+        {
+            EnsureFolders();
+            LPWWeaponManifest manifest = LoadSchemaSixManifest();
+            List<LPWWeaponSpec> specs = StageOneDefinitionIds.Select(id =>
+            {
+                LPWWeaponSpec match = manifest.Weapons.SingleOrDefault(x => x.definitionId == id);
+                if (match == null) throw new InvalidOperationException("Manifest row missing: " + id);
+                if (match.poseCalibrationMode != LPWPoseCalibrationMode.DualLayerVerified
+                    || !match.hasGripCalibration || !match.hasSightCalibration || !match.hasAdsCalibration)
+                    throw new InvalidOperationException("Stage-one calibration is incomplete: " + id);
+                return match;
+            }).ToList();
+
+            foreach (LPWWeaponSpec spec in specs) GenerateFp(spec);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[LPWProduction] Regenerated only the calibrated AUG and MAC FP prefabs from schema 6.");
         }
 
         [MenuItem("Tools/LPW Production/Validate 29 Canonical Weapons")]
@@ -188,7 +212,7 @@ namespace Game.EditorTools
             if (manifest == null) errors.Add("Manifest missing");
             else
             {
-                if (manifest.SchemaVersion != 5) errors.Add("Manifest schema=" + manifest.SchemaVersion + " (expected 5)");
+                if (manifest.SchemaVersion != 6) errors.Add("Manifest schema=" + manifest.SchemaVersion + " (expected 6)");
                 if (manifest.Weapons.Count != 29) errors.Add("Manifest count=" + manifest.Weapons.Count);
             }
 
@@ -214,7 +238,7 @@ namespace Game.EditorTools
                 {
                     if (!ids.Add(spec.itemId)) errors.Add("Duplicate item id " + spec.itemId);
                     if (!spec.sourcePrefabPath.EndsWith("_01.prefab", StringComparison.Ordinal)) errors.Add("Non-canonical source " + spec.sourcePrefabPath);
-                    if (spec.schemaVersion != 5) errors.Add("Spec schema " + spec.itemId + "=" + spec.schemaVersion);
+                    if (spec.schemaVersion != 6) errors.Add("Spec schema " + spec.itemId + "=" + spec.schemaVersion);
                     if (!AdsCenterOffsets.ContainsKey(spec.definitionId)) errors.Add("ADS static offset missing " + spec.itemId);
                     if (spec.category == WeaponCatalogCategory.Rifle && spec.tier == 3
                         && spec.animationFamily != FirstPersonAnimationFamily.Rifle01)
@@ -358,7 +382,8 @@ namespace Game.EditorTools
                         && (tier == 1 || tier == 3);
                     specs.Add(new LPWWeaponSpec
                     {
-                        schemaVersion = 5,
+                        schemaVersion = 6,
+                        poseCalibrationMode = LPWPoseCalibrationMode.LegacyUnverified,
                         itemId = $"weapon.lpw.{family.IdSegment}.{tier:00}",
                         definitionId = $"lpw.{family.IdSegment}.{tier:00}",
                         displayName = family.Names[i],
@@ -470,24 +495,35 @@ namespace Game.EditorTools
                 Bounds bounds = CalculateLocalBounds(wrapper, gun);
                 Transform rightHand = FindDeep(root.transform, "hand_R");
                 Transform leftHand = FindDeep(root.transform, "hand_L");
-                Vector3 rightHandGripPosition = EstimatedGrip(bounds, spec);
+                bool dualLayer = spec.poseCalibrationMode == LPWPoseCalibrationMode.DualLayerVerified;
+                Vector3 rightHandGripPosition = dualLayer ? spec.fpRightHandGripPosition : EstimatedGrip(bounds, spec);
                 Vector3 leftSupportGripPosition = EstimatedSupportGrip(bounds, spec, rightHandGripPosition);
-                AlignEstimatedGrips(wrapper, rightHandGripPosition, leftSupportGripPosition, rightHand, leftHand);
-                wrapper.localPosition += spec.fpAdsCenterOffset;
-
-                Vector3 sightLocalPosition = new(bounds.center.x, bounds.max.y, bounds.center.z);
+                if (!dualLayer)
+                {
+                    AlignEstimatedGrips(wrapper, rightHandGripPosition, leftSupportGripPosition, rightHand, leftHand);
+                    wrapper.localPosition += spec.fpAdsCenterOffset;
+                }
 
                 Transform muzzle = NewMarker(wrapper, "Muzzle", new Vector3(bounds.min.x, bounds.center.y, bounds.center.z), new Vector3(0f, -90f, 0f));
                 Transform shell = NewMarker(wrapper, "ShellPort", new Vector3(bounds.center.x, bounds.center.y, bounds.max.z), Vector3.zero);
-                spec.fpRootPosition = wrapper.localPosition;
-                spec.fpRootEuler = wrapper.localEulerAngles;
-                spec.fpRightHandGripPosition = rightHandGripPosition;
-                spec.fpSightReferencePosition = sightLocalPosition;
-                Transform sight = NewMarker(wrapper, "SightReference", spec.fpSightReferencePosition, spec.fpSightReferenceEuler);
-                Transform rightGrip = NewMarker(wrapper, "RightHandGrip", rightHandGripPosition, Vector3.zero);
-                if (rightHand != null) rightGrip.rotation = rightHand.rotation;
+                Vector3 rearSightPosition = dualLayer
+                    ? spec.fpRearSightPosition
+                    : new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+                Vector3 rearSightEuler = dualLayer ? spec.fpRearSightEuler : spec.fpSightReferenceEuler;
+                Transform rearSight = dualLayer
+                    ? NewMarker(wrapper, "RearSight", rearSightPosition, rearSightEuler)
+                    : null;
+                Transform frontSight = dualLayer
+                    ? NewMarker(wrapper, "FrontSight", spec.fpFrontSightPosition, spec.fpFrontSightEuler)
+                    : null;
+                Transform sight = NewMarker(wrapper, "SightReference", rearSightPosition, rearSightEuler);
+                Transform rightGrip = NewMarker(wrapper, "RightHandGrip", rightHandGripPosition,
+                    dualLayer ? spec.fpRightHandGripEuler : Vector3.zero);
+                if (!dualLayer && rightHand != null) rightGrip.rotation = rightHand.rotation;
                 Transform leftGrip = NewMarker(wrapper, "LeftSupportGrip", leftSupportGripPosition, Vector3.zero);
-                Transform trigger = NewMarker(wrapper, "Trigger", rightGrip.localPosition + new Vector3(-.04f, .01f, 0f), Vector3.zero);
+                Transform trigger = NewMarker(wrapper, "Trigger",
+                    dualLayer ? spec.fpTriggerPosition : rightGrip.localPosition + new Vector3(-.04f, .01f, 0f),
+                    dualLayer ? spec.fpTriggerEuler : Vector3.zero);
                 Transform magWell = NewMarker(wrapper, "MagazineWell", new Vector3(bounds.center.x + bounds.size.x * .08f, bounds.min.y + bounds.size.y * .25f, bounds.center.z), Vector3.zero);
                 Transform magGrip = NewMarker(wrapper, "MagazineGrip", magWell.localPosition + new Vector3(0f, -Mathf.Max(.08f, bounds.size.y * .25f), 0f), Vector3.zero);
 
@@ -496,7 +532,7 @@ namespace Game.EditorTools
                 SerializedObject viewSo = new(view);
                 viewSo.FindProperty("muzzle").objectReferenceValue = muzzle;
                 viewSo.FindProperty("shellPort").objectReferenceValue = shell;
-                viewSo.FindProperty("sightReference").objectReferenceValue = sight;
+                viewSo.FindProperty("sightReference").objectReferenceValue = rearSight != null ? rearSight : sight;
                 viewSo.FindProperty("alignAdsToSightAxis").boolValue = true;
                 viewSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -511,6 +547,8 @@ namespace Game.EditorTools
                 SetObject(profileSo, "rightHandGrip", rightGrip);
                 SetObject(profileSo, "leftSupportGrip", leftGrip);
                 SetObject(profileSo, "trigger", trigger);
+                SetObject(profileSo, "rearSight", rearSight);
+                SetObject(profileSo, "frontSight", frontSight);
                 SetObject(profileSo, "magazineWell", magWell);
                 SetObject(profileSo, "magazineGrip", magGrip);
                 profileSo.FindProperty("hasRootCalibration").boolValue = true;
@@ -521,6 +559,9 @@ namespace Game.EditorTools
                 // wrapper to one hand in Awake undoes the two-hand static calibration and
                 // is what made the model jump away from the support hand in Play Mode.
                 profileSo.FindProperty("alignRootToRightHand").boolValue = false;
+                profileSo.FindProperty("hasAdsCalibration").boolValue = dualLayer && spec.hasAdsCalibration;
+                profileSo.FindProperty("adsViewmodelLocalPosition").vector3Value = spec.fpAdsViewmodelPosition;
+                profileSo.FindProperty("adsViewmodelLocalEulerAngles").vector3Value = spec.fpAdsViewmodelEuler;
                 profileSo.ApplyModifiedPropertiesWithoutUndo();
 
                 FPLeftHandIK ik = root.AddComponent<FPLeftHandIK>();
@@ -623,7 +664,7 @@ namespace Game.EditorTools
                 AssetDatabase.CreateAsset(manifest, ManifestPath);
             }
             SerializedObject so = new(manifest);
-            so.FindProperty("schemaVersion").intValue = 5;
+            so.FindProperty("schemaVersion").intValue = 6;
             SerializedProperty list = so.FindProperty("weapons");
             list.arraySize = specs.Count;
             for (int i = 0; i < specs.Count; i++) WriteSpec(list.GetArrayElementAtIndex(i), specs[i]);
@@ -735,6 +776,10 @@ namespace Game.EditorTools
                 if (profile == null || !profile.HasRootCalibration || !profile.HasCompleteInterfaceLayout
                     || profile.WeaponRoot != gun || profile.RightHandGrip == null)
                     errors.Add("FP palm/root calibration contract missing " + spec.itemId);
+                if (spec.poseCalibrationMode == LPWPoseCalibrationMode.DualLayerVerified
+                    && (profile == null || !profile.HasCompleteSightLayout || !profile.HasAdsCalibration
+                        || profile.RearSight != view.SightReference))
+                    errors.Add("FP dual-layer ADS calibration contract missing " + spec.itemId);
             }
             if (tp != null && (tp.transform.Find("Muzzle") == null || tp.transform.Find("LeftHandTarget") == null)) errors.Add("TP root markers missing " + spec.itemId);
             if (fp != null && fp.GetComponentsInChildren<Collider>(true).Length > 0) errors.Add("FP collider " + spec.itemId);
@@ -743,7 +788,7 @@ namespace Game.EditorTools
 
         private static void WriteSpec(SerializedProperty row, LPWWeaponSpec spec)
         {
-            row.FindPropertyRelative("schemaVersion").intValue = 5;
+            row.FindPropertyRelative("schemaVersion").intValue = 6;
             SetString(row, "itemId", spec.itemId); SetString(row, "definitionId", spec.definitionId);
             SetString(row, "displayName", spec.displayName); SetString(row, "sourcePrefabPath", spec.sourcePrefabPath);
             SetString(row, "assetKey", spec.assetKey); SetString(row, "firstPersonTemplatePath", spec.firstPersonTemplatePath);
@@ -758,10 +803,23 @@ namespace Game.EditorTools
             row.FindPropertyRelative("priceCoins").longValue = spec.priceCoins;
             row.FindPropertyRelative("unlockLevel").intValue = spec.unlockLevel;
             WriteWeaponStat(row.FindPropertyRelative("stat"), spec.stat);
+            row.FindPropertyRelative("poseCalibrationMode").enumValueIndex = (int)spec.poseCalibrationMode;
+            row.FindPropertyRelative("hasGripCalibration").boolValue = spec.hasGripCalibration;
             row.FindPropertyRelative("fpRootPosition").vector3Value = spec.fpRootPosition;
             row.FindPropertyRelative("fpRootEuler").vector3Value = spec.fpRootEuler;
             row.FindPropertyRelative("fpAdsCenterOffset").vector3Value = spec.fpAdsCenterOffset;
             row.FindPropertyRelative("fpRightHandGripPosition").vector3Value = spec.fpRightHandGripPosition;
+            row.FindPropertyRelative("fpRightHandGripEuler").vector3Value = spec.fpRightHandGripEuler;
+            row.FindPropertyRelative("fpTriggerPosition").vector3Value = spec.fpTriggerPosition;
+            row.FindPropertyRelative("fpTriggerEuler").vector3Value = spec.fpTriggerEuler;
+            row.FindPropertyRelative("hasSightCalibration").boolValue = spec.hasSightCalibration;
+            row.FindPropertyRelative("fpRearSightPosition").vector3Value = spec.fpRearSightPosition;
+            row.FindPropertyRelative("fpRearSightEuler").vector3Value = spec.fpRearSightEuler;
+            row.FindPropertyRelative("fpFrontSightPosition").vector3Value = spec.fpFrontSightPosition;
+            row.FindPropertyRelative("fpFrontSightEuler").vector3Value = spec.fpFrontSightEuler;
+            row.FindPropertyRelative("hasAdsCalibration").boolValue = spec.hasAdsCalibration;
+            row.FindPropertyRelative("fpAdsViewmodelPosition").vector3Value = spec.fpAdsViewmodelPosition;
+            row.FindPropertyRelative("fpAdsViewmodelEuler").vector3Value = spec.fpAdsViewmodelEuler;
             row.FindPropertyRelative("fpSightReferencePosition").vector3Value = spec.fpSightReferencePosition;
             row.FindPropertyRelative("fpSightReferenceEuler").vector3Value = spec.fpSightReferenceEuler;
             row.FindPropertyRelative("tpRootPosition").vector3Value = spec.tpRootPosition;
@@ -993,6 +1051,17 @@ namespace Game.EditorTools
                 if (d != null && d.WeaponId == id) return d;
             }
             return null;
+        }
+
+        private static LPWWeaponManifest LoadSchemaSixManifest()
+        {
+            LPWWeaponManifest manifest = AssetDatabase.LoadAssetAtPath<LPWWeaponManifest>(ManifestPath);
+            if (manifest == null) throw new InvalidOperationException("Manifest missing: " + ManifestPath);
+            if (manifest.SchemaVersion != 6)
+                throw new InvalidOperationException("Manifest must be migrated to schema 6 before generation.");
+            if (manifest.Weapons.Count != 29)
+                throw new InvalidOperationException("Expected 29 manifest rows, got " + manifest.Weapons.Count);
+            return manifest;
         }
 
         private static AnimationClip FindClip(string assetPath, string clipName)
