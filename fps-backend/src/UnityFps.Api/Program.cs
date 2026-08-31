@@ -112,6 +112,14 @@ if (app.Environment.IsDevelopment())
 }
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 健康检查：Unity 端 Boot 依赖此端点探活（无鉴权），返回数据库提供方标识供大厅状态栏展示。
+app.MapGet("/health", (AppDbContext db) => Results.Ok(new
+{
+    status = "ok",
+    database = db.Database.IsRelational() ? "mysql" : "inmemory"
+}));
+
 app.MapControllers();
 
 if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
