@@ -25,7 +25,8 @@ namespace Game.Gameplay.Network
 
         private void Update()
         {
-            if (IsServerInitialized && _locomotor != null)
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject != null && networkObject.IsServerInitialized && _locomotor != null)
             {
                 // 服务器权威采集（Host 上每个玩家的 Locomotor 都在 Simulate）
                 if (_state.Value != _locomotor.State) _state.Value = _locomotor.State;
@@ -35,16 +36,20 @@ namespace Game.Gameplay.Network
         }
 
         /// <summary>远端读取接口（RemotePlayerStateView 消费）。服务器/Owner 读真实 Locomotor。</summary>
-        public LocomotionState State => !IsOwner && IsClientInitialized
+        private bool UseRemoteState => NetworkObject != null
+            && !NetworkObject.IsOwner
+            && NetworkObject.IsClientInitialized;
+
+        public LocomotionState State => UseRemoteState
             ? _state.Value
             : _locomotor != null ? _locomotor.State : LocomotionState.Idle;
-        public Vector2 MoveInput => !IsOwner && IsClientInitialized
+        public Vector2 MoveInput => UseRemoteState
             ? _moveInput.Value
             : _locomotor != null ? _locomotor.MoveInput : Vector2.zero;
-        public float GaitPhase => !IsOwner && IsClientInitialized
+        public float GaitPhase => UseRemoteState
             ? _gaitPhase.Value
             : _locomotor != null ? _locomotor.GaitPhase : 0f;
-        public float HorizontalSpeed => !IsOwner && IsClientInitialized
+        public float HorizontalSpeed => UseRemoteState
             ? _moveInput.Value.magnitude * 3.44f // 近似步速（TP 动画只需走/跑分档，不需要精确值）
             : _locomotor != null ? _locomotor.HorizontalSpeed : 0f;
     }

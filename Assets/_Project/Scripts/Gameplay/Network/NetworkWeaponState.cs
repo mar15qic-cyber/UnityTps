@@ -58,12 +58,11 @@ namespace Game.Gameplay.Network
         private void OnDestroy()
         {
             if (_controller == null) return;
-            if (IsServerInitialized)
-            {
-                _controller.OnWeaponEquipped -= HandleServerWeaponEquipped;
-                _controller.OnShotFired -= HandleServerShotFired;
-                _controller.OnReloadStarted -= HandleServerReloadStarted;
-            }
+            // 退订未注册的事件同样安全；不要在离线对象销毁阶段读取 FishNet 状态，
+            // 此时 NetworkBehaviour 的 NetworkObject 缓存可能尚未绑定或已经释放。
+            _controller.OnWeaponEquipped -= HandleServerWeaponEquipped;
+            _controller.OnShotFired -= HandleServerShotFired;
+            _controller.OnReloadStarted -= HandleServerReloadStarted;
         }
 
         private void HandleServerWeaponEquipped(WeaponDefinition def)

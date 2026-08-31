@@ -31,7 +31,9 @@ namespace Game.Gameplay.Network
         /// FireHeld 连发时每帧调用；服务器 TryFire 自带冷却/弹药闸。</summary>
         public void SubmitFireRequest()
         {
-            if (IsOwner && !IsServerInitialized) ServerFireRequest();
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+                ServerFireRequest();
         }
 
         [ServerRpc(RequireOwnership = true)]
@@ -57,7 +59,7 @@ namespace Game.Gameplay.Network
         private void OnDestroy()
         {
             if (_controller == null) return;
-            if (IsServerInitialized)
+            if (NetworkObject != null && NetworkObject.IsServerInitialized)
             {
                 _controller.OnShotFired -= HandleServerShot;
                 _controller.OnDryFire -= HandleServerDryFire;
@@ -98,7 +100,7 @@ namespace Game.Gameplay.Network
         private void Update()
         {
             // 服务器采集生命值（Player 上挂 DamageableTarget 后生效）
-            if (IsServerInitialized && _target == null)
+            if (NetworkObject != null && NetworkObject.IsServerInitialized && _target == null)
             {
                 _target = GetComponentInChildren<DamageableTarget>(true);
                 if (_target != null)
@@ -112,7 +114,7 @@ namespace Game.Gameplay.Network
 
         private void HandleServerDied()
         {
-            if (!IsServerInitialized) return;
+            if (NetworkObject == null || !NetworkObject.IsServerInitialized) return;
             _dead.Value = true;
             ObserversDied();
             // 简单重生：3 秒后满血复活（Docs/04 Day9 才做完整 LifeFSM）
