@@ -14,6 +14,7 @@ public sealed class UserAccount
     public List<PlayerInventoryItem> Inventory { get; set; } = [];
     public List<ShopPurchase> Purchases { get; set; } = [];
     public List<MatchRecord> Matches { get; set; } = [];
+    public List<PlayerPass> Passes { get; set; } = [];
 }
 
 public sealed class PlayerProfile
@@ -56,6 +57,8 @@ public sealed class CatalogItem
     public bool IsActive { get; set; } = true;
     public bool IsImplemented { get; set; } = true;
     public string CalibrationKey { get; set; } = string.Empty;
+    /// <summary>Shop = 可购买武器; PassReward = 通行证奖励配件; Initial = 初始解锁.</summary>
+    public string AcquisitionSource { get; set; } = "Shop";
 }
 
 public sealed class PlayerWallet
@@ -120,6 +123,11 @@ public sealed class MatchRecord
     public int Deaths { get; set; }
     public int Score { get; set; }
     public int XpEarned { get; set; }
+    public int CoinsEarned { get; set; }
+    public int PassXpEarned { get; set; }
+    public bool IsWin { get; set; }
+    /// <summary>客户端生成的一局唯一 ID，用于结算幂等（Docs/17 §4.5）.</summary>
+    public string? ClientMatchId { get; set; }
     public DateTime PlayedAtUtc { get; set; }
     public UserAccount User { get; set; } = null!;
 }
@@ -158,4 +166,61 @@ public sealed class GameRoomMember
     public DateTime JoinedAtUtc { get; set; }
     public GameRoom Room { get; set; } = null!;
     public UserAccount User { get; set; } = null!;
+}
+
+// ===== 通行证与成就系统（Docs/17 §4.3）=====
+
+/// <summary>玩家通行证进度（每用户每赛季一行）.</summary>
+public sealed class PlayerPass
+{
+    public long UserId { get; set; }
+    public string SeasonId { get; set; } = "S1";
+    public int PassXp { get; set; }
+    public int PassLevel { get; set; } = 1;
+    public long Version { get; set; } = 1;
+    public DateTime UpdatedAtUtc { get; set; }
+    public UserAccount User { get; set; } = null!;
+}
+
+/// <summary>奖励轨配置（Seeder 维护，S1 共 15 级）.</summary>
+public sealed class PassReward
+{
+    public string SeasonId { get; set; } = string.Empty;
+    public int PassLevel { get; set; }
+    /// <summary>Attachment / Coins.</summary>
+    public string RewardType { get; set; } = string.Empty;
+    public string? ItemId { get; set; }
+    public int CoinsAmount { get; set; }
+}
+
+/// <summary>发放幂等记录——保证每级奖励恰好发放一次.</summary>
+public sealed class PlayerPassRewardGrant
+{
+    public long UserId { get; set; }
+    public string SeasonId { get; set; } = string.Empty;
+    public int PassLevel { get; set; }
+    public DateTime GrantedAtUtc { get; set; }
+}
+
+/// <summary>成就配置（Seeder 维护）.</summary>
+public sealed class AchievementDefinition
+{
+    public string AchievementId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    /// <summary>累计指标标识：total_kills / total_wins / total_matches / single_match_kills / account_level / pass_level / gunsmith_wins / first_buy.</summary>
+    public string TargetMetric { get; set; } = string.Empty;
+    public int TargetValue { get; set; }
+    public int PassXpReward { get; set; }
+    public int SortOrder { get; set; }
+}
+
+/// <summary>玩家成就进度.</summary>
+public sealed class PlayerAchievement
+{
+    public long UserId { get; set; }
+    public string AchievementId { get; set; } = string.Empty;
+    public int Progress { get; set; }
+    public DateTime? UnlockedAtUtc { get; set; }
+    public int GrantedPassXp { get; set; }
 }

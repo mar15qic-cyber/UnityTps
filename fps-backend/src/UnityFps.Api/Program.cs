@@ -82,6 +82,7 @@ builder.Services.AddScoped<LoadoutService>();
 builder.Services.AddScoped<CommerceService>();
 builder.Services.AddScoped<MatchService>();
 builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<PassService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -130,6 +131,7 @@ if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
     else await db.Database.EnsureCreatedAsync();
     await CatalogSeeder.SeedAsync(db);
     await DemoSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
+    await PassSeeder.SeedAsync(db);
 }
 
 app.Run();

@@ -16,6 +16,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<MatchRecord> Matches => Set<MatchRecord>();
     public DbSet<GameRoom> GameRooms => Set<GameRoom>();
     public DbSet<GameRoomMember> GameRoomMembers => Set<GameRoomMember>();
+    public DbSet<PlayerPass> PlayerPasses => Set<PlayerPass>();
+    public DbSet<PassReward> PassRewards => Set<PassReward>();
+    public DbSet<PlayerPassRewardGrant> PassRewardGrants => Set<PlayerPassRewardGrant>();
+    public DbSet<AchievementDefinition> AchievementDefinitions => Set<AchievementDefinition>();
+    public DbSet<PlayerAchievement> PlayerAchievements => Set<PlayerAchievement>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -61,6 +66,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.Description).HasMaxLength(240).IsRequired();
             entity.Property(x => x.AssetKey).HasMaxLength(128).IsRequired();
             entity.Property(x => x.CalibrationKey).HasMaxLength(96).IsRequired();
+            entity.Property(x => x.AcquisitionSource).HasMaxLength(16).IsRequired();
         });
         model.Entity<PlayerWallet>(entity =>
         {
@@ -115,6 +121,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.UserId, x.PlayedAtUtc });
             entity.Property(x => x.PlayedAtUtc).HasColumnType("datetime(6)");
+            entity.Property(x => x.ClientMatchId).HasMaxLength(64);
+            entity.HasIndex(x => new { x.UserId, x.ClientMatchId }).IsUnique();
             entity.HasOne(x => x.User).WithMany(x => x.Matches).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
         model.Entity<GameRoom>(entity =>
@@ -138,6 +146,49 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.JoinedAtUtc).HasColumnType("datetime(6)");
             entity.HasOne(x => x.Room).WithMany(x => x.Members).HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ===== 通行证与成就（Docs/17 §4.3）=====
+
+        model.Entity<PlayerPass>(entity =>
+        {
+            entity.ToTable("PlayerPass");
+            entity.HasKey(x => new { x.UserId, x.SeasonId });
+            entity.Property(x => x.SeasonId).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Version).IsConcurrencyToken();
+            entity.Property(x => x.UpdatedAtUtc).HasColumnType("datetime(6)");
+            entity.HasOne(x => x.User).WithMany(x => x.Passes).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<PassReward>(entity =>
+        {
+            entity.ToTable("PassReward");
+            entity.HasKey(x => new { x.SeasonId, x.PassLevel });
+            entity.Property(x => x.SeasonId).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.RewardType).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.ItemId).HasMaxLength(64);
+        });
+        model.Entity<PlayerPassRewardGrant>(entity =>
+        {
+            entity.ToTable("PlayerPassRewardGrant");
+            entity.HasKey(x => new { x.UserId, x.SeasonId, x.PassLevel });
+            entity.Property(x => x.SeasonId).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.GrantedAtUtc).HasColumnType("datetime(6)");
+        });
+        model.Entity<AchievementDefinition>(entity =>
+        {
+            entity.ToTable("AchievementDefinition");
+            entity.HasKey(x => x.AchievementId);
+            entity.Property(x => x.AchievementId).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.DisplayName).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(240).IsRequired();
+            entity.Property(x => x.TargetMetric).HasMaxLength(32).IsRequired();
+        });
+        model.Entity<PlayerAchievement>(entity =>
+        {
+            entity.ToTable("PlayerAchievement");
+            entity.HasKey(x => new { x.UserId, x.AchievementId });
+            entity.Property(x => x.AchievementId).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.UnlockedAtUtc).HasColumnType("datetime(6)");
         });
     }
 }

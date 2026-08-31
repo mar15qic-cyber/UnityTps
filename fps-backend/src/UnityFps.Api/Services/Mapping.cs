@@ -16,4 +16,15 @@ public static class Mapping
     public static CatalogItemDto ToDto(this CatalogItem item, bool owned) =>
         new(item.ItemId, item.ItemType, item.SlotType, item.DisplayName, item.Description, item.AssetKey,
             item.PriceCoins, item.UnlockLevel, item.IsActive, owned, item.IsImplemented, item.CalibrationKey);
+
+    public static PassRewardDto ToDto(this PassReward reward, bool granted) =>
+        new(reward.PassLevel, reward.RewardType, reward.ItemId, reward.CoinsAmount, granted);
+
+    public static PassAchievementDto ToDto(this AchievementDefinition def, PlayerAchievement? pa) =>
+        new(def.AchievementId, def.DisplayName, def.Description, def.TargetMetric, def.TargetValue,
+            pa?.Progress ?? 0, pa?.UnlockedAtUtc != null, def.PassXpReward);
+
+    public static AchievementDto ToAchievementDto(this AchievementDefinition def, PlayerAchievement? pa) =>
+        new(def.AchievementId, def.DisplayName, def.Description, def.TargetMetric, def.TargetValue,
+            pa?.Progress ?? 0, pa?.UnlockedAtUtc != null, def.PassXpReward);
 }

@@ -22,6 +22,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Wallet = new PlayerWallet { User = user, Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
+        user.Passes.Add(new PlayerPass { SeasonId = PassSeeder.SeasonId, PassLevel = 1, PassXp = 0, Version = 1, UpdatedAtUtc = DateTime.UtcNow });
         foreach (var itemId in CatalogSeeder.InitialWeapons)
             user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         db.Users.Add(user);

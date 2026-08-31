@@ -76,9 +76,29 @@ public sealed class LoadoutAttachmentsRequest
 
 public sealed class MatchSubmissionRequest
 {
+    [Required, StringLength(64, MinimumLength = 8)] public string ClientMatchId { get; set; } = string.Empty;
     [Range(0, int.MaxValue)] public int Kills { get; set; }
     [Range(0, int.MaxValue)] public int Deaths { get; set; }
-    [Range(0, int.MaxValue)] public int Score { get; set; }
+    [Range(0, int.MaxValue)] public int DurationSeconds { get; set; }
+    public bool IsWin { get; set; }
 }
 
-public sealed record MatchResultDto(int XpEarned, int LevelUps, PlayerProfileDto Profile);
+public sealed record PassLevelUpDto(int Level, string? RewardType, string? ItemId, int CoinsAmount);
+public sealed record UnlockedAchievementDto(string AchievementId, string DisplayName, int PassXpReward);
+
+public sealed record MatchResultDto(
+    int XpEarned, int LevelUps, long Coins, int CoinsEarned,
+    int PassXpEarned, int PassLevel, int PassXp, int PassXpToNextLevel,
+    PassLevelUpDto[] PassLevelUps, string[] NewAttachments,
+    UnlockedAchievementDto[] UnlockedAchievements, bool Replayed,
+    PlayerProfileDto Profile);
+
+// ---- 通行证（Docs/17 §4.4）----
+
+public sealed record PassRewardDto(int Level, string RewardType, string? ItemId, int CoinsAmount, bool Granted);
+public sealed record PassAchievementDto(string Id, string DisplayName, string Description,
+    string TargetMetric, int TargetValue, int Progress, bool Unlocked, int PassXpReward);
+public sealed record PassDto(string SeasonId, int Level, int Xp, int XpToNextLevel, int MaxLevel,
+    PassRewardDto[] Rewards, PassAchievementDto[] Achievements);
+public sealed record AchievementDto(string Id, string DisplayName, string Description,
+    string TargetMetric, int TargetValue, int Progress, bool Unlocked, int PassXpReward);
