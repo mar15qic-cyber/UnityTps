@@ -8,6 +8,8 @@
         "Game.Account",
         "Game.UI",
         "Newtonsoft.Json",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
