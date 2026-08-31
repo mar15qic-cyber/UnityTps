@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.Gameplay.Settings;
 using Game.UI;
 
 namespace Game.Gameplay.Tests
