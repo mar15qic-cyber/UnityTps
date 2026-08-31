@@ -12,15 +12,21 @@ namespace Game.UI
         private const float MinDistance = 0.45f;
         private const float MaxDistance = 8f;
 
+        // Docs/20: 初始侧面正放——枪管(+Z)水平朝屏幕右,枪身直立,相机看侧面。
+        // 枪管沿 +Z,相机在 -Z,故 yaw=90 让 +Z 对准 +X(侧面)。pitch=0 保证正放不俯仰。
+        private const float InitialYaw = 90f;
+        private const float InitialPitch = 0f;
+        private const float InitialDistance = 2.4f;
+
         private RawImage output;
         private GameObject stage;
         private GameObject modelRoot;
         private GameObject modelInstance;
         private Camera previewCamera;
         private RenderTexture renderTexture;
-        private float yaw = -28f;
-        private float pitch = 10f;
-        private float distance = 2.4f;
+        private float yaw = InitialYaw;
+        private float pitch = InitialPitch;
+        private float distance = InitialDistance;
         private bool dragging;
         private Vector2 lastPointer;
 
@@ -41,12 +47,17 @@ namespace Game.UI
             {
                 modelInstance = Instantiate(prefab, modelRoot.transform);
                 modelInstance.name = prefab.name + "_ShopPreview";
+                // 归零 prefab 根节点自带的乱转,否则初始朝向被 TP 预览角度污染(Docs/20 修复)。
+                modelInstance.transform.localRotation = Quaternion.identity;
                 SetLayerRecursively(modelInstance, PreviewLayer);
                 FrameModel();
             }
 
             CreateCameraAndLighting();
         }
+
+        // Camera/RenderTexture need a GPU frame; skip in EditMode so structure tests can run headless.
+        private bool CanRender => output != null && output.canvas != null;
 
         public void OnPointerDown(PointerEventData eventData)
         {
@@ -91,6 +102,7 @@ namespace Game.UI
 
         private void CreateCameraAndLighting()
         {
+            if (!CanRender) return; // EditMode/headless: model hierarchy still built, camera skipped.
             renderTexture = new RenderTexture(720, 520, 24, RenderTextureFormat.ARGB32)
             {
                 name = "WeaponPreviewRenderTexture",
