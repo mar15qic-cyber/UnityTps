@@ -45,6 +45,11 @@ fps-backend/**/obj/
 # ===== Codely CLI 运行时（由工具自动恢复，不入库） =====
 .codely-cli/
 .codely.packages/
+/.codely/
+/.com-unity-codely.json
+
+# ===== TJGenerators 生成历史（插件自动留档，不入库） =====
+/Assets/TJGenerators/History/
 
 # ===== 截图 / 临时输出 =====
 /screenshots/
