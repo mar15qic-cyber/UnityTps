@@ -78,17 +78,105 @@ namespace Game.UI
         {
             SetBackground(UIArt.KeyBackgroundLobby);
             var root = PageRoot("ResultsPage");
-            var card = StyledPanel("ResultsPanel", root, UITheme.CardSurface, new Vector2(0.22f, 0.18f), new Vector2(0.78f, 0.84f));
-            CreateLogo(card.transform, new Vector2(0.44f, 0.74f), new Vector2(0.56f, 0.94f));
-            StyledText(card.transform, "任务结算", UITheme.FontPageTitle, UITheme.TextPrimary,
-                new Vector2(0.1f, 0.58f), new Vector2(0.9f, 0.74f), TextAlignmentOptions.Center, FontStyles.Bold);
-            StyledText(card.transform, "结算必须携带稳定 ClientMatchId，重复提交只结算一次。", UITheme.FontBody, UITheme.TextMuted,
-                new Vector2(0.1f, 0.40f), new Vector2(0.9f, 0.56f));
-            UIComponents.Badge("XPGain", card.transform, "+120 XP   ·   +85 COINS", UITheme.AccentPrimary,
-                new Vector2(0.30f, 0.26f), new Vector2(0.70f, 0.38f));
+            var card = StyledPanel("ResultsPanel", root, UITheme.CardSurface, new Vector2(0.22f, 0.14f), new Vector2(0.78f, 0.88f));
+            CreateLogo(card.transform, new Vector2(0.44f, 0.80f), new Vector2(0.56f, 0.96f));
+
+            // Docs/23 P2（G5）：实数据结算页——数据源 = MatchSettlementFlow（服务器权威值）。
+            // 无对局数据（直接打开/演示路径）时诚实降级展示。
+            var result = MatchSettlementFlow.LastResult;
+            var request = MatchSettlementFlow.LastRequest;
+            var pending = MatchSettlementFlow.LastPendingRequest;
+
+            if (result == null && request == null)
+            {
+                StyledText(card.transform, "暂无对局结算数据", UITheme.FontPageTitle, UITheme.TextPrimary,
+                    new Vector2(0.1f, 0.52f), new Vector2(0.9f, 0.68f), TextAlignmentOptions.Center, FontStyles.Bold);
+                StyledText(card.transform, "完成一局联网对战后，这里将展示三币、通行证与成就结算。",
+                    UITheme.FontBody, UITheme.TextMuted, new Vector2(0.1f, 0.38f), new Vector2(0.9f, 0.50f));
+                StyledButton(card.transform, "返回大厅", UIComponents.ButtonKind.Primary,
+                    new Vector2(0.24f, 0.06f), new Vector2(0.76f, 0.17f), () => _ = ReturnToLobbyFromResultsAsync());
+                PlayEnter(card);
+                return;
+            }
+
+            // 胜负标题
+            StyledText(card.transform, MatchSettlementFlow.LastVerdictText ?? "对局结束", UITheme.FontPageTitle, UITheme.TextPrimary,
+                new Vector2(0.1f, 0.66f), new Vector2(0.9f, 0.80f), TextAlignmentOptions.Center, FontStyles.Bold);
+
+            // K/D（服务器权威收集值）
+            string kd = request != null ? $"K {request.kills}  /  D {request.deaths}   ·   {request.durationSeconds}s" : "K/D 数据缺失";
+            StyledText(card.transform, kd, UITheme.FontCardTitle, UITheme.TextPrimary,
+                new Vector2(0.1f, 0.56f), new Vector2(0.9f, 0.65f), TextAlignmentOptions.Center, FontStyles.Bold);
+
+            if (result != null)
+            {
+                // 三币 + 通行证进度
+                string replayTag = result.replayed ? "幂等重放 · " : string.Empty;
+                UIComponents.Badge("Currencies", card.transform,
+                    $"{replayTag}+{result.xpEarned} XP · +{result.coinsEarned} COINS · +{result.passXpEarned} PASS XP",
+                    UITheme.AccentPrimary, new Vector2(0.14f, 0.44f), new Vector2(0.86f, 0.55f));
+                StyledText(card.transform, $"通行证 Lv.{result.passLevel}   {result.passXp} / {result.passXpToNextLevel} XP",
+                    UITheme.FontBody, UITheme.TextPrimary,
+                    new Vector2(0.1f, 0.375f), new Vector2(0.9f, 0.44f), TextAlignmentOptions.Center);
+
+                // 通行证升级 / 新配件 / 新成就（各取前 3 条，诚实省略超出部分）
+                var lines = new System.Collections.Generic.List<string>();
+                if (result.passLevelUps != null)
+                    foreach (var up in result.passLevelUps)
+                    {
+                        if (lines.Count >= 3) break;
+                        lines.Add($"通行证升级 Lv.{up.level} · {(string.IsNullOrEmpty(up.itemId) ? (up.coinsAmount + " 金币") : up.itemId)}");
+                    }
+                if (result.newAttachments != null)
+                    foreach (var item in result.newAttachments)
+                    {
+                        if (lines.Count >= 3) break;
+                        lines.Add($"新配件获得：{item}");
+                    }
+                if (result.unlockedAchievements != null)
+                    foreach (var ach in result.unlockedAchievements)
+                    {
+                        if (lines.Count >= 3) break;
+                        lines.Add($"成就解锁：{ach.displayName}");
+                    }
+                if (lines.Count > 0)
+                    StyledText(card.transform, string.Join("\n", lines), UITheme.FontBody, UITheme.TextMuted,
+                        new Vector2(0.1f, 0.20f), new Vector2(0.9f, 0.37f), TextAlignmentOptions.Center);
+            }
+            else if (!string.IsNullOrEmpty(MatchSettlementFlow.LastError))
+            {
+                StyledText(card.transform, "结算提交失败：" + MatchSettlementFlow.LastError, UITheme.FontBody, UITheme.AccentDanger,
+                    new Vector2(0.1f, 0.20f), new Vector2(0.9f, 0.43f), TextAlignmentOptions.Center);
+            }
+
+            // 提交失败暂存 → 重试按钮（重试成功后自动刷新为实数据）
+            if (pending != null)
+                StyledButton(card.transform, "重试结算", UIComponents.ButtonKind.Danger,
+                    new Vector2(0.36f, 0.06f), new Vector2(0.64f, 0.16f),
+                    () => _ = RetrySettlementAndRerenderAsync());
+
             StyledButton(card.transform, "返回大厅", UIComponents.ButtonKind.Primary,
-                new Vector2(0.24f, 0.06f), new Vector2(0.76f, 0.19f), () => Navigate(LobbyPage.Lobby));
+                new Vector2(0.24f, 0.17f), new Vector2(0.76f, 0.28f), () => _ = ReturnToLobbyFromResultsAsync());
             PlayEnter(card);
+        }
+
+        /// <summary>Results 返回大厅：刷新档案/钱包（照抄 PurchaseAsync 刷新惯例）后 Navigate。
+        /// 说明：结算流回大厅后本页已在 Lobby 场景，无需再 LoadScene("Lobby")（与票据原文的偏差，见执行报告）。</summary>
+        private async System.Threading.Tasks.Task ReturnToLobbyFromResultsAsync()
+        {
+            var profile = await api.GetProfileAsync();
+            if (profile.Success && profile.Data != null)
+            {
+                session.ApplyProfile(profile.Data);
+                status.text = "档案已刷新";
+            }
+            Navigate(LobbyPage.Lobby);
+        }
+
+        private async System.Threading.Tasks.Task RetrySettlementAndRerenderAsync()
+        {
+            await MatchSettlementFlow.RetryPendingAsync();
+            Navigate(LobbyPage.Results);
         }
 
         private void RenderError(string message, Action retry)

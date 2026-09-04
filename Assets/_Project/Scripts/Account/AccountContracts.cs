@@ -34,8 +34,19 @@ namespace Game.Account
 }
 [Serializable] public sealed class AttachmentCompatibilityDto { public string weaponId; public string attachmentId; public string slotType; public bool isImplemented; public string calibrationKey; }
 [Serializable] public sealed class LoadoutAttachmentsDto { public long version; public LoadoutAttachmentDto[] attachments; }
-[Serializable] public sealed class MatchSubmissionRequest { public string clientMatchId; public int kills; public int deaths; public int score; }
-[Serializable] public sealed class MatchResultDto { public string clientMatchId; public int xpEarned; public long coinsEarned; public int levelUps; public bool replayed; public PlayerProfileDto profile; public long coins; }
+// Docs/23 P2（G5）契约对齐（以后端 Contracts.cs L77-94 为准，字段名逐字小驼峰）：
+// 请求去掉旧 score（后端无此字段），新增服务器权威 durationSeconds/isWin
+[Serializable] public sealed class MatchSubmissionRequest { public string clientMatchId; public int kills; public int deaths; public int durationSeconds; public bool isWin; }
+[Serializable] public sealed class PassLevelUpDto { public int level; public string rewardType; public string itemId; public int coinsAmount; }
+[Serializable] public sealed class UnlockedAchievementDto { public string achievementId; public string displayName; public int passXpReward; }
+[Serializable] public sealed class MatchResultDto
+{
+    public int xpEarned; public int levelUps; public long coins; public int coinsEarned;
+    public int passXpEarned; public int passLevel; public int passXp; public int passXpToNextLevel;
+    public PassLevelUpDto[] passLevelUps; public string[] newAttachments;
+    public UnlockedAchievementDto[] unlockedAchievements; public bool replayed;
+    public PlayerProfileDto profile;
+}
 [Serializable] public sealed class ProblemDetailsDto
 {
     public string title; public int status; public string detail; public string code; public string traceId; public System.Collections.Generic.Dictionary<string, string[]> errors;
