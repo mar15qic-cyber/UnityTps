@@ -45,6 +45,47 @@ namespace Game.Gameplay.Network
             _controller?.TryFire();
         }
 
+        // ---- ①b 换弹/切枪服务器验证（Docs/23 P0-1/P0-2，G1） ----
+
+        /// <summary>远端客户端调用（Owner 专属）：把换弹意图发服务器验证；服务器 ActionSystem
+        /// 自带忙碌/弹满闸。Owner 本地 TryReload（预测）与服务器通道都跑是设计意图（Docs/04 §8）。</summary>
+        public void SubmitReloadRequest()
+        {
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+                ServerReloadRequest();
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerReloadRequest()
+        {
+            // 服务器权威：TryReload 自带 ActionSystem 忙碌/弹满闸，无需另写验证（Docs/23 P0-1）
+            _controller?.TryReload();
+        }
+
+        /// <summary>远端客户端调用（Owner 专属）：把切枪意图发服务器验证；服务器合法则
+        /// EquipDefinition 换装 → OnWeaponEquipped → NetworkWeaponState._weaponId 广播链自动生效。</summary>
+        public void SubmitSwitchRequest(int slot)
+        {
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+                ServerSwitchRequest(slot);
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerSwitchRequest(int slot)
+        {
+            if (_controller == null) return;
+            // 反射读 Arsenal.slots（规避反向依赖惯例，同 NetworkWeaponState.ApplyWeapon）；越界/空槽拒绝
+            var arsenal = _controller.GetComponentInParent<Arsenal>();
+            if (arsenal == null) return;
+            var slotsField = arsenal.GetType().GetField("slots",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var slots = slotsField?.GetValue(arsenal) as WeaponDefinition[];
+            if (slots == null || slot < 0 || slot >= slots.Length || slots[slot] == null) return;
+            _controller.EquipDefinition(slots[slot]);
+        }
+
         // ---- ② 开火表现广播（服务器事件 → 全端） ----
 
         public override void OnStartServer()
@@ -100,15 +141,20 @@ namespace Game.Gameplay.Network
         private void Update()
         {
             // 服务器采集生命值（Player 上挂 DamageableTarget 后生效）
-            if (NetworkObject != null && NetworkObject.IsServerInitialized && _target == null)
+            if (NetworkObject != null && NetworkObject.IsServerInitialized)
             {
-                _target = GetComponentInChildren<DamageableTarget>(true);
-                if (_target != null)
+                if (_target == null)
                 {
-                    _health.Value = _target.CurrentHealth;
-                    _target.OnDied += HandleServerDied;
-                    _target.OnHealthChanged += (cur, max) => _health.Value = cur;
+                    _target = GetComponentInChildren<DamageableTarget>(true);
+                    if (_target != null)
+                    {
+                        _health.Value = _target.CurrentHealth;
+                        _target.OnDied += HandleServerDied;
+                        _target.OnHealthChanged += (cur, max) => _health.Value = cur;
+                    }
                 }
+                // 服务器采集瞄准俯仰 → SyncVar（值变化才写，Docs/23 P0-5）
+                TrySyncAimPitch();
             }
         }
 
@@ -141,5 +187,67 @@ namespace Game.Gameplay.Network
 
         public int Health => _health.Value;
         public bool IsDead => _dead.Value;
+
+        // ---- ④ 瞄准俯仰同步（Docs/23 P0-5，G2） ----
+
+        private readonly SyncVar<float> _aimPitch = new();
+        private Transform _aimPivotCached;
+        private float _lastSentPitch = float.NaN;
+
+        public override void OnStartClient()
+        {
+            if (IsOwner) return; // Owner 俯仰由 FPMouseLook 本地驱动，不回灌服务器值
+            _aimPitch.OnChange += HandleAimPitchChanged;
+        }
+
+        /// <summary>服务器侧：反射读 WeaponController.aimPivot 当前俯仰写入 SyncVar
+        /// （反射惯例 + try-null 兜底，防域重载字段漂移）。</summary>
+        private void TrySyncAimPitch()
+        {
+            var pivot = ResolveAimPivot();
+            if (pivot == null) return;
+            // CameraPivot.localRotation = Euler(pitch,0,0)（FPMouseLook 约定：抬头=负 Euler X）；
+            // eulerAngles 域 [0,360)，换回带符号俯仰
+            float eulerX = pivot.localRotation.eulerAngles.x;
+            float pitch = eulerX > 180f ? eulerX - 360f : eulerX;
+            if (!Mathf.Approximately(pitch, _lastSentPitch))
+            {
+                _lastSentPitch = pitch;
+                _aimPitch.Value = pitch;
+            }
+        }
+
+        private void HandleAimPitchChanged(float prev, float next, bool asServer)
+        {
+            if (asServer) return;
+            var pivot = ResolveAimPivot();
+            if (pivot != null) pivot.localRotation = Quaternion.Euler(next, 0f, 0f);
+        }
+
+        /// <summary>反射解析 aimPivot（私有序列化字段；远端玩家在服务器实例上无相机可回退，
+        /// 只认已有引用，解析不到返回 null——调用方自兜底）。</summary>
+        private Transform ResolveAimPivot()
+        {
+            if (_aimPivotCached == null && _controller != null)
+            {
+                var field = typeof(WeaponController).GetField("aimPivot",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                _aimPivotCached = field?.GetValue(_controller) as Transform;
+            }
+            return _aimPivotCached;
+        }
+
+        /// <summary>瞄准方向（世界）= aimPivot 前向，供表现层（TPAimDriver）消费；不暴露 FishNet 类型。</summary>
+        public Vector3 AimDirectionWorld
+        {
+            get
+            {
+                var pivot = ResolveAimPivot();
+                return pivot != null ? pivot.forward : transform.forward;
+            }
+        }
+
+        /// <summary>本实例是否为本地客户端所拥有（表现层区分本地/远端玩家用）。</summary>
+        public bool IsOwnerPlayer => IsOwner;
     }
 }

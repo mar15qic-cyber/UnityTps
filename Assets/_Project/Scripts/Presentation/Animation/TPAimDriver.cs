@@ -1,3 +1,4 @@
+using Game.Gameplay.Network;
 using UnityEngine;
 
 namespace Game.Presentation.Animation
@@ -38,6 +39,7 @@ namespace Game.Presentation.Animation
         private Transform _neck;
         private Transform _head;
         private UnityEngine.Camera _camera;
+        private NetworkCombatAuthority _netAuthority;
         private float _pitch;
         private float _pitchVelocity;
 
@@ -56,12 +58,24 @@ namespace Game.Presentation.Animation
         private void LateUpdate()
         {
             if (_animator == null || _spine == null) return;
-            if (_camera == null) _camera = UnityEngine.Camera.main;
-            if (_camera == null) return;
 
-            // 目标瞄准方向（相机中心射线；未来远端换同步方向）
-            Vector3 aimDir = (_camera.transform.position + _camera.transform.forward * aimDistance
-                - (_chest != null ? _chest.position : transform.position)).normalized;
+            // 远端玩家（Docs/23 P0-5 G2b）：瞄准源 = NetworkCombatAuthority.AimDirectionWorld
+            // （服务器同步俯仰后的 aimPivot 前向）；本地/离线玩家路径保持现状（相机中心射线）。
+            Vector3 aimDir;
+            if (_netAuthority == null) _netAuthority = GetComponentInParent<NetworkCombatAuthority>();
+            if (_netAuthority != null && !_netAuthority.IsOwnerPlayer)
+            {
+                aimDir = _netAuthority.AimDirectionWorld;
+                if (aimDir.sqrMagnitude < 0.0001f) return;
+            }
+            else
+            {
+                if (_camera == null) _camera = UnityEngine.Camera.main;
+                if (_camera == null) return;
+                // 目标瞄准方向（相机中心射线）
+                aimDir = (_camera.transform.position + _camera.transform.forward * aimDistance
+                    - (_chest != null ? _chest.position : transform.position)).normalized;
+            }
 
             // pitch：瞄准方向相对水平面的仰角（本地模型 yaw 已与相机一致，只需 pitch）
             float targetPitch = Mathf.Asin(Mathf.Clamp(aimDir.y, -1f, 1f)) * Mathf.Rad2Deg;
