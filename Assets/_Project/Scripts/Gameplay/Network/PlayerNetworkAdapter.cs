@@ -110,9 +110,11 @@ namespace Game.Gameplay.Network
                 // 服务器权威模拟：Host 上对自己（IsOwner）直接采输入；远端玩家输入经 _pendingCommand
                 if (IsOwner && _input != null && _locomotor != null)
                 {
+                    // Docs/23 P0-4：俯仰增量随命令上行（系数与 yaw 同为 0.1f，抬头为正）
                     var cmd = new MovementCommand(
                         _input.Move, _input.Sprint, _input.JumpQueued,
-                        _input.LookDelta.x * 0.1f, (uint)(Time.frameCount & 0x7FFFFFFF));
+                        _input.LookDelta.x * 0.1f, _input.LookDelta.y * 0.1f,
+                        (uint)(Time.frameCount & 0x7FFFFFFF));
                     _locomotor.Simulate(cmd, Time.deltaTime);
                     if (cmd.Jump) _input.ConsumeJump();
                 }
@@ -122,6 +124,9 @@ namespace Game.Gameplay.Network
                     if (_hasCommand && _locomotor != null)
                     {
                         _locomotor.Simulate(_pendingCommand, Time.deltaTime);
+                        // Docs/23 P0-4（G2a）：俯仰增量应用到服务器侧 CameraPivot（aimPivot 同一节点），
+                        // 服务器 TryFire 的 AimDirection 随之恢复正确俯仰
+                        ApplyRemotePitch(_pendingCommand.PitchDelta);
                         _hasCommand = false;
                     }
                 }
@@ -132,7 +137,8 @@ namespace Game.Gameplay.Network
                 // FishNet PredictedOwner/N3 阶段替换为标准预测）
                 var cmd = new MovementCommand(
                     _input.Move, _input.Sprint, _input.JumpQueued,
-                    _input.LookDelta.x * 0.1f, (uint)(Time.frameCount & 0x7FFFFFFF));
+                    _input.LookDelta.x * 0.1f, _input.LookDelta.y * 0.1f,
+                    (uint)(Time.frameCount & 0x7FFFFFFF));
                 _locomotor.Simulate(cmd, Time.deltaTime);
                 if (cmd.Jump) _input.ConsumeJump();
                 ServerSubmitCommand(cmd);
@@ -142,6 +148,13 @@ namespace Game.Gameplay.Network
                 if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
                 if (_weaponController != null && _combatAuthority != null && _input.FireHeld)
                     _combatAuthority.SubmitFireRequest();
+                // Docs/23 P0-1/P0-2（G1）：换弹/切枪意图同样转发服务器验证
+                //（本地 Arsenal/WeaponController 照常跑预测，两端都执行是设计意图）
+                if (_combatAuthority != null)
+                {
+                    if (_input.ReloadPressed) _combatAuthority.SubmitReloadRequest();
+                    if (_input.SlotPressed >= 0) _combatAuthority.SubmitSwitchRequest(_input.SlotPressed);
+                }
             }
         }
 
@@ -152,6 +165,18 @@ namespace Game.Gameplay.Network
 
         private MovementCommand _pendingCommand;
         private bool _hasCommand;
+        private float _remotePitch;
+
+        /// <summary>服务器侧：把远端玩家俯仰增量应用到 localOnlyRoot（CameraPivot）。
+        /// 公式与 FPMouseLook 本地写法逐字一致：抬头为正增量 → Euler X 取负、夹紧 ±89°。
+        /// 服务器侧该 GameObject 虽被禁用（非 Owner 端 localOnlyRoot=false），Transform 写入安全（既有先例）。</summary>
+        private void ApplyRemotePitch(float pitchUpDelta)
+        {
+            if (Mathf.Approximately(pitchUpDelta, 0f)) return;
+            _remotePitch = Mathf.Clamp(_remotePitch - pitchUpDelta, -89f, 89f);
+            if (localOnlyRoot != null)
+                localOnlyRoot.transform.localRotation = Quaternion.Euler(_remotePitch, 0f, 0f);
+        }
 
         [ServerRpc(RequireOwnership = false, RunLocally = false)]
         private void ServerSubmitCommand(MovementCommand command)

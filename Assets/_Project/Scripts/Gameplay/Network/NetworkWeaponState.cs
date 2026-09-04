@@ -16,6 +16,9 @@ namespace Game.Gameplay.Network
     public sealed class NetworkWeaponState : NetworkBehaviour
     {
         private readonly SyncVar<string> _weaponId = new();
+        // Docs/23 P0-3（G1c）：弹药服务器权威——服务器 Runtime 变化广播；Owner 本地 -1 仅作预测显示
+        private readonly SyncVar<int> _currentAmmo = new();
+        private readonly SyncVar<int> _reserveAmmo = new();
 
         private WeaponController _controller;
         private Arsenal _arsenal;
@@ -37,6 +40,13 @@ namespace Game.Gameplay.Network
                 _controller.OnWeaponEquipped += HandleServerWeaponEquipped;
                 _controller.OnShotFired += HandleServerShotFired;
                 _controller.OnReloadStarted += HandleServerReloadStarted;
+                // 弹药权威采集：初始值 + 后续变化（Docs/23 P0-3）
+                if (_controller.Runtime != null)
+                {
+                    _currentAmmo.Value = _controller.Runtime.CurrentAmmo;
+                    _reserveAmmo.Value = _controller.Runtime.ReserveAmmo;
+                }
+                _controller.OnAmmoChanged += HandleServerAmmoChanged;
             }
         }
 
@@ -63,7 +73,22 @@ namespace Game.Gameplay.Network
             _controller.OnWeaponEquipped -= HandleServerWeaponEquipped;
             _controller.OnShotFired -= HandleServerShotFired;
             _controller.OnReloadStarted -= HandleServerReloadStarted;
+            _controller.OnAmmoChanged -= HandleServerAmmoChanged;
         }
+
+        private void HandleServerAmmoChanged(int current, int reserve)
+        {
+            if (IsServerInitialized)
+            {
+                _currentAmmo.Value = current;
+                _reserveAmmo.Value = reserve;
+            }
+        }
+
+        /// <summary>服务器权威弹药（在线时 HUD 显示读这里；离线时 HUD 走本地事件路径）。</summary>
+        public int CurrentAmmo => _currentAmmo.Value;
+        /// <summary>服务器权威备弹。</summary>
+        public int ReserveAmmo => _reserveAmmo.Value;
 
         private void HandleServerWeaponEquipped(WeaponDefinition def)
         {
@@ -76,7 +101,16 @@ namespace Game.Gameplay.Network
 
         private void HandleWeaponChanged(string prev, string next, bool asServer)
         {
-            if (asServer || !IsOwner) ApplyWeapon(next);
+            if (asServer) return;
+            if (!IsOwner)
+            {
+                ApplyWeapon(next);
+                return;
+            }
+            // Owner 修正分支（Docs/23 P0-2）：服务器广播的权威武器与本地不一致（非法切枪
+            // 被服务器拒绝后的下一次权威变化、或双端竞态）→ 把 Owner 拉回权威武器
+            if (_controller != null && _controller.Definition != null && _controller.Definition.WeaponId != next)
+                ApplyWeapon(next);
         }
 
         /// <summary>远端按 weaponId 查 Arsenal 槽位并 EquipDefinition（表现数据源）。
