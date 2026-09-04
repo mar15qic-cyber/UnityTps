@@ -5,6 +5,7 @@
         "Game.Core",
         "Game.Gameplay",
         "Game.Account",
+        "FishNet.Runtime",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "UnityEngine.UI"
