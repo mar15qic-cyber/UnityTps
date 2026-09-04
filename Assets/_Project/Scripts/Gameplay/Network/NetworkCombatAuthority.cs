@@ -107,7 +107,13 @@ namespace Game.Gameplay.Network
             }
         }
 
-        private void HandleServerShot(WeaponShot shot) => ObserversShot(shot.Origin, shot.FiredDirection, shot.Result.Point, shot.Result.Hit);
+        private void HandleServerShot(WeaponShot shot)
+        {
+            ObserversShot(shot.Origin, shot.FiredDirection, shot.Result.Point, shot.Result.Hit);
+            // 击杀归因登记（Docs/23 P1-3）：服务器命中时记录"本射击者 → 被击中目标"
+            if (shot.Result.Target != null)
+                MatchLifecycle.RegisterHit(this, shot.Result.Target);
+        }
         private void HandleServerDryFire() { /* 空仓表现仅 Owner 本地有音效需求，无需广播 */ }
 
         [ObserversRpc(ExcludeOwner = false, ExcludeServer = false, RunLocally = false)]
@@ -131,8 +137,15 @@ namespace Game.Gameplay.Network
         [ObserversRpc(ExcludeOwner = false)]
         private void ObserversDied()
         {
-            // 死亡表现（简单版：TP 模型倒地/禁用碰撞由表现层订阅；当前仅日志级钩子）
+            // 死亡表现（Docs/23 P1-6 简式）：TP 模型前倾 85° + 禁用受击碰撞，全端应用
             OnRemoteDied?.Invoke();
+            ApplyDeathVisual();
+        }
+
+        [ObserversRpc(ExcludeOwner = false)]
+        private void ObserversRespawned()
+        {
+            ResetDeathVisual();
         }
 
         /// <summary>远端死亡事件。</summary>
@@ -162,6 +175,18 @@ namespace Game.Gameplay.Network
         {
             if (NetworkObject == null || !NetworkObject.IsServerInitialized) return;
             _dead.Value = true;
+            // 击杀归因（Docs/23 P1-3）：查登记表得击杀者 → killer kills+1、自己 deaths+1 → 广播 Kill
+            var killer = MatchLifecycle.ConsumeKillerOf(_target);
+            if (killer != null && killer != this)
+            {
+                killer.ServerAddKill();
+                ServerAddDeath();
+                MatchLifecycle.BroadcastKill(killer, this);
+            }
+            else
+            {
+                ServerAddDeath(); // 无归因（环境伤害等）：仅记死亡
+            }
             ObserversDied();
             // 简单重生：3 秒后满血复活（Docs/04 Day9 才做完整 LifeFSM）
             Invoke(nameof(ServerRespawn), 3f);
@@ -172,17 +197,39 @@ namespace Game.Gameplay.Network
         {
             _target?.ResetHealth();
             _dead.Value = false;
-            // 位置重置到出生点
+            // 位置重置：随机选点（近邻排除，Docs/23 P1-5）
             var spawner = FindFirstObjectByType<FishNet.Component.Spawning.PlayerSpawner>();
             if (spawner != null)
             {
                 var spawns = (Transform[])spawner.GetType().GetField("Spawns").GetValue(spawner);
                 if (spawns != null && spawns.Length > 0)
                 {
-                    transform.position = spawns[0].position;
-                    transform.rotation = spawns[0].rotation;
+                    var chosen = PickSpawnPoint(spawns);
+                    transform.position = chosen.position;
+                    transform.rotation = chosen.rotation;
                 }
             }
+            ObserversRespawned();
+        }
+
+        /// <summary>随机选出生点：优先排除与对手（服务器上其他 NetworkCombatAuthority 实例）
+        /// 距离 &lt; SpawnExclusionRadiusMeters 的点；全部被排除则回退全集随机；不足 2 点告警降级。</summary>
+        private Transform PickSpawnPoint(Transform[] spawns)
+        {
+            if (spawns.Length < 2)
+            {
+                Debug.LogWarning("[NetworkCombatAuthority] 出生点不足 2 个，近邻排除退化（P1 手动清单：Arena 补 Spawn_1~3）", this);
+                return spawns[Random.Range(0, spawns.Length)];
+            }
+            var candidates = new System.Collections.Generic.List<Transform>(spawns);
+            foreach (var other in FindObjectsByType<NetworkCombatAuthority>(FindObjectsSortMode.None))
+            {
+                if (other == this) continue;
+                candidates.RemoveAll(spawn => spawn != null
+                    && Vector3.Distance(spawn.position, other.transform.position) < MatchRules.SpawnExclusionRadiusMeters);
+            }
+            if (candidates.Count == 0) candidates.AddRange(spawns);
+            return candidates[Random.Range(0, candidates.Count)];
         }
 
         public int Health => _health.Value;
@@ -196,7 +243,17 @@ namespace Game.Gameplay.Network
 
         public override void OnStartClient()
         {
-            if (IsOwner) return; // Owner 俯仰由 FPMouseLook 本地驱动，不回灌服务器值
+            if (IsOwner)
+            {
+                // Docs/23 P1-6：本端玩家生成 → 挂载比赛 HUD（TryMount 内部幂等去重）。
+                // Gameplay 禁止引用 Presentation（三层单向依赖），按本项目反射惯例
+                // （同 PlayerNetworkAdapter.WireRemotePresentation）按名调静态入口，try-null 兜底
+                var hudType = System.Type.GetType("Game.Presentation.HUD.MatchHudView, Game.Presentation");
+                var mount = hudType?.GetMethod("TryMount",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                mount?.Invoke(null, null);
+                return; // Owner 俯仰由 FPMouseLook 本地驱动，不回灌服务器值
+            }
             _aimPitch.OnChange += HandleAimPitchChanged;
         }
 
@@ -249,5 +306,117 @@ namespace Game.Gameplay.Network
 
         /// <summary>本实例是否为本地客户端所拥有（表现层区分本地/远端玩家用）。</summary>
         public bool IsOwnerPlayer => IsOwner;
+
+        // ---- ⑤ 击杀竞赛比分（Docs/23 P1-3，G4） ----
+
+        private readonly SyncVar<int> _kills = new();
+        private readonly SyncVar<int> _deaths = new();
+
+        /// <summary>本局击杀数（服务器权威 SyncVar；HUD/终局判定读）。</summary>
+        public int Kills => _kills.Value;
+
+        /// <summary>本局死亡数。</summary>
+        public int Deaths => _deaths.Value;
+
+        internal void ServerAddKill()
+        {
+            if (NetworkObject != null && NetworkObject.IsServerInitialized) _kills.Value++;
+        }
+
+        internal void ServerAddDeath()
+        {
+            if (NetworkObject != null && NetworkObject.IsServerInitialized) _deaths.Value++;
+        }
+
+        /// <summary>服务器：新对局倒计时开始时清零比分（MatchLifecycle 调用）。</summary>
+        internal void ServerResetScore()
+        {
+            if (NetworkObject != null && NetworkObject.IsServerInitialized)
+            {
+                _kills.Value = 0;
+                _deaths.Value = 0;
+            }
+        }
+
+        // ---- ⑥ 比赛事件中继（Docs/23 P1-4）：MatchLifecycle（纯 MonoBehaviour）经此广播 ----
+
+        /// <summary>比赛事件（客户端镜像 + HUD 消费）。铁律自检：只传 Gameplay 语义（枚举 + JSON 字符串）。</summary>
+        public static event System.Action<MatchEventKind, string> OnMatchEvent;
+
+        /// <summary>服务器中继入口（MatchLifecycle 调用；非服务器调用安全忽略）。</summary>
+        public void ServerRelayMatchEvent(MatchEventKind kind, string payload)
+        {
+            if (NetworkObject != null && NetworkObject.IsServerInitialized)
+                ObserversMatchEvent(kind, payload);
+        }
+
+        [ObserversRpc(ExcludeOwner = false, ExcludeServer = false, RunLocally = true)]
+        private void ObserversMatchEvent(MatchEventKind kind, string payload)
+        {
+            OnMatchEvent?.Invoke(kind, payload);
+        }
+
+        // ---- ⑦ 死亡/重生简式表现（Docs/23 P1-6：TP 根前倾 85° + 禁受击碰撞；代码完成零资产改动） ----
+
+        private Transform _tpModelCached;
+        private Quaternion _tpModelSavedRotation;
+        private readonly System.Collections.Generic.List<Behaviour> _tpAnimBehaviours = new();
+        private Collider _deathCollider;
+
+        /// <summary>TP 模型节点：优先直查 TP_Model（重建先例），回退首个名字含 TP 的直接子节点；try-null 兜底。</summary>
+        private Transform FindTpModel()
+        {
+            if (_tpModelCached == null)
+            {
+                _tpModelCached = transform.Find("TP_Model");
+                if (_tpModelCached == null)
+                {
+                    foreach (Transform child in transform)
+                    {
+                        if (child.name.Contains("TP")) { _tpModelCached = child; break; }
+                    }
+                }
+                if (_tpModelCached == null)
+                    Debug.LogWarning("[NetworkCombatAuthority] 未找到 TP 模型节点，死亡倒地表现跳过", this);
+            }
+            return _tpModelCached;
+        }
+
+        private void ApplyDeathVisual()
+        {
+            if (_target != null)
+            {
+                var hitCollider = _target.GetComponent<Collider>();
+                if (hitCollider == null) hitCollider = _target.GetComponentInChildren<Collider>(true);
+                if (hitCollider != null) hitCollider.enabled = false;
+                _deathCollider = hitCollider;
+            }
+            var tpModel = FindTpModel();
+            if (tpModel == null) return;
+            // 停掉动画写入者（Animator / TPAnimDriver / Animancer 按名禁用，规避程序集反向依赖），
+            // 否则每帧动画会覆盖前倾姿态
+            _tpAnimBehaviours.Clear();
+            foreach (var behaviour in tpModel.GetComponentsInChildren<Behaviour>(true))
+            {
+                var typeName = behaviour.GetType().Name;
+                if (behaviour is Animator || typeName.Contains("TPAnim") || typeName.Contains("Animancer"))
+                {
+                    if (behaviour.enabled) { behaviour.enabled = false; _tpAnimBehaviours.Add(behaviour); }
+                }
+            }
+            _tpModelSavedRotation = tpModel.localRotation;
+            tpModel.localRotation = Quaternion.Euler(85f, 0f, 0f);
+        }
+
+        private void ResetDeathVisual()
+        {
+            if (_deathCollider != null) _deathCollider.enabled = true;
+            _deathCollider = null;
+            var tpModel = FindTpModel();
+            if (tpModel != null) tpModel.localRotation = _tpModelSavedRotation;
+            foreach (var behaviour in _tpAnimBehaviours)
+                if (behaviour != null) behaviour.enabled = true;
+            _tpAnimBehaviours.Clear();
+        }
     }
 }

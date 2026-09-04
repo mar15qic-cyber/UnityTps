@@ -22,6 +22,9 @@ namespace Game.Gameplay.Network
         private void Awake()
         {
             if (networkManager == null) networkManager = GetComponent<NetworkManager>();
+            // Docs/23 P1-2【实施适配 2】：MatchLifecycle 运行时挂载（纯 MonoBehaviour，
+            // 零资产改动；NetworkHud 位于 Arena 场景 NetworkSystems 对象——已按 GUID 实地确认）
+            if (GetComponent<MatchLifecycle>() == null) gameObject.AddComponent<MatchLifecycle>();
         }
 
         private void Update()
