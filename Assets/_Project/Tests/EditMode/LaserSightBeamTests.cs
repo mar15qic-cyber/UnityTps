@@ -76,11 +76,10 @@ namespace Game.Gameplay.Tests
             var line = view.Spawned[0].GetComponentInChildren<LineRenderer>(true);
             Assert.That(line, Is.Not.Null, "光束组件应自带 LineRenderer");
             Assert.That(line.positionCount, Is.EqualTo(2), "光束=起点(激光器)到终点(准星命中点)两段");
-            // 渲染层修正（实测截图问题）：光束必须在独立子节点且为 Default 层（世界相机渲染，
-            // 终点精确收敛准星；随克隆的 FirstPersonView 层会被武器相机窄 FOV 投影出视差）
+            // 双相机渲染语义（实测截图问题）：光束层必须跟随配件克隆（与器件同相机投影，起点贴合；
+            // 放 Default 层交世界相机会与武器相机的器件投影拼出视差——起点脱开、远端糊斑）
             Assert.That(line.gameObject.name, Is.EqualTo("LaserBeamLine"));
-            Assert.That(line.gameObject.layer, Is.EqualTo(LaserSightBeam.BeamLayer), "Default 层=世界相机渲染，终点收敛准星");
-            Assert.That(line.transform.parent, Is.EqualTo(view.Spawned[0].transform), "独立子节点（装备层递归改层不改变其可自愈的层）");
+            Assert.That(line.gameObject.layer, Is.EqualTo(view.Spawned[0].layer), "光束层=配件克隆层（同相机渲染）");
         }
 
         [Test]
@@ -106,6 +105,16 @@ namespace Game.Gameplay.Tests
 
             Assert.That(view.Spawned.Count, Is.EqualTo(1), "假枪挂点为 Tactical：非激光配件应正常挂载");
             Assert.That(view.Spawned[0].GetComponent<LaserSightBeam>(), Is.Null, "非激光配件永不挂束");
+        }
+
+        [Test]
+        public void ConeEndWidth_GrowsWithDistance_Clamped()
+        {
+            Assert.That(LaserSightBeam.ConeEndWidth(0f), Is.EqualTo(0.006f).Within(0.0001f), "贴墙极近也保底可见");
+            Assert.That(LaserSightBeam.ConeEndWidth(1f), Is.EqualTo(0.006f).Within(0.0001f), "近距夹下限");
+            Assert.That(LaserSightBeam.ConeEndWidth(5f), Is.EqualTo(0.02f).Within(0.0001f), "5m 按斜率线性展宽");
+            Assert.That(LaserSightBeam.ConeEndWidth(50f), Is.EqualTo(0.06f).Within(0.0001f), "远距夹上限");
+            Assert.That(LaserSightBeam.ConeEndWidth(-3f), Is.EqualTo(0.006f).Within(0.0001f), "负距离钳下限");
         }
 
         [Test]

@@ -4,16 +4,16 @@ using UnityEngine;
 namespace Game.Gameplay.Weapon
 {
     /// <summary>
-    /// 激光指示器光束（2026-09-05 用户需求）：腰射状态（Ads01 &lt; 0.5）下从激光器发出红色射线，
-    /// 指向准星 HUD 中心对应的世界点（主相机屏幕中心射线命中点；无命中则延伸固定距离），
-    /// 与准星/弹道同一套屏幕中心语义（CrosshairPresenter 同源 Camera.main）。
-    /// 渲染关键（双相机架构修正）：LineRenderer 放在独立子节点并强制 Default 层（世界相机渲染）——
-    /// 配件克隆本体在 FirstPersonView 层（仅武器相机渲染、窄 FOV），光束若随克隆层会被武器相机
-    /// 投影出与准星脱节的视差（实测截图问题）；Default 层由世界相机渲染，终点精确收敛准星中心，
-    /// 近原点段被第一人称枪模覆盖属正常（激光器本体由武器相机叠加绘制）。
-    /// 挂载：仅本地第一人称视图的激光配件克隆——WeaponAttachmentView 按 LaserItemId &&
-    /// laserBeamEnabled 挂载；TP 视图/枪匠预览/校准窗传 false。远端客户端本地视图整树停用，
-    /// 该束不跨端可见。精度 buff = 配件既有 Spread ×0.85 修饰符（弹道锥与准星 Gap 同源）。
+    /// 激光指示器光束（2026-09-05 用户需求）：腰射状态（Ads01 &lt; 0.5）下从激光器发出红色圆锥形射线，
+    /// 指向准星 HUD 中心对应的世界点，与准星/弹道同一套屏幕中心语义。
+    /// 渲染关键（双相机架构，用户截图实证）：光束与激光器器件必须在【同一台相机】的投影里——
+    /// 器件由 overlay 相机（FirstPersonView 层）渲染，光束跟随配件克隆层由同一台 overlay 相机
+    /// 绘制，起点天然贴合器件；瞄准射线也从该相机屏幕中心打出（与主相机同轴随动），终点收敛准星。
+    /// 早期版本把光束放 Default 层交世界相机渲染：器件（武器相机）与光束（世界相机）两套投影
+    /// 拼接产生视差——起点脱开器件、远端糊成圆斑（Scene 视图单相机看是正的，Play 视角错，实测截图）。
+    /// 挂载：仅本地第一人称视图的激光配件克隆（WeaponAttachmentView 按 LaserItemId &&
+    /// laserBeamEnabled 挂载）；TP 视图/枪匠预览/校准窗传 false。远端客户端本地视图整树停用不可见。
+    /// 精度 buff = 配件既有 Spread ×0.85 修饰符（弹道锥与准星 Gap 同源），本组件只做视觉。
     /// </summary>
     public sealed class LaserSightBeam : MonoBehaviour
     {
@@ -21,20 +21,24 @@ namespace Game.Gameplay.Weapon
         public const float BeamRange = 250f;
         /// <summary>腰射判定阈值：Ads01 低于此值视为腰射（与 CrosshairPresenter 显隐阈值一致）。</summary>
         public const float AimGateAds01 = 0.5f;
-        /// <summary>光束节点层：Default(0)=世界相机可见（层 9 会被武器相机窄 FOV 投影出视差）。</summary>
-        public const int BeamLayer = 0;
+        /// <summary>圆锥半角斜率（米/米）：物理激光发散特征，起点细、随距离线性展宽。</summary>
+        public const float BeamConeSlope = 0.004f;
 
         private LineRenderer _line;
         private GameObject _lineNode;
         private PlayerAimState _aim;
         private Transform _playerRoot;
-        private UnityEngine.Camera _cam;
+        private Camera _beamCam;
         private Vector3 _localCenter;
         private bool _centerResolved;
         private readonly RaycastHit[] _hits = new RaycastHit[16];
 
         /// <summary>腰射判定（纯函数）：Ads01 低于阈值即出束（开镜过渡过半即收束）。</summary>
         public static bool ShouldBeam(float ads01) => ads01 < AimGateAds01;
+
+        /// <summary>圆锥形束的远端宽度（纯函数）：起点固定细，远端随距离线性展宽并夹紧上下限。</summary>
+        public static float ConeEndWidth(float distance)
+            => Mathf.Clamp(distance * BeamConeSlope, 0.006f, 0.06f);
 
         private void OnEnable() => Setup();
 
@@ -55,22 +59,21 @@ namespace Game.Gameplay.Weapon
 
         private LineRenderer BuildLine()
         {
-            // 独立子节点：①层可单独固定 Default（克隆根会被装备层的递归改层覆盖到 FirstPersonView）；
-            // ②包围盒起点计算只认枪模网格，LineRenderer 自身的空 bounds 不参与
+            // 独立子节点：层随配件克隆（与器件同相机渲染），包围盒起点计算只认枪模网格
             if (_lineNode == null)
             {
                 _lineNode = new GameObject("LaserBeamLine");
                 _lineNode.transform.SetParent(transform, false);
             }
-            _lineNode.layer = BeamLayer;
+            _lineNode.layer = gameObject.layer;
             var line = _lineNode.GetComponent<LineRenderer>();
             if (line == null) line = _lineNode.AddComponent<LineRenderer>();
             line.positionCount = 2;
             line.useWorldSpace = true;
-            line.startWidth = 0.02f;
-            line.endWidth = 0.004f;
-            line.startColor = new Color(1f, 0.15f, 0.15f, 0.95f);
-            line.endColor = new Color(1f, 0.25f, 0.25f, 0.35f);
+            line.startWidth = 0.005f;
+            line.endWidth = 0.01f;
+            line.startColor = new Color(1f, 0.12f, 0.12f, 0.95f);
+            line.endColor = new Color(1f, 0.25f, 0.25f, 0.30f);
             line.numCapVertices = 2;
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
@@ -85,24 +88,38 @@ namespace Game.Gameplay.Weapon
         private void LateUpdate()
         {
             if (_line == null) return;
-            if (_lineNode.layer != BeamLayer) _lineNode.layer = BeamLayer; // 装备层递归改层后的每帧自愈
+            if (_lineNode.layer != gameObject.layer) _lineNode.layer = gameObject.layer; // 装备层递归改层后同步
             if (_aim == null)
             {
                 _aim = GetComponentInParent<PlayerAimState>();
                 _playerRoot = _aim != null ? _aim.transform : null;
             }
-            if (_cam == null) _cam = UnityEngine.Camera.main;
-            if (_cam == null || !ShouldBeam(_aim != null ? _aim.Ads01 : 0f))
+            _beamCam = ResolveBeamCamera();
+            if (_beamCam == null || !ShouldBeam(_aim != null ? _aim.Ads01 : 0f))
             {
                 _line.enabled = false;
                 return;
             }
 
             Vector3 origin = ResolveOrigin();
-            Vector3 endpoint = ResolveAimPoint();
+            float distance;
+            Vector3 endpoint = ResolveAimPoint(out distance);
             _line.SetPosition(0, origin);
             _line.SetPosition(1, endpoint);
+            _line.endWidth = ConeEndWidth(distance); // 圆锥形：远端随距离展宽
             _line.enabled = true;
+        }
+
+        /// <summary>渲染本光束的相机：cullingMask 含配件层的相机（双相机架构下即 overlay 武器相机），
+        /// 与器件同一投影——起点贴合器件、终点收敛该相机屏幕中心（与主相机同轴=准星方向）。
+        /// 无匹配时回退 Camera.main。</summary>
+        private Camera ResolveBeamCamera()
+        {
+            int layerBit = 1 << gameObject.layer;
+            foreach (var cam in Camera.allCameras)
+                if (cam != null && cam.isActiveAndEnabled && (cam.cullingMask & layerBit) != 0)
+                    return cam;
+            return Camera.main;
         }
 
         /// <summary>光束起点：激光器模型网格包围盒中心（本地系缓存一次，随枪口摆动实时变换）。
@@ -127,19 +144,23 @@ namespace Game.Gameplay.Weapon
             return transform.TransformPoint(_localCenter);
         }
 
-        /// <summary>准星中心的世界点：主相机屏幕中心射线取首个非自身命中；无命中延伸 BeamRange。</summary>
-        private Vector3 ResolveAimPoint()
+        /// <summary>准星中心的世界点：光束相机（overlay，与主相机同轴随动）屏幕中心射线，
+        /// 取首个非自身命中；无命中延伸 BeamRange。</summary>
+        private Vector3 ResolveAimPoint(out float distance)
         {
-            var ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            var ray = _beamCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
             int count = Physics.RaycastNonAlloc(ray, _hits, BeamRange);
             for (int i = 0; i < count; i++)
             {
                 var hit = _hits[i];
                 if (_playerRoot != null && hit.collider.transform.IsChildOf(_playerRoot))
                     continue; // 跳过自身（枪体/角色碰撞体），取准星真正指向的世界点
+                distance = Vector3.Distance(ResolveOrigin(), hit.point);
                 return hit.point;
             }
-            return ray.origin + ray.direction * BeamRange;
+            var far = ray.origin + ray.direction * BeamRange;
+            distance = BeamRange;
+            return far;
         }
     }
 }
