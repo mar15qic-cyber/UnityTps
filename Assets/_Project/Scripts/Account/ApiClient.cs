@@ -74,6 +74,24 @@ public sealed class ApiClient : IApiClient, IDisposable
     public Task<ApiResult<MatchResultDto>> SubmitMatchAsync(MatchSubmissionRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<MatchResultDto>("match-submit", UnityWebRequest.kHttpVerbPOST, "/api/matches", request, cancellationToken);
 
+    // ---- 房间注册表（Phase E：/api/rooms 五端点） ----
+
+    public Task<ApiResult<GameRoomDto>> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<GameRoomDto>("room-create", UnityWebRequest.kHttpVerbPOST, "/api/rooms", request, cancellationToken);
+
+    public Task<ApiResult<GameRoomDto[]>> ListRoomsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<GameRoomDto[]>("room-list", UnityWebRequest.kHttpVerbGET, "/api/rooms", null, cancellationToken);
+
+    public Task<ApiResult<GameRoomDto>> JoinRoomAsync(string roomCode, CancellationToken cancellationToken = default) =>
+        SendAsync<GameRoomDto>("room-join-" + (roomCode ?? string.Empty).ToUpperInvariant(),
+            UnityWebRequest.kHttpVerbPOST, "/api/rooms/" + UnityWebRequest.EscapeURL(roomCode ?? string.Empty) + "/join", null, cancellationToken);
+
+    public Task<ApiResult<object>> HeartbeatRoomAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<object>("room-heartbeat", UnityWebRequest.kHttpVerbPOST, "/api/rooms/heartbeat", null, cancellationToken);
+
+    public Task<ApiResult<object>> LeaveRoomAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<object>("room-leave", UnityWebRequest.kHttpVerbPOST, "/api/rooms/leave", null, cancellationToken);
+
     private async Task<ApiResult<T>> SendAsync<T>(string operationKey, string method, string path, object payload, CancellationToken cancellationToken)
     {
         if (disposed) throw new ObjectDisposedException(nameof(ApiClient));

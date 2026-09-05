@@ -19,6 +19,11 @@ public interface IApiClient
     Task<ApiResult<InventoryDto>> GetInventoryAsync(CancellationToken cancellationToken = default);
     Task<ApiResult<PurchaseResultDto>> PurchaseAsync(PurchaseRequest request, CancellationToken cancellationToken = default);
     Task<ApiResult<MatchResultDto>> SubmitMatchAsync(MatchSubmissionRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResult<GameRoomDto>> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResult<GameRoomDto[]>> ListRoomsAsync(CancellationToken cancellationToken = default);
+    Task<ApiResult<GameRoomDto>> JoinRoomAsync(string roomCode, CancellationToken cancellationToken = default);
+    Task<ApiResult<object>> HeartbeatRoomAsync(CancellationToken cancellationToken = default);
+    Task<ApiResult<object>> LeaveRoomAsync(CancellationToken cancellationToken = default);
     void SetToken(string token);
     void ClearToken();
 }
