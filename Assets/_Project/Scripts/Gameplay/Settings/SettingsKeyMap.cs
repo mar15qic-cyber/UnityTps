@@ -52,18 +52,23 @@ namespace Game.Gameplay.Settings
             return cache.TryGetValue(action, out var key) ? key : DefaultOf(action);
         }
 
-        public static void Set(Action action, Key key)
+        /// <summary>
+        /// 写入映射。persist=false 时只改运行时缓存（设置页重绑即时预览，「应用」才落 PlayerPrefs）。
+        /// </summary>
+        public static void Set(Action action, Key key, bool persist = true)
         {
             EnsureLoaded();
             cache[action] = key;
+            if (!persist) return;
             var b = Find(action);
             if (b != null) PlayerPrefs.SetString(b.prefsKey, key.ToString());
         }
 
-        public static void Reset(Action action)
+        public static void Reset(Action action, bool persist = true)
         {
             EnsureLoaded();
             cache.Remove(action);
+            if (!persist) return;
             var b = Find(action);
             if (b != null) PlayerPrefs.DeleteKey(b.prefsKey);
         }
