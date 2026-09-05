@@ -6,9 +6,10 @@ using UnityEngine;
 namespace Game.Gameplay.Tests
 {
     /// <summary>
-    /// 配件装配——出厂机械瞄具抑制（2026-09-05 用户需求）：LPFP 枪模自带
-    /// *_Iron_Sights 子件，装配拓展瞄准镜（LowZoom/HighZoom，有放大档）时必须隐藏，
-    /// 否则机瞄柱遮挡镜内视野；红点/全息（无放大）不隐藏；卸下/换装恢复原状。
+    /// 配件装配——出厂机械瞄具抑制（2026-09-05 用户需求，二次确认口径）：
+    /// LPFP 枪模自带 *_Iron_Sights 子件（SMG_01/Uzi 造型实测存在），装配【任意瞄具】
+    /// （红点/全息/低倍/高倍——不按放大档位区分，用户实测 Uzi 装红点/全息也要求隐藏）
+    /// 时必须隐藏，否则机瞄柱影响瞄具体验；卸下/换装恢复原状。
     /// 另锁定：挂点上实例化的配件子树绝不参与出厂件抑制（配件模型内部含 scope/iron
     /// 命名的部件不能被误隐藏）。
     /// </summary>
@@ -72,23 +73,6 @@ namespace Game.Gameplay.Tests
             return active;
         }
 
-        // ---- 纯函数：档位判定 ----
-
-        [Test]
-        public void MagnifiedTiers_SuppressIronSights()
-        {
-            Assert.That(WeaponAttachmentView.ShouldSuppressIronSights(OpticAimTier.LowZoom), Is.True, "低倍镜（2-4x）遮挡镜内视野");
-            Assert.That(WeaponAttachmentView.ShouldSuppressIronSights(OpticAimTier.HighZoom), Is.True, "高倍狙击镜遮挡镜内视野");
-        }
-
-        [Test]
-        public void NonMagnifiedTiers_KeepIronSights()
-        {
-            Assert.That(WeaponAttachmentView.ShouldSuppressIronSights(OpticAimTier.None), Is.False);
-            Assert.That(WeaponAttachmentView.ShouldSuppressIronSights(OpticAimTier.RedDot), Is.False, "红点无放大，机瞄不遮挡");
-            Assert.That(WeaponAttachmentView.ShouldSuppressIronSights(OpticAimTier.Holo), Is.False, "全息无放大，机瞄不遮挡");
-        }
-
         // ---- 纯函数：名字匹配（LPFP 实测命名变体） ----
 
         [Test]
@@ -97,6 +81,7 @@ namespace Game.Gameplay.Tests
             Assert.That(WeaponAttachmentView.IsStockIronSightsName("Assault_Rifle_01_Iron_Sights"), Is.True);
             Assert.That(WeaponAttachmentView.IsStockIronSightsName("Grenade_Launcher_01_Front_Iron_Sights"), Is.True);
             Assert.That(WeaponAttachmentView.IsStockIronSightsName("Grenade_Launcher_01_Back_Iron_Sights"), Is.True);
+            Assert.That(WeaponAttachmentView.IsStockIronSightsName("SMG_01_Iron_Sights"), Is.True, "Uzi 造型 SMG_01 实测命名");
             Assert.That(WeaponAttachmentView.IsStockIronSightsName("sniper_03_iron_sights"), Is.True, "大小写不敏感");
             Assert.That(WeaponAttachmentView.IsStockIronSightsName("ironsights"), Is.True, "无下划线变体");
         }
@@ -120,26 +105,29 @@ namespace Game.Gameplay.Tests
             var optic = MakeOptic(OpticAimTier.HighZoom);
             view.ApplyAttachments(null, "weapon.test", new[] { optic });
 
-            Assert.That(ironsights.gameObject.activeSelf, Is.False, "装高倍镜必须隐藏机械瞄具");
-            Assert.That(ironsights.Find("Front_Post").gameObject.activeSelf, Is.False);
-            Assert.That(stockScope.gameObject.activeSelf, Is.False, "出厂瞄具抑制（既有行为）保持");
+            // 子件用 activeInHierarchy：activeSelf 只反映自身勾选态，父级隐藏时子件 activeSelf 仍为 true
+            Assert.That(ironsights.gameObject.activeInHierarchy, Is.False, "装高倍镜必须隐藏机械瞄具（整树）");
+            Assert.That(ironsights.Find("Front_Post").gameObject.activeInHierarchy, Is.False);
+            Assert.That(stockScope.gameObject.activeInHierarchy, Is.False, "出厂瞄具抑制（既有行为）保持");
 
             // 配件本体与内部部件（含 scope/iron 命名）必须全部保持激活
             Assert.That(view.Spawned.Count, Is.EqualTo(1));
             var spawned = view.Spawned[0];
             Assert.That(spawned.name, Is.EqualTo("Att_" + optic.itemId));
-            Assert.That(spawned.activeSelf, Is.True);
+            Assert.That(spawned.activeInHierarchy, Is.True);
             Assert.That(ActiveChildrenOf(spawned.transform), Has.Count.EqualTo(2), "配件两个子件都应激活");
         }
 
         [Test]
-        public void Apply_RedDotOptic_KeepsIronsights_ButStillHidesStockScope()
+        public void Apply_RedDotOptic_AlsoHidesIronsights()
         {
             var (view, ironsights, stockScope) = BuildFakeWeapon();
             view.ApplyAttachments(null, "weapon.test", new[] { MakeOptic(OpticAimTier.RedDot) });
 
-            Assert.That(ironsights.gameObject.activeSelf, Is.True, "红点无放大：机瞄保持显示");
-            Assert.That(stockScope.gameObject.activeSelf, Is.False, "出厂瞄具抑制不区分档位（既有行为）");
+            Assert.That(ironsights.gameObject.activeInHierarchy, Is.False,
+                "任意瞄具都隐藏机瞄（用户实测 Uzi 装红点/全息的口径，不按放大档位区分）");
+            Assert.That(stockScope.gameObject.activeInHierarchy, Is.False, "出厂瞄具抑制（既有行为）保持");
+            Assert.That(view.Spawned.Count, Is.EqualTo(1), "配件本体不受抑制影响");
         }
 
         [Test]
@@ -150,8 +138,8 @@ namespace Game.Gameplay.Tests
             {
                 new AttachmentAssetEntry { itemId = "attach.muzzle.heavy", slot = AttachmentSlotType.Muzzle, prefab = _opticPrefab != null ? _opticPrefab : new GameObject("MuzzleModel") },
             });
-            Assert.That(ironsights.gameObject.activeSelf, Is.True);
-            Assert.That(stockScope.gameObject.activeSelf, Is.True);
+            Assert.That(ironsights.gameObject.activeInHierarchy, Is.True);
+            Assert.That(stockScope.gameObject.activeInHierarchy, Is.True);
         }
 
         [Test]
@@ -159,11 +147,14 @@ namespace Game.Gameplay.Tests
         {
             var (view, ironsights, stockScope) = BuildFakeWeapon();
             view.ApplyAttachments(null, "weapon.test", new[] { MakeOptic(OpticAimTier.HighZoom) });
-            Assert.That(ironsights.gameObject.activeSelf, Is.False);
+            Assert.That(ironsights.gameObject.activeInHierarchy, Is.False);
 
+            // EditMode 下 Clear 的 Destroy 会打错误日志（运行时行为正确），先行声明豁免
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+                new System.Text.RegularExpressions.Regex("Destroy may not be called from edit mode"));
             view.ApplyAttachments(null, "weapon.test", System.Array.Empty<AttachmentAssetEntry>()); // 卸下全部
-            Assert.That(ironsights.gameObject.activeSelf, Is.True, "卸下瞄具必须恢复机械瞄具");
-            Assert.That(stockScope.gameObject.activeSelf, Is.True, "卸下瞄具必须恢复出厂瞄具");
+            Assert.That(ironsights.gameObject.activeInHierarchy, Is.True, "卸下瞄具必须恢复机械瞄具");
+            Assert.That(stockScope.gameObject.activeInHierarchy, Is.True, "卸下瞄具必须恢复出厂瞄具");
         }
     }
 }
