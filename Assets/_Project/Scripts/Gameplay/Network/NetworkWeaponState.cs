@@ -90,6 +90,11 @@ namespace Game.Gameplay.Network
         /// <summary>服务器权威备弹。</summary>
         public int ReserveAmmo => _reserveAmmo.Value;
 
+        /// <summary>离线安全的本地所有权判定（HUD 消费入口）：authored player 被
+        /// SetIsNetworked(false) 后所有权缓存未建立，直接读 FishNet IsOwner 会 NRE
+        /// （Docs/23 离线回归修复）——统一走 FishNetLifecycleGuard。</summary>
+        public bool IsOwnerPlayerSafe => FishNetLifecycleGuard.IsLocalOwner(this);
+
         private void HandleServerWeaponEquipped(WeaponDefinition def)
         {
             if (IsServerInitialized)

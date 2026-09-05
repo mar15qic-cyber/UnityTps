@@ -31,8 +31,11 @@ namespace Game.Gameplay.Network
         /// FireHeld 连发时每帧调用；服务器 TryFire 自带冷却/弹药闸。</summary>
         public void SubmitFireRequest()
         {
+            // 生命周期安全序列（Docs/23 离线回归修复）：离线/authored player（未生成）不发 RPC，
+            // 也不读 FishNet IsOwner（authored player 所有权缓存未建立，直接读会 NRE）
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
             NetworkObject networkObject = NetworkObject;
-            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
                 ServerFireRequest();
         }
 
@@ -51,8 +54,9 @@ namespace Game.Gameplay.Network
         /// 自带忙碌/弹满闸。Owner 本地 TryReload（预测）与服务器通道都跑是设计意图（Docs/04 §8）。</summary>
         public void SubmitReloadRequest()
         {
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
             NetworkObject networkObject = NetworkObject;
-            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
                 ServerReloadRequest();
         }
 
@@ -67,8 +71,9 @@ namespace Game.Gameplay.Network
         /// EquipDefinition 换装 → OnWeaponEquipped → NetworkWeaponState._weaponId 广播链自动生效。</summary>
         public void SubmitSwitchRequest(int slot)
         {
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
             NetworkObject networkObject = NetworkObject;
-            if (networkObject != null && networkObject.IsOwner && !networkObject.IsServerInitialized)
+            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
                 ServerSwitchRequest(slot);
         }
 
@@ -243,7 +248,7 @@ namespace Game.Gameplay.Network
 
         public override void OnStartClient()
         {
-            if (IsOwner)
+            if (IsOwnerPlayer) // 生命周期安全判定（authored player 防护，同 IsOwnerPlayer 注释）
             {
                 // Docs/23 P1-6：本端玩家生成 → 挂载比赛 HUD（TryMount 内部幂等去重）。
                 // Gameplay 禁止引用 Presentation（三层单向依赖），按本项目反射惯例
@@ -304,8 +309,10 @@ namespace Game.Gameplay.Network
             }
         }
 
-        /// <summary>本实例是否为本地客户端所拥有（表现层区分本地/远端玩家用）。</summary>
-        public bool IsOwnerPlayer => IsOwner;
+        /// <summary>本实例是否为本地客户端所拥有（表现层区分本地/远端玩家用）。
+        /// 生命周期安全（Docs/23 离线回归修复）：离线/authored player 视为本地玩家——
+        /// authored player 被 SetIsNetworked(false) 后所有权缓存未建立，直接读 FishNet IsOwner 每帧 NRE。</summary>
+        public bool IsOwnerPlayer => FishNetLifecycleGuard.IsLocalOwner(this);
 
         // ---- ⑤ 击杀竞赛比分（Docs/23 P1-3，G4） ----
 

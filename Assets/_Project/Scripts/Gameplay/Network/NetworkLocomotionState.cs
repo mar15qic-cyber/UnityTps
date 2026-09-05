@@ -35,10 +35,10 @@ namespace Game.Gameplay.Network
             }
         }
 
-        /// <summary>远端读取接口（RemotePlayerStateView 消费）。服务器/Owner 读真实 Locomotor。</summary>
-        private bool UseRemoteState => NetworkObject != null
-            && !NetworkObject.IsOwner
-            && NetworkObject.IsClientInitialized;
+        /// <summary>远端读取接口（RemotePlayerStateView 消费）。服务器/Owner 读真实 Locomotor。
+        /// 生命周期安全（Docs/23 离线回归修复）：authored player 离线时所有权缓存未建立，
+        /// 直接读 FishNet IsOwner 会 NRE——统一走 FishNetLifecycleGuard。</summary>
+        private bool UseRemoteState => FishNetLifecycleGuard.IsRemoteProxy(this);
 
         public LocomotionState State => UseRemoteState
             ? _state.Value
