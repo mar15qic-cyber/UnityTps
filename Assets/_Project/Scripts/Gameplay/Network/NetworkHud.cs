@@ -25,6 +25,8 @@ namespace Game.Gameplay.Network
             // Docs/23 P1-2【实施适配 2】：MatchLifecycle 运行时挂载（纯 MonoBehaviour，
             // 零资产改动；NetworkHud 位于 Arena 场景 NetworkSystems 对象——已按 GUID 实地确认）
             if (GetComponent<MatchLifecycle>() == null) gameObject.AddComponent<MatchLifecycle>();
+            // Phase C：对局连接观测（客户端断线/HostLost 统一本地处理）同点挂载
+            if (GetComponent<MatchConnectionWatcher>() == null) gameObject.AddComponent<MatchConnectionWatcher>();
         }
 
         private void Update()
