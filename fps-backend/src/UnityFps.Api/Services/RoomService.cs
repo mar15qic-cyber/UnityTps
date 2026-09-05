@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using UnityFps.Api.Common;
 using UnityFps.Api.Data;
@@ -6,9 +7,19 @@ using UnityFps.Api.Features;
 namespace UnityFps.Api.Services;
 
 /// <summary>
-/// 房间注册表服务（Docs/19 N4）：房间码→房主直连地址的发现服务。
+/// 房间注册表服务（Docs/19 N4 + 退出对局 Phase E 收口）：房间码→房主直连地址的发现服务。
 /// 实时对战不走本服务（FishNet client-hosted 直连，Docs/04）；这里只管
 /// 创建/加入/列表/心跳/退出与懒清理（心跳超时 30s 的房间视为废弃）。
+/// Phase E 纪律：
+/// ① 成员计数唯一真相 = Members 导航集合（JoinedPlayers 全部路径 = Members.Count，
+///    杜绝 Join/Leave/Purge 各自维护导致漂移；JoinedPlayers 只作 DTO 投影）；
+/// ② LeaveAsync 幂等（重复离开=无成员直接返回）且走显式事务（EnableRetryOnFailure 兼容组合，
+///    同 CommerceService 模式：CreateExecutionStrategy + IsRelational 判定）；
+/// ③ JoinAsync 并发竞态由 GameRoomMember.UserId 唯一索引兜底（撞索引=他人已先行加入，
+///    重读当前房间幂等返回）；
+/// ④ 房主离开=房间解散（当前 client-hosted 拓扑的诚实语义：房主进程即服务器，
+///    独立服务器拓扑落地前，离开者人数判定以实时比赛层 MatchLeavePolicy 为准，
+///    本服务不做比赛终局语义）。
 /// </summary>
 public sealed class RoomService(AppDbContext db)
 {
@@ -28,7 +39,7 @@ public sealed class RoomService(AppDbContext db)
             HostAddress = request.HostAddress.Trim(),
             HostPort = request.HostPort,
             MaxPlayers = Math.Clamp(request.MaxPlayers, 2, 16),
-            JoinedPlayers = 1,
+            JoinedPlayers = 1, // Members.Count 投影：创建者即第一名成员
             IsOpen = true,
             CreatedAtUtc = DateTime.UtcNow,
             LastHeartbeatUtc = DateTime.UtcNow,
@@ -57,20 +68,47 @@ public sealed class RoomService(AppDbContext db)
 
     public async Task<GameRoomDto> JoinAsync(long userId, string roomCode, CancellationToken cancellationToken)
     {
-        await PurgeUserRoomsAsync(userId, cancellationToken);
-        var room = await db.GameRooms.Include(x => x.Members)
-            .SingleOrDefaultAsync(x => x.RoomCode == roomCode.ToUpperInvariant(), cancellationToken)
-            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
+        // 并发安全组合（Phase E ③）：策略 + 事务 + 唯一索引兜底，同 CommerceService 模式
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+            try
+            {
+                await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
+                var room = await db.GameRooms.Include(x => x.Members)
+                    .SingleOrDefaultAsync(x => x.RoomCode == roomCode.ToUpperInvariant(), cancellationToken)
+                    ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
 
-        if (!room.IsOpen) throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间已关闭");
-        if (room.HostUserId == userId) return ToDto(room); // 房主重入
-        if (room.Members.Count >= room.MaxPlayers)
-            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomFull, "房间已满");
+                if (!room.IsOpen) throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间已关闭");
+                if (room.Members.Any(x => x.UserId == userId))
+                {
+                    // 幂等重入（并发重放/重复点击）：已是成员直接返回当前房间
+                    if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                    return ToDto(room);
+                }
+                if (room.Members.Count >= room.MaxPlayers)
+                    throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomFull, "房间已满");
 
-        room.Members.Add(new GameRoomMember { UserId = userId, JoinedAtUtc = DateTime.UtcNow });
-        room.JoinedPlayers = room.Members.Count;
-        await db.SaveChangesAsync(cancellationToken);
-        return ToDto(room);
+                room.Members.Add(new GameRoomMember { UserId = userId, JoinedAtUtc = DateTime.UtcNow });
+                room.JoinedPlayers = room.Members.Count; // Members 为真相
+                await db.SaveChangesAsync(cancellationToken);
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return ToDto(room);
+            }
+            catch (DbUpdateException) when (db.Database.IsRelational())
+            {
+                // 并发加入竞态：唯一索引(UserId) 撞键=他人/自己已先行落库 → 重读幂等返回
+                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                db.ChangeTracker.Clear();
+                var room = await db.GameRooms.Include(x => x.Members).AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Members.Any(m => m.UserId == userId), cancellationToken);
+                if (room is not null) return ToDto(room);
+                throw;
+            }
+        });
     }
 
     public async Task HeartbeatAsync(long userId, CancellationToken cancellationToken)
@@ -83,33 +121,68 @@ public sealed class RoomService(AppDbContext db)
 
     public async Task LeaveAsync(long userId, CancellationToken cancellationToken)
     {
-        var membership = await db.GameRoomMembers.Include(x => x.Room)
-            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
-        if (membership is null) return;
-        var room = membership.Room;
-        db.GameRoomMembers.Remove(membership);
-        if (room.HostUserId == userId)
+        // Phase E ②：显式事务 + 幂等；成员计数以 Members 为真相
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            // 房主离开=房间解散
-            db.GameRooms.Remove(room);
-        }
-        else
-        {
-            room.JoinedPlayers = Math.Max(1, room.Members.Count - 1);
-        }
-        await db.SaveChangesAsync(cancellationToken);
+            db.ChangeTracker.Clear();
+            await using var transaction = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+            try
+            {
+                var membership = await db.GameRoomMembers.Include(x => x.Room).ThenInclude(r => r.Members)
+                    .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+                if (membership is null)
+                {
+                    // 幂等：未在任何房间（重复离开/未加入）
+                    if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                    return;
+                }
+                var room = membership.Room;
+                var memberRow = room.Members.Single(x => x.UserId == userId);
+                room.Members.Remove(memberRow);
+                db.GameRoomMembers.Remove(membership);
+                if (room.HostUserId == userId)
+                {
+                    // 房主离开=房间解散（client-hosted：房主进程即服务器，见类注释④）
+                    db.GameRooms.Remove(room);
+                }
+                else
+                {
+                    room.JoinedPlayers = room.Members.Count; // Members 为真相（不再手工 ±1）
+                }
+                await db.SaveChangesAsync(cancellationToken);
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateException) when (db.Database.IsRelational())
+            {
+                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                db.ChangeTracker.Clear();
+                // 重放幂等兜底：并发下成员可能已被其他请求移除，确认不存在即成功返回
+                var stillThere = await db.GameRoomMembers.AsNoTracking()
+                    .AnyAsync(x => x.UserId == userId, cancellationToken);
+                if (stillThere) throw;
+            }
+        });
     }
 
     private async Task PurgeUserRoomsAsync(long userId, CancellationToken cancellationToken)
+        => await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
+
+    /// <summary>旧房清理（Unsafe=调用方已处于策略/事务上下文）：成员集合删除 + JoinedPlayers 重算。</summary>
+    private async Task PurgeUserRoomsUnsafeAsync(long userId, CancellationToken cancellationToken)
     {
-        var member = await db.GameRoomMembers.Include(x => x.Room)
+        var member = await db.GameRoomMembers.Include(x => x.Room).ThenInclude(r => r.Members)
             .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
         if (member is null) return;
+        var room = member.Room;
+        var memberRow = room.Members.Single(x => x.UserId == userId);
+        room.Members.Remove(memberRow);
         db.GameRoomMembers.Remove(member);
-        if (member.Room.HostUserId == userId)
-            db.GameRooms.Remove(member.Room);
+        if (room.HostUserId == userId)
+            db.GameRooms.Remove(room);
         else
-            member.Room.JoinedPlayers = Math.Max(1, member.Room.Members.Count - 1);
+            room.JoinedPlayers = room.Members.Count; // Members 为真相（修复旧实现缺 Include 的脏计数）
         await db.SaveChangesAsync(cancellationToken);
     }
 

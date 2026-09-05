@@ -114,4 +114,126 @@ public sealed class RoomApiTests : IClassFixture<ApiFactory>
         var response = await client.GetAsync("/api/rooms");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    // ---- 退出对局 Phase E：Leave 幂等 / 人数真相 / 并发 ----
+
+    [Fact]
+    public async Task MemberLeaveInTwoPlayerRoomReducesToOneAndKeepsRoom()
+    {
+        var (hostToken, _) = await RegisterAsync();
+        var hostClient = AuthorizedClient(hostToken);
+        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.9", maxPlayers = 4 });
+        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+
+        var (guestToken, _) = await RegisterAsync();
+        var guestClient = AuthorizedClient(guestToken);
+        await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+
+        var leave = await guestClient.PostAsync("/api/rooms/leave", null);
+        Assert.Equal(HttpStatusCode.OK, leave.StatusCode);
+
+        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        var room = Assert.Single(list, r => r.GetProperty("roomCode").GetString() == code);
+        Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
+        Assert.True(room.GetProperty("isOpen").GetBoolean());
+    }
+
+    [Fact]
+    public async Task MemberLeaveInThreePlayerRoomOnlyDecrements()
+    {
+        var (hostToken, _) = await RegisterAsync();
+        var hostClient = AuthorizedClient(hostToken);
+        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.10", maxPlayers = 8 });
+        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+
+        var guestTokens = new List<string>();
+        for (var i = 0; i < 2; i++)
+        {
+            var (t, _) = await RegisterAsync();
+            guestTokens.Add(t);
+            await AuthorizedClient(t).PostAsync($"/api/rooms/{code}/join", null);
+        }
+        var before = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        Assert.Equal(3, before.Single(r => r.GetProperty("roomCode").GetString() == code).GetProperty("joinedPlayers").GetInt32());
+
+        await AuthorizedClient(guestTokens[0]).PostAsync("/api/rooms/leave", null);
+
+        var after = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        var room = after.Single(r => r.GetProperty("roomCode").GetString() == code);
+        Assert.Equal(2, room.GetProperty("joinedPlayers").GetInt32());
+        Assert.True(room.GetProperty("isOpen").GetBoolean(), ">2 人局非房主退出仅减员，房间继续开放");
+    }
+
+    [Fact]
+    public async Task LeaveReplayIsIdempotent()
+    {
+        var (hostToken, _) = await RegisterAsync();
+        var hostClient = AuthorizedClient(hostToken);
+        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.11", maxPlayers = 4 });
+        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+
+        var (guestToken, _) = await RegisterAsync();
+        var guestClient = AuthorizedClient(guestToken);
+        await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+
+        var first = await guestClient.PostAsync("/api/rooms/leave", null);
+        var replay = await guestClient.PostAsync("/api/rooms/leave", null);
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // 重复离开=幂等成功
+
+        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        var room = list.Single(r => r.GetProperty("roomCode").GetString() == code);
+        Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 重放不得二次减员
+    }
+
+    [Fact]
+    public async Task ConcurrentMemberLeavesAreAllApplied()
+    {
+        var (hostToken, _) = await RegisterAsync();
+        var hostClient = AuthorizedClient(hostToken);
+        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.12", maxPlayers = 8 });
+        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+
+        var clients = new List<HttpClient>();
+        for (var i = 0; i < 3; i++)
+        {
+            var (t, _) = await RegisterAsync();
+            var c = AuthorizedClient(t);
+            clients.Add(c);
+            await c.PostAsync($"/api/rooms/{code}/join", null);
+        }
+
+        var leaves = await Task.WhenAll(clients.Select(c => c.PostAsync("/api/rooms/leave", null)));
+        Assert.All(leaves, l => Assert.Equal(HttpStatusCode.OK, l.StatusCode));
+
+        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        var room = list.Single(r => r.GetProperty("roomCode").GetString() == code);
+        Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 并发退出后 Members.Count 为真相
+    }
+
+    [Fact]
+    public async Task DuplicateJoinIsIdempotent()
+    {
+        var (hostToken, _) = await RegisterAsync();
+        var hostClient = AuthorizedClient(hostToken);
+        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.13", maxPlayers = 4 });
+        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+
+        var (guestToken, _) = await RegisterAsync();
+        var guestClient = AuthorizedClient(guestToken);
+        var first = await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+        var replay = await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // 重复加入（重入）=幂等返回当前房间
+
+        var joined = await replay.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, joined.GetProperty("joinedPlayers").GetInt32()); // 重复加入不得重复计数
+    }
+
+    [Fact]
+    public async Task LeaveWithoutTokenIsRejected()
+    {
+        var response = await client.PostAsync("/api/rooms/leave", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }
