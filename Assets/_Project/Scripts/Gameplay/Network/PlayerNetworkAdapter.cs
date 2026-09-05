@@ -129,8 +129,8 @@ namespace Game.Gameplay.Network
                 // 服务器权威模拟：Host 上对自己（IsOwner）直接采输入；远端玩家输入经 _pendingCommand
                 if (IsOwner && _input != null && _locomotor != null)
                 {
-                    // Docs/23 P1-5：倒计时冻结 / Host 自己死亡期间不模拟（命令不采、不发）
-                    if (MovementFrozen) return;
+                    // Docs/23 P1-5：倒计时冻结 / Host 自己死亡 / 本地菜单打开期间不模拟（命令不采、不发）
+                    if (LocalMovementFrozen) return;
                     // Docs/23 P0-4：俯仰增量随命令上行（系数与 yaw 同为 0.1f，抬头为正）
                     var cmd = new MovementCommand(
                         _input.Move, _input.Sprint, _input.JumpQueued,
@@ -160,8 +160,8 @@ namespace Game.Gameplay.Network
             }
             else if (IsOwner && _locomotor != null)
             {
-                // Docs/23 P1-5：死亡期/倒计时输入冻结（跳过 Simulate/上报/开火请求）
-                if (MovementFrozen) return;
+                // Docs/23 P1-5：死亡期/倒计时/本地菜单输入冻结（跳过 Simulate/上报/开火请求）
+                if (LocalMovementFrozen) return;
                 // 纯客户端的 Owner：本地直接模拟 + 上报命令（当前演示用"客户端先跑、服务器校正"简式；
                 // FishNet PredictedOwner/N3 阶段替换为标准预测）
                 var cmd = new MovementCommand(
@@ -187,9 +187,15 @@ namespace Game.Gameplay.Network
         private WeaponController _weaponController;
         private NetworkCombatAuthority _combatAuthority;
 
-        /// <summary>移动/输入冻结（Docs/23 P1-5）：倒计时期间（全局镜像）或本实例玩家已死亡。</summary>
+        /// <summary>移动/输入冻结（实例级）：倒计时期间（全局镜像）或本实例玩家已死亡。
+        /// 服务器上远端玩家实例只看这两项（宿主本地菜单门控绝不影响远端模拟）。</summary>
         private bool MovementFrozen
             => MatchLifecycle.InputFrozen || (_combatAuthority != null && _combatAuthority.IsDead);
+
+        /// <summary>本地 Owner 附加冻结（Phase A）：本地菜单/终局硬锁/死亡——菜单打开时
+        /// 不采输入、不向服务器发送新玩家命令与战斗请求（Time.timeScale 恒为 1，不暂停网络）。</summary>
+        private bool LocalMovementFrozen
+            => MovementFrozen || Menu.GameplayInputGate.InputBlocked;
 
         // ---- 远端玩家 → 服务器 输入通道 ----
 
