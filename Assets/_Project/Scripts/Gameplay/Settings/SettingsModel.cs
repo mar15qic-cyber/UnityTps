@@ -1,17 +1,23 @@
 using System;
-using System.Collections.Generic;
+using Game.Core;
 using UnityEngine;
 
-namespace Game.UI
+namespace Game.Gameplay.Settings
 {
     /// <summary>
     /// 设置数据模型与本地持久化（PlayerPrefs）。逻辑与 UI 分离，EditMode 可直测。
-    /// 覆盖：全局音量、鼠标灵敏度、分辨率、锁帧；键位映射见 SettingsKeyMap。
+    /// 覆盖：Master/Music/SFX 三层音量、鼠标灵敏度、分辨率、锁帧；键位映射见 SettingsKeyMap。
+    /// 2026-09-05 自 Game.UI 迁入 Gameplay 程序集（共享设置单真相重构）：
+    /// InputReader（Gameplay）直接消费 Sensitivity，大厅与 Arena 共用同一持久值，
+    /// Gameplay 层不反向依赖 Game.UI。
+    /// 音量分层：Master = AudioListener.volume（唯一总衰减，明确的 Master 方案，
+    /// 不与 Mixer Master 重复叠加）；Music/SFX = AudioBus 分类因子，在音频源侧消费。
     /// </summary>
     public static class SettingsModel
     {
         public const string MusicVolumeKey = "unityfps.settings.music";
         public const string MasterVolumeKey = "unityfps.settings.volume.master";
+        public const string SfxVolumeKey = "unityfps.settings.sfx";
         public const string SensitivityKey = "unityfps.settings.sensitivity";
         public const string ResolutionKey = "unityfps.settings.resolution";   // "WxH"
         public const string FullscreenKey = "unityfps.settings.fullscreen";   // 0/1
@@ -24,21 +30,34 @@ namespace Game.UI
 
         public static readonly int[] FrameCapOptions = { -1, 30, 60, 120, 144, 240 };
 
+        // ---- 出厂默认（SettingsDraft「恢复默认」与首启共用同一常量） ----
+
+        public const float DefaultMasterVolume = 1f;
+        public const float DefaultMusicVolume = 1f;
+        public const float DefaultSfxVolume = 1f;
+        public const float DefaultSensitivity = 1f;
+
         public static float MasterVolume
         {
-            get => PlayerPrefs.GetFloat(MasterVolumeKey, 1f);
+            get => PlayerPrefs.GetFloat(MasterVolumeKey, DefaultMasterVolume);
             set => PlayerPrefs.SetFloat(MasterVolumeKey, Mathf.Clamp01(value));
         }
 
         public static float MusicVolume
         {
-            get => PlayerPrefs.GetFloat(MusicVolumeKey, 1f);
+            get => PlayerPrefs.GetFloat(MusicVolumeKey, DefaultMusicVolume);
             set => PlayerPrefs.SetFloat(MusicVolumeKey, Mathf.Clamp01(value));
+        }
+
+        public static float SfxVolume
+        {
+            get => PlayerPrefs.GetFloat(SfxVolumeKey, DefaultSfxVolume);
+            set => PlayerPrefs.SetFloat(SfxVolumeKey, Mathf.Clamp01(value));
         }
 
         public static float Sensitivity
         {
-            get => PlayerPrefs.GetFloat(SensitivityKey, 1f);
+            get => PlayerPrefs.GetFloat(SensitivityKey, DefaultSensitivity);
             set => PlayerPrefs.SetFloat(SensitivityKey, Mathf.Clamp(value, 0.1f, 5f));
         }
 
@@ -82,10 +101,17 @@ namespace Game.UI
 
         public static string FormatResolution((int w, int h) r) => $"{r.w} × {r.h}";
 
-        /// <summary>应用全局音量到 AudioListener。需在运行线程调用。</summary>
+        /// <summary>应用 Master 音量到 AudioListener（唯一 Master 衰减点）。需在运行线程调用。</summary>
         public static void ApplyMasterVolume()
         {
             AudioListener.volume = MasterVolume;
+        }
+
+        /// <summary>应用 Music/SFX 分类因子到 AudioBus（音频源侧消费；0 = 真静音）。</summary>
+        public static void ApplyCategoryVolumes()
+        {
+            AudioBus.MusicVolume = MusicVolume;
+            AudioBus.SfxVolume = SfxVolume;
         }
 
         /// <summary>应用锁帧。vSync 关闭时 targetFrameRate 才生效。</summary>
@@ -103,10 +129,11 @@ namespace Game.UI
                 Screen.SetResolution(r.w, r.h, Fullscreen);
         }
 
-        /// <summary>一次性应用所有画质/音频设置（启动时调用）。</summary>
+        /// <summary>一次性应用所有音频/画质设置（启动时调用；SettingsRuntime.Initialize 亦走此入口）。</summary>
         public static void ApplyAll()
         {
             ApplyMasterVolume();
+            ApplyCategoryVolumes();
             ApplyFrameCap();
             ApplyResolution();
         }

@@ -138,17 +138,27 @@ namespace Game.Gameplay.Tests
             Assert.That(page.Find("KeybindCard"), Is.Not.Null);
             Assert.That(page.Find("GraphicsCard"), Is.Not.Null);
 
+            // 共享设置 Phase B：音量三层（Master/Music/SFX）+ 灵敏度 = 4 条滑杆
             var sliders = page.Find("AudioCard").GetComponentsInChildren<Slider>(true);
-            Assert.That(sliders.Length, Is.EqualTo(3));
-            var adsToggle = page.Find("AudioCard").Find("AdsModeToggle");
-            Assert.That(adsToggle, Is.Not.Null, "设置页应有开镜方式切换按钮");
-            Assert.That(AllTexts(page.Find("AudioCard")), Has.Some.StartsWith("开镜方式："));
+            Assert.That(sliders.Length, Is.EqualTo(4));
+            var cardTexts = AllTexts(page.Find("AudioCard"));
+            Assert.That(cardTexts, Has.Some.EqualTo("主音量"));
+            Assert.That(cardTexts, Has.Some.EqualTo("音乐音量"));
+            Assert.That(cardTexts, Has.Some.EqualTo("音效音量"));
+            Assert.That(cardTexts, Has.Some.StartsWith("鼠标灵敏度"));
             var keyTexts = AllTexts(page.Find("KeybindCard"));
             Assert.That(keyTexts, Has.Member("前进"));
             Assert.That(keyTexts, Has.Member("换弹"));
+            Assert.That(keyTexts, Has.Member("快速切枪"));
             var gfxTexts = AllTexts(page.Find("GraphicsCard"));
             Assert.That(gfxTexts, Has.Member("分辨率"));
             Assert.That(gfxTexts, Has.Member("帧率上限"));
+            Assert.That(gfxTexts, Has.Some.StartsWith("开镜方式："));
+            // 应用 / 取消（回滚）操作行（Phase B 语义）
+            var pageTexts = AllTexts(page);
+            Assert.That(pageTexts, Has.Member("应用并保存"));
+            Assert.That(pageTexts, Has.Member("取消（回滚）"));
+            Assert.That(pageTexts, Has.Member("恢复默认"));
         }
 
         [Test]
