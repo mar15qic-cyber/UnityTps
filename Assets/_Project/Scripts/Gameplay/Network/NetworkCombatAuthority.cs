@@ -91,6 +91,34 @@ namespace Game.Gameplay.Network
             _controller.EquipDefinition(slots[slot]);
         }
 
+        // ---- ①c 退出对局（Phase C）：Owner 请求，服务器权威判定人数与终局语义 ----
+
+        /// <summary>Owner（菜单「退出对局」确认后）调用：把离开意图发服务器。客户端不上报人数。</summary>
+        public void SubmitLeaveMatchRequest()
+        {
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
+                ServerLeaveMatchRequest();
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerLeaveMatchRequest()
+        {
+            // 服务器权威：移除前统计有效人数 → 2 人终局（PlayerLeft）/ >2 仅移除（MatchLeavePolicy）
+            MatchLifecycle.ServerRequestLeave(this, PlayerLeaveReason.Voluntary);
+        }
+
+        /// <summary>本实例 Owner 的稳定客户端 id（未生成/无 Owner 返回 -1）。终局载荷 playerId 同源。</summary>
+        public long OwnerClientId
+        {
+            get
+            {
+                var nob = NetworkObject;
+                return nob != null && nob.Owner != null ? nob.Owner.ClientId : -1;
+            }
+        }
+
         // ---- ② 开火表现广播（服务器事件 → 全端） ----
 
         public override void OnStartServer()
@@ -100,6 +128,12 @@ namespace Game.Gameplay.Network
                 _controller.OnShotFired += HandleServerShot;
                 _controller.OnDryFire += HandleServerDryFire;
             }
+        }
+
+        public override void OnStopServer()
+        {
+            // 玩家对象移除（退出/断线/场景重置）：清掉本实例相关的命中归因登记，防跨局泄漏
+            MatchLifecycle.ClearHitEntriesFor(this);
         }
 
         private void OnDestroy()
@@ -250,6 +284,8 @@ namespace Game.Gameplay.Network
         {
             if (IsOwnerPlayer) // 生命周期安全判定（authored player 防护，同 IsOwnerPlayer 注释）
             {
+                // Phase A：本地 Owner 生成 → 挂载游戏菜单（MenuMountPolicy 幂等闸；远端玩家不生成菜单）
+                Gameplay.Menu.GameplayMenuController.EnsureMounted();
                 // Docs/23 P1-6：本端玩家生成 → 挂载比赛 HUD（TryMount 内部幂等去重）。
                 // Gameplay 禁止引用 Presentation（三层单向依赖），按本项目反射惯例
                 // （同 PlayerNetworkAdapter.WireRemotePresentation）按名调静态入口，try-null 兜底

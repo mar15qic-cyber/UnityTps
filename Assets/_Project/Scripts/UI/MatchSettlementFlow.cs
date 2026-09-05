@@ -71,21 +71,21 @@ namespace Game.UI
                 return;
             }
 
-            // 自条目匹配：按 (kills, deaths) 对齐（平局时双方条目相同，任一匹配等价——
-            // MatchRules 保证非平局时双方 (kills,deaths) 必不相同）
+            // 导航权接管（Phase C）：Ended 已到达 → 本次回大厅由结算流负责，
+            // 退出流程/断线观测看到置位后不再重复 LoadScene（MatchExitState 同源仲裁）
+            MatchExitState.SettlementNavigationPending = true;
+
+            // 自条目匹配（Phase C 补强）：优先按稳定 playerId（服务器载荷与 kill feed 同源）；
+            // 无 playerId 的旧载荷回退 (kills, deaths) 对齐
+            var myId = MatchLifecycle.PlayerId(local);
             MatchLifecycle.MatchPlayerResult mine = null;
-            MatchLifecycle.MatchPlayerResult other = null;
             foreach (var entry in ended.players)
             {
                 if (entry == null) continue;
-                if (entry.kills == local.Kills && entry.deaths == local.Deaths && mine == null)
-                {
-                    mine = entry;
-                }
-                else
-                {
-                    other = entry;
-                }
+                bool isMine = !string.IsNullOrEmpty(entry.playerId)
+                    ? entry.playerId == myId
+                    : entry.kills == local.Kills && entry.deaths == local.Deaths && mine == null;
+                if (isMine && mine == null) mine = entry;
             }
             if (mine == null)
             {
@@ -94,7 +94,11 @@ namespace Game.UI
                 return;
             }
 
-            LastVerdictText = mine.isWin ? "VICTORY" : (other != null && other.isWin ? "DEFEAT" : "DRAW");
+            // 胜负文案：本条 isWin → VICTORY；其余任一条 isWin → DEFEAT；否则 DRAW（多人一致）
+            bool someoneElseWon = false;
+            foreach (var entry in ended.players)
+                if (entry != null && entry != mine && entry.isWin) { someoneElseWon = true; break; }
+            LastVerdictText = mine.isWin ? "VICTORY" : (someoneElseWon ? "DEFEAT" : "DRAW");
             var request = new MatchSubmissionRequest
             {
                 clientMatchId = MatchLifecycle.ClientMatchId,

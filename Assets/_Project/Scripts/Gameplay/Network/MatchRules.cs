@@ -32,5 +32,50 @@ namespace Game.Gameplay.Network
             if (deathsA != deathsB) return deathsA < deathsB ? 1 : -1;
             return 0;
         }
+
+        /// <summary>
+        /// 多人胜负判定（Phase C 修正：&gt;2 人局不再只取前两名，全部玩家参与排名）：
+        /// ① 未超时且最高击杀 ≥ TargetKills 且该击杀数唯一 → 该玩家即时胜；
+        /// ② 否则按「击杀最多 → 死亡最少」排名；(击杀, 死亡) 完全并列 → 平局（返回 -1，全部 isWin=false）。
+        /// 返回胜者下标；-1 = 平局或入参无效。纯函数，EditMode 可测。
+        /// </summary>
+        public static int EvaluateWinnerMulti(int[] kills, int[] deaths, bool timedOut)
+        {
+            if (kills == null || deaths == null) return -1;
+            if (kills.Length == 0 || kills.Length != deaths.Length) return -1;
+
+            int maxKills = int.MinValue;
+            for (int i = 0; i < kills.Length; i++)
+                if (kills[i] > maxKills) maxKills = kills[i];
+
+            if (!timedOut && maxKills >= TargetKills)
+            {
+                int holder = -1;
+                bool tied = false;
+                for (int i = 0; i < kills.Length; i++)
+                {
+                    if (kills[i] != maxKills) continue;
+                    if (holder == -1) holder = i;
+                    else { tied = true; break; }
+                }
+                if (!tied) return holder; // 唯一达标者即时胜
+            }
+
+            // 排名比较：击杀多者优先；击杀同则死亡少者优先
+            int best = 0;
+            for (int i = 1; i < kills.Length; i++)
+            {
+                if (kills[i] > kills[best] ||
+                    (kills[i] == kills[best] && deaths[i] < deaths[best]))
+                    best = i;
+            }
+            // (击杀, 死亡) 并列 → 平局
+            for (int i = 0; i < kills.Length; i++)
+            {
+                if (i != best && kills[i] == kills[best] && deaths[i] == deaths[best])
+                    return -1;
+            }
+            return best;
+        }
     }
 }
