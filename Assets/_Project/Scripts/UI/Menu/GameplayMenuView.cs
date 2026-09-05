@@ -47,7 +47,8 @@ namespace Game.UI.Menu
         {
             if (controller == null) return;
             EnsureEventSystem();
-            if (FindFirstObjectByType<GameplayMenuView>() != null) return;
+            // 画布初始即隐藏（SetActive(false)）——幂等闸必须含未激活对象，否则重复挂载会造出第二套
+            if (FindFirstObjectByType<GameplayMenuView>(FindObjectsInactive.Include) != null) return;
             var canvasGo = new GameObject("GameplayMenuCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -55,6 +56,7 @@ namespace Game.UI.Menu
             canvasGo.GetComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasGo.GetComponent<CanvasScaler>().referenceResolution = new Vector2(1920, 1080);
             var view = canvasGo.AddComponent<GameplayMenuView>();
+            view._controller = controller; // 回接控制器（视图所有交互都经它；缺失=菜单永久隐形）
             view.Build();
             controller.AttachView(view);
         }
