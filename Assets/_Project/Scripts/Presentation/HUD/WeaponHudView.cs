@@ -59,8 +59,15 @@ namespace Game.Presentation.HUD
                 SetAmmo(current, reserve, false); // 在线：服务器权威弹药（Docs/23 P0-3）
         }
 
+        /// <summary>HUD 弹药数据源判定（纯函数，可测；Docs/23 离线回归修复）：
+        /// 网络已启动且已定位本地玩家网络状态 → 读服务器权威值；否则回退本地事件路径。
+        /// 网络未启动时即使引用残留也必须回本地——authored player 直接读 FishNet 所有权会 NRE。</summary>
+        public static bool ShouldReadAuthoritativeAmmo(bool networkActive, bool hasOwnerNetworkState)
+            => networkActive && hasOwnerNetworkState;
+
         /// <summary>查找本地玩家（Owner）的 NetworkWeaponState 并读权威弹药。找不到（离线/未生成）
-        /// 时低频重扫避免每帧开销；断线后组件随网络对象销毁，引用失效自动回退本地事件路径（F3 语义）。</summary>
+        /// 时低频重扫避免每帧开销；断线后组件随网络对象销毁，引用失效自动回退本地事件路径（F3 语义）。
+        /// 所有权判定一律走 NetworkWeaponState.IsOwnerPlayerSafe（生命周期安全）。</summary>
         private bool TryGetAuthoritativeAmmo(out int current, out int reserve)
         {
             if (_netWeaponState == null)
@@ -71,11 +78,14 @@ namespace Game.Presentation.HUD
                     _netScanTimer = 0.5f;
                     foreach (var state in FindObjectsByType<Game.Gameplay.Network.NetworkWeaponState>(FindObjectsSortMode.None))
                     {
-                        if (state.IsOwner) { _netWeaponState = state; break; }
+                        if (state.IsOwnerPlayerSafe) { _netWeaponState = state; break; }
                     }
                 }
             }
-            if (_netWeaponState == null)
+            // 数据源门（纯函数）：离线/网络未启动 → 不读网络状态（哪怕引用残留），走本地路径
+            if (!ShouldReadAuthoritativeAmmo(
+                    Game.Gameplay.Network.FishNetLifecycleGuard.IsNetworkActive(),
+                    _netWeaponState != null))
             {
                 current = 0;
                 reserve = 0;

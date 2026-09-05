@@ -22,12 +22,25 @@ namespace Game.Core
 
         public WeaponStat GetWeaponStat(string weaponId)
         {
-            EnsureLookup();
-            if (!string.IsNullOrWhiteSpace(weaponId) && _lookup.TryGetValue(weaponId, out var stat))
+            if (TryGetWeaponStat(weaponId, out var stat))
                 return Sanitize(stat);
 
-            Debug.LogError($"[Balance] Missing weapon stat for '{weaponId}'.");
+            // 显式失败门（Docs/23 实机复盘 2026-09-05）：缺项禁止静默转成伪合法 1/0——
+            // 返回值仍为 Sanitize(default)（调用方 WeaponController 禁改区，无法在此阻断构造），
+            // 但诊断必须可观测：带 weaponId 单条报错，EditMode 完整性测试会因此拦截正式配装缺项
+            Debug.LogError($"[Balance] Missing weapon stat for '{weaponId}' — 禁止作为正式配装数值使用（当前降级为 1/0 占位，将无法正常战斗）。请补录 Balance 条目。");
             return Sanitize(default);
+        }
+
+        /// <summary>显式查询（Docs/23 实机复盘修复）：缺项返回 false，不产生 1/0 伪合法数值。
+        /// 正式配装链路（目录 → Definition → Balance）应先经此校验再放行进入可战斗状态。</summary>
+        public bool TryGetWeaponStat(string weaponId, out WeaponStat stat)
+        {
+            EnsureLookup();
+            if (!string.IsNullOrWhiteSpace(weaponId) && _lookup.TryGetValue(weaponId, out stat))
+                return true;
+            stat = default;
+            return false;
         }
 
         public int GetFinalDamage(string weaponId, int upDamageLv)

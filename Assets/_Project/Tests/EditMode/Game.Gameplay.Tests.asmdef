@@ -7,6 +7,7 @@
         "Game.Presentation",
         "Game.Account",
         "Game.UI",
+        "FishNet.Runtime",
         "Newtonsoft.Json",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
