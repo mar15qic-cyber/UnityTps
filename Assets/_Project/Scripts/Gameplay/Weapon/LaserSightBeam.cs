@@ -9,6 +9,7 @@ namespace Game.Gameplay.Weapon
     /// 渲染关键（双相机架构，用户截图实证）：光束与激光器器件必须在【同一台相机】的投影里——
     /// 器件由 overlay 相机（FirstPersonView 层）渲染，光束跟随配件克隆层由同一台 overlay 相机
     /// 绘制，起点天然贴合器件；瞄准射线也从该相机屏幕中心打出（与主相机同轴随动），终点收敛准星。
+    /// 束形（用户定案）：宽到细——激光器端宽、命中点端细，向准星命中点汇聚成锥。
     /// 早期版本把光束放 Default 层交世界相机渲染：器件（武器相机）与光束（世界相机）两套投影
     /// 拼接产生视差——起点脱开器件、远端糊成圆斑（Scene 视图单相机看是正的，Play 视角错，实测截图）。
     /// 挂载：仅本地第一人称视图的激光配件克隆（WeaponAttachmentView 按 LaserItemId &&
@@ -21,7 +22,7 @@ namespace Game.Gameplay.Weapon
         public const float BeamRange = 250f;
         /// <summary>腰射判定阈值：Ads01 低于此值视为腰射（与 CrosshairPresenter 显隐阈值一致）。</summary>
         public const float AimGateAds01 = 0.5f;
-        /// <summary>圆锥半角斜率（米/米）：物理激光发散特征，起点细、随距离线性展宽。</summary>
+        /// <summary>圆锥斜率（米/米）：光束自激光器（宽）向命中点（细）线性收束，符合锥形视效。</summary>
         public const float BeamConeSlope = 0.004f;
 
         private LineRenderer _line;
@@ -36,8 +37,9 @@ namespace Game.Gameplay.Weapon
         /// <summary>腰射判定（纯函数）：Ads01 低于阈值即出束（开镜过渡过半即收束）。</summary>
         public static bool ShouldBeam(float ads01) => ads01 < AimGateAds01;
 
-        /// <summary>圆锥形束的远端宽度（纯函数）：起点固定细，远端随距离线性展宽并夹紧上下限。</summary>
-        public static float ConeEndWidth(float distance)
+        /// <summary>锥形束的起点宽度（纯函数，激光器端）：随到命中点的距离线性展宽并夹紧上下限；
+        /// 终点（命中点）恒为细束 0.004——宽到细、向准星命中点汇聚。</summary>
+        public static float ConeStartWidth(float distance)
             => Mathf.Clamp(distance * BeamConeSlope, 0.006f, 0.06f);
 
         private void OnEnable() => Setup();
@@ -70,10 +72,10 @@ namespace Game.Gameplay.Weapon
             if (line == null) line = _lineNode.AddComponent<LineRenderer>();
             line.positionCount = 2;
             line.useWorldSpace = true;
-            line.startWidth = 0.005f;
-            line.endWidth = 0.01f;
-            line.startColor = new Color(1f, 0.12f, 0.12f, 0.95f);
-            line.endColor = new Color(1f, 0.25f, 0.25f, 0.30f);
+            line.startWidth = 0.02f;  // 激光器端宽（实际宽度 LateUpdate 按 ConeStartWidth 距离赋值）
+            line.endWidth = 0.004f;   // 命中点端细（收敛点亮心）
+            line.startColor = new Color(1f, 0.15f, 0.15f, 0.45f); // 宽端半透
+            line.endColor = new Color(1f, 0.30f, 0.30f, 0.95f);   // 细端亮心（命中点）
             line.numCapVertices = 2;
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
@@ -106,7 +108,8 @@ namespace Game.Gameplay.Weapon
             Vector3 endpoint = ResolveAimPoint(out distance);
             _line.SetPosition(0, origin);
             _line.SetPosition(1, endpoint);
-            _line.endWidth = ConeEndWidth(distance); // 圆锥形：远端随距离展宽
+            _line.startWidth = ConeStartWidth(distance); // 圆锥形：激光器端宽，向命中点收细
+            _line.endWidth = 0.004f;
             _line.enabled = true;
         }
 

@@ -108,13 +108,14 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void ConeEndWidth_GrowsWithDistance_Clamped()
+        public void ConeStartWidth_GrowsWithDistance_Clamped()
         {
-            Assert.That(LaserSightBeam.ConeEndWidth(0f), Is.EqualTo(0.006f).Within(0.0001f), "贴墙极近也保底可见");
-            Assert.That(LaserSightBeam.ConeEndWidth(1f), Is.EqualTo(0.006f).Within(0.0001f), "近距夹下限");
-            Assert.That(LaserSightBeam.ConeEndWidth(5f), Is.EqualTo(0.02f).Within(0.0001f), "5m 按斜率线性展宽");
-            Assert.That(LaserSightBeam.ConeEndWidth(50f), Is.EqualTo(0.06f).Within(0.0001f), "远距夹上限");
-            Assert.That(LaserSightBeam.ConeEndWidth(-3f), Is.EqualTo(0.006f).Within(0.0001f), "负距离钳下限");
+            // 宽到细：宽度在激光器端，随到命中点距离线性增大（远距离锥更明显）
+            Assert.That(LaserSightBeam.ConeStartWidth(0f), Is.EqualTo(0.006f).Within(0.0001f), "贴墙极近也保底可见");
+            Assert.That(LaserSightBeam.ConeStartWidth(1f), Is.EqualTo(0.006f).Within(0.0001f), "近距夹下限");
+            Assert.That(LaserSightBeam.ConeStartWidth(5f), Is.EqualTo(0.02f).Within(0.0001f), "5m 按斜率线性展宽");
+            Assert.That(LaserSightBeam.ConeStartWidth(50f), Is.EqualTo(0.06f).Within(0.0001f), "远距夹上限");
+            Assert.That(LaserSightBeam.ConeStartWidth(-3f), Is.EqualTo(0.006f).Within(0.0001f), "负距离钳下限");
         }
 
         [Test]
