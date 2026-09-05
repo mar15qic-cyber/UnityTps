@@ -53,3 +53,10 @@ namespace Game.Account
 }
 [Serializable] public sealed class HealthDto { public string status; public string database; }
 }
+// ---- 房间注册表契约（Phase E：Unity 侧镜像后端 /api/rooms 五端点，字段名逐字小驼峰） ----
+[Serializable] public sealed class CreateRoomRequest { public string hostAddress; public int hostPort = 7770; public int maxPlayers = 8; }
+[Serializable] public sealed class GameRoomDto
+{
+    public string roomCode; public string hostUsername; public string hostAddress; public int hostPort;
+    public int joinedPlayers; public int maxPlayers; public bool isOpen; public DateTime createdAtUtc;
+}
