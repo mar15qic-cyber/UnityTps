@@ -33,11 +33,18 @@ namespace Game.Gameplay.Weapon
         /// <summary>切枪被打断（死亡等）。</summary>
         public event Action<ActionInterruptReason> OnSwitchInterrupted;
 
+        /// <summary>已解析的目标槽位意图（Docs/23 表现迭代 2026-09-05）：数字键/滚轮/Q 统一经
+        /// TrySelectSlot 解析，成功发起切枪动作时触发一次——PlayerNetworkAdapter 据此转发服务器
+        /// SubmitSwitchRequest，保证离线/预测/联网共用同一目标索引且每次只提交一次。
+        /// 初始化装备、失败、被拒、忙碌时不触发。</summary>
+        public event Action<int> OnSlotIntentResolved;
+
         private bool _swapped;
         private int _pendingIndex;
         private float _swapElapsedThreshold;
         private int _configuredInitialIndex;
         private bool _hasStarted;
+        private int _previousSlotIndex = -1; // 最近一次成功装备的槽位（Q 快速切枪；交换点才更新，失败不污染）
 
         /// <summary>Replaces authored debug slots with an authoritative runtime loadout.</summary>
         public void ConfigureSlots(IReadOnlyList<WeaponDefinition> definitions, int initialIndex = 0)
@@ -88,10 +95,45 @@ namespace Game.Gameplay.Weapon
 
         private void Update()
         {
-            if (input != null && input.SlotPressed >= 0)
-                TrySelectSlot(input.SlotPressed);
+            if (input != null)
+            {
+                // 同帧优先级：数字键 > 快速切枪(Q) > 滚轮（Docs/23 表现迭代 2026-09-05）
+                if (input.SlotPressed >= 0)
+                    TrySelectSlot(input.SlotPressed);
+                else if (input.QuickSwapPressed)
+                    TryQuickSwap();
+                else if (input.SwapAxis != 0f)
+                    TryScrollSwap(input.SwapAxis);
+            }
 
             EvaluateSwap();
+        }
+
+        /// <summary>滚轮循环切枪：+1=上一把、-1=下一把；首尾循环，跳过 null/空槽；
+        /// 仅一把有效武器时无动作。最终仍经 TrySelectSlot 统一解析（单一通路）。</summary>
+        public void TryScrollSwap(float direction)
+        {
+            if (slots.Length == 0) return;
+            int step = direction > 0f ? -1 : 1;
+            int start = ActiveIndex >= 0 ? ActiveIndex : 0;
+            for (int i = 1; i <= slots.Length; i++)
+            {
+                int candidate = (start + step * i) % slots.Length;
+                if (candidate < 0) candidate += slots.Length;
+                if (candidate == start) break; // 绕满一圈（含仅一把有效武器的情形）
+                if (slots[candidate] == null) continue;
+                TrySelectSlot(candidate);
+                return;
+            }
+        }
+
+        /// <summary>Q 快速切枪：切换到最近一次成功装备的武器（最近两把往返）。
+        /// 无历史（初始化阶段）或历史槽无效时不做任何事。</summary>
+        public void TryQuickSwap()
+        {
+            if (_previousSlotIndex < 0 || _previousSlotIndex >= slots.Length || slots[_previousSlotIndex] == null)
+                return;
+            TrySelectSlot(_previousSlotIndex);
         }
 
         /// <summary>交换点求值：旧枪收枪时长耗尽即交换——新枪出枪恰好接续收枪完成帧，
@@ -107,6 +149,8 @@ namespace Game.Gameplay.Weapon
                 && actions.Elapsed >= _swapElapsedThreshold)
             {
                 _swapped = true;
+                // Q 往返语义：记录交换前的武器为"上一把"（失败/中断的请求不会走到这里，不污染历史）
+                _previousSlotIndex = ActiveIndex;
                 ActiveIndex = _pendingIndex;
                 if (controller != null && slots[ActiveIndex] != null)
                     controller.EquipDefinition(slots[ActiveIndex]);
@@ -140,6 +184,9 @@ namespace Game.Gameplay.Weapon
             _swapped = false;
             _swapElapsedThreshold = holsterTime;
             OnSwitchStarted?.Invoke(ActiveWeapon, slotIndex);
+            // 单一通路：切枪动作真正发起（未被忙碌/越界/同槽拒绝）才广播意图——
+            // 网络转发（PlayerNetworkAdapter→SubmitSwitchRequest）与本地共用这一目标
+            OnSlotIntentResolved?.Invoke(slotIndex);
             return true;
         }
 

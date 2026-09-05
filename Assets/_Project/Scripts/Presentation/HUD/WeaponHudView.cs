@@ -114,7 +114,7 @@ namespace Game.Presentation.HUD
             SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
                 controller.Runtime.State == WeaponRuntimeState.Reloading);
             if (hintText != null)
-                hintText.text = "LMB FIRE    RMB ADS    R RELOAD    WASD MOVE    SHIFT SPRINT    0-9 SWITCH";
+                hintText.text = "LMB FIRE    RMB ADS    R RELOAD    WASD MOVE    SHIFT SPRINT    0-9/WHEEL/Q SWITCH";
         }
 
         private void SetAmmo(int current, int reserve, bool reloading)

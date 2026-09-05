@@ -17,6 +17,14 @@ namespace Game.Gameplay.Weapon
 
         public WeaponFireContext Context => Build();
 
+        private void Awake()
+        {
+            // 惰性解析兜底（Docs/23 表现迭代 2026-09-05）：序列化引用缺失（联网生成实例/
+            // prefab 变更）时自动在玩家层级找齐——准心/散布情境链路不允许因引用悬空退化 Default
+            if (aimState == null) aimState = GetComponentInParent<PlayerAimState>();
+            if (locomotor == null) locomotor = GetComponentInParent<Locomotor>();
+        }
+
         private WeaponFireContext Build()
         {
             float ads = aimState != null ? aimState.Ads01 : 0f;

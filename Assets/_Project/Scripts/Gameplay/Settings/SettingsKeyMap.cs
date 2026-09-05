@@ -16,6 +16,7 @@ namespace Game.Gameplay.Settings
             MoveForward = 0, MoveBack, MoveLeft, MoveRight,
             Sprint, Jump, Reload,
             Slot1, Slot2, Slot3,
+            QuickSwap,
         }
 
         public sealed class Binding
@@ -38,6 +39,7 @@ namespace Game.Gameplay.Settings
             new() { action = Action.Slot1,       label = "武器 1", defaultKey = Key.Digit1, prefsKey = "unityfps.key.slot1" },
             new() { action = Action.Slot2,       label = "武器 2", defaultKey = Key.Digit2, prefsKey = "unityfps.key.slot2" },
             new() { action = Action.Slot3,       label = "武器 3", defaultKey = Key.Digit3, prefsKey = "unityfps.key.slot3" },
+            new() { action = Action.QuickSwap,   label = "快速切枪", defaultKey = Key.Q, prefsKey = "unityfps.key.quickSwap" },
         };
 
         private static readonly Dictionary<Action, Key> cache = new();

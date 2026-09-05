@@ -28,6 +28,7 @@ namespace Game.Gameplay.Network
         private Locomotor _locomotor;
         private InputReader _input;
         private ActionSystem _actions;
+        private Arsenal _arsenal;
         private bool _initialized;
 
         private void Awake()
@@ -39,6 +40,22 @@ namespace Game.Gameplay.Network
                 ownerOnlyComponents = new Behaviour[] { _input };
             // Docs/23 P1-5：死亡冻结判定需要，Awake 即解析（离线无此组件时保持 null，判定安全）
             if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
+            // Docs/23 表现迭代（切枪单一通路）：本地切枪目标统一来自 Arsenal 已解析意图
+            _arsenal = GetComponentInParent<Arsenal>();
+            if (_arsenal != null) _arsenal.OnSlotIntentResolved += HandleSlotIntentResolved;
+        }
+
+        private void OnDestroy()
+        {
+            if (_arsenal != null) _arsenal.OnSlotIntentResolved -= HandleSlotIntentResolved;
+        }
+
+        /// <summary>Arsenal 已解析的切枪意图 → 服务器验证（数字键/滚轮/Q 三路同源，一次解析一次提交）。
+        /// 服务器 Host 本地切枪不经网络（SubmitSwitchRequest 自身有守卫）；离线时 Submit 安全空转。</summary>
+        private void HandleSlotIntentResolved(int slot)
+        {
+            if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
+            if (_combatAuthority != null) _combatAuthority.SubmitSwitchRequest(slot);
         }
 
         // ---- FishNet 生命周期 ----
@@ -160,13 +177,10 @@ namespace Game.Gameplay.Network
                 if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
                 if (_weaponController != null && _combatAuthority != null && _input.FireHeld)
                     _combatAuthority.SubmitFireRequest();
-                // Docs/23 P0-1/P0-2（G1）：换弹/切枪意图同样转发服务器验证
-                //（本地 Arsenal/WeaponController 照常跑预测，两端都执行是设计意图）
-                if (_combatAuthority != null)
-                {
-                    if (_input.ReloadPressed) _combatAuthority.SubmitReloadRequest();
-                    if (_input.SlotPressed >= 0) _combatAuthority.SubmitSwitchRequest(_input.SlotPressed);
-                }
+                // Docs/23 P0-1（G1）：换弹意图转发服务器验证（本地 WeaponController 照常跑预测，
+                // 两端都执行是设计意图）。切枪不再在此转发——统一经 Arsenal.OnSlotIntentResolved。
+                if (_combatAuthority != null && _input.ReloadPressed)
+                    _combatAuthority.SubmitReloadRequest();
             }
         }
 
