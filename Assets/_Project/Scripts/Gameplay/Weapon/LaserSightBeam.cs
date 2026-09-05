@@ -4,8 +4,11 @@ using UnityEngine;
 namespace Game.Gameplay.Weapon
 {
     /// <summary>
-    /// 激光指示器光束（2026-09-05 用户需求）：腰射状态（Ads01 &lt; 0.5）下从激光器发出红色圆锥形射线，
-    /// 指向准星 HUD 中心对应的世界点，与准星/弹道同一套屏幕中心语义。
+    /// 激光指示器光束（2026-09-05 用户需求 + 语义修正）：腰射状态（Ads01 &lt; 0.5）下从激光器
+    /// 沿【器件轴向】（挂点 -X 前向，即枪身实际指向）发出恒定细红光，命中世界点即止。
+    /// 指向语义（用户二次定案，参照真实 FPS）：光束永远跟随枪身指向——换弹/切枪枪身倾斜时光束
+    /// 随之偏转，绝不"吸附准星 HUD"（背包现实感红线：任何 FPS 都不会让换弹中的激光仍指准星）。
+    /// 宽度恒定（不随命中距离/旋转变化——锥形随距离展宽会在旋转时忽粗忽细，实测截图否定）。
     /// 渲染关键（双相机架构，用户截图实证）：光束与激光器器件必须在【同一台相机】的投影里——
     /// 器件由 overlay 相机（FirstPersonView 层）渲染，光束跟随配件克隆层由同一台 overlay 相机
     /// 绘制，起点天然贴合器件；瞄准射线也从该相机屏幕中心打出（与主相机同轴随动），终点收敛准星。
@@ -22,14 +25,14 @@ namespace Game.Gameplay.Weapon
         public const float BeamRange = 250f;
         /// <summary>腰射判定阈值：Ads01 低于此值视为腰射（与 CrosshairPresenter 显隐阈值一致）。</summary>
         public const float AimGateAds01 = 0.5f;
-        /// <summary>圆锥斜率（米/米）：光束自激光器（宽）向命中点（细）线性收束，符合锥形视效。</summary>
-        public const float BeamConeSlope = 0.004f;
+        /// <summary>光束恒定宽度（米）：物理激光视觉，恒定不随距离/旋转变化（实测锥形随距离展宽
+        /// 会让旋转时粗细呼吸，用户否定）。</summary>
+        public const float BeamWidth = 0.008f;
 
         private LineRenderer _line;
         private GameObject _lineNode;
         private PlayerAimState _aim;
         private Transform _playerRoot;
-        private Camera _beamCam;
         private Vector3 _localCenter;
         private bool _centerResolved;
         private readonly RaycastHit[] _hits = new RaycastHit[16];
@@ -37,10 +40,12 @@ namespace Game.Gameplay.Weapon
         /// <summary>腰射判定（纯函数）：Ads01 低于阈值即出束（开镜过渡过半即收束）。</summary>
         public static bool ShouldBeam(float ads01) => ads01 < AimGateAds01;
 
-        /// <summary>锥形束的起点宽度（纯函数，激光器端）：随到命中点的距离线性展宽并夹紧上下限；
-        /// 终点（命中点）恒为细束 0.004——宽到细、向准星命中点汇聚。</summary>
-        public static float ConeStartWidth(float distance)
-            => Mathf.Clamp(distance * BeamConeSlope, 0.006f, 0.06f);
+        /// <summary>器件发射方向（纯函数）：挂点局部 -X = 全局枪口前向约定（AttachmentSocket），
+        /// 克隆的父节点即挂点——换弹/切枪枪身倾斜时光束随之偏转（真实 FPS 语义）。</summary>
+        public static Vector3 DeviceAxis(Transform attachmentClone)
+            => attachmentClone != null && attachmentClone.parent != null
+                ? -attachmentClone.parent.right
+                : Vector3.forward;
 
         private void OnEnable() => Setup();
 
@@ -72,10 +77,10 @@ namespace Game.Gameplay.Weapon
             if (line == null) line = _lineNode.AddComponent<LineRenderer>();
             line.positionCount = 2;
             line.useWorldSpace = true;
-            line.startWidth = 0.02f;  // 激光器端宽（实际宽度 LateUpdate 按 ConeStartWidth 距离赋值）
-            line.endWidth = 0.004f;   // 命中点端细（收敛点亮心）
-            line.startColor = new Color(1f, 0.15f, 0.15f, 0.45f); // 宽端半透
-            line.endColor = new Color(1f, 0.30f, 0.30f, 0.95f);   // 细端亮心（命中点）
+            line.startWidth = BeamWidth;
+            line.endWidth = BeamWidth;
+            line.startColor = new Color(1f, 0.12f, 0.12f, 0.9f);
+            line.endColor = new Color(1f, 0.20f, 0.20f, 0.55f);
             line.numCapVertices = 2;
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
@@ -96,33 +101,17 @@ namespace Game.Gameplay.Weapon
                 _aim = GetComponentInParent<PlayerAimState>();
                 _playerRoot = _aim != null ? _aim.transform : null;
             }
-            _beamCam = ResolveBeamCamera();
-            if (_beamCam == null || !ShouldBeam(_aim != null ? _aim.Ads01 : 0f))
+            if (!ShouldBeam(_aim != null ? _aim.Ads01 : 0f))
             {
                 _line.enabled = false;
                 return;
             }
 
             Vector3 origin = ResolveOrigin();
-            float distance;
-            Vector3 endpoint = ResolveAimPoint(out distance);
+            Vector3 endpoint = ResolveAimPoint(origin, out _);
             _line.SetPosition(0, origin);
             _line.SetPosition(1, endpoint);
-            _line.startWidth = ConeStartWidth(distance); // 圆锥形：激光器端宽，向命中点收细
-            _line.endWidth = 0.004f;
             _line.enabled = true;
-        }
-
-        /// <summary>渲染本光束的相机：cullingMask 含配件层的相机（双相机架构下即 overlay 武器相机），
-        /// 与器件同一投影——起点贴合器件、终点收敛该相机屏幕中心（与主相机同轴=准星方向）。
-        /// 无匹配时回退 Camera.main。</summary>
-        private Camera ResolveBeamCamera()
-        {
-            int layerBit = 1 << gameObject.layer;
-            foreach (var cam in Camera.allCameras)
-                if (cam != null && cam.isActiveAndEnabled && (cam.cullingMask & layerBit) != 0)
-                    return cam;
-            return Camera.main;
         }
 
         /// <summary>光束起点：激光器模型网格包围盒中心（本地系缓存一次，随枪口摆动实时变换）。
@@ -147,23 +136,24 @@ namespace Game.Gameplay.Weapon
             return transform.TransformPoint(_localCenter);
         }
 
-        /// <summary>准星中心的世界点：光束相机（overlay，与主相机同轴随动）屏幕中心射线，
-        /// 取首个非自身命中；无命中延伸 BeamRange。</summary>
-        private Vector3 ResolveAimPoint(out float distance)
+        /// <summary>沿器件轴向的世界命中点：从激光器原点沿挂点 -X 前向射线，取首个非自身命中；
+        /// 无命中延伸 BeamRange。渲染由克隆层驱动（overlay 相机经 cullingMask 自动绘制），
+        /// 指向永远跟枪身（换弹倾斜时光束随枪走，用户定案的真实 FPS 语义）。</summary>
+        private Vector3 ResolveAimPoint(Vector3 origin, out float distance)
         {
-            var ray = _beamCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            var dir = DeviceAxis(transform);
+            var ray = new Ray(origin, dir);
             int count = Physics.RaycastNonAlloc(ray, _hits, BeamRange);
             for (int i = 0; i < count; i++)
             {
                 var hit = _hits[i];
                 if (_playerRoot != null && hit.collider.transform.IsChildOf(_playerRoot))
-                    continue; // 跳过自身（枪体/角色碰撞体），取准星真正指向的世界点
-                distance = Vector3.Distance(ResolveOrigin(), hit.point);
+                    continue; // 跳过自身（枪体/角色碰撞体）
+                distance = Vector3.Distance(origin, hit.point);
                 return hit.point;
             }
-            var far = ray.origin + ray.direction * BeamRange;
             distance = BeamRange;
-            return far;
+            return origin + dir * BeamRange;
         }
     }
 }

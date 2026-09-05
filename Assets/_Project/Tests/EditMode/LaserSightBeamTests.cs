@@ -108,14 +108,31 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void ConeStartWidth_GrowsWithDistance_Clamped()
+        public void DeviceAxis_FollowsSocketNegativeX()
         {
-            // 宽到细：宽度在激光器端，随到命中点距离线性增大（远距离锥更明显）
-            Assert.That(LaserSightBeam.ConeStartWidth(0f), Is.EqualTo(0.006f).Within(0.0001f), "贴墙极近也保底可见");
-            Assert.That(LaserSightBeam.ConeStartWidth(1f), Is.EqualTo(0.006f).Within(0.0001f), "近距夹下限");
-            Assert.That(LaserSightBeam.ConeStartWidth(5f), Is.EqualTo(0.02f).Within(0.0001f), "5m 按斜率线性展宽");
-            Assert.That(LaserSightBeam.ConeStartWidth(50f), Is.EqualTo(0.06f).Within(0.0001f), "远距夹上限");
-            Assert.That(LaserSightBeam.ConeStartWidth(-3f), Is.EqualTo(0.006f).Within(0.0001f), "负距离钳下限");
+            // 指向语义（用户二次定案）：光束沿挂点 -X 前向（枪身实际指向），不吸附准星——
+            // 换弹/切枪枪身倾斜时光束随枪走（真实 FPS 语义）
+            var clone = new GameObject("Clone");
+            var socket = new GameObject("Socket");
+            socket.transform.SetParent(null); // 根级挂点
+            socket.transform.rotation = Quaternion.Euler(0f, 90f, 0f); // 挂点朝向 Y90
+            clone.transform.SetParent(socket.transform, false);
+
+            var axis = LaserSightBeam.DeviceAxis(clone.transform);
+            Assert.That(axis.x, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(axis.y, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(axis.z, Is.EqualTo(1f).Within(0.0001f), "Y90 挂点的 -X 前向 = 世界 +Z");
+
+            Object.DestroyImmediate(socket);
+            Object.DestroyImmediate(clone);
+        }
+
+        [Test]
+        public void DeviceAxis_NullParent_FallsBackForward()
+        {
+            var clone = new GameObject("OrphanClone");
+            Assert.That(LaserSightBeam.DeviceAxis(clone.transform), Is.EqualTo(Vector3.forward));
+            Object.DestroyImmediate(clone);
         }
 
         [Test]
