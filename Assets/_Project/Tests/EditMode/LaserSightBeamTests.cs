@@ -73,9 +73,14 @@ namespace Game.Gameplay.Tests
             Assert.That(view.Spawned.Count, Is.EqualTo(1));
             var beam = view.Spawned[0].GetComponent<LaserSightBeam>();
             Assert.That(beam, Is.Not.Null, "本地第一人称装配激光必须挂光束组件");
-            var line = view.Spawned[0].GetComponent<LineRenderer>();
+            var line = view.Spawned[0].GetComponentInChildren<LineRenderer>(true);
             Assert.That(line, Is.Not.Null, "光束组件应自带 LineRenderer");
             Assert.That(line.positionCount, Is.EqualTo(2), "光束=起点(激光器)到终点(准星命中点)两段");
+            // 渲染层修正（实测截图问题）：光束必须在独立子节点且为 Default 层（世界相机渲染，
+            // 终点精确收敛准星；随克隆的 FirstPersonView 层会被武器相机窄 FOV 投影出视差）
+            Assert.That(line.gameObject.name, Is.EqualTo("LaserBeamLine"));
+            Assert.That(line.gameObject.layer, Is.EqualTo(LaserSightBeam.BeamLayer), "Default 层=世界相机渲染，终点收敛准星");
+            Assert.That(line.transform.parent, Is.EqualTo(view.Spawned[0].transform), "独立子节点（装备层递归改层不改变其可自愈的层）");
         }
 
         [Test]
