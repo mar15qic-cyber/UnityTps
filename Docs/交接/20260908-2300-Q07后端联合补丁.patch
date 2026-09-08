@@ -1,0 +1,3543 @@
+diff --git a/fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs b/fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs
+index 4c14f74c..b1a8b646 100644
+--- a/fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs
++++ b/fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs
+@@ -18,14 +18,44 @@ public static class ApiErrorCodes
+     public const string LoadoutNotOwned = "LOADOUT_ITEM_NOT_OWNED";
+     public const string LoadoutVersionConflict = "LOADOUT_VERSION_CONFLICT";
+     public const string AttachmentsUnsupported = "ATTACHMENTS_NOT_ADAPTED";
++    public const string AttachmentInvalid = "ATTACHMENT_INVALID";
++    public const string AttachmentNotOwned = "ATTACHMENT_NOT_OWNED";
++    public const string AttachmentIncompatible = "ATTACHMENT_NOT_COMPATIBLE";
+     public const string RoomNotFound = "ROOM_NOT_FOUND";
+     public const string RoomClosed = "ROOM_CLOSED";
+     public const string RoomFull = "ROOM_FULL";
+     public const string RoomCodeExhausted = "ROOM_CODE_EXHAUSTED";
++    // ---- CF 等待房间（Docs/27 v1 §10）----
++    public const string RoomStateConflict = "ROOM_STATE_CONFLICT";
++    public const string RoomNotReady = "ROOM_NOT_READY";
++    public const string RoomStarting = "ROOM_STARTING";
++    public const string TeamFull = "TEAM_FULL";
++    public const string TeamInvalid = "TEAM_INVALID";
++    public const string MapNotAllowed = "MAP_NOT_ALLOWED";
++    public const string ModeInvalid = "MODE_INVALID";
++    public const string SettingInvalid = "SETTING_INVALID";
++    public const string NotLeader = "NOT_LEADER";
++    public const string TicketRateLimited = "TICKET_RATE_LIMITED";
++    // ---- 房间聊天（Docs/27 §10）----
++    public const string ChatRejected = "CHAT_REJECTED";
++    public const string ChatRateLimited = "CHAT_RATE_LIMITED";
++    public const string ChatCursorInvalid = "CHAT_CURSOR_INVALID";
+     public const string PassSeasonInvalid = "PASS_SEASON_INVALID";
+     public const string PassRewardGrantConflict = "PASS_REWARD_GRANT_CONFLICT";
+     public const string AchievementInvalid = "ACHIEVEMENT_INVALID";
+     public const string MatchPayloadRejected = "MATCH_PAYLOAD_REJECTED";
+     public const string MatchIdempotencyConflict = "MATCH_IDEMPOTENCY_CONFLICT";
+     public const string ServerError = "SERVER_ERROR";
++
++    // ---- Dedicated Server 控制面（Docs/27）----
++    public const string NoServerAvailable = "NO_SERVER_AVAILABLE";
++    public const string ServerKeyInvalid = "SERVER_KEY_INVALID";
++    public const string ServerInstanceNotFound = "SERVER_INSTANCE_NOT_FOUND";
++    // 实例心跳非法状态转换（审计 P0-1 新增业务码：绑定态不得降级/改写绑定，稳定 409）
++    public const string ServerInstanceStateConflict = "SERVER_INSTANCE_STATE_CONFLICT";
++    // 票据 consume 带内错误码（Docs/27 §2.3 冻结字面值，经 JoinTicketConsumeDto.ErrorCode 返回，非 HTTP 状态码）
++    public const string TicketInvalid = "TICKET_INVALID";
++    public const string TicketExpired = "TICKET_EXPIRED";
++    public const string TicketReplayed = "TICKET_REPLAYED";
++    public const string TicketInstanceMismatch = "TICKET_INSTANCE_MISMATCH";
+ }
+diff --git a/fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs b/fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs
+index af1d44be..ce33cabf 100644
+--- a/fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs
++++ b/fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs
+@@ -5,25 +5,82 @@ using UnityFps.Api.Services;
+ 
+ namespace UnityFps.Api.Controllers;
+ 
++/// <summary>
++/// 玩家房间端点（Docs/27 v1 CF 等待房间契约）：创建/加入返回 RoomSnapshotDto（Waiting 不含票据），
++/// 选边/准备/设置为成员操作，start 才租 DS/签票据；leave 幂等返回 204；heartbeat 为成员保活。
++/// </summary>
+ [ApiController, Authorize, Route("api/rooms")]
+-public sealed class RoomsController(RoomService rooms) : ControllerBase
++public sealed class RoomsController(RoomService rooms, RoomChatService chat) : ControllerBase
+ {
+     [HttpPost]
+-    public async Task<ActionResult<GameRoomDto>> Create(CreateRoomRequest request, CancellationToken cancellationToken) =>
++    public async Task<ActionResult<RoomSnapshotDto>> Create(CreateRoomRequest request, CancellationToken cancellationToken) =>
+         StatusCode(StatusCodes.Status201Created, await rooms.CreateAsync(AuthService.GetUserId(User), request, cancellationToken));
+ 
+     [HttpGet]
+     public Task<IReadOnlyList<GameRoomDto>> List(CancellationToken cancellationToken) => rooms.ListAsync(cancellationToken);
+ 
++    [HttpGet("{roomCode}")]
++    public Task<RoomSnapshotDto> Detail(string roomCode, CancellationToken cancellationToken) =>
++        rooms.GetDetailAsync(AuthService.GetUserId(User), roomCode, cancellationToken);
++
+     [HttpPost("{roomCode}/join")]
+-    public Task<GameRoomDto> Join(string roomCode, CancellationToken cancellationToken) =>
+-        rooms.JoinAsync(AuthService.GetUserId(User), roomCode, cancellationToken);
++    public Task<RoomSnapshotDto> Join(string roomCode, [FromBody] RoomJoinRequest? request, CancellationToken cancellationToken) =>
++        rooms.JoinAsync(AuthService.GetUserId(User), roomCode, request?.TeamId, cancellationToken);
++
++    [HttpPost("{roomCode}/team")]
++    public Task<RoomSnapshotDto> SetTeam(string roomCode, RoomTeamRequest request, CancellationToken cancellationToken) =>
++        rooms.SetTeamAsync(AuthService.GetUserId(User), roomCode, request.TeamId?.Trim(), cancellationToken);
++
++    [HttpPost("{roomCode}/ready")]
++    public Task<RoomSnapshotDto> SetReady(string roomCode, RoomReadyRequest request, CancellationToken cancellationToken) =>
++        rooms.SetReadyAsync(AuthService.GetUserId(User), roomCode, request.IsReady, cancellationToken);
++
++    [HttpPost("{roomCode}/settings")]
++    public Task<RoomSnapshotDto> UpdateSettings(string roomCode, RoomSettingsRequest request, CancellationToken cancellationToken) =>
++        rooms.UpdateSettingsAsync(AuthService.GetUserId(User), roomCode, request, cancellationToken);
++
++    [HttpPost("{roomCode}/start")]
++    public Task<StartMatchDto> Start(string roomCode, CancellationToken cancellationToken) =>
++        rooms.StartAsync(AuthService.GetUserId(User), roomCode, cancellationToken);
++
++    /// <summary>返房 ack（Docs/27 §5.7）：退战斗不退房；Returning 后幂等返回快照。</summary>
++    [HttpPost("{roomCode}/return")]
++    public Task<RoomSnapshotDto> Return(string roomCode, RoomReturnRequest request, CancellationToken cancellationToken) =>
++        rooms.ReturnAsync(AuthService.GetUserId(User), roomCode, request.MatchId, cancellationToken);
++
++    /// <summary>终局结果查询（Docs/27 §7.3）：TDM 权威快照 / KillRace 聚合 / Pending。</summary>
++    [HttpGet("{roomCode}/match-result")]
++    public Task<RoomMatchResultViewDto> MatchResult(string roomCode, [FromQuery] string matchId, CancellationToken cancellationToken) =>
++        rooms.GetMatchResultAsync(AuthService.GetUserId(User), roomCode, matchId, cancellationToken);
++
++    /// <summary>发送聊天（Docs/27 §8.4）：等待房间/启动/返房走鉴权 HTTP；局内仅 Owner RPC（InMatch 调用被拒）。</summary>
++    [HttpPost("{roomCode}/chat")]
++    public async Task<ActionResult<ChatMessageDto>> SendChat(string roomCode, ChatSendRequest request, CancellationToken cancellationToken)
++    {
++        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), roomCode, allowSend: true, cancellationToken);
++        return Ok(chat.Send(room, member, request));
++    }
++
++    /// <summary>增量拉取聊天（seq 游标）；队聊在投递层过滤（Docs/27 §8.3）。</summary>
++    [HttpGet("{roomCode}/chat")]
++    public async Task<ActionResult<ChatFeedDto>> FetchChat(string roomCode, [FromQuery] ulong after = 0, CancellationToken cancellationToken = default)
++    {
++        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), roomCode, allowSend: false, cancellationToken);
++        return Ok(chat.Fetch(room, member, after));
++    }
+ 
++    /// <summary>成员保活心跳（Waiting 不连 DS，房间活性由成员心跳 + 实例心跳共同决定）。</summary>
+     [HttpPost("heartbeat")]
+-    public Task Heartbeat(CancellationToken cancellationToken) =>
+-        rooms.HeartbeatAsync(AuthService.GetUserId(User), cancellationToken);
++    public async Task<IActionResult> Heartbeat(CancellationToken cancellationToken)
++    {
++        await rooms.HeartbeatAsync(AuthService.GetUserId(User), cancellationToken);
++        return NoContent();
++    }
+ 
+     [HttpPost("leave")]
+-    public Task Leave(CancellationToken cancellationToken) =>
+-        rooms.LeaveAsync(AuthService.GetUserId(User), cancellationToken);
++    public async Task<IActionResult> Leave(CancellationToken cancellationToken)
++    {
++        await rooms.LeaveAsync(AuthService.GetUserId(User), cancellationToken);
++        return NoContent();
++    }
+ }
+diff --git a/fps-backend/src/UnityFps.Api/Data/AppDbContext.cs b/fps-backend/src/UnityFps.Api/Data/AppDbContext.cs
+index e598db28..8cc85b18 100644
+--- a/fps-backend/src/UnityFps.Api/Data/AppDbContext.cs
++++ b/fps-backend/src/UnityFps.Api/Data/AppDbContext.cs
+@@ -9,13 +9,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+     public DbSet<PlayerLoadout> Loadouts => Set<PlayerLoadout>();
+     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+     public DbSet<PlayerWallet> Wallets => Set<PlayerWallet>();
++    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+     public DbSet<PlayerInventoryItem> InventoryItems => Set<PlayerInventoryItem>();
+     public DbSet<ShopPurchase> Purchases => Set<ShopPurchase>();
+     public DbSet<WalletLedgerEntry> WalletLedger => Set<WalletLedgerEntry>();
+     public DbSet<PlayerLoadoutAttachment> LoadoutAttachments => Set<PlayerLoadoutAttachment>();
++    public DbSet<AttachmentCompat> AttachmentCompat => Set<AttachmentCompat>();
+     public DbSet<MatchRecord> Matches => Set<MatchRecord>();
+     public DbSet<GameRoom> GameRooms => Set<GameRoom>();
+     public DbSet<GameRoomMember> GameRoomMembers => Set<GameRoomMember>();
++    public DbSet<RoomMatchRoster> RoomMatchRosters => Set<RoomMatchRoster>();
++    public DbSet<RoomMatchResult> RoomMatchResults => Set<RoomMatchResult>();
++    public DbSet<ServerInstance> ServerInstances => Set<ServerInstance>();
++    public DbSet<ServerJoinTicket> ServerJoinTickets => Set<ServerJoinTicket>();
+     public DbSet<PlayerPass> PlayerPasses => Set<PlayerPass>();
+     public DbSet<PassReward> PassRewards => Set<PassReward>();
+     public DbSet<PlayerPassRewardGrant> PassRewardGrants => Set<PlayerPassRewardGrant>();
+@@ -74,6 +80,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+             entity.HasKey(x => x.UserId);
+             entity.Property(x => x.UpdatedAtUtc).HasColumnType("datetime(6)");
+         });
++        model.Entity<UserSetting>(entity =>
++        {
++            entity.ToTable("UserSetting");
++            entity.HasKey(x => new { x.UserId, x.SettingKey });
++            entity.Property(x => x.SettingKey).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.SettingValue).HasMaxLength(256).IsRequired();
++            entity.Property(x => x.UpdatedAtUtc).HasColumnType("datetime(6)");
++            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
++        });
+         model.Entity<PlayerInventoryItem>(entity =>
+         {
+             entity.ToTable("PlayerInventoryItem");
+@@ -115,6 +130,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+             entity.HasIndex(x => new { x.LoadoutId, x.WeaponSlot, x.AttachmentSlot }).IsUnique();
+             entity.HasOne(x => x.Loadout).WithMany(x => x.Attachments).HasForeignKey(x => x.LoadoutId).OnDelete(DeleteBehavior.Cascade);
+         });
++        model.Entity<AttachmentCompat>(entity =>
++        {
++            entity.ToTable("AttachmentCompat");
++            entity.HasKey(x => new { x.WeaponItemId, x.AttachmentItemId });
++            entity.Property(x => x.WeaponItemId).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.AttachmentItemId).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.SlotType).HasMaxLength(24).IsRequired();
++            entity.Property(x => x.CalibrationKey).HasMaxLength(128).IsRequired();
++            entity.HasIndex(x => x.AttachmentItemId);
++            entity.HasOne(x => x.WeaponItem).WithMany().HasForeignKey(x => x.WeaponItemId).OnDelete(DeleteBehavior.Restrict);
++            entity.HasOne(x => x.AttachmentItem).WithMany().HasForeignKey(x => x.AttachmentItemId).OnDelete(DeleteBehavior.Restrict);
++        });
+         model.Entity<MatchRecord>(entity =>
+         {
+             entity.ToTable("MatchRecord");
+@@ -123,6 +150,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+             entity.Property(x => x.PlayedAtUtc).HasColumnType("datetime(6)");
+             entity.Property(x => x.ClientMatchId).HasMaxLength(64);
+             entity.HasIndex(x => new { x.UserId, x.ClientMatchId }).IsUnique();
++            entity.Property(x => x.MatchId).HasMaxLength(64);
++            entity.HasIndex(x => x.MatchId);
+             entity.HasOne(x => x.User).WithMany(x => x.Matches).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+         });
+         model.Entity<GameRoom>(entity =>
+@@ -133,9 +162,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+             entity.HasIndex(x => x.RoomCode).IsUnique();
+             entity.Property(x => x.HostUsername).HasMaxLength(32).IsRequired();
+             entity.Property(x => x.HostAddress).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.Status).HasMaxLength(32).IsRequired();
++            entity.HasIndex(x => new { x.Status, x.StateChangedAtUtc }); // Starting/Returning 超时懒判定
++            entity.Property(x => x.Mode).HasMaxLength(16).IsRequired();
++            entity.Property(x => x.MapId).HasMaxLength(32).IsRequired();
++            entity.Property(x => x.CurrentMatchId).HasMaxLength(64);
++            entity.Property(x => x.LastMatchId).HasMaxLength(64);
+             entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+             entity.Property(x => x.LastHeartbeatUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.StateChangedAtUtc).HasColumnType("datetime(6)");
+             entity.HasOne(x => x.Host).WithMany().HasForeignKey(x => x.HostUserId).OnDelete(DeleteBehavior.Cascade);
++            // 实例行被删时房间解绑（悬空房间随后按"实例失联"懒清理），不阻塞实例删除
++            entity.HasOne(x => x.ServerInstance).WithMany().HasForeignKey(x => x.ServerInstanceId).OnDelete(DeleteBehavior.SetNull);
+         });
+         model.Entity<GameRoomMember>(entity =>
+         {
+@@ -143,10 +181,71 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
+             entity.HasKey(x => x.Id);
+             entity.HasIndex(x => x.UserId).IsUnique(); // 一人同时只能在一个房间
+             entity.HasIndex(x => x.RoomId);
++            entity.Property(x => x.TeamId).HasMaxLength(8).IsRequired();
+             entity.Property(x => x.JoinedAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.LastSeenUtc).HasColumnType("datetime(6)");
+             entity.HasOne(x => x.Room).WithMany(x => x.Members).HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.Cascade);
+             entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+         });
++        // ===== CF 等待房间/比赛名单（Docs/27 v1）=====
++
++        model.Entity<RoomMatchRoster>(entity =>
++        {
++            entity.ToTable("RoomMatchRoster");
++            entity.HasKey(x => x.Id);
++            entity.Property(x => x.MatchId).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.TeamId).HasMaxLength(8).IsRequired();
++            entity.HasIndex(x => new { x.MatchId, x.UserId }).IsUnique(); // 终局资格/结果聚合的身份锚点
++            entity.HasIndex(x => x.RoomId);
++            entity.Property(x => x.IssuedAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.LeftAtUtc).HasColumnType("datetime(6)");
++            entity.HasOne(x => x.Room).WithMany(x => x.Rosters).HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.Cascade);
++        });
++        model.Entity<RoomMatchResult>(entity =>
++        {
++            entity.ToTable("RoomMatchResult");
++            entity.HasKey(x => x.MatchId);
++            entity.Property(x => x.MatchId).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.WinnerTeam).HasMaxLength(8);
++            entity.Property(x => x.PlayersJson).HasMaxLength(4096).IsRequired();
++            entity.Property(x => x.EndedAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.RewardsAppliedAtUtc).HasColumnType("datetime(6)");
++            entity.HasIndex(x => x.RoomId);
++        });
++        // ===== Dedicated Server 控制面（Docs/27 §2）=====
++
++        model.Entity<ServerInstance>(entity =>
++        {
++            entity.ToTable("ServerInstance");
++            entity.HasKey(x => x.Id);
++            entity.Property(x => x.InstanceId).HasMaxLength(64).IsRequired();
++            entity.HasIndex(x => x.InstanceId).IsUnique();
++            entity.Property(x => x.Address).HasMaxLength(64).IsRequired();
++            entity.Property(x => x.BuildVersion).HasMaxLength(32);
++            entity.Property(x => x.State).HasMaxLength(16).IsRequired();
++            entity.Property(x => x.RoomCode).HasMaxLength(6);
++            entity.HasIndex(x => new { x.State, x.LastHeartbeatUtc }); // 租用查询：心跳新鲜的 Ready 实例
++            entity.HasIndex(x => x.RoomCode);
++            entity.Property(x => x.Version).IsConcurrencyToken();
++            entity.Property(x => x.RegisteredAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.LastHeartbeatUtc).HasColumnType("datetime(6)");
++        });
++        model.Entity<ServerJoinTicket>(entity =>
++        {
++            entity.ToTable("ServerJoinTicket");
++            entity.HasKey(x => x.Id);
++            entity.Property(x => x.TicketHash).HasMaxLength(64).IsRequired();
++            entity.HasIndex(x => x.TicketHash).IsUnique();
++            entity.Property(x => x.RoomCode).HasMaxLength(6).IsRequired();
++            entity.HasIndex(x => x.RoomCode);
++            entity.Property(x => x.Username).HasMaxLength(32).IsRequired();
++            entity.Property(x => x.Version).IsConcurrencyToken();
++            entity.HasIndex(x => x.ExpiresAtUtc); // 过期票据清理查询
++            entity.Property(x => x.IssuedAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.ExpiresAtUtc).HasColumnType("datetime(6)");
++            entity.Property(x => x.ConsumedAtUtc).HasColumnType("datetime(6)");
++            entity.HasOne(x => x.Instance).WithMany().HasForeignKey(x => x.ServerInstanceId).OnDelete(DeleteBehavior.Cascade);
++        });
+ 
+         // ===== 通行证与成就（Docs/17 §4.3）=====
+ 
+diff --git a/fps-backend/src/UnityFps.Api/Data/Entities.cs b/fps-backend/src/UnityFps.Api/Data/Entities.cs
+index 3c7e7bbf..a0ceedc6 100644
+--- a/fps-backend/src/UnityFps.Api/Data/Entities.cs
++++ b/fps-backend/src/UnityFps.Api/Data/Entities.cs
+@@ -1,5 +1,7 @@
+ namespace UnityFps.Api.Data;
+ 
++using UnityFps.Api.Features;
++
+ public sealed class UserAccount
+ {
+     public long Id { get; set; }
+@@ -69,6 +71,19 @@ public sealed class PlayerWallet
+     public UserAccount User { get; set; } = null!;
+ }
+ 
++/// <summary>
++/// 每玩家设置偏好（2026-09-07）：键值对按用户隔离保存（键位/音量/灵敏度等），
++/// 键集合开放——后续新增设置项直接加键即可，无需迁移。
++/// </summary>
++public sealed class UserSetting
++{
++    public long UserId { get; set; }
++    public string SettingKey { get; set; } = string.Empty;
++    public string SettingValue { get; set; } = string.Empty;
++    public DateTime UpdatedAtUtc { get; set; }
++    public UserAccount User { get; set; } = null!;
++}
++
+ public sealed class PlayerInventoryItem
+ {
+     public long Id { get; set; }
+@@ -128,33 +143,124 @@ public sealed class MatchRecord
+     public bool IsWin { get; set; }
+     /// <summary>客户端生成的一局唯一 ID，用于结算幂等（Docs/17 §4.5）.</summary>
+     public string? ClientMatchId { get; set; }
++    /// <summary>房间比赛 ID（Docs/27 §7.2；带此值的提交走 TDM/新版校验上限，null = 旧路径）.</summary>
++    public string? MatchId { get; set; }
+     public DateTime PlayedAtUtc { get; set; }
+     public UserAccount User { get; set; } = null!;
+ }
+ 
++/// <summary>武器—配件兼容矩阵（权威放行/拒绝）。一行 = 某武器某槽位可装某配件；IsImplemented=false 表示尚未完成挂点校准（诚实呈现，Docs/15 §9）.</summary>
++public sealed class AttachmentCompat
++{
++    public string WeaponItemId { get; set; } = string.Empty;
++    public string AttachmentItemId { get; set; } = string.Empty;
++    public string SlotType { get; set; } = string.Empty;
++    public bool IsImplemented { get; set; }
++    public string CalibrationKey { get; set; } = string.Empty;
++    public CatalogItem WeaponItem { get; set; } = null!;
++    public CatalogItem AttachmentItem { get; set; } = null!;
++}
++
+ /// <summary>
+-/// 联机房间注册表（Docs/19 N4，轻量）：只做"房间码→房主 IP/端口"的发现服务；
+-/// 实时对战仍走 FishNet client-hosted 直连（Docs/04：Dedicated Server 放弃）。
+-/// 房间生命周期短：心跳过期自动清理（HostSession 每次列表查询时懒清理）。
++/// 联机房间（Docs/27 §2 Dedicated 语义）：房间只是"成员名单 + 绑定的服务器实例"，
++/// 不再承载房主直连地址。生命周期由绑定实例的心跳决定（玩家心跳已废弃）。
+ /// </summary>
+ public sealed class GameRoom
+ {
+     public long Id { get; set; }
+     /// <summary>房间码（6 位大写字母数字，用户口播/输入用）。</summary>
+     public string RoomCode { get; set; } = string.Empty;
++    /// <summary>房间 leader（Docs/27 §2.1：可转移的大厅管理身份；物理列沿用旧名，语义已不是服务器拥有者）。</summary>
+     public long HostUserId { get; set; }
++    /// <summary>房间 leader 用户名（同上，物理列沿用旧名 HostUsername）。</summary>
+     public string HostUsername { get; set; } = string.Empty;
+-    /// <summary>房主 Tugboat 监听地址（LAN IPv4）。</summary>
++    /// <summary>旧 client-hosted 字段：Dedicated 拓扑下不再接受玩家上报，仅保留列避免迁移删数据。</summary>
+     public string HostAddress { get; set; } = string.Empty;
++    /// <summary>旧 client-hosted 字段：同上，忽略玩家上报值。</summary>
+     public int HostPort { get; set; } = 7770;
+     public int MaxPlayers { get; set; } = 8;
+     public int JoinedPlayers { get; set; } = 1;
++    /// <summary>旧字段：开闭语义改由 Status 承载，创建时恒 true，仅作遗留兼容。</summary>
+     public bool IsOpen { get; set; } = true;
++    /// <summary>房间状态（Docs/27 v1 状态机，见 RoomStatus）。</summary>
++    public string Status { get; set; } = RoomStatus.Waiting;
++    /// <summary>对局模式（Docs/27 §1 白名单）。</summary>
++    public string Mode { get; set; } = GameModes.Tdm;
++    /// <summary>地图 ID（地图目录白名单，禁止硬编码场景路径）。</summary>
++    public string MapId { get; set; } = MapCatalog.DefaultMapId;
++    public int KillTarget { get; set; } = 100;
++    public int TimeLimitMinutes { get; set; } = 10;
++    /// <summary>房间可变状态版本：设置变更/状态迁移时 +1（Docs/27 §1）。</summary>
++    public long RoomVersion { get; set; } = 1;
++    /// <summary>当前比赛（Starting/InMatch/Returning 期间非空）。</summary>
++    public string? CurrentMatchId { get; set; }
++    /// <summary>房间内已开始的第几局；每次成功 start +1，初始 0。</summary>
++    public int MatchGeneration { get; set; }
++    /// <summary>上一局的 matchId（返房后保留供结果查询）。</summary>
++    public string? LastMatchId { get; set; }
++    /// <summary>最近一次状态迁移时间：Starting/Returning 超时判定基准。</summary>
++    public DateTime StateChangedAtUtc { get; set; }
++    /// <summary>租用时绑定的服务器实例；房间过期（实例心跳失联）后清理。</summary>
++    public long? ServerInstanceId { get; set; }
++    public ServerInstance? ServerInstance { get; set; }
+     public DateTime CreatedAtUtc { get; set; }
+-    /// <summary>房主心跳（存活判定：超过 30s 视为废弃，列表不显示并懒删除）。</summary>
++    /// <summary>旧玩家心跳列：不再维护（成员保活见 GameRoomMember.LastSeenUtc，房间过期由实例心跳/成员过期决定）。</summary>
+     public DateTime LastHeartbeatUtc { get; set; }
+     public UserAccount Host { get; set; } = null!;
+     public List<GameRoomMember> Members { get; set; } = [];
++    public List<RoomMatchRoster> Rosters { get; set; } = [];
++}
++
++/// <summary>
++/// 房间状态字面值。Docs/27 v1（CF 契约）状态机：Waiting → Starting → InMatch → Returning → Waiting，终态 Closed。
++/// WaitingForServer/WaitingForPlayers 为旧 Dedicated 契约遗留值：数据库迁移统一映射为 Waiting，
++/// 运行时读取按 NormalizeStatus 防御性归一，新代码禁止写入旧值。
++/// </summary>
++public static class RoomStatus
++{
++    public const string Waiting = "Waiting";
++    public const string Starting = "Starting";
++    public const string InMatch = "InMatch";
++    public const string Returning = "Returning";
++    public const string Closed = "Closed";
++    // 旧值（仅迁移映射与读取兼容）
++    public const string WaitingForServer = "WaitingForServer";
++    public const string WaitingForPlayers = "WaitingForPlayers";
++
++    /// <summary>旧值 → Waiting 的读取归一；新值原样返回。</summary>
++    public static string Normalize(string status) => status switch
++    {
++        WaitingForServer or WaitingForPlayers => Waiting,
++        _ => status,
++    };
++}
++
++/// <summary>队伍标识字面值（Docs/27 §1 冻结值）。KillRace 全员 None。类型名避开实体属性 TeamId 重名。</summary>
++public static class Teams
++{
++    public const string None = "None";
++    public const string Red = "Red";
++    public const string Blue = "Blue";
++    public static readonly string[] All = [None, Red, Blue];
++}
++
++/// <summary>对局模式白名单（Docs/27 §1）。KillRace = 现有 FFA 击杀竞赛（回归路径），TDM = 团队死斗。</summary>
++public static class GameModes
++{
++    public const string Tdm = "TDM";
++    public const string KillRace = "KillRace";
++    public static readonly string[] All = [Tdm, KillRace];
++    public static bool IsTeamMode(string mode) => mode == Tdm;
++}
++
++/// <summary>服务器实例状态字面值（心跳可上报；租用置 Reserved，释放回 Ready）。</summary>
++public static class InstanceState
++{
++    public const string Ready = "Ready";
++    public const string Reserved = "Reserved";
++    public const string InMatch = "InMatch";
++    public const string Offline = "Offline";
++    public static readonly string[] All = [Ready, Reserved, InMatch, Offline];
+ }
+ 
+ /// <summary>房间加入记录（一个玩家同时只能在一个房间）。</summary>
+@@ -164,10 +270,102 @@ public sealed class GameRoomMember
+     public long RoomId { get; set; }
+     public long UserId { get; set; }
+     public DateTime JoinedAtUtc { get; set; }
++    /// <summary>队伍（Docs/27 §1）；Waiting 可改，InMatch 禁改。</summary>
++    public string TeamId { get; set; } = Teams.None;
++    public bool IsReady { get; set; }
++    /// <summary>成员保活心跳（Waiting 不连 DS，房间活性由成员心跳决定）。</summary>
++    public DateTime LastSeenUtc { get; set; }
++    /// <summary>入房时的聊天 seq 水位（新成员不补发此前历史，Docs/27 §8.3；Q06 启用）。</summary>
++    public ulong ChatJoinSeq { get; set; }
+     public GameRoom Room { get; set; } = null!;
+     public UserAccount User { get; set; } = null!;
+ }
+ 
++/// <summary>
++/// 一场比赛的开局名单快照（Docs/27 §3）：start 成功时从成员表冻结；
++/// 补人成员无行（不属开局名单）；终局资格/结果聚合以本表为准。
++/// </summary>
++public sealed class RoomMatchRoster
++{
++    public long Id { get; set; }
++    public long RoomId { get; set; }
++    public GameRoom Room { get; set; } = null!;
++    /// <summary>所属比赛（GUID N 格式，与 GameRoom.CurrentMatchId 同源）。</summary>
++    public string MatchId { get; set; } = string.Empty;
++    public long UserId { get; set; }
++    public string TeamId { get; set; } = Teams.None;
++    public DateTime IssuedAtUtc { get; set; }
++    /// <summary>成员中途退出/掉线移除时回填（资格判定依据，Docs/26 §2.4）。</summary>
++    public DateTime? LeftAtUtc { get; set; }
++}
++
++/// <summary>
++/// DS 权威终局结果（Docs/27 §7.2）：按 MatchId 幂等；TDM 奖励发放依据；
++/// KillRace 不写本表（沿用客户端提交路径）。
++/// </summary>
++public sealed class RoomMatchResult
++{
++    /// <summary>比赛 ID（GUID N 格式）。</summary>
++    public string MatchId { get; set; } = string.Empty;
++    public long RoomId { get; set; }
++    /// <summary>胜队；null = 平局/无胜者（双方同时归零）。</summary>
++    public string? WinnerTeam { get; set; }
++    public int DurationSeconds { get; set; }
++    public DateTime EndedAtUtc { get; set; }
++    /// <summary>逐玩家结果（RoomMatchPlayerResultDto[] 序列化，勿手改）。</summary>
++    public string PlayersJson { get; set; } = string.Empty;
++    /// <summary>奖励发放完成时间；null = 尚未发放（幂等再入点）。</summary>
++    public DateTime? RewardsAppliedAtUtc { get; set; }
++}
++
++/// <summary>
++/// Dedicated Server 实例注册表（Docs/27 §2）：Unity Server 进程持 X-Server-Key 注册/心跳；
++/// 创建房间时原子租用一个心跳新鲜的 Ready 实例（Ready→Reserved，一实例一房间）。
++/// 与 roomLeader（可转移管理身份）、matchAuthority（FishNet 权威逻辑）严格解耦。
++/// </summary>
++public sealed class ServerInstance
++{
++    public long Id { get; set; }
++    /// <summary>服务器进程自报的稳定标识（如 arena-01）。</summary>
++    public string InstanceId { get; set; } = string.Empty;
++    /// <summary>客户端可直连地址（服务器注册时上报，玩家上报值一律不采信）。</summary>
++    public string Address { get; set; } = string.Empty;
++    public int Port { get; set; } = 7770;
++    public int Capacity { get; set; } = 8;
++    public string? BuildVersion { get; set; }
++    /// <summary>Ready / Reserved / InMatch / Offline（心跳可上报；租用置 Reserved，释放回 Ready）。</summary>
++    public string State { get; set; } = "Ready";
++    public int CurrentPlayers { get; set; }
++    /// <summary>当前绑定的房间码（Reserved/InMatch 时非空）。</summary>
++    public string? RoomCode { get; set; }
++    public DateTime RegisteredAtUtc { get; set; }
++    /// <summary>实例心跳时间；超过 TTL 即不再可租（房间随之懒清理）。</summary>
++    public DateTime LastHeartbeatUtc { get; set; }
++    /// <summary>乐观并发令牌：租用/释放竞态的提供方无关兜底（InMemory 测试无串行化事务）。</summary>
++    public long Version { get; set; } = 1;
++}
++
++/// <summary>
++/// 一次性 opaque 加入票据（Docs/27 §2.3）：32 字节随机数的 Base64Url 只向客户端下发一次，
++/// 库内只存 SHA-256 hash；TTL 90 秒，绑定 instance+room+user；consume 事务内写 ConsumedAtUtc。
++/// </summary>
++public sealed class ServerJoinTicket
++{
++    public long Id { get; set; }
++    /// <summary>SHA-256(明文票据) 小写十六进制（64 字符），唯一索引。</summary>
++    public string TicketHash { get; set; } = string.Empty;
++    public long ServerInstanceId { get; set; }
++    public ServerInstance Instance { get; set; } = null!;
++    public string RoomCode { get; set; } = string.Empty;
++    public long UserId { get; set; }
++    public string Username { get; set; } = string.Empty;
++    public DateTime IssuedAtUtc { get; set; }
++    public DateTime ExpiresAtUtc { get; set; }
++    public DateTime? ConsumedAtUtc { get; set; }
++    /// <summary>乐观并发令牌：双并发 consume 只有一方成功，另一方落到 REPLAYED。</summary>
++    public long Version { get; set; } = 1;
++}
++
+ // ===== 通行证与成就系统（Docs/17 §4.3）=====
+ 
+ /// <summary>玩家通行证进度（每用户每赛季一行）.</summary>
+diff --git a/fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs b/fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs
+index 9c2b349e..c657b282 100644
+--- a/fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs
++++ b/fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs
+@@ -57,6 +57,36 @@ namespace UnityFps.Api.Data.Migrations
+                     b.ToTable("AchievementDefinition", (string)null);
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.AttachmentCompat", b =>
++                {
++                    b.Property<string>("WeaponItemId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<string>("AttachmentItemId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<string>("CalibrationKey")
++                        .IsRequired()
++                        .HasMaxLength(128)
++                        .HasColumnType("varchar(128)");
++
++                    b.Property<bool>("IsImplemented")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<string>("SlotType")
++                        .IsRequired()
++                        .HasMaxLength(24)
++                        .HasColumnType("varchar(24)");
++
++                    b.HasKey("WeaponItemId", "AttachmentItemId");
++
++                    b.HasIndex("AttachmentItemId");
++
++                    b.ToTable("AttachmentCompat", (string)null);
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.CatalogItem", b =>
+                 {
+                     b.Property<string>("ItemId")
+@@ -131,6 +161,10 @@ namespace UnityFps.Api.Data.Migrations
+                     b.Property<DateTime>("CreatedAtUtc")
+                         .HasColumnType("datetime(6)");
+ 
++                    b.Property<string>("CurrentMatchId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
+                     b.Property<string>("HostAddress")
+                         .IsRequired()
+                         .HasMaxLength(64)
+@@ -153,17 +187,54 @@ namespace UnityFps.Api.Data.Migrations
+                     b.Property<int>("JoinedPlayers")
+                         .HasColumnType("int");
+ 
++                    b.Property<int>("KillTarget")
++                        .HasColumnType("int");
++
+                     b.Property<DateTime>("LastHeartbeatUtc")
+                         .HasColumnType("datetime(6)");
+ 
++                    b.Property<string>("LastMatchId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<string>("MapId")
++                        .IsRequired()
++                        .HasMaxLength(32)
++                        .HasColumnType("varchar(32)");
++
++                    b.Property<int>("MatchGeneration")
++                        .HasColumnType("int");
++
+                     b.Property<int>("MaxPlayers")
+                         .HasColumnType("int");
+ 
++                    b.Property<string>("Mode")
++                        .IsRequired()
++                        .HasMaxLength(16)
++                        .HasColumnType("varchar(16)");
++
+                     b.Property<string>("RoomCode")
+                         .IsRequired()
+                         .HasMaxLength(6)
+                         .HasColumnType("varchar(6)");
+ 
++                    b.Property<long>("RoomVersion")
++                        .HasColumnType("bigint");
++
++                    b.Property<long?>("ServerInstanceId")
++                        .HasColumnType("bigint");
++
++                    b.Property<DateTime>("StateChangedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("Status")
++                        .IsRequired()
++                        .HasMaxLength(32)
++                        .HasColumnType("varchar(32)");
++
++                    b.Property<int>("TimeLimitMinutes")
++                        .HasColumnType("int");
++
+                     b.HasKey("Id");
+ 
+                     b.HasIndex("HostUserId");
+@@ -171,6 +242,10 @@ namespace UnityFps.Api.Data.Migrations
+                     b.HasIndex("RoomCode")
+                         .IsUnique();
+ 
++                    b.HasIndex("ServerInstanceId");
++
++                    b.HasIndex("Status", "StateChangedAtUtc");
++
+                     b.ToTable("GameRoom", (string)null);
+                 });
+ 
+@@ -182,12 +257,26 @@ namespace UnityFps.Api.Data.Migrations
+ 
+                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+ 
++                    b.Property<ulong>("ChatJoinSeq")
++                        .HasColumnType("bigint unsigned");
++
++                    b.Property<bool>("IsReady")
++                        .HasColumnType("tinyint(1)");
++
+                     b.Property<DateTime>("JoinedAtUtc")
+                         .HasColumnType("datetime(6)");
+ 
++                    b.Property<DateTime>("LastSeenUtc")
++                        .HasColumnType("datetime(6)");
++
+                     b.Property<long>("RoomId")
+                         .HasColumnType("bigint");
+ 
++                    b.Property<string>("TeamId")
++                        .IsRequired()
++                        .HasMaxLength(8)
++                        .HasColumnType("varchar(8)");
++
+                     b.Property<long>("UserId")
+                         .HasColumnType("bigint");
+ 
+@@ -225,6 +314,10 @@ namespace UnityFps.Api.Data.Migrations
+                     b.Property<int>("Kills")
+                         .HasColumnType("int");
+ 
++                    b.Property<string>("MatchId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
+                     b.Property<int>("PassXpEarned")
+                         .HasColumnType("int");
+ 
+@@ -242,6 +335,8 @@ namespace UnityFps.Api.Data.Migrations
+ 
+                     b.HasKey("Id");
+ 
++                    b.HasIndex("MatchId");
++
+                     b.HasIndex("UserId", "ClientMatchId")
+                         .IsUnique();
+ 
+@@ -501,6 +596,198 @@ namespace UnityFps.Api.Data.Migrations
+                     b.ToTable("PlayerWallet", (string)null);
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchResult", b =>
++                {
++                    b.Property<string>("MatchId")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<int>("DurationSeconds")
++                        .HasColumnType("int");
++
++                    b.Property<DateTime>("EndedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("PlayersJson")
++                        .IsRequired()
++                        .HasMaxLength(4096)
++                        .HasColumnType("varchar(4096)");
++
++                    b.Property<DateTime?>("RewardsAppliedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<long>("RoomId")
++                        .HasColumnType("bigint");
++
++                    b.Property<string>("WinnerTeam")
++                        .HasMaxLength(8)
++                        .HasColumnType("varchar(8)");
++
++                    b.HasKey("MatchId");
++
++                    b.HasIndex("RoomId");
++
++                    b.ToTable("RoomMatchResult", (string)null);
++                });
++
++            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchRoster", b =>
++                {
++                    b.Property<long>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("bigint");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
++
++                    b.Property<DateTime>("IssuedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<DateTime?>("LeftAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("MatchId")
++                        .IsRequired()
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<long>("RoomId")
++                        .HasColumnType("bigint");
++
++                    b.Property<string>("TeamId")
++                        .IsRequired()
++                        .HasMaxLength(8)
++                        .HasColumnType("varchar(8)");
++
++                    b.Property<long>("UserId")
++                        .HasColumnType("bigint");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("RoomId");
++
++                    b.HasIndex("MatchId", "UserId")
++                        .IsUnique();
++
++                    b.ToTable("RoomMatchRoster", (string)null);
++                });
++
++            modelBuilder.Entity("UnityFps.Api.Data.ServerInstance", b =>
++                {
++                    b.Property<long>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("bigint");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
++
++                    b.Property<string>("Address")
++                        .IsRequired()
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<string>("BuildVersion")
++                        .HasMaxLength(32)
++                        .HasColumnType("varchar(32)");
++
++                    b.Property<int>("Capacity")
++                        .HasColumnType("int");
++
++                    b.Property<int>("CurrentPlayers")
++                        .HasColumnType("int");
++
++                    b.Property<string>("InstanceId")
++                        .IsRequired()
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<DateTime>("LastHeartbeatUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<int>("Port")
++                        .HasColumnType("int");
++
++                    b.Property<DateTime>("RegisteredAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("RoomCode")
++                        .HasMaxLength(6)
++                        .HasColumnType("varchar(6)");
++
++                    b.Property<string>("State")
++                        .IsRequired()
++                        .HasMaxLength(16)
++                        .HasColumnType("varchar(16)");
++
++                    b.Property<long>("Version")
++                        .IsConcurrencyToken()
++                        .HasColumnType("bigint");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("InstanceId")
++                        .IsUnique();
++
++                    b.HasIndex("RoomCode");
++
++                    b.HasIndex("State", "LastHeartbeatUtc");
++
++                    b.ToTable("ServerInstance", (string)null);
++                });
++
++            modelBuilder.Entity("UnityFps.Api.Data.ServerJoinTicket", b =>
++                {
++                    b.Property<long>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("bigint");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
++
++                    b.Property<DateTime?>("ConsumedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<DateTime>("ExpiresAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<DateTime>("IssuedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("RoomCode")
++                        .IsRequired()
++                        .HasMaxLength(6)
++                        .HasColumnType("varchar(6)");
++
++                    b.Property<long>("ServerInstanceId")
++                        .HasColumnType("bigint");
++
++                    b.Property<string>("TicketHash")
++                        .IsRequired()
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<long>("UserId")
++                        .HasColumnType("bigint");
++
++                    b.Property<string>("Username")
++                        .IsRequired()
++                        .HasMaxLength(32)
++                        .HasColumnType("varchar(32)");
++
++                    b.Property<long>("Version")
++                        .IsConcurrencyToken()
++                        .HasColumnType("bigint");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("ExpiresAtUtc");
++
++                    b.HasIndex("RoomCode");
++
++                    b.HasIndex("ServerInstanceId");
++
++                    b.HasIndex("TicketHash")
++                        .IsUnique();
++
++                    b.ToTable("ServerJoinTicket", (string)null);
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.ShopPurchase", b =>
+                 {
+                     b.Property<string>("PurchaseId")
+@@ -579,6 +866,28 @@ namespace UnityFps.Api.Data.Migrations
+                     b.ToTable("UserAccount", (string)null);
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.UserSetting", b =>
++                {
++                    b.Property<long>("UserId")
++                        .HasColumnType("bigint");
++
++                    b.Property<string>("SettingKey")
++                        .HasMaxLength(64)
++                        .HasColumnType("varchar(64)");
++
++                    b.Property<string>("SettingValue")
++                        .IsRequired()
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.Property<DateTime>("UpdatedAtUtc")
++                        .HasColumnType("datetime(6)");
++
++                    b.HasKey("UserId", "SettingKey");
++
++                    b.ToTable("UserSetting", (string)null);
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.WalletLedgerEntry", b =>
+                 {
+                     b.Property<long>("Id")
+@@ -616,6 +925,25 @@ namespace UnityFps.Api.Data.Migrations
+                     b.ToTable("WalletLedgerEntry", (string)null);
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.AttachmentCompat", b =>
++                {
++                    b.HasOne("UnityFps.Api.Data.CatalogItem", "AttachmentItem")
++                        .WithMany()
++                        .HasForeignKey("AttachmentItemId")
++                        .OnDelete(DeleteBehavior.Restrict)
++                        .IsRequired();
++
++                    b.HasOne("UnityFps.Api.Data.CatalogItem", "WeaponItem")
++                        .WithMany()
++                        .HasForeignKey("WeaponItemId")
++                        .OnDelete(DeleteBehavior.Restrict)
++                        .IsRequired();
++
++                    b.Navigation("AttachmentItem");
++
++                    b.Navigation("WeaponItem");
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.GameRoom", b =>
+                 {
+                     b.HasOne("UnityFps.Api.Data.UserAccount", "Host")
+@@ -624,7 +952,14 @@ namespace UnityFps.Api.Data.Migrations
+                         .OnDelete(DeleteBehavior.Cascade)
+                         .IsRequired();
+ 
++                    b.HasOne("UnityFps.Api.Data.ServerInstance", "ServerInstance")
++                        .WithMany()
++                        .HasForeignKey("ServerInstanceId")
++                        .OnDelete(DeleteBehavior.SetNull);
++
+                     b.Navigation("Host");
++
++                    b.Navigation("ServerInstance");
+                 });
+ 
+             modelBuilder.Entity("UnityFps.Api.Data.GameRoomMember", b =>
+@@ -731,6 +1066,28 @@ namespace UnityFps.Api.Data.Migrations
+                     b.Navigation("User");
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchRoster", b =>
++                {
++                    b.HasOne("UnityFps.Api.Data.GameRoom", "Room")
++                        .WithMany("Rosters")
++                        .HasForeignKey("RoomId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("Room");
++                });
++
++            modelBuilder.Entity("UnityFps.Api.Data.ServerJoinTicket", b =>
++                {
++                    b.HasOne("UnityFps.Api.Data.ServerInstance", "Instance")
++                        .WithMany()
++                        .HasForeignKey("ServerInstanceId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("Instance");
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.ShopPurchase", b =>
+                 {
+                     b.HasOne("UnityFps.Api.Data.CatalogItem", "Item")
+@@ -750,9 +1107,22 @@ namespace UnityFps.Api.Data.Migrations
+                     b.Navigation("User");
+                 });
+ 
++            modelBuilder.Entity("UnityFps.Api.Data.UserSetting", b =>
++                {
++                    b.HasOne("UnityFps.Api.Data.UserAccount", "User")
++                        .WithMany()
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("User");
++                });
++
+             modelBuilder.Entity("UnityFps.Api.Data.GameRoom", b =>
+                 {
+                     b.Navigation("Members");
++
++                    b.Navigation("Rosters");
+                 });
+ 
+             modelBuilder.Entity("UnityFps.Api.Data.PlayerLoadout", b =>
+diff --git a/fps-backend/src/UnityFps.Api/Features/Contracts.cs b/fps-backend/src/UnityFps.Api/Features/Contracts.cs
+index f1b6b4b5..eaca596c 100644
+--- a/fps-backend/src/UnityFps.Api/Features/Contracts.cs
++++ b/fps-backend/src/UnityFps.Api/Features/Contracts.cs
+@@ -1,4 +1,7 @@
++using System.Collections.Generic;
+ using System.ComponentModel.DataAnnotations;
++using System.Text.Json.Serialization;
++using UnityFps.Api.Data;
+ 
+ namespace UnityFps.Api.Features;
+ 
+@@ -36,10 +39,20 @@ public sealed class LoadoutRequest
+ }
+ 
+ public sealed record CatalogItemDto(string ItemId, string ItemType, string SlotType, string DisplayName, string Description,
+-    string AssetKey, long PriceCoins, int UnlockLevel, bool IsActive, bool IsOwned, bool IsImplemented, string CalibrationKey);
++    string AssetKey, long PriceCoins, int UnlockLevel, bool IsActive, bool IsOwned, bool IsImplemented, string CalibrationKey,
++    string AcquisitionSource);
+ public sealed record InventoryItemDto(string ItemId, int Quantity, CatalogItemDto Item);
+ public sealed record InventoryDto(long Coins, InventoryItemDto[] Items);
+ public sealed record ShopCatalogDto(long Coins, int Level, CatalogItemDto[] Items);
++
++// ---- 每玩家设置偏好（键位/音量/灵敏度等；键值对开放扩展）----
++
++public sealed class SaveSettingsRequest
++{
++    [Required] public Dictionary<string, string> Values { get; set; } = new();
++}
++
++public sealed record UserSettingsDto(Dictionary<string, string> Values);
+ public sealed class PurchaseRequest
+ {
+     [Required, StringLength(64)] public string ItemId { get; set; } = string.Empty;
+@@ -49,17 +62,196 @@ public sealed class PurchaseRequest
+ public sealed record PurchaseResultDto(string PurchaseId, string ItemId, int Quantity, long UnitPriceCoins,
+     long TotalPriceCoins, long Coins, bool Replayed, InventoryItemDto Item);
+ 
+-// ---- 房间注册表（Docs/19 N4）----
++// ---- 房间（Docs/27 v1 CF 契约：等待房间语义；旧"创建即连 DS"已退役，租 DS/签票移至 start）----
+ 
+ public sealed class CreateRoomRequest
+ {
+-    [Required, StringLength(64)] public string HostAddress { get; set; } = string.Empty;
++    [Range(2, 16)] public int MaxPlayers { get; set; } = 16;
++    [StringLength(16)] public string Mode { get; set; } = GameModes.Tdm;
++    [StringLength(32)] public string MapId { get; set; } = MapCatalog.DefaultMapId;
++    public int KillTarget { get; set; } = 100;
++    public int TimeLimitMinutes { get; set; } = 10;
++    // 旧 client-hosted 字段：仅为旧客户端请求体解析兼容保留，服务端一律忽略
++    [StringLength(64)] public string? HostAddress { get; set; }
+     [Range(1024, 65535)] public int HostPort { get; set; } = 7770;
+-    [Range(2, 16)] public int MaxPlayers { get; set; } = 8;
+ }
+ 
+-public sealed record GameRoomDto(string RoomCode, string HostUsername, string HostAddress, int HostPort,
+-    int JoinedPlayers, int MaxPlayers, bool IsOpen, DateTime CreatedAtUtc);
++/// <summary>加入房间请求：teamId 仅 TDM 有意义（Waiting 选边 / InMatch 补人指定队伍），缺省自动分配未满队。</summary>
++public sealed class RoomJoinRequest
++{
++    [StringLength(8)] public string? TeamId { get; set; }
++}
++
++public sealed class RoomTeamRequest
++{
++    [Required, StringLength(8)] public string TeamId { get; set; } = string.Empty;
++}
++
++public sealed class RoomReadyRequest
++{
++    public bool IsReady { get; set; }
++}
++
++/// <summary>返房 ack 请求（Docs/27 §5.7）：携带开局响应中的 matchId。</summary>
++public sealed class RoomReturnRequest
++{
++    [Required, StringLength(64, MinimumLength = 8)] public string MatchId { get; set; } = string.Empty;
++}
++
++/// <summary>房主设置变更：null 字段保持不变；任一白名单外取值整体 422（Docs/27 §5.4）。</summary>
++public sealed class RoomSettingsRequest
++{
++    [StringLength(16)] public string? Mode { get; set; }
++    [StringLength(32)] public string? MapId { get; set; }
++    public int? KillTarget { get; set; }
++    public int? TimeLimitMinutes { get; set; }
++    [Range(2, 16)] public int? MaxPlayers { get; set; }
++}
++
++/// <summary>列表/房间信息统一形状（只读投影），绝不携带 ticket/密钥类字段。</summary>
++public sealed record GameRoomDto(string RoomCode, string LeaderUsername, int JoinedPlayers, int MaxPlayers,
++    string Status, DateTime CreatedAtUtc, string Mode, string MapId, int KillTarget, int TimeLimitMinutes,
++    long RoomVersion, string? MatchId, int MatchGeneration);
++
++public sealed record RoomMemberDto(long UserId, string Username, string TeamId, bool IsReady, bool IsLeader, DateTime JoinedAtUtc);
++public sealed record RoomSelfDto(long UserId, string TeamId, bool IsReady);
++
++/// <summary>战斗连接信息（仅 roster/补人成员在 Starting/InMatch/Returning 可得，Docs/27 §5.2/§5.3）。</summary>
++public sealed record RoomConnectionInfoDto(string ServerAddress, int ServerPort, string JoinTicket,
++    DateTime TicketExpiresAtUtc, string MatchId, int MatchGeneration);
++
++/// <summary>详情/加入/选边/准备/设置响应：房间快照。connection 仅在可连接状态出现。</summary>
++public sealed record RoomSnapshotDto(GameRoomDto Room, RoomMemberDto[] Members, RoomSelfDto You, RoomConnectionInfoDto? Connection);
++
++public sealed record StartRosterEntryDto(long UserId, string TeamId);
++
++// ---- 房间聊天（Docs/27 §8；HTTP 等待房间传输，局内为 Owner RPC——同一消息模型）----
++
++public sealed class ChatSendRequest
++{
++    /// <summary>All / Team；System 无客户端发送路径。</summary>
++    [Required, StringLength(8)] public string Channel { get; set; } = string.Empty;
++    /// <summary>不加 [Required]：空白/超长由 ChatPolicy 权威判定并返回 422 CHAT_REJECTED（而非 400 模型错误）。</summary>
++    public string Body { get; set; } = string.Empty;
++    /// <summary>客户端 UUID：端到端去重与本地乐观消息对账。</summary>
++    [Required, StringLength(64, MinimumLength = 8)] public string ClientMessageId { get; set; } = string.Empty;
++}
++
++public sealed record ChatMessageDto(ulong Seq, string Channel, long? SenderUserId, string? SenderUsername,
++    string? TeamId, string Body, DateTime SentAtUtc, string? ClientMessageId);
++
++public sealed record ChatFeedDto(ulong Cursor, ChatMessageDto[] Messages);
++
++/// <summary>开局响应（Docs/27 §5.5）：比赛身份 + 冻结规则 + 名单 + 发起者自己的连接信息。</summary>
++public sealed record StartMatchDto(string MatchId, int MatchGeneration, long RoomVersion, string MapId, string Mode,
++    int KillTarget, int TimeLimitMinutes, RoomConnectionInfoDto Connection, StartRosterEntryDto[] Roster);
++
++/// <summary>创建/加入房间响应（旧 Dedicated 契约形状，仅存于 git 历史测试；运行时已被 RoomSnapshotDto 取代）。</summary>
++public sealed record RoomConnectionDto(GameRoomDto Room, string ServerAddress, int ServerPort,
++    string JoinTicket, DateTime TicketExpiresAtUtc);
++
++// ---- Dedicated Server 控制面（Docs/27 §2.2/§2.3 冻结；X-Server-Key 鉴权，与玩家 JWT 无关）----
++
++public sealed class ServerInstanceRegisterRequest
++{
++    [Required, StringLength(64, MinimumLength = 4)] public string InstanceId { get; set; } = string.Empty;
++    [Required, StringLength(64)] public string Address { get; set; } = string.Empty;
++    [Range(1024, 65535)] public int Port { get; set; } = 7770;
++    [Range(1, 64)] public int Capacity { get; set; } = 8;
++    [StringLength(32)] public string? BuildVersion { get; set; }
++}
++
++public sealed record ServerInstanceRegisterDto(string InstanceId, string State, int HeartbeatIntervalSeconds);
++
++public sealed class ServerInstanceHeartbeatRequest
++{
++    /// <summary>绑定中的房间码；无绑定时留空。</summary>
++    [StringLength(6)] public string? RoomCode { get; set; }
++    [Range(0, 64)] public int CurrentPlayers { get; set; }
++    [Required, StringLength(16)] public string State { get; set; } = string.Empty;
++}
++
++public sealed class JoinTicketConsumeRequest
++{
++    [Required, StringLength(64)] public string InstanceId { get; set; } = string.Empty;
++    [Required, StringLength(128)] public string Ticket { get; set; } = string.Empty;
++}
++
++/// <summary>
++/// 票据校验结果：valid=false 时 errorCode 为冻结的 TICKET_* 之一（失败响应不携带任何身份/配装——防泄露）。
++/// valid=true 时附带账号权威配装快照（2026-09-08 追加 P0 §6 二.1）：Dedicated Server 据此把网络玩家
++/// Arsenal 严格配置为账号实际两槽（primary/secondary + 影响属性/枪模的附件），失败不得回退调试 Arsenal。
++/// </summary>
++public sealed record JoinTicketConsumeDto(bool Valid, string? RoomCode, long? UserId, string? Username,
++    DateTime? ExpiresAtUtc, long? SessionId, string? ErrorCode, LoadoutDto? Loadout = null,
++    string? MatchId = null, int? MatchGeneration = null, string? TeamId = null);
++
++// ---- CF 等待房间：地图目录与终局结果（Docs/27 §4/§7）----
++
++/// <summary>地图目录项（服务端常量白名单；客户端/DS 镜像只读）。</summary>
++public sealed record MapCatalogDto(string MapId, string DisplayName, string SceneName, string[] Modes,
++    int MaxCapacity, string[] SpawnGroups);
++
++/// <summary>DS 权威终局逐玩家结果行。</summary>
++public sealed record MatchPlayerResultDto(long UserId, string TeamId, int Kills, int Deaths, int Assists,
++    int ParticipationSeconds, bool RewardEligible, int? LeftAtSeconds = null);
++
++/// <summary>DS 终局上报请求（X-Server-Key；按 matchId 幂等，Docs/27 §7.2）。</summary>
++public sealed class MatchResultReportRequest
++{
++    [Required, StringLength(64, MinimumLength = 8)] public string MatchId { get; set; } = string.Empty;
++    public int DurationSeconds { get; set; }
++    /// <summary>胜队（Red/Blue）；null = 平局/无胜者。</summary>
++    [StringLength(8)] public string? WinnerTeam { get; set; }
++    [Required, MinLength(1)] public List<MatchPlayerResultDto> Players { get; set; } = [];
++}
++
++/// <summary>玩家侧终局结果查询（Returning 期间轮询；KillRace 由 MatchRecord 聚合）。</summary>
++public sealed record RoomMatchResultViewDto(string MatchId, string Status, string? WinnerTeam,
++    int DurationSeconds, RoomMatchResultPlayerViewDto[] Players);
++
++public sealed record RoomMatchResultPlayerViewDto(long UserId, string Username, string TeamId,
++    int Kills, int Deaths, int Assists);
++
++/// <summary>DS 终局上报处置结果（幂等：Replayed=true 表示此前已登记，零重复副作用）。</summary>
++public sealed record MatchResultReportDto(string MatchId, string Status, bool Replayed, bool RewardsApplied);
++
++// ---- 实例池开发诊断（P0 租约闭环 2026-09-08；RequireServerKey 保护，不含密钥/票据）----
++
++/// <summary>实例池诊断汇总：requestedCapacity 视角下的可租性分解（NO_SERVER_AVAILABLE 归因数据源）。</summary>
++public sealed record ServerInstancePoolSummaryDto(
++    int Total, int ReadyFresh, int ReadyStale, int Reserved, int InMatch, int Offline,
++    int StaleTotal, int ReadyFreshCapacityShort, int RequestedCapacity);
++
++/// <summary>单个实例诊断行（不含密钥/票据；heartbeatAgeSeconds 供人工判读新鲜度）。</summary>
++public sealed record ServerInstanceDiagnosticDto(
++    string InstanceId, string State, string? RoomCode, int CurrentPlayers, int Capacity,
++    int HeartbeatAgeSeconds, bool Fresh);
++
++/// <summary>实例池状态查询响应（GET /api/server-instances/pool，仅 X-Server-Key）。</summary>
++public sealed record ServerInstancePoolDto(ServerInstancePoolSummaryDto Summary, ServerInstanceDiagnosticDto[] Instances);
++
++/// <summary>
++/// 服务器上报玩家掉线（Day2 掉线成员清理）：DS 在远端连接停止（主动退出/超时/被踢）后
++/// 按该连接的认证身份档案上报；幂等——成员已不存在同样返回 200 + 权威事实（P0 租约闭环）。
++/// userId 同时接受 JSON 数字与字符串（DS 侧身份档案以字符串承载后端数字 id）。
++/// </summary>
++public sealed class ServerPlayerDisconnectReportRequest
++{
++    [Required, StringLength(6)] public string RoomCode { get; set; } = string.Empty;
++    [Range(1, long.MaxValue), JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
++    public long UserId { get; set; }
++    /// <summary>本次连接成功消费的 ServerJoinTicket.Id。用于拒绝旧连接的迟到掉线上报。</summary>
++    [Range(0, long.MaxValue), JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
++    public long SessionId { get; set; }
++}
++
++/// <summary>
++/// 掉线上报处置结果（2026-09-08 P0 实例租约闭环）：真实移除与幂等 no-op 一律返回处置后的权威事实，
++/// DS 只有在 instanceState=Ready 且 remainingPlayers=0 时才允许清空本地房间绑定转 Ready；
++/// 其余事实（Reserved/InMatch + 剩余人数）必须保留绑定。404/409 不携带本 DTO（上报方不得猜 Ready）。
++/// </summary>
++public sealed record ServerPlayerDisconnectReportDto(string RoomCode, int RemainingPlayers, string InstanceState);
+ public sealed record AttachmentCompatibilityDto(string WeaponId, string AttachmentId, string SlotType, bool IsImplemented, string CalibrationKey);
+ public sealed record LoadoutAttachmentsDto(long Version, LoadoutAttachmentDto[] Attachments);
+ public sealed class AttachmentSelectionRequest
+@@ -81,6 +273,10 @@ public sealed class MatchSubmissionRequest
+     [Range(0, int.MaxValue)] public int Deaths { get; set; }
+     [Range(0, int.MaxValue)] public int DurationSeconds { get; set; }
+     public bool IsWin { get; set; }
++    /// <summary>房间比赛 ID（Docs/27 §7.2）：带此值走比赛绑定校验 + 放宽校验上限（TDM/新版 KillRace）；null = 旧路径。</summary>
++    [StringLength(64)] public string? MatchId { get; set; }
++    /// <summary>队伍（仅 TDM 有意义，服务端以 roster 权威为准，此字段仅作对账辅助）。</summary>
++    [StringLength(8)] public string? TeamId { get; set; }
+ }
+ 
+ public sealed record PassLevelUpDto(int Level, string? RewardType, string? ItemId, int CoinsAmount);
+diff --git a/fps-backend/src/UnityFps.Api/Program.cs b/fps-backend/src/UnityFps.Api/Program.cs
+index fdf7795d..d56a79c6 100644
+--- a/fps-backend/src/UnityFps.Api/Program.cs
++++ b/fps-backend/src/UnityFps.Api/Program.cs
+@@ -27,28 +27,39 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
+     };
+ });
+ 
+-var connectionString = builder.Configuration.GetConnectionString("GameDb");
+-if (string.IsNullOrWhiteSpace(connectionString))
++// 提供方决策下沉到 DbContext 选项构建时（配置定稿后）：测试工厂经 ConfigureAppConfiguration
++// 注入的覆盖值在顶层读取时还不可见，只有在选项构建（首次解析 DbContext）时才可见。
++var configuredConnectionString = builder.Configuration.GetConnectionString("GameDb");
++if (string.IsNullOrWhiteSpace(configuredConnectionString))
+ {
+-    connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
++    configuredConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
+ }
+-
+ var allowInMemoryFallback = builder.Environment.IsDevelopment()
+     || builder.Configuration.GetValue("Database:AllowInMemoryFallback", false);
+-if (!string.IsNullOrWhiteSpace(connectionString))
+-{
+-    builder.Services.AddDbContext<AppDbContext>(options =>
+-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysql => mysql.EnableRetryOnFailure()));
+-}
+-else if (allowInMemoryFallback)
+-{
+-    builder.Services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("UnityFpsDevelopmentFallback"));
+-}
+-else
++if (string.IsNullOrWhiteSpace(configuredConnectionString) && !allowInMemoryFallback)
+ {
+     throw new InvalidOperationException("未配置 ConnectionStrings:GameDb；生产环境禁止静默降级到 InMemory。");
+ }
+ 
++builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
++{
++    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
++    // 测试隔离开关：Database:InMemoryName 存在 → 强制指定名 InMemory 存储。
++    var inMemoryName = configuration["Database:InMemoryName"];
++    if (inMemoryName is not null)
++    {
++        options.UseInMemoryDatabase(inMemoryName);
++        return;
++    }
++
++    var connectionString = configuration.GetConnectionString("GameDb");
++    if (string.IsNullOrWhiteSpace(connectionString))
++        connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
++    if (string.IsNullOrWhiteSpace(connectionString))
++        throw new InvalidOperationException("未配置 ConnectionStrings:GameDb；生产环境禁止静默降级到 InMemory。");
++    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysql => mysql.EnableRetryOnFailure());
++});
++
+ var jwtKey = builder.Configuration["Jwt:SigningKey"] ?? Environment.GetEnvironmentVariable("Jwt__SigningKey");
+ if (string.IsNullOrWhiteSpace(jwtKey))
+ {
+@@ -80,8 +91,12 @@ builder.Services.AddScoped<AuthService>();
+ builder.Services.AddScoped<ProfileService>();
+ builder.Services.AddScoped<LoadoutService>();
+ builder.Services.AddScoped<CommerceService>();
++builder.Services.AddScoped<UserSettingsService>();
+ builder.Services.AddScoped<MatchService>();
++builder.Services.AddSingleton<RoomChatService>();
+ builder.Services.AddScoped<RoomService>();
++builder.Services.AddScoped<ServerInstanceService>();
++builder.Services.Configure<ServerInstanceOptions>(builder.Configuration.GetSection("ServerInstances"));
+ builder.Services.AddScoped<PassService>();
+ builder.Services.AddEndpointsApiExplorer();
+ builder.Services.AddSwaggerGen(options =>
+@@ -123,7 +138,7 @@ app.MapGet("/health", (AppDbContext db) => Results.Ok(new
+ 
+ app.MapControllers();
+ 
+-if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
++if (!string.IsNullOrWhiteSpace(configuredConnectionString) || allowInMemoryFallback)
+ {
+     using var scope = app.Services.CreateScope();
+     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+@@ -132,6 +147,7 @@ if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
+     await CatalogSeeder.SeedAsync(db);
+     await DemoSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
+     await PassSeeder.SeedAsync(db);
++    await AttachmentSystemSeeder.SeedAsync(db);
+ }
+ 
+ app.Run();
+diff --git a/fps-backend/src/UnityFps.Api/Services/CommerceService.cs b/fps-backend/src/UnityFps.Api/Services/CommerceService.cs
+index 428dfad2..316a4685 100644
+--- a/fps-backend/src/UnityFps.Api/Services/CommerceService.cs
++++ b/fps-backend/src/UnityFps.Api/Services/CommerceService.cs
+@@ -14,8 +14,11 @@ public sealed class CommerceService(AppDbContext db)
+             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+             ?? throw new ApiException(StatusCodes.Status404NotFound, "PROFILE_NOT_FOUND", "档案不存在");
+         var owned = user.Inventory.Select(x => x.ItemId).ToHashSet(StringComparer.Ordinal);
++        // 2026-09-07 修复：不再按 AcquisitionSource=Shop 过滤——初始武器（Initial）必须进入
++        // 目录响应，否则仓库列表缺行、玩家无法进入枪匠页改装初始武器（AK/M4）。
++        // 商城可见性由客户端按 acquisitionSource 过滤；可购性由 PurchaseAsync 服务端执法。
+         var items = await db.CatalogItems.AsNoTracking()
+-            .Where(x => x.AcquisitionSource == "Shop" && x.IsActive)
++            .Where(x => x.IsActive)
+             .OrderBy(x => x.ItemId).ToListAsync(cancellationToken);
+         return new ShopCatalogDto(user.Wallet?.Coins ?? 0, user.Profile?.Level ?? 1, items.Select(x => x.ToDto(owned.Contains(x.ItemId))).ToArray());
+     }
+@@ -58,6 +61,9 @@ public sealed class CommerceService(AppDbContext db)
+                 ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ItemNotFound, "商品不存在");
+             if (!item.IsActive || !item.IsImplemented)
+                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ItemDisabled, "商品尚未开放");
++            // 目录响应含非商城行（初始/通行证奖励），购买仍只对 Shop 行开放（服务端执法）
++            if (item.AcquisitionSource != "Shop")
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ItemDisabled, "该物品不可购买");
+             if ((user.Profile?.Level ?? 1) < item.UnlockLevel)
+                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LevelLocked, $"需要等级 {item.UnlockLevel}");
+             if (user.Inventory.Any(x => x.ItemId == item.ItemId))
+diff --git a/fps-backend/src/UnityFps.Api/Services/LoadoutService.cs b/fps-backend/src/UnityFps.Api/Services/LoadoutService.cs
+index b7e44116..fc2a53b2 100644
+--- a/fps-backend/src/UnityFps.Api/Services/LoadoutService.cs
++++ b/fps-backend/src/UnityFps.Api/Services/LoadoutService.cs
+@@ -29,6 +29,11 @@ public sealed class LoadoutService(AppDbContext db)
+                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LoadoutVersionConflict, "配装已在其他位置更新，请刷新后重试");
+             await ValidateOwnedSlotAsync(userId, request.PrimaryWeaponId, "Primary", cancellationToken);
+             await ValidateOwnedSlotAsync(userId, request.SecondaryWeaponId, "Secondary", cancellationToken);
++            // 缺陷 A 修复（Docs/21 审计）：配件以 WeaponSlot 为锚，换枪时旧枪配件不能继承到新枪——清空该槽
++            if (!string.Equals(loadout.PrimaryWeaponId, request.PrimaryWeaponId, StringComparison.Ordinal))
++                loadout.Attachments.RemoveAll(x => x.WeaponSlot.Equals("Primary", StringComparison.OrdinalIgnoreCase));
++            if (!string.Equals(loadout.SecondaryWeaponId, request.SecondaryWeaponId, StringComparison.Ordinal))
++                loadout.Attachments.RemoveAll(x => x.WeaponSlot.Equals("Secondary", StringComparison.OrdinalIgnoreCase));
+             loadout.PrimaryWeaponId = request.PrimaryWeaponId;
+             loadout.SecondaryWeaponId = request.SecondaryWeaponId;
+             loadout.ThrowableId = null;
+@@ -50,7 +55,7 @@ public sealed class LoadoutService(AppDbContext db)
+     public async Task<LoadoutAttachmentsDto> UpdateAttachmentsAsync(long userId, LoadoutAttachmentsRequest request, CancellationToken cancellationToken)
+     {
+         var loadout = await db.Loadouts.Include(x => x.Attachments).SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken)
+-            ?? throw new ApiException(StatusCodes.Status404NotFound, "LOADOUT_NOT_FOUND", "配装不存在");
++            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.LoadoutVersionConflict, "配装不存在");
+         if (loadout.Version != request.ExpectedVersion)
+             throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LoadoutVersionConflict, "配装已在其他位置更新，请刷新后重试");
+         var weaponId = request.WeaponSlot.Equals("Secondary", StringComparison.OrdinalIgnoreCase)
+@@ -58,19 +63,50 @@ public sealed class LoadoutService(AppDbContext db)
+                 ? loadout.PrimaryWeaponId : string.Empty;
+         if (string.IsNullOrEmpty(weaponId))
+             throw new ApiException(StatusCodes.Status400BadRequest, ApiErrorCodes.InvalidWeapon, "武器槽位无效");
+-        if (weaponId.StartsWith("weapon.lpw.", StringComparison.Ordinal))
+-            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.AttachmentsUnsupported, "LPW 枪械配件尚未适配");
+-        if (request.Attachments.Length != 0)
+-            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.AttachmentsUnsupported, "该武器暂无已验证配件");
++
++        // 矩阵校验：目录存在且启用 → 已拥有 → 兼容矩阵放行（IsImplemented=true）
++        var attachmentIds = request.Attachments.Select(x => x.AttachmentItemId).Distinct().ToArray();
++        var items = await db.CatalogItems
++            .Where(x => x.ItemType == "Attachment" && attachmentIds.Contains(x.ItemId))
++            .ToDictionaryAsync(x => x.ItemId, cancellationToken);
++        var ownedIds = (await db.InventoryItems
++            .Where(x => x.UserId == userId && attachmentIds.Contains(x.ItemId))
++            .Select(x => x.ItemId).ToListAsync(cancellationToken)).ToHashSet();
++        var compatRows = await db.AttachmentCompat
++            .Where(x => x.WeaponItemId == weaponId && attachmentIds.Contains(x.AttachmentItemId))
++            .ToListAsync(cancellationToken);
++
++        foreach (var selection in request.Attachments)
++        {
++            if (!items.TryGetValue(selection.AttachmentItemId, out var item) || !item.IsActive)
++                throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.AttachmentInvalid, $"配件无效：{selection.AttachmentItemId}");
++            if (!item.SlotType.Equals(selection.AttachmentSlot, StringComparison.OrdinalIgnoreCase))
++                throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.AttachmentInvalid, $"配件槽位不匹配：{selection.AttachmentItemId}");
++            if (!ownedIds.Contains(selection.AttachmentItemId))
++                throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.AttachmentNotOwned, $"尚未拥有该配件：{selection.AttachmentItemId}");
++            var compat = compatRows.FirstOrDefault(x => x.AttachmentItemId == selection.AttachmentItemId);
++            if (compat is null || !compat.IsImplemented)
++                throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.AttachmentIncompatible,
++                    $"该配件尚未在此武器上适配：{selection.AttachmentItemId}");
++        }
++
+         loadout.Attachments.RemoveAll(x => x.WeaponSlot.Equals(request.WeaponSlot, StringComparison.OrdinalIgnoreCase));
++        foreach (var selection in request.Attachments)
++            loadout.Attachments.Add(new PlayerLoadoutAttachment
++            {
++                WeaponSlot = request.WeaponSlot, AttachmentSlot = selection.AttachmentSlot, AttachmentItemId = selection.AttachmentItemId
++            });
+         loadout.Version++;
+         loadout.UpdatedAtUtc = DateTime.UtcNow;
+         await db.SaveChangesAsync(cancellationToken);
+         return new LoadoutAttachmentsDto(loadout.Version, ToAttachmentDtos(loadout));
+     }
+ 
+-    public Task<AttachmentCompatibilityDto[]> GetCompatibilityAsync(long userId, CancellationToken cancellationToken) =>
+-        Task.FromResult(Array.Empty<AttachmentCompatibilityDto>());
++    public async Task<AttachmentCompatibilityDto[]> GetCompatibilityAsync(long userId, CancellationToken cancellationToken)
++    {
++        var rows = await db.AttachmentCompat.AsNoTracking().ToListAsync(cancellationToken);
++        return rows.Select(x => new AttachmentCompatibilityDto(x.WeaponItemId, x.AttachmentItemId, x.SlotType, x.IsImplemented, x.CalibrationKey)).ToArray();
++    }
+ 
+     private async Task ValidateOwnedSlotAsync(long userId, string itemId, string slot, CancellationToken cancellationToken)
+     {
+diff --git a/fps-backend/src/UnityFps.Api/Services/Mapping.cs b/fps-backend/src/UnityFps.Api/Services/Mapping.cs
+index bf2a190b..63132c69 100644
+--- a/fps-backend/src/UnityFps.Api/Services/Mapping.cs
++++ b/fps-backend/src/UnityFps.Api/Services/Mapping.cs
+@@ -15,7 +15,8 @@ public static class Mapping
+ 
+     public static CatalogItemDto ToDto(this CatalogItem item, bool owned) =>
+         new(item.ItemId, item.ItemType, item.SlotType, item.DisplayName, item.Description, item.AssetKey,
+-            item.PriceCoins, item.UnlockLevel, item.IsActive, owned, item.IsImplemented, item.CalibrationKey);
++            item.PriceCoins, item.UnlockLevel, item.IsActive, owned, item.IsImplemented, item.CalibrationKey,
++            item.AcquisitionSource);
+ 
+     public static PassRewardDto ToDto(this PassReward reward, bool granted) =>
+         new(reward.PassLevel, reward.RewardType, reward.ItemId, reward.CoinsAmount, granted);
+diff --git a/fps-backend/src/UnityFps.Api/Services/MatchService.cs b/fps-backend/src/UnityFps.Api/Services/MatchService.cs
+index 9fb25bd6..14458552 100644
+--- a/fps-backend/src/UnityFps.Api/Services/MatchService.cs
++++ b/fps-backend/src/UnityFps.Api/Services/MatchService.cs
+@@ -24,8 +24,23 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
+         if (existing is not null)
+             return await ReplayOrConflictAsync(userId, request, existing, cancellationToken);
+ 
+-        // 2. 数值校验（kills ≤ 30、duration ≤ 900s；超限 422 拒绝，不做静默钳制——Docs/17 §4.5）
+-        rules.ValidateMatchPayload(request.Kills, request.DurationSeconds);
++        // 2. 数值校验（Docs/27 §7.2 模式感知：带 matchId 的房间对局放宽上限；超限 422 拒绝，不做静默钳制）
++        //    + 比赛绑定校验（防跨局/伪造结算）：matchId 必须是提交者所在房间的当前或最近一局比赛
++        if (request.MatchId is not null)
++        {
++            var room = await db.GameRooms.AsNoTracking()
++                .Include(x => x.Members)
++                .SingleOrDefaultAsync(
++                    x => x.CurrentMatchId == request.MatchId || x.LastMatchId == request.MatchId, cancellationToken);
++            var matchBound = room is not null
++                && room.Members.Any(m => m.UserId == userId)
++                && RoomStatus.Normalize(room.Status) is RoomStatus.Starting or RoomStatus.InMatch
++                    or RoomStatus.Returning or RoomStatus.Waiting;
++            if (!matchBound)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
++                    "比赛身份与当前房间状态不符，拒绝结算");
++        }
++        rules.ValidateMatchPayload(request.Kills, request.DurationSeconds, matchScoped: request.MatchId is not null);
+ 
+         var strategy = db.Database.CreateExecutionStrategy();
+         return await strategy.ExecuteAsync(async () =>
+@@ -148,7 +163,8 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
+         {
+             UserId = userId, Kills = request.Kills, Deaths = request.Deaths, Score = 0,
+             XpEarned = xpEarned, CoinsEarned = coinsEarned, PassXpEarned = passXpEarned,
+-            IsWin = request.IsWin, ClientMatchId = request.ClientMatchId, PlayedAtUtc = DateTime.UtcNow
++            IsWin = request.IsWin, ClientMatchId = request.ClientMatchId, MatchId = request.MatchId,
++            PlayedAtUtc = DateTime.UtcNow
+         });
+ 
+         return BuildResult(xpEarned, levelUps, wallet.Coins, coinsEarned, passXpEarned, pass,
+diff --git a/fps-backend/src/UnityFps.Api/Services/ProgressionRules.cs b/fps-backend/src/UnityFps.Api/Services/ProgressionRules.cs
+index a48a25ff..1080d54f 100644
+--- a/fps-backend/src/UnityFps.Api/Services/ProgressionRules.cs
++++ b/fps-backend/src/UnityFps.Api/Services/ProgressionRules.cs
+@@ -8,9 +8,12 @@ public interface IProgressionRules
+     int GetXpToNextLevel(int level);
+     int GetUpgradeCost(string statId, int currentLevel);
+ 
+-    /// <summary>结算数值校验：kills ≤ 30、duration ≤ 15min；超限抛异常由调用方转 422.</summary>
++    /// <summary>结算数值校验（旧路径）：kills ≤ 30、duration ≤ 15min；超限抛异常由调用方转 422.</summary>
+     (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds);
+ 
++    /// <summary>结算数值校验（Docs/27 §7.2 模式感知）：带 matchId 的房间对局放宽为 kills ≤ 200、duration ≤ 20min；旧路径维持原上限.</summary>
++    (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds, bool matchScoped);
++
+     /// <summary>账号 XP = 100 + 20×kills + 200×(win?1:0)，上限 1000.</summary>
+     int GetMatchXp(int kills, bool isWin);
+ 
+@@ -36,13 +39,19 @@ public sealed class DemoProgressionRules : IProgressionRules
+     public int GetUpgradeCost(string statId, int currentLevel) => currentLevel + 1;
+ 
+     public (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds)
++        => ValidateMatchPayload(kills, durationSeconds, matchScoped: false);
++
++    public (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds, bool matchScoped)
+     {
+-        if (kills < 0 || kills > 30)
++        // Docs/27 §7.2：TDM/新版对局（带 matchId）合法个人战绩可超旧 30 杀上限；伪造防线由比赛绑定校验承担
++        var maxKills = matchScoped ? 200 : 30;
++        var maxDuration = matchScoped ? 1200 : 900;
++        if (kills < 0 || kills > maxKills)
+             throw new ApiException(StatusCodes.Status422UnprocessableEntity,
+-                ApiErrorCodes.MatchPayloadRejected, "击杀数超出有效范围 (0–30)");
+-        if (durationSeconds < 0 || durationSeconds > 900)
++                ApiErrorCodes.MatchPayloadRejected, $"击杀数超出有效范围 (0–{maxKills})");
++        if (durationSeconds < 0 || durationSeconds > maxDuration)
+             throw new ApiException(StatusCodes.Status422UnprocessableEntity,
+-                ApiErrorCodes.MatchPayloadRejected, "时长超出有效范围 (0–900s)");
++                ApiErrorCodes.MatchPayloadRejected, $"时长超出有效范围 (0–{maxDuration}s)");
+         return (kills, durationSeconds);
+     }
+ 
+diff --git a/fps-backend/src/UnityFps.Api/Services/RoomService.cs b/fps-backend/src/UnityFps.Api/Services/RoomService.cs
+index 04eb2178..9b533cb0 100644
+--- a/fps-backend/src/UnityFps.Api/Services/RoomService.cs
++++ b/fps-backend/src/UnityFps.Api/Services/RoomService.cs
+@@ -1,5 +1,7 @@
+ using System.Data;
++using System.Text.Json;
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.Logging;
+ using UnityFps.Api.Common;
+ using UnityFps.Api.Data;
+ using UnityFps.Api.Features;
+@@ -7,121 +9,439 @@ using UnityFps.Api.Features;
+ namespace UnityFps.Api.Services;
+ 
+ /// <summary>
+-/// 房间注册表服务（Docs/19 N4 + 退出对局 Phase E 收口）：房间码→房主直连地址的发现服务。
+-/// 实时对战不走本服务（FishNet client-hosted 直连，Docs/04）；这里只管
+-/// 创建/加入/列表/心跳/退出与懒清理（心跳超时 30s 的房间视为废弃）。
+-/// Phase E 纪律：
+-/// ① 成员计数唯一真相 = Members 导航集合（JoinedPlayers 全部路径 = Members.Count，
+-///    杜绝 Join/Leave/Purge 各自维护导致漂移；JoinedPlayers 只作 DTO 投影）；
+-/// ② LeaveAsync 幂等（重复离开=无成员直接返回）且走显式事务（EnableRetryOnFailure 兼容组合，
+-///    同 CommerceService 模式：CreateExecutionStrategy + IsRelational 判定）；
+-/// ③ JoinAsync 并发竞态由 GameRoomMember.UserId 唯一索引兜底（撞索引=他人已先行加入，
+-///    重读当前房间幂等返回）；
+-/// ④ 房主离开=房间解散（当前 client-hosted 拓扑的诚实语义：房主进程即服务器，
+-///    独立服务器拓扑落地前，离开者人数判定以实时比赛层 MatchLeavePolicy 为准，
+-///    本服务不做比赛终局语义）。
++/// 房间服务（Docs/27 v1 CF 等待房间语义）：房间 = 成员名单 + 规则快照；创建/加入仅进 Waiting，
++/// 不再租用 DS/签票（租 DS、建比赛、签个人票全部移至 Start）。生命周期：
++/// Waiting → Starting（90s 冻结窗口）→ InMatch → Returning → Waiting，终态 Closed。
++/// 纪律（沿 Phase E 并扩展）：
++/// ① 成员计数唯一真相 = Members 导航集合（JoinedPlayers 全路径 = Members.Count）；
++/// ② 写路径走显式事务（CreateExecutionStrategy + Serializable，同 CommerceService 模式）；
++/// ③ 加入竞态由 GameRoomMember.UserId 唯一索引兜底；租用/释放竞态由 ServerInstance.Version
++///    乐观并发令牌兜底（InMemory 测试提供方无事务时的唯一防线），冲突后有界重试；
++/// ④ 懒维护（Docs/27 §3/§9）：Waiting/Starting 按成员 LastSeenUtc 过期清人；Starting 超时/实例失联回
++///    Waiting 保准备；InMatch 实例失联删房（沿用旧语义）；Returning 超时回 Waiting；
++/// ⑤ 旧局隔离：写操作携带 matchId 时与 CurrentMatchId 不符一律 409 ROOM_STATE_CONFLICT 零副作用。
+ /// </summary>
+-public sealed class RoomService(AppDbContext db)
++public sealed class RoomService(AppDbContext db, ServerInstanceService instances, MatchService matches, RoomChatService chat, ILogger<RoomService> logger)
+ {
+-    private static readonly TimeSpan RoomTtl = TimeSpan.FromSeconds(30);
+-
+-    public async Task<GameRoomDto> CreateAsync(long userId, CreateRoomRequest request, CancellationToken cancellationToken)
+-    {
+-        // 一人只能开一间房：先清理旧房
+-        await PurgeUserRoomsAsync(userId, cancellationToken);
+-
+-        var user = await db.Users.SingleAsync(x => x.Id == userId, cancellationToken);
+-        var room = new GameRoom
+-        {
+-            RoomCode = await GenerateUniqueRoomCodeAsync(cancellationToken),
+-            HostUserId = userId,
+-            HostUsername = user.Username,
+-            HostAddress = request.HostAddress.Trim(),
+-            HostPort = request.HostPort,
+-            MaxPlayers = Math.Clamp(request.MaxPlayers, 2, 16),
+-            JoinedPlayers = 1, // Members.Count 投影：创建者即第一名成员
+-            IsOpen = true,
+-            CreatedAtUtc = DateTime.UtcNow,
+-            LastHeartbeatUtc = DateTime.UtcNow,
+-            Members = [new GameRoomMember { UserId = userId, JoinedAtUtc = DateTime.UtcNow }],
+-        };
+-        db.GameRooms.Add(room);
+-        await db.SaveChangesAsync(cancellationToken);
+-        return ToDto(room);
++    public async Task<RoomSnapshotDto> CreateAsync(long userId, CreateRoomRequest request, CancellationToken cancellationToken)
++    {
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () =>
++        {
++            for (var attempt = 0; ; attempt++)
++            {
++                try
++                {
++                    return await TryCreateOnceAsync(userId, request, cancellationToken);
++                }
++                catch (DbUpdateException) when (attempt < 4)
++                {
++                    // 房间码竞态：丢弃追踪状态重试
++                    db.ChangeTracker.Clear();
++                }
++            }
++        });
++    }
++
++    private async Task<RoomSnapshotDto> TryCreateOnceAsync(long userId, CreateRoomRequest request, CancellationToken cancellationToken)
++    {
++        db.ChangeTracker.Clear();
++        await using var transaction = db.Database.IsRelational()
++            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++        try
++        {
++            // 一人只能开一间房：先把旧房按 Leave 同款语义处理掉（转移/释放）
++            await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
++            var user = await db.Users.AsNoTracking().SingleAsync(x => x.Id == userId, cancellationToken);
++            var now = DateTime.UtcNow;
++            // 白名单校验（Docs/27 §1/§5.4）：违规整体 422，不做静默钳制
++            var settings = RoomSettingRules.Validate(
++                (request.Mode ?? GameModes.Tdm).Trim(), (request.MapId ?? MapCatalog.DefaultMapId).Trim(),
++                request.KillTarget, request.TimeLimitMinutes, request.MaxPlayers);
++
++            var room = new GameRoom
++            {
++                RoomCode = await GenerateUniqueRoomCodeAsync(cancellationToken),
++                HostUserId = userId,
++                HostUsername = user.Username,
++                MaxPlayers = settings.MaxPlayers,
++                JoinedPlayers = 1, // Members.Count 投影：创建者即第一名成员
++                IsOpen = true,     // 旧字段：开闭语义已由 Status 承载
++                Status = RoomStatus.Waiting,
++                Mode = settings.Mode,
++                MapId = settings.MapId,
++                KillTarget = settings.KillTarget,
++                TimeLimitMinutes = settings.TimeLimitMinutes,
++                RoomVersion = 1,
++                MatchGeneration = 0,
++                CreatedAtUtc = now,
++                LastHeartbeatUtc = now, // 旧玩家心跳列：仅遗留兼容，不再维护
++                StateChangedAtUtc = now,
++                Members = [new GameRoomMember
++                {
++                    UserId = userId,
++                    JoinedAtUtc = now,
++                    TeamId = GameModes.IsTeamMode(settings.Mode) ? Teams.Red : Teams.None,
++                    IsReady = false,
++                    LastSeenUtc = now,
++                }],
++            };
++            db.GameRooms.Add(room);
++            await db.SaveChangesAsync(cancellationToken);
++            // 成员是内联新建的（无 User 导航）：投影用户名前显式加载，避免快照 NRE
++            await db.Entry(room.Members[0]).Reference(m => m.User).LoadAsync(cancellationToken);
++            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++            return ToSnapshot(room, userId, null);
++        }
++        catch (ApiException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++        catch (DbUpdateException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
+     }
+ 
+     public async Task<IReadOnlyList<GameRoomDto>> ListAsync(CancellationToken cancellationToken)
+     {
+-        var cutoff = DateTime.UtcNow - RoomTtl;
+-        // 懒清理：过期房间直接删除（级联删成员）
+-        var stale = db.GameRooms.Where(x => x.LastHeartbeatUtc < cutoff);
+-        db.GameRooms.RemoveRange(stale);
+-        await db.SaveChangesAsync(cancellationToken);
++        await RunMaintenanceAsync(cancellationToken);
+ 
+         var rooms = await db.GameRooms.AsNoTracking()
+-            .Where(x => x.IsOpen && x.LastHeartbeatUtc >= cutoff)
++            .Include(x => x.Members)
++            .Where(x => x.Status != RoomStatus.Closed)
+             .OrderByDescending(x => x.CreatedAtUtc)
+             .Take(50)
+             .ToListAsync(cancellationToken);
+         return rooms.Select(ToDto).ToList();
+     }
+ 
+-    public async Task<GameRoomDto> JoinAsync(long userId, string roomCode, CancellationToken cancellationToken)
++    public async Task<RoomSnapshotDto> JoinAsync(long userId, string roomCode, string? teamId, CancellationToken cancellationToken)
+     {
+-        // 并发安全组合（Phase E ③）：策略 + 事务 + 唯一索引兜底，同 CommerceService 模式
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
+         var strategy = db.Database.CreateExecutionStrategy();
+         return await strategy.ExecuteAsync(async () =>
+         {
+-            db.ChangeTracker.Clear();
+-            await using var transaction = db.Database.IsRelational()
+-                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+-            try
++            for (var attempt = 0; ; attempt++)
+             {
+-                await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
+-                var room = await db.GameRooms.Include(x => x.Members)
+-                    .SingleOrDefaultAsync(x => x.RoomCode == roomCode.ToUpperInvariant(), cancellationToken)
+-                    ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
++                try
++                {
++                    return await TryJoinOnceAsync(userId, normalized, teamId, cancellationToken);
++                }
++                catch (DbUpdateException) when (attempt < 4)
++                {
++                    // 并发加入竞态（UserId 唯一索引/并发令牌拦截）：重跑，重入时走"已是成员"幂等路径
++                    db.ChangeTracker.Clear();
++                }
++            }
++        });
++    }
++
++    private async Task<RoomSnapshotDto> TryJoinOnceAsync(long userId, string roomCode, string? requestedTeam, CancellationToken cancellationToken)
++    {
++        db.ChangeTracker.Clear();
++        await using var transaction = db.Database.IsRelational()
++            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++        try
++        {
++            var room = await db.GameRooms
++                .Include(x => x.Members).ThenInclude(m => m.User)
++                .Include(x => x.ServerInstance)
++                .SingleOrDefaultAsync(x => x.RoomCode == roomCode, cancellationToken)
++                ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
++
++            if (room.Status == RoomStatus.Closed)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间已关闭");
++            var status = RoomStatus.Normalize(room.Status);
+ 
+-                if (!room.IsOpen) throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间已关闭");
+-                if (room.Members.Any(x => x.UserId == userId))
++            var member = room.Members.FirstOrDefault(x => x.UserId == userId);
++            if (status is RoomStatus.Starting or RoomStatus.InMatch or RoomStatus.Returning)
++            {
++                EnsureInstanceAlive(room);
++                if (member is null)
+                 {
+-                    // 幂等重入（并发重放/重复点击）：已是成员直接返回当前房间
+-                    if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+-                    return ToDto(room);
++                    if (status != RoomStatus.InMatch)
++                        throw new ApiException(StatusCodes.Status409Conflict,
++                            status == RoomStatus.Starting ? ApiErrorCodes.RoomStarting : ApiErrorCodes.RoomStateConflict,
++                            status == RoomStatus.Starting ? "比赛正在启动，暂不能加入" : "房间正在返房结算，暂不能加入");
++                    // InMatch 补人（Docs/26 §2.1）：可加入任一未满队；DS 负责连接期容量终验（Pending 计入名额）
++                    await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
++                    member = AddMemberUnsafe(room, userId, requestedTeam, enforceTeamCapacity: true);
++                    if (member.User is null)
++                        await db.Entry(member).Reference(m => m.User).LoadAsync(cancellationToken); // 新增成员无导航：连接签发前加载
+                 }
++                // roster 成员重进（重连/刷新页面）同样补发新票据：票据一次性，旧票据可能已被消费/过期
++                var connection = IssueConnectionUnsafe(room, member);
++                await db.SaveChangesAsync(cancellationToken);
++                if (member.User is null)
++                    await db.Entry(member).Reference(m => m.User).LoadAsync(cancellationToken); // 新增成员无导航：投影前加载
++                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                return ToSnapshot(room, userId, connection);
++            }
++
++            // Waiting：成员/新成员统一走选边入房；已是成员（重复点击）零改动幂等
++            if (member is null)
++            {
++                // 一人一房（F13）：仅当并非目标房成员时才清理旧房，同房重进不得触发 purge
++                await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
+                 if (room.Members.Count >= room.MaxPlayers)
+                     throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomFull, "房间已满");
++                member = AddMemberUnsafe(room, userId, requestedTeam, enforceTeamCapacity: true);
++            }
++            await db.SaveChangesAsync(cancellationToken);
++            var joinedNew = member.User is null;
++            if (joinedNew)
++                await db.Entry(member).Reference(m => m.User).LoadAsync(cancellationToken); // 新增成员无导航：投影前加载
++            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++            if (joinedNew) chat.SendSystem(room.RoomCode, $"{member.User.Username} 加入了房间");
++            return ToSnapshot(room, userId, null);
++        }
++        catch (ApiException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++        catch (DbUpdateException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++    }
++
++    /// <summary>房间详情（Docs/27 §5.3）：先跑懒维护再出快照；Starting/InMatch 为成员补发连接票据。</summary>
++    public async Task<RoomSnapshotDto> GetDetailAsync(long userId, string roomCode, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        await RunMaintenanceAsync(cancellationToken);
++
++        var room = await db.GameRooms.AsNoTracking()
++            .Include(x => x.Members).ThenInclude(m => m.User)
++            .Include(x => x.ServerInstance)
++            .SingleOrDefaultAsync(x => x.RoomCode == normalized, cancellationToken)
++            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
++        var member = room.Members.FirstOrDefault(x => x.UserId == userId)
++            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
+ 
+-                room.Members.Add(new GameRoomMember { UserId = userId, JoinedAtUtc = DateTime.UtcNow });
+-                room.JoinedPlayers = room.Members.Count; // Members 为真相
++        RoomConnectionInfoDto? connection = null;
++        var status = RoomStatus.Normalize(room.Status);
++        if (status is RoomStatus.Starting or RoomStatus.InMatch)
++        {
++            EnsureInstanceAlive(room);
++            connection = IssueConnectionUnsafe(room, member);
++        }
++        return ToSnapshot(room, userId, connection);
++    }
++
++    public async Task<RoomSnapshotDto> SetTeamAsync(long userId, string roomCode, string teamId, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () => await ExecuteInTransactionAsync(async () =>
++        {
++            var (room, member) = await LoadRoomAndMemberAsync(normalized, userId, cancellationToken);
++            RequireStatus(room, RoomStatus.Waiting, "只能在等待阶段换队");
++            if (!GameModes.IsTeamMode(room.Mode) || teamId is not (Teams.Red or Teams.Blue))
++                throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.TeamInvalid, "该模式不支持选择此队伍");
++            if (member.TeamId != teamId)
++            {
++                var teamCount = room.Members.Count(x => x.TeamId == teamId);
++                if (teamCount >= RoomSettingRules.PerTeamCapacity(room.MaxPlayers))
++                    throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.TeamFull, "该队伍已满");
++                // 换队取消本人准备（Docs/26 §2.1）
++                member.TeamId = teamId;
++                member.IsReady = false;
+                 await db.SaveChangesAsync(cancellationToken);
+-                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+-                return ToDto(room);
+             }
+-            catch (DbUpdateException) when (db.Database.IsRelational())
++            return ToSnapshot(room, userId, null);
++        }, cancellationToken));
++    }
++
++    public async Task<RoomSnapshotDto> SetReadyAsync(long userId, string roomCode, bool isReady, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () => await ExecuteInTransactionAsync(async () =>
++        {
++            var (room, member) = await LoadRoomAndMemberAsync(normalized, userId, cancellationToken);
++            RequireStatus(room, RoomStatus.Waiting, "只能在等待阶段改变准备状态");
++            if (member.IsReady != isReady)
+             {
+-                // 并发加入竞态：唯一索引(UserId) 撞键=他人/自己已先行落库 → 重读幂等返回
+-                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+-                db.ChangeTracker.Clear();
+-                var room = await db.GameRooms.Include(x => x.Members).AsNoTracking()
+-                    .SingleOrDefaultAsync(x => x.Members.Any(m => m.UserId == userId), cancellationToken);
+-                if (room is not null) return ToDto(room);
+-                throw;
++                member.IsReady = isReady;
++                await db.SaveChangesAsync(cancellationToken);
++            }
++            return ToSnapshot(room, userId, null);
++        }, cancellationToken));
++    }
++
++    public async Task<RoomSnapshotDto> UpdateSettingsAsync(long userId, string roomCode, RoomSettingsRequest request, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () => await ExecuteInTransactionAsync(async () =>
++        {
++            var (room, member) = await LoadRoomAndMemberAsync(normalized, userId, cancellationToken);
++            if (room.HostUserId != member.UserId)
++                throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.NotLeader, "只有房主可以修改房间设置");
++            RequireStatus(room, RoomStatus.Waiting, "只能在等待阶段修改房间设置");
++            // null = 保持不变；任一白名单外取值整体 422（Docs/27 §5.4）
++            var settings = RoomSettingRules.Validate(
++                request.Mode ?? room.Mode, request.MapId ?? room.MapId,
++                request.KillTarget ?? room.KillTarget, request.TimeLimitMinutes ?? room.TimeLimitMinutes,
++                request.MaxPlayers ?? room.MaxPlayers);
++            room.Mode = settings.Mode;
++            room.MapId = settings.MapId;
++            room.KillTarget = settings.KillTarget;
++            room.TimeLimitMinutes = settings.TimeLimitMinutes;
++            room.MaxPlayers = settings.MaxPlayers;
++            room.RoomVersion++; // 设置变更递增版本（Docs/27 §1）
++            foreach (var m in room.Members) m.IsReady = false; // 修改后清空所有准备（Docs/26 §2.1）
++            await db.SaveChangesAsync(cancellationToken);
++            chat.SendSystem(room.RoomCode, "房主更新了房间设置，全员准备已清空");
++            return ToSnapshot(room, userId, null);
++        }, cancellationToken));
++    }
++
++    /// <summary>
++    /// 房主开始（Docs/27 §5.5）：开局条件校验 → 原子租 DS + 建 matchId/名单快照 + 签发起者票据 → Starting。
++    /// 无可用 DS → 409 NO_SERVER_AVAILABLE，保持 Waiting 且保留全部准备（允许重试）。
++    /// Starting 状态的重复调用幂等：返回同一比赛的重建响应，不重租不重发名单。
++    /// </summary>
++    public async Task<StartMatchDto> StartAsync(long userId, string roomCode, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () =>
++        {
++            for (var attempt = 0; ; attempt++)
++            {
++                try
++                {
++                    return await TryStartOnceAsync(userId, normalized, cancellationToken);
++                }
++                catch (DbUpdateException) when (attempt < 4)
++                {
++                    db.ChangeTracker.Clear(); // 租用竞态：重跑后租用查询会跳过被抢占的实例
++                }
+             }
+         });
+     }
+ 
++    private async Task<StartMatchDto> TryStartOnceAsync(long userId, string roomCode, CancellationToken cancellationToken)
++    {
++        db.ChangeTracker.Clear();
++        await using var transaction = db.Database.IsRelational()
++            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++        try
++        {
++            var (room, member) = await LoadRoomAndMemberAsync(roomCode, userId, cancellationToken,
++                includeInstance: true, includeRosters: true);
++            if (room.HostUserId != member.UserId)
++                throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.NotLeader, "只有房主可以开始比赛");
++            var status = RoomStatus.Normalize(room.Status);
++
++            if (status == RoomStatus.Starting && room.CurrentMatchId is not null)
++            {
++                // 幂等重入（重复点击）：同一比赛，补发发起者票据，不重租实例
++                EnsureInstanceAlive(room);
++                var connection = IssueConnectionUnsafe(room, member);
++                var roster = room.Rosters.Where(x => x.MatchId == room.CurrentMatchId)
++                    .Select(x => new StartRosterEntryDto(x.UserId, x.TeamId)).ToArray();
++                await db.SaveChangesAsync(cancellationToken);
++                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                return ToStartMatchDto(room, connection, roster);
++            }
++            if (status != RoomStatus.Waiting)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "房间当前不可开始比赛");
++
++            // 开局条件（Docs/26 §2.1）：房主点击开始视为本人已准备；非房主须全部已准备；TDM 双方至少一人
++            member.IsReady = true;
++            var unready = room.Members.Where(x => x.UserId != room.HostUserId && !x.IsReady)
++                .Select(x => x.User.Username).ToList();
++            if (unready.Count > 0)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomNotReady,
++                    "以下玩家尚未准备：" + string.Join(", ", unready));
++            if (GameModes.IsTeamMode(room.Mode)
++                && (room.Members.Count(x => x.TeamId == Teams.Red) == 0 || room.Members.Count(x => x.TeamId == Teams.Blue) == 0))
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomNotReady, "双方队伍都需要至少一名玩家");
++            if (!GameModes.IsTeamMode(room.Mode) && room.Members.Count < 2)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomNotReady, "至少需要两名玩家");
++
++            // 原子租用（沿用 Docs/27 旧 §2.4 纪律）：只租心跳新鲜且容量足够的 Ready 实例；没有 → 保持 Waiting
++            var now = DateTime.UtcNow;
++            var instance = await db.ServerInstances
++                .Where(x => x.State == InstanceState.Ready
++                         && x.LastHeartbeatUtc >= now - instances.InstanceTtl
++                         && x.Capacity >= room.MaxPlayers)
++                .OrderByDescending(x => x.LastHeartbeatUtc)
++                .FirstOrDefaultAsync(cancellationToken);
++            if (instance is null)
++            {
++                var pool = await instances.GetPoolDiagnosticsAsync(room.MaxPlayers, cancellationToken);
++                logger.LogWarning(
++                    "[ServerRegistry] START_NO_SERVER reason={Reason} room={RoomCode} requestedCapacity={RequestedCapacity} readyFresh={ReadyFresh} reserved={Reserved} inMatch={InMatch}",
++                    ServerInstanceService.ClassifyNoServer(pool.Summary), room.RoomCode, room.MaxPlayers,
++                    pool.Summary.ReadyFresh, pool.Summary.Reserved, pool.Summary.InMatch);
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.NoServerAvailable, "当前没有可用的对战服务器，请稍后再试");
++            }
++
++            var matchId = Guid.NewGuid().ToString("N");
++            room.MatchGeneration++;
++            room.CurrentMatchId = matchId;
++            room.Status = RoomStatus.Starting;
++            room.RoomVersion++;
++            room.StateChangedAtUtc = now;
++            foreach (var m in room.Members)
++                db.RoomMatchRosters.Add(new RoomMatchRoster
++                {
++                    RoomId = room.Id, MatchId = matchId, UserId = m.UserId,
++                    TeamId = m.TeamId, IssuedAtUtc = now,
++                });
++            instance.State = InstanceState.Reserved;
++            instance.RoomCode = room.RoomCode;
++            instance.CurrentPlayers = room.Members.Count;
++            instance.Version++; // 并发令牌：两个 Start 同时租用同一实例时，后落库者必须撞异常重试
++            room.ServerInstance = instance; // 绑定租约（旧实现构造房间时挂导航；拆分 start 后必须显式回绑）
++            logger.LogInformation("[ServerRegistry] INSTANCE_LEASED room={RoomCode} instance={InstanceId} state=Reserved",
++                room.RoomCode, instance.InstanceId);
++            var leaderConnection = IssueConnectionUnsafe(room, member);
++            await db.SaveChangesAsync(cancellationToken);
++            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++            logger.LogInformation("[RoomFlow] MATCH_STARTED room={RoomCode} match={MatchId} generation={Generation} players={Players}",
++                room.RoomCode, matchId, room.MatchGeneration, room.Members.Count);
++            chat.SendSystem(room.RoomCode, "比赛开始，正在进入战场");
++            var rosterEntries = room.Rosters
++                .Where(x => x.MatchId == matchId)
++                .Select(x => new StartRosterEntryDto(x.UserId, x.TeamId))
++                .ToArray();
++            return ToStartMatchDto(room, leaderConnection, rosterEntries);
++        }
++        catch (ApiException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++        catch (DbUpdateException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++    }
++
++    /// <summary>成员保活心跳（Docs/27 §2）：刷新 LastSeenUtc；非成员无副作用（兼容旧端点）。</summary>
+     public async Task HeartbeatAsync(long userId, CancellationToken cancellationToken)
+     {
+-        var room = await db.GameRooms.SingleOrDefaultAsync(x => x.HostUserId == userId, cancellationToken);
+-        if (room is null) throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "没有主持中的房间");
+-        room.LastHeartbeatUtc = DateTime.UtcNow;
++        var membership = await db.GameRoomMembers
++            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
++        if (membership is null) return;
++        membership.LastSeenUtc = DateTime.UtcNow;
+         await db.SaveChangesAsync(cancellationToken);
+     }
+ 
+     public async Task LeaveAsync(long userId, CancellationToken cancellationToken)
+     {
+-        // Phase E ②：显式事务 + 幂等；成员计数以 Members 为真相
++        // 显式事务 + 幂等；成员计数以 Members 为真相（Phase E 模式沿用）
+         var strategy = db.Database.CreateExecutionStrategy();
+         await strategy.ExecuteAsync(async () =>
+         {
+@@ -130,7 +450,9 @@ public sealed class RoomService(AppDbContext db)
+                 ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+             try
+             {
+-                var membership = await db.GameRoomMembers.Include(x => x.Room).ThenInclude(r => r.Members)
++                var membership = await db.GameRoomMembers
++                    .Include(x => x.Room).ThenInclude(r => r.Members)
++                    .Include(x => x.Room).ThenInclude(r => r.ServerInstance)
+                     .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+                 if (membership is null)
+                 {
+@@ -138,21 +460,14 @@ public sealed class RoomService(AppDbContext db)
+                     if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                     return;
+                 }
+-                var room = membership.Room;
+-                var memberRow = room.Members.Single(x => x.UserId == userId);
+-                room.Members.Remove(memberRow);
+-                db.GameRoomMembers.Remove(membership);
+-                if (room.HostUserId == userId)
+-                {
+-                    // 房主离开=房间解散（client-hosted：房主进程即服务器，见类注释④）
+-                    db.GameRooms.Remove(room);
+-                }
+-                else
+-                {
+-                    room.JoinedPlayers = room.Members.Count; // Members 为真相（不再手工 ±1）
+-                }
++                var leftRoom = membership.Room;
++                var leftName = (await db.Users.AsNoTracking().SingleAsync(x => x.Id == userId, cancellationToken)).Username;
++                await RemoveMemberUnsafeAsync(membership, cancellationToken);
+                 await db.SaveChangesAsync(cancellationToken);
+                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                chat.SendSystem(leftRoom.RoomCode, $"{leftName} 离开了房间");
++                if (leftRoom.Members.Count == 0 && RoomStatus.Normalize(leftRoom.Status) != RoomStatus.InMatch)
++                    chat.DropRoom(leftRoom.RoomCode);
+             }
+             catch (DbUpdateException) when (db.Database.IsRelational())
+             {
+@@ -166,26 +481,637 @@ public sealed class RoomService(AppDbContext db)
+         });
+     }
+ 
+-    private async Task PurgeUserRoomsAsync(long userId, CancellationToken cancellationToken)
+-        => await PurgeUserRoomsUnsafeAsync(userId, cancellationToken);
++    /// <summary>
++    /// 服务器上报玩家掉线（语义不变，见原实现）：真实移除与幂等 no-op 均返回处置后权威事实。
++    /// </summary>
++    public async Task<ServerPlayerDisconnectReportDto> ReportPlayerDisconnectAsync(string instanceId, ServerPlayerDisconnectReportRequest request,
++        DateTime? noticeStartedAtUtc = null, CancellationToken cancellationToken = default)
++    {
++        var noticeStart = noticeStartedAtUtc ?? DateTime.UtcNow;
++        var roomCode = request.RoomCode?.Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () =>
++        {
++            db.ChangeTracker.Clear();
++            await using var transaction = db.Database.IsRelational()
++                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++            try
++            {
++                var instance = await db.ServerInstances.AsNoTracking()
++                    .SingleOrDefaultAsync(x => x.InstanceId == instanceId.Trim(), cancellationToken)
++                    ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ServerInstanceNotFound, "实例未注册");
++
++                if (string.IsNullOrEmpty(roomCode) || instance.RoomCode != roomCode)
++                    throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ServerInstanceStateConflict,
++                        "实例未绑定该房间，拒绝移除成员");
++
++                var room = await db.GameRooms
++                    .Include(x => x.Members)
++                    .Include(x => x.ServerInstance) // ReleaseInstanceUnsafe 需要 ServerInstance 导航（ChangeTracker.Clear 后必须显式加载）
++                    .SingleOrDefaultAsync(x => x.RoomCode == roomCode, cancellationToken);
++                if (room is null)
++                {
++                    // 绑定行指向已不存在的房间：权威释放实例为 Ready 并返回 Ready+0（收敛路径，消除僵尸 Reserved）
++                    var trackedInstance = await db.ServerInstances
++                        .SingleOrDefaultAsync(x => x.InstanceId == instanceId.Trim(), cancellationToken);
++                    if (trackedInstance is not null && trackedInstance.RoomCode == roomCode)
++                    {
++                        trackedInstance.State = InstanceState.Ready;
++                        trackedInstance.RoomCode = null;
++                        trackedInstance.CurrentPlayers = 0;
++                        trackedInstance.Version++;
++                        await db.SaveChangesAsync(cancellationToken);
++                    }
++                    if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                    logger.LogInformation(
++                        "[ServerRegistry] PLAYER_DISCONNECT_ROOM_GONE_INSTANCE_RELEASED instance={InstanceId} room={RoomCode}",
++                        instanceId, roomCode);
++                    return new ServerPlayerDisconnectReportDto(roomCode!, 0, InstanceState.Ready);
++                }
++
++                var membership = room.Members.FirstOrDefault(x => x.UserId == request.UserId);
++                var reportedSessionConsumedAt = request.SessionId > 0
++                    ? await db.ServerJoinTickets.AsNoTracking()
++                        .Where(x => x.Id == request.SessionId
++                            && x.ServerInstanceId == instance.Id
++                            && x.RoomCode == roomCode
++                            && x.UserId == request.UserId)
++                        .Select(x => x.ConsumedAtUtc)
++                        .SingleOrDefaultAsync(cancellationToken)
++                    : null;
++                var newerConsumedSessionExists = reportedSessionConsumedAt != null
++                    && await db.ServerJoinTickets.AsNoTracking()
++                        .AnyAsync(x => x.ServerInstanceId == instance.Id
++                            && x.RoomCode == roomCode
++                            && x.UserId == request.UserId
++                            && x.ConsumedAtUtc > reportedSessionConsumedAt, cancellationToken);
++                var reportedSessionMissing = request.SessionId > 0 && reportedSessionConsumedAt == null;
++                if (membership is null || membership.JoinedAtUtc > noticeStart
++                    || newerConsumedSessionExists || reportedSessionMissing)
++                {
++                    if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                    logger.LogInformation(
++                        "[ServerRegistry] PLAYER_DISCONNECT_NOOP instance={InstanceId} room={RoomCode} user={UserId} reason={Reason} remaining={Remaining} state={State}",
++                        instanceId, roomCode, request.UserId,
++                        membership is null ? "member-absent"
++                            : newerConsumedSessionExists ? "newer-consumed-session"
++                            : reportedSessionMissing ? "reported-session-missing"
++                            : "rejoined-after-notice-start",
++                        room.Members.Count, instance.State);
++                    return new ServerPlayerDisconnectReportDto(roomCode!, room.Members.Count, instance.State);
++                }
++
++                var wasLeader = room.HostUserId == membership.UserId;
++                await RemoveMemberUnsafeAsync(membership, cancellationToken, allowReleaseDuringMatch: true);
++                await db.SaveChangesAsync(cancellationToken);
++                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++                var reportedInstanceState = room.ServerInstance?.State ?? instance.State;
++                logger.LogInformation(
++                    "[ServerRegistry] PLAYER_DISCONNECT_REMOVED instance={InstanceId} room={RoomCode} user={UserId} wasLeader={WasLeader} remaining={Remaining} state={State}",
++                    instanceId, roomCode, request.UserId, wasLeader, room.Members.Count, reportedInstanceState);
++                return new ServerPlayerDisconnectReportDto(roomCode!, room.Members.Count, reportedInstanceState);
++            }
++            catch (ApiException)
++            {
++                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++                throw;
++            }
++            catch (DbUpdateException) when (db.Database.IsRelational())
++            {
++                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++                throw;
++            }
++        });
++    }
++
++    // ===== 终局与返房（Docs/27 §7，Q05）=====
++
++    /// <summary>
++    /// 玩家返房 ack（Docs/27 §5.7）：区分"退战斗"与"退房"——只迁移房间状态，绝不清空成员。
++    /// KillRace 路径首个 ack 使 InMatch→Returning（幂等：后续 ack 均 200）；TDM 通常已由 DS 终局上报先行转入。
++    /// Returning→Waiting 由懒维护按 45s 超时统一处理（v1.1 简化：全员 ack 提前返回延后）。
++    /// </summary>
++    public async Task<RoomSnapshotDto> ReturnAsync(long userId, string roomCode, string matchId, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () => await ExecuteInTransactionAsync(async () =>
++        {
++            var (room, _) = await LoadRoomAndMemberAsync(normalized, userId, cancellationToken, includeInstance: true);
++            var status = RoomStatus.Normalize(room.Status);
++            if (status == RoomStatus.Returning)
++                return ToSnapshot(room, userId, null); // 幂等：重复 ack 零副作用
++            if (room.CurrentMatchId != matchId)
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "比赛身份与当前房间不符");
++            if (status is not (RoomStatus.InMatch or RoomStatus.Starting))
++                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "房间当前不可返房");
++
++            room.Status = RoomStatus.Returning;
++            room.RoomVersion++;
++            room.StateChangedAtUtc = DateTime.UtcNow;
++            ReleaseInstanceUnsafe(room); // 比赛结束释放 DS（下一局重租，Docs/26 §2.2）
++            await db.SaveChangesAsync(cancellationToken);
++            logger.LogInformation("[RoomFlow] MATCH_RETURNING room={RoomCode} match={MatchId} by={UserId}",
++                room.RoomCode, matchId, userId);
++            chat.SendSystem(room.RoomCode, "比赛结束，正在返回等待房间");
++            return ToSnapshot(room, userId, null);
++        }, cancellationToken));
++    }
++
++    /// <summary>
++    /// DS 权威终局上报（Docs/27 §7.2，X-Server-Key）：按 matchId 幂等登记 RoomMatchResult，
++    /// InMatch→Returning + 释放实例；对 rewardEligible 玩家经 MatchService 逐个结算
++    /// （ClientMatchId=ds-{matchId}-{userId} 幂等，失败保留 RewardsAppliedAtUtc=null，重复上报自动补偿）。
++    /// </summary>
++    public async Task<MatchResultReportDto> ReportMatchResultAsync(string instanceId, MatchResultReportRequest request,
++        CancellationToken cancellationToken)
++    {
++        if (request.WinnerTeam is not null && request.WinnerTeam is not (Teams.Red or Teams.Blue))
++            throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.TeamInvalid, "胜队标识非法");
++        var strategy = db.Database.CreateExecutionStrategy();
++        return await strategy.ExecuteAsync(async () =>
++        {
++            db.ChangeTracker.Clear();
++            await using var transaction = db.Database.IsRelational()
++                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++            GameRoom room;
++            bool replayed;
++            try
++            {
++                var instance = await db.ServerInstances.AsNoTracking()
++                    .SingleOrDefaultAsync(x => x.InstanceId == instanceId.Trim(), cancellationToken)
++                    ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ServerInstanceNotFound, "实例未注册");
++                // 按比赛找房（而非实例绑定）：首次登记后实例即被释放回池，重放上报不能依赖绑定关系
++                room = await db.GameRooms
++                    .Include(x => x.Members)
++                    .Include(x => x.ServerInstance)
++                    .SingleOrDefaultAsync(x => x.CurrentMatchId == request.MatchId || x.LastMatchId == request.MatchId, cancellationToken)
++                    ?? throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "终局与房间当前比赛不符");
++
++                var existing = await db.RoomMatchResults.SingleOrDefaultAsync(x => x.MatchId == request.MatchId, cancellationToken);
++                replayed = existing is not null;
++                if (existing is null)
++                {
++                    // 首次登记要求上报者就是该房绑定的实例（防他房 DS 伪造）
++                    if (instance.RoomCode != room.RoomCode)
++                        throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ServerInstanceStateConflict, "实例未绑定该房间，拒绝登记终局");
++                    var status = RoomStatus.Normalize(room.Status);
++                    if (status is not (RoomStatus.InMatch or RoomStatus.Returning or RoomStatus.Starting))
++                        throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "房间状态不可登记终局");
++                    db.RoomMatchResults.Add(new RoomMatchResult
++                    {
++                        MatchId = request.MatchId,
++                        RoomId = room.Id,
++                        WinnerTeam = request.WinnerTeam,
++                        DurationSeconds = request.DurationSeconds,
++                        EndedAtUtc = DateTime.UtcNow,
++                        PlayersJson = JsonSerializer.Serialize(request.Players),
++                    });
++                    if (status == RoomStatus.InMatch)
++                    {
++                        room.Status = RoomStatus.Returning;
++                        room.RoomVersion++;
++                        room.StateChangedAtUtc = DateTime.UtcNow;
++                        ReleaseInstanceUnsafe(room);
++                    }
++                    await db.SaveChangesAsync(cancellationToken);
++                }
++                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++            }
++            catch (ApiException)
++            {
++                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++                throw;
++            }
++            catch (DbUpdateException)
++            {
++                if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++                throw;
++            }
++
++            // 奖励在状态事务之外逐玩家发放：SubmitAsync 自带事务与幂等，避免嵌套事务
++            var rewardsApplied = await ApplyResultRewardsAsync(request, cancellationToken);
++            if (rewardsApplied)
++            {
++                var resultRow = await db.RoomMatchResults.SingleOrDefaultAsync(x => x.MatchId == request.MatchId, cancellationToken);
++                if (resultRow is not null && resultRow.RewardsAppliedAtUtc is null)
++                {
++                    resultRow.RewardsAppliedAtUtc = DateTime.UtcNow;
++                    await db.SaveChangesAsync(cancellationToken);
++                }
++            }
++            logger.LogInformation("[RoomFlow] MATCH_RESULT room={RoomCode} match={MatchId} winner={WinnerTeam} replayed={Replayed} rewards={Rewards}",
++                room.RoomCode, request.MatchId, request.WinnerTeam ?? "draw", replayed, rewardsApplied);
++            return new MatchResultReportDto(request.MatchId, "Final", replayed, rewardsApplied);
++        });
++    }
++
++    /// <summary>对 rewardEligible 玩家逐个套用结算引擎；任一失败返回 false（重复上报会自动补偿重放）。</summary>
++    private async Task<bool> ApplyResultRewardsAsync(MatchResultReportRequest request, CancellationToken cancellationToken)
++    {
++        var failures = 0;
++        foreach (var player in request.Players)
++        {
++            if (!player.RewardEligible) continue; // 终局前退出/确认掉线者不获奖励（Docs/26 §2.4），战绩仍留结果快照
++            try
++            {
++                await matches.SubmitAsync(player.UserId, new MatchSubmissionRequest
++                {
++                    ClientMatchId = $"ds-{request.MatchId}-{player.UserId}",
++                    Kills = player.Kills,
++                    Deaths = player.Deaths,
++                    DurationSeconds = request.DurationSeconds,
++                    IsWin = request.WinnerTeam is not null && request.WinnerTeam == player.TeamId,
++                    MatchId = request.MatchId,
++                    TeamId = player.TeamId,
++                }, cancellationToken);
++            }
++            catch (Exception ex)
++            {
++                failures++;
++                logger.LogError(ex, "[RoomFlow] RESULT_REWARD_FAILED match={MatchId} user={UserId}", request.MatchId, player.UserId);
++            }
++        }
++        return failures == 0;
++    }
++
++    /// <summary>玩家侧终局结果查询（Docs/27 §7.3）：TDM 读权威快照；KillRace 按 MatchRecord 聚合；未终局返回 Pending。</summary>
++    public async Task<RoomMatchResultViewDto> GetMatchResultAsync(long userId, string roomCode, string matchId, CancellationToken cancellationToken)
++    {
++        var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
++        var (room, _) = await LoadRoomAndMemberAsync(normalized, userId, cancellationToken);
++        // 只允许查本房当前局/最近一局（防跨房窥探与伪造）
++        if (room.CurrentMatchId != matchId && room.LastMatchId != matchId)
++            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "终局与本房间不符");
++        return await BuildMatchResultViewAsync(matchId, cancellationToken);
++    }
++
++    /// <summary>
++    /// 聊天上下文（Docs/27 §8.4 传输切换）：成员准入；InMatch 双向走战斗 RPC，HTTP 收发仅在
++    /// Waiting/Starting/Returning 开放（Starting 聊天允许，系统消息为主——契约 §12 开放项 2 采纳为允许）。
++    /// </summary>
++    public async Task<(GameRoom Room, GameRoomMember Member)> GetChatContextAsync(
++        long userId, string roomCode, bool allowSend, CancellationToken cancellationToken)
++    {
++        var (room, member) = await LoadRoomAndMemberAsync((roomCode ?? string.Empty).Trim().ToUpperInvariant(), userId, cancellationToken);
++        if (RoomStatus.Normalize(room.Status) == RoomStatus.InMatch)
++            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
++                "局内聊天走战斗内 RPC 通道，HTTP 已关闭");
++        return (room, member);
++    }
++
++    /// <summary>终局视图组装：权威快照优先；无快照时按 MatchRecord 聚合（KillRace 客户端提交路径）。</summary>
++    private async Task<RoomMatchResultViewDto> BuildMatchResultViewAsync(string matchId, CancellationToken cancellationToken)
++    {
++        var result = await db.RoomMatchResults.AsNoTracking()
++            .SingleOrDefaultAsync(x => x.MatchId == matchId, cancellationToken);
++        if (result is not null)
++        {
++            var rows = JsonSerializer.Deserialize<List<MatchPlayerResultDto>>(result.PlayersJson) ?? [];
++            var userIds = rows.Select(x => x.UserId).ToList();
++            var names = await db.Users.AsNoTracking()
++                .Where(x => userIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Username, cancellationToken);
++            return new RoomMatchResultViewDto(matchId, "Final", result.WinnerTeam, result.DurationSeconds, rows
++                .OrderBy(x => x.TeamId).ThenByDescending(x => x.Kills)
++                .Select(x => new RoomMatchResultPlayerViewDto(x.UserId, names.GetValueOrDefault(x.UserId, "?"), x.TeamId, x.Kills, x.Deaths, x.Assists))
++                .ToArray());
++        }
++
++        // KillRace：roster 成员各自经 /api/matches 提交（带 matchId），按战绩聚合；未提交者缺席
++        var records = await db.Matches.AsNoTracking()
++            .Include(x => x.User)
++            .Where(x => x.MatchId == matchId)
++            .OrderByDescending(x => x.Kills)
++            .ToListAsync(cancellationToken);
++        if (records.Count == 0)
++            return new RoomMatchResultViewDto(matchId, "Pending", null, 0, []);
++
++        var roster = await db.RoomMatchRosters.AsNoTracking()
++            .Where(x => x.MatchId == matchId).ToDictionaryAsync(x => x.UserId, x => x.TeamId, cancellationToken);
++        return new RoomMatchResultViewDto(matchId, "Final", null, 0, records
++            .Select(x => new RoomMatchResultPlayerViewDto(x.UserId, x.User.Username,
++                roster.GetValueOrDefault(x.UserId, Teams.None), x.Kills, x.Deaths, 0))
++            .ToArray());
++    }
++
++    // ===== 共享内部工具 =====
++
++    /// <summary>策略上下文内的统一事务包装（读改写接口共用）。</summary>
++    private async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> body, CancellationToken cancellationToken)
++    {
++        db.ChangeTracker.Clear();
++        await using var transaction = db.Database.IsRelational()
++            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
++        try
++        {
++            var result = await body();
++            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
++            return result;
++        }
++        catch (ApiException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++        catch (DbUpdateException)
++        {
++            if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
++            throw;
++        }
++    }
++
++    private async Task<(GameRoom Room, GameRoomMember Member)> LoadRoomAndMemberAsync(
++        string roomCode, long userId, CancellationToken cancellationToken,
++        bool includeInstance = false, bool includeRosters = false)
++    {
++        var query = db.GameRooms
++            .Include(x => x.Members).ThenInclude(m => m.User)
++            .AsQueryable();
++        if (includeInstance) query = query.Include(x => x.ServerInstance);
++        if (includeRosters) query = query.Include(x => x.Rosters);
++        var room = await query.SingleOrDefaultAsync(x => x.RoomCode == roomCode, cancellationToken)
++            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
++        var member = room.Members.FirstOrDefault(x => x.UserId == userId)
++            ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
++        return (room, member);
++    }
++
++    private static void RequireStatus(GameRoom room, string expected, string message)
++    {
++        if (RoomStatus.Normalize(room.Status) != expected)
++            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, message);
++    }
++
++    private static void EnsureInstanceAlive(GameRoom room)
++    {
++        if (room.ServerInstance is null || room.ServerInstance.LastHeartbeatUtc < DateTime.UtcNow - TimeSpan.FromHours(1))
++        {
++            // 走到连接分支却没有活实例：维护扫描尚未清到的悬空绑定，按房间已关闭拒绝（不猜地址）
++            throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间绑定的对战服务器已失联");
++        }
++    }
++
++    /// <summary>补发一次性票据并组装连接信息（调用方保证 ServerInstance 活跃且 CurrentMatchId 非空）。</summary>
++    private RoomConnectionInfoDto IssueConnectionUnsafe(GameRoom room, GameRoomMember member)
++    {
++        var (ticket, expiresAt) = instances.IssueTicket(room.ServerInstance!, room.RoomCode, member.UserId, member.User.Username);
++        return new RoomConnectionInfoDto(room.ServerInstance!.Address, room.ServerInstance.Port, ticket, expiresAt,
++            room.CurrentMatchId!, room.MatchGeneration);
++    }
++
++    /// <summary>加入成员（Unsafe=调用方处于事务上下文且已做容量/状态校验）：TDM 自动分配未满队。</summary>
++    /// <summary>加入成员（Unsafe=调用方处于事务上下文且已做状态校验）：TDM 自动分配未满队，队满整体拒绝。</summary>
++    private GameRoomMember AddMemberUnsafe(GameRoom room, long userId, string? requestedTeam, bool enforceTeamCapacity)
++    {
++        var teamId = Teams.None;
++        if (GameModes.IsTeamMode(room.Mode))
++        {
++            var perTeam = RoomSettingRules.PerTeamCapacity(room.MaxPlayers);
++            if (requestedTeam is Teams.Red or Teams.Blue)
++            {
++                teamId = requestedTeam;
++                if (room.Members.Count(x => x.TeamId == teamId) >= perTeam)
++                    throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.TeamFull, "该队伍已满");
++            }
++            else
++            {
++                var red = room.Members.Count(x => x.TeamId == Teams.Red);
++                var blue = room.Members.Count(x => x.TeamId == Teams.Blue);
++                if (red >= perTeam && blue >= perTeam)
++                    throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomFull, "双方队伍均已满");
++                teamId = red <= blue && red < perTeam || blue >= perTeam ? Teams.Red : Teams.Blue;
++            }
++        }
++        else if (requestedTeam is Teams.Red or Teams.Blue)
++        {
++            throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.TeamInvalid, "该模式不支持选择队伍");
++        }
++        var member = new GameRoomMember
++        {
++            UserId = userId,
++            JoinedAtUtc = DateTime.UtcNow,
++            TeamId = teamId,
++            IsReady = false,
++            LastSeenUtc = DateTime.UtcNow,
++            ChatJoinSeq = chat.CurrentSeq(room.RoomCode), // 新成员不补发入房前历史（Docs/27 §8.3）
++        };
++        room.Members.Add(member);
++        room.JoinedPlayers = room.Members.Count;
++        return member;
++    }
++
++    /// <summary>
++    /// 移除单个成员的共享语义（Leave/掉线上报/过期清理共用）：
++    /// 普通成员离开仅减员；leader 离开且仍有成员 → 确定性转移 leader（JoinedAtUtc 最早 → UserId 最小）；
++    /// 最后一名成员离开且比赛未开始 → 删房间并释放实例；最后一名成员离开但 InMatch → 绑定保留（终局语义归服务器权威链）。
++    /// 当前比赛进行中时同步回填开局名单 LeftAtUtc（终局资格判定依据，Docs/26 §2.4）。
++    /// </summary>
++    private async Task RemoveMemberUnsafeAsync(GameRoomMember membership, CancellationToken cancellationToken,
++        bool allowReleaseDuringMatch = false)
++    {
++        var room = membership.Room;
++        var memberRow = room.Members.Single(x => x.UserId == membership.UserId);
++        room.Members.Remove(memberRow);
++        db.GameRoomMembers.Remove(membership);
++        room.JoinedPlayers = room.Members.Count;
+ 
+-    /// <summary>旧房清理（Unsafe=调用方已处于策略/事务上下文）：成员集合删除 + JoinedPlayers 重算。</summary>
++        if (room.CurrentMatchId is not null)
++        {
++            var rosterRow = await db.RoomMatchRosters
++                .SingleOrDefaultAsync(x => x.RoomId == room.Id && x.UserId == membership.UserId && x.MatchId == room.CurrentMatchId, cancellationToken);
++            if (rosterRow is not null) rosterRow.LeftAtUtc = DateTime.UtcNow;
++        }
++
++        if (room.Members.Count == 0)
++        {
++            if (allowReleaseDuringMatch || RoomStatus.Normalize(room.Status) != RoomStatus.InMatch)
++            {
++                ReleaseInstanceUnsafe(room);
++                db.GameRooms.Remove(room);
++            }
++            return;
++        }
++        if (room.HostUserId == membership.UserId)
++        {
++            var next = room.Members.OrderBy(x => x.JoinedAtUtc).ThenBy(x => x.UserId).First();
++            var nextUser = await db.Users.AsNoTracking().SingleAsync(x => x.Id == next.UserId, cancellationToken);
++            room.HostUserId = next.UserId;
++            room.HostUsername = nextUser.Username;
++        }
++    }
++
++    /// <summary>释放房间绑定的实例为 Ready（房间拆除/开局中止路径）。</summary>
++    private void ReleaseInstanceUnsafe(GameRoom room)
++    {
++        var instance = room.ServerInstance;
++        if (instance is null || instance.RoomCode != room.RoomCode) return;
++        instance.State = InstanceState.Ready;
++        instance.RoomCode = null;
++        instance.CurrentPlayers = 0;
++        instance.Version++; // 并发令牌：与租用方互斥
++    }
++
++    /// <summary>"一人一房"清理（Unsafe=调用方已处于策略/事务上下文）：按 Leave 同款语义退出旧房。</summary>
+     private async Task PurgeUserRoomsUnsafeAsync(long userId, CancellationToken cancellationToken)
+     {
+-        var member = await db.GameRoomMembers.Include(x => x.Room).ThenInclude(r => r.Members)
++        var membership = await db.GameRoomMembers
++            .Include(x => x.Room).ThenInclude(r => r.Members)
++            .Include(x => x.Room).ThenInclude(r => r.ServerInstance)
+             .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+-        if (member is null) return;
+-        var room = member.Room;
+-        var memberRow = room.Members.Single(x => x.UserId == userId);
+-        room.Members.Remove(memberRow);
+-        db.GameRoomMembers.Remove(member);
+-        if (room.HostUserId == userId)
+-            db.GameRooms.Remove(room);
++        if (membership is null) return;
++        await RemoveMemberUnsafeAsync(membership, cancellationToken);
++    }
++
++    // ===== 懒维护（Docs/27 §3/§9；List/Detail 等高频读路径顺带执行，竞态以并发令牌兜底）=====
++
++    private async Task RunMaintenanceAsync(CancellationToken cancellationToken)
++    {
++        var now = DateTime.UtcNow;
++        var instanceCutoff = now - instances.InstanceTtl;
++        var memberCutoff = now - instances.MemberTtl;
++        var startCutoff = now - instances.StartingTimeout;
++        var returningCutoff = now - instances.ReturningTimeout;
++        List<GameRoom> candidates;
++        try
++        {
++            candidates = await db.GameRooms
++                .Include(x => x.Members)
++                .Include(x => x.ServerInstance)
++                .Where(x => x.Status != RoomStatus.Closed)
++                .Where(x =>
++                    ((x.Status == RoomStatus.Starting || x.Status == RoomStatus.InMatch)
++                        && (x.ServerInstanceId == null || x.ServerInstance.LastHeartbeatUtc < instanceCutoff))
++                    || (x.Status == RoomStatus.Starting && x.StateChangedAtUtc <= startCutoff)
++                    || (x.Status == RoomStatus.Returning && x.StateChangedAtUtc <= returningCutoff)
++                    || (x.Status == RoomStatus.Waiting
++                        && x.Members.Any(m => m.LastSeenUtc < memberCutoff))
++                    // 未知/空白状态（client-hosted 时代遗留行）同样是清理候选
++                    || (x.Status != RoomStatus.Waiting && x.Status != RoomStatus.Starting
++                        && x.Status != RoomStatus.InMatch && x.Status != RoomStatus.Returning
++                        && x.Status != RoomStatus.Closed))
++                .OrderBy(x => x.StateChangedAtUtc)
++                .Take(50)
++                .ToListAsync(cancellationToken);
++        }
++        catch (DbUpdateConcurrencyException)
++        {
++            db.ChangeTracker.Clear();
++            return;
++        }
++
++        foreach (var room in candidates)
++        {
++            try
++            {
++                await MaintainRoomUnsafeAsync(room, now, cancellationToken);
++            }
++            catch (DbUpdateConcurrencyException)
++            {
++                db.ChangeTracker.Clear();
++            }
++        }
++        if (db.ChangeTracker.HasChanges())
++        {
++            try
++            {
++                await db.SaveChangesAsync(cancellationToken);
++            }
++            catch (DbUpdateConcurrencyException)
++            {
++                db.ChangeTracker.Clear(); // 并发维护竞态无害：下一轮扫描兜底
++            }
++        }
++    }
++
++    private async Task MaintainRoomUnsafeAsync(GameRoom room, DateTime now, CancellationToken cancellationToken)
++    {
++        var status = RoomStatus.Normalize(room.Status);
++        if (status == RoomStatus.Starting)
++        {
++            var instanceDead = room.ServerInstanceId is null
++                || room.ServerInstance!.LastHeartbeatUtc < now - instances.InstanceTtl;
++            if (instanceDead || room.StateChangedAtUtc <= now - instances.StartingTimeout)
++            {
++                // Starting 失败回 Waiting：释放实例、清准备、比赛作废（Docs/27 §3：保留房间允许重试）
++                await AbandonMatchUnsafeAsync(room, now, cancellationToken);
++                logger.LogInformation("[RoomFlow] START_ABORTED room={RoomCode} match={MatchId} reason={Reason}",
++                    room.RoomCode, room.LastMatchId, instanceDead ? "instance-dead" : "timeout");
++                chat.SendSystem(room.RoomCode, "开局失败，已返回等待房间（准备已清空，可重试）");
++            }
++            else
++            {
++                await SweepStaleMembersUnsafeAsync(room, now, cancellationToken);
++            }
++        }
++        else if (status == RoomStatus.InMatch)
++        {
++            var instanceDead = room.ServerInstanceId is null
++                || room.ServerInstance!.LastHeartbeatUtc < now - instances.InstanceTtl;
++            if (instanceDead)
++            {
++                // 沿用旧语义：InMatch 房间的 DS 失联即比赛环境消失，房间拆除（客户端走断线回大厅）
++                ReleaseInstanceUnsafe(room);
++                db.GameRooms.Remove(room);
++            }
++        }
++        else if (status == RoomStatus.Returning)
++        {
++            if (room.StateChangedAtUtc <= now - instances.ReturningTimeout)
++                ReturnToWaitingUnsafe(room, now);
++        }
++        else if (status == RoomStatus.Waiting)
++        {
++            await SweepStaleMembersUnsafeAsync(room, now, cancellationToken);
++        }
+         else
+-            room.JoinedPlayers = room.Members.Count; // Members 为真相（修复旧实现缺 Include 的脏计数）
+-        await db.SaveChangesAsync(cancellationToken);
++        {
++            // 未知/空白状态 = client-hosted 时代遗留行（迁移回填前的历史形态）：直接清除不残留
++            ReleaseInstanceUnsafe(room);
++            db.GameRooms.Remove(room);
++        }
++    }
++
++    /// <summary>开局作废（Starting 超时/实例失联）：回 Waiting、清准备、名单标记离场、释放实例。</summary>
++    private async Task AbandonMatchUnsafeAsync(GameRoom room, DateTime now, CancellationToken cancellationToken)
++    {
++        var matchId = room.CurrentMatchId;
++        if (matchId is not null)
++        {
++            var rosterRows = await db.RoomMatchRosters
++                .Where(x => x.RoomId == room.Id && x.MatchId == matchId && x.LeftAtUtc == null)
++                .ToListAsync(cancellationToken);
++            foreach (var row in rosterRows) row.LeftAtUtc = now;
++        }
++        room.LastMatchId = room.CurrentMatchId;
++        room.CurrentMatchId = null;
++        room.Status = RoomStatus.Waiting;
++        room.RoomVersion++;
++        room.StateChangedAtUtc = now;
++        foreach (var m in room.Members) m.IsReady = false;
++        ReleaseInstanceUnsafe(room);
+     }
+ 
++    /// <summary>Returning→Waiting（全员 ack 或超时；Q05 实现主动 ack 入口）：清准备、归档比赛。</summary>
++    private void ReturnToWaitingUnsafe(GameRoom room, DateTime now)
++    {
++        room.LastMatchId = room.CurrentMatchId;
++        room.CurrentMatchId = null;
++        room.Status = RoomStatus.Waiting;
++        room.RoomVersion++;
++        room.StateChangedAtUtc = now;
++        foreach (var m in room.Members) m.IsReady = false;
++    }
++
++    /// <summary>Waiting/Starting 成员过期清理（LastSeenUtc 超 TTL）：触发 leader 移交/空房删除。</summary>
++    private async Task SweepStaleMembersUnsafeAsync(GameRoom room, DateTime now, CancellationToken cancellationToken)
++    {
++        var stale = room.Members.Where(m => m.LastSeenUtc < now - instances.MemberTtl).ToList();
++        foreach (var membership in stale)
++            await RemoveMemberUnsafeAsync(membership, cancellationToken);
++    }
++
++    // ===== 投影 =====
++
+     private async Task<string> GenerateUniqueRoomCodeAsync(CancellationToken cancellationToken)
+     {
+         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 无易混淆字符（I/O/0/1）
+@@ -199,7 +1125,27 @@ public sealed class RoomService(AppDbContext db)
+         throw new ApiException(StatusCodes.Status500InternalServerError, ApiErrorCodes.RoomCodeExhausted, "房间码生成失败，请重试");
+     }
+ 
++    /// <summary>人数以 Members 集合投影（Phase E 纪律①：并发下 JoinedPlayers 列可能丢失更新，集合才是真相）。</summary>
+     private static GameRoomDto ToDto(GameRoom room) => new(
+-        room.RoomCode, room.HostUsername, room.HostAddress, room.HostPort,
+-        room.JoinedPlayers, room.MaxPlayers, room.IsOpen, room.CreatedAtUtc);
++        room.RoomCode, room.HostUsername, room.Members.Count, room.MaxPlayers, RoomStatus.Normalize(room.Status),
++        room.CreatedAtUtc, room.Mode, room.MapId, room.KillTarget, room.TimeLimitMinutes,
++        room.RoomVersion, room.CurrentMatchId, room.MatchGeneration);
++
++    private static RoomMemberDto ToMemberDto(GameRoomMember member, GameRoom room) => new(
++        member.UserId, member.User.Username, member.TeamId, member.IsReady, room.HostUserId == member.UserId, member.JoinedAtUtc);
++
++    private static RoomSnapshotDto ToSnapshot(GameRoom room, long userId, RoomConnectionInfoDto? connection) => new(
++        ToDto(room),
++        room.Members
++            .OrderBy(m => m.TeamId == Teams.Red ? 0 : m.TeamId == Teams.Blue ? 1 : 2)
++            .ThenBy(m => m.JoinedAtUtc)
++            .Select(m => ToMemberDto(m, room)).ToArray(),
++        new RoomSelfDto(userId,
++            room.Members.FirstOrDefault(x => x.UserId == userId)?.TeamId ?? Teams.None,
++            room.Members.FirstOrDefault(x => x.UserId == userId)?.IsReady ?? false),
++        connection);
++
++    private static StartMatchDto ToStartMatchDto(GameRoom room, RoomConnectionInfoDto connection, StartRosterEntryDto[] roster) => new(
++        room.CurrentMatchId!, room.MatchGeneration, room.RoomVersion, room.MapId, room.Mode,
++        room.KillTarget, room.TimeLimitMinutes, connection, roster);
+ }
+diff --git a/fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs b/fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs
+index 4b186f4d..517cca7b 100644
+--- a/fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs
++++ b/fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs
+@@ -13,34 +13,43 @@ public static class WeaponCatalogSeed
+     {
+         var items = new List<CatalogItem>
+         {
+-            Legacy("weapon.m4", "Primary", "Rifle", "M4", "rifle/day3", 0, 1),
+-            Legacy("weapon.ak", "Primary", "Rifle", "AK", "rifle/02", 0, 1),
+-            Legacy("weapon.service_pistol", "Secondary", "Pistol", "Service Pistol", "pistol/day2", 0, 1),
+-            Legacy("weapon.rifle03", "Primary", "Rifle", "Rifle 03", "rifle/03", 5000, 6),
+-            Legacy("weapon.smg01", "Primary", "Smg", "SMG 01", "smg/01", 3500, 4),
+-            Legacy("weapon.smg02", "Primary", "Smg", "SMG 02", "smg/02", 5500, 7),
+-            Legacy("weapon.shotgun01", "Primary", "Shotgun", "Shotgun 01", "shotgun/01", 5000, 7),
+-            Legacy("weapon.sniper01", "Primary", "Sniper", "Sniper 01", "sniper/01", 8000, 10),
+-            Legacy("weapon.sniper02", "Primary", "Sniper", "Sniper 02", "sniper/02", 12000, 15),
+-            Legacy("weapon.handgun02", "Secondary", "Pistol", "Handgun 02", "handgun/02", 2500, 4)
++            Legacy("weapon.m4", "Primary", "Rifle", "AK-47", "rifle/day3", 0, 1),
++            Legacy("weapon.ak", "Primary", "Rifle", "M4A1", "rifle/02", 0, 1),
++            Legacy("weapon.service_pistol", "Secondary", "Pistol", "Glock 17", "pistol/day2", 0, 1),
++            Legacy("weapon.rifle03", "Primary", "Rifle", "FN SCAR", "rifle/03", 5000, 6),
++            Legacy("weapon.smg01", "Primary", "Smg", "Kriss Vector", "smg/01", 3500, 4),
++            Legacy("weapon.smg02", "Primary", "Smg", "Agram 2000", "smg/02", 5500, 7),
++            Legacy("weapon.shotgun01", "Primary", "Shotgun", "Benelli M3 Super-90", "shotgun/01", 5000, 7),
++            Legacy("weapon.sniper01", "Primary", "Sniper", "M24 SWS", "sniper/01", 8000, 10),
++            Legacy("weapon.sniper02", "Primary", "Sniper", "Barrett M82", "sniper/02", 12000, 15),
++            Legacy("weapon.handgun02", "Secondary", "Pistol", "Beretta M9", "handgun/02", 2500, 4),
++            Legacy("weapon.handgun03", "Secondary", "Pistol", "BUL M-5", "handgun/03", 3200, 6),
++            Legacy("weapon.handgun04", "Secondary", "Pistol", "HK P30", "handgun/04", 3800, 8),
++            Legacy("weapon.smg03", "Primary", "Smg", "UZI", "smg/03", 6000, 8),
++            Legacy("weapon.smg04", "Primary", "Smg", "FN P90", "smg/04", 7500, 10),
++            Legacy("weapon.smg05", "Primary", "Smg", "HK MP5", "smg/05", 9000, 12),
++            Legacy("weapon.sniper03", "Primary", "Sniper", "Dragunov", "sniper/03", 15000, 16)
+         };
+ 
++        // 显示名 = 多模态识别的现实原型枪名（Docs/21-weapon-identity-matrix.csv，2026-09-01）。
++        // 重复原型以 II/III 后缀区分；weapon.m4/weapon.ak 的 itemId 与视觉模型历史上互换，
++        // 显示名按实际模型命名（m4→AK-47、ak→M4A1），itemId 不动以保购买历史与配装外键。
+         var families = new[]
+         {
+             new Family("rifle", "AssaultRifle", "Rifle", "Primary",
+-                Names("现代突击步枪", 6),
++                ["AKM II", "AUG", "G36", "M16A4", "M16A1", "M4A1 II"],
+                 [3000, 4500, 6500, 8500, 11000, 14000], [3, 5, 8, 11, 14, 18]),
+             new Family("pistol", "Pistol", "Pistol", "Secondary",
+-                Names("战术半自动手枪", 6),
++                ["格洛克 17 II", "M1911 II", "沙漠之鹰", "格洛克 17 III", "柯尔特蟒蛇", "微型 Uzi"],
+                 [1000, 1800, 2800, 4000, 5500, 7500], [2, 3, 5, 7, 9, 12]),
+             new Family("shotgun", "Shotgun", "Shotgun", "Primary",
+-                Names("战术霰弹枪", 5),
++                ["汤姆森 M1928", "M870 战术版", "M870 猎鹿版", "短双管霰弹枪", "AA-12"],
+                 [3000, 5000, 7500, 10000, 13500], [4, 7, 10, 14, 18]),
+             new Family("smg", "SMG", "Smg", "Primary",
+-                Names("紧凑型冲锋枪", 6),
++                ["MAC-10", "MP5", "P90 双弹匣", "P90 II", "KSG", "UMP45"],
+                 [2500, 4000, 5500, 7500, 9500, 12000], [3, 5, 7, 9, 12, 15]),
+             new Family("sniper", "SniperRifle", "Sniper", "Primary",
+-                Names("精确射手步枪", 6),
++                ["AWM II", "SVD", "M700", "M95", "M1887", "VSS"],
+                 [4500, 7000, 10000, 14000, 19000, 25000], [6, 10, 14, 18, 23, 28])
+         };
+         foreach (var family in families)
+@@ -50,7 +59,7 @@ public static class WeaponCatalogSeed
+             items.Add(new CatalogItem
+             {
+                 ItemId = $"weapon.lpw.{family.Key}.{tier:00}", ItemType = "Weapon", SlotType = family.Slot,
+-                Category = family.Category, DisplayName = family.Names[index], Description = "LPW正式枪械；配件尚未适配",
++                Category = family.Category,                 DisplayName = family.Names[index], Description = "LPW正式枪械",
+                 AssetKey = $"lpw/{family.SourcePrefix}{tier}_01", PriceCoins = family.Prices[index], UnlockLevel = family.Levels[index],
+                 IsActive = true, IsImplemented = true, CalibrationKey = $"lpw.{family.Key}.{tier:00}.v1"
+             });
+@@ -64,9 +73,6 @@ public static class WeaponCatalogSeed
+         Description = "LPFP原有武器", AssetKey = assetKey, PriceCoins = price, UnlockLevel = level,
+         IsActive = true, IsImplemented = true, CalibrationKey = "legacy"
+     };
+-
+-    private static string[] Names(string category, int count) =>
+-        Enumerable.Range(1, count).Select(x => $"{category} {x:00}").ToArray();
+ }
+ 
+ public static class CatalogSeeder
+@@ -115,5 +121,9 @@ public static class CatalogSeeder
+         target.DisplayName = source.DisplayName; target.Description = source.Description; target.AssetKey = source.AssetKey;
+         target.PriceCoins = source.PriceCoins; target.UnlockLevel = source.UnlockLevel; target.IsActive = source.IsActive;
+         target.IsImplemented = source.IsImplemented; target.CalibrationKey = source.CalibrationKey;
++        // AcquisitionSource was introduced after the original catalog rows. Older
++        // databases contain the migration default (empty), which hides every
++        // weapon from CommerceService's Shop query until the seed repairs it.
++        target.AcquisitionSource = source.AcquisitionSource;
+     }
+ }
+diff --git a/fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs b/fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs
+index ef0b393e..84f78d83 100644
+--- a/fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs
++++ b/fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs
+@@ -1,9 +1,12 @@
++using System;
++using System.Collections.Generic;
+ using System.Net;
+ using System.Net.Http.Headers;
+ using System.Net.Http.Json;
+ using System.Text.Json;
+ using Microsoft.AspNetCore.Mvc.Testing;
+ using Microsoft.AspNetCore.Hosting;
++using Microsoft.Extensions.Configuration;
+ using Microsoft.Extensions.Logging;
+ using Xunit;
+ 
+@@ -108,6 +111,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
+     {
+         builder.UseEnvironment("Development");
+         builder.ConfigureLogging(logging => logging.ClearProviders().AddDebug());
+-        Environment.SetEnvironmentVariable("Database__AllowInMemoryFallback", "true");
++        // 测试宿主隔离（Gate A-4，2026-09-08 复审 §1.4）：与 ServerApiFactory 同范式——经
++        // ConfigureAppConfiguration 注入（DbContext 选项构建时可读），普通 `dotnet test` 无需
++        // 调用方预设任何隐藏环境变量；不再写进程级环境变量（会泄漏给同进程其它测试/工厂）。
++        // 每个工厂实例唯一 InMemory 库名 → 并行工厂互不共享存储，消除跨工厂 Seed 竞争。
++        // 生产环境缺 GameDb 连接串仍由 Program 顶层 fail-closed（本配置只在测试工厂注入）。
++        var values = new Dictionary<string, string?>
++        {
++            ["Database:AllowInMemoryFallback"] = "true",
++            ["Database:InMemoryName"] = "test-" + Guid.NewGuid().ToString("N"),
++        };
++        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(values!));
+     }
+ }
+diff --git a/fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs b/fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs
+index 6047ad3c..ef531af3 100644
+--- a/fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs
++++ b/fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs
+@@ -15,7 +15,7 @@ public sealed class CommerceTests
+         await using var db = CreateDb();
+         await CatalogSeeder.SeedAsync(db);
+         var ids = await db.CatalogItems.Select(x => x.ItemId).ToListAsync();
+-        Assert.Equal(39, ids.Count);
++        Assert.Equal(45, ids.Count); // 16 LPFP legacy（含 handgun03/04、smg03/04/05、sniper03）+ 29 LPW
+         Assert.Equal(29, ids.Count(x => x.StartsWith("weapon.lpw.")));
+         Assert.DoesNotContain(await db.CatalogItems.Select(x => x.AssetKey).ToListAsync(), x =>
+             x.StartsWith("lpw/") && !x.EndsWith("_01", StringComparison.Ordinal));
+diff --git a/fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs b/fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs
+index 583225f3..9927391f 100644
+--- a/fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs
++++ b/fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs
+@@ -198,8 +198,11 @@ public sealed class MatchSettlementTests
+     }
+ 
+     [Fact]
+-    public async Task ShopCatalogExcludesInitialWeaponsAndPassRewardAttachments()
++    public async Task Catalog_IncludesInitialWeaponsAndPassRewards_WithAcquisitionSource()
+     {
++        // 2026-09-07 契约变更：目录响应不再排除 Initial/PassReward 行（仓库列表需要初始武器，
++        // 否则 AK/M4 无法进入枪匠页）；商城可见性由客户端按 acquisitionSource 过滤，
++        // 可购性由 PurchaseAsync 服务端执法。
+         await using var db = CreateDb();
+         await CatalogSeeder.SeedAsync(db);
+         await PassSeeder.SeedAsync(db);
+@@ -208,9 +211,29 @@ public sealed class MatchSettlementTests
+ 
+         var catalog = await service.GetCatalogAsync(user.Id, CancellationToken.None);
+ 
+-        Assert.Equal(36, catalog.Items.Length); // 39 武器 − 3 初始枪；配件不进商城
+-        Assert.DoesNotContain(catalog.Items, x => CatalogSeeder.InitialWeapons.Contains(x.ItemId));
+-        Assert.DoesNotContain(catalog.Items, x => x.ItemId.StartsWith("attach."));
++        var initial = catalog.Items.Where(x => CatalogSeeder.InitialWeapons.Contains(x.ItemId)).ToArray();
++        Assert.Equal(CatalogSeeder.InitialWeapons.Length, initial.Length);
++        Assert.All(initial, x => Assert.Equal("Initial", x.AcquisitionSource));
++        var passRewards = catalog.Items.Where(x => x.ItemId.StartsWith("attach.")).ToArray();
++        Assert.NotEmpty(passRewards);
++        Assert.All(passRewards, x => Assert.Equal("PassReward", x.AcquisitionSource));
++        Assert.Contains(catalog.Items, x => x.ItemId == "weapon.rifle03" && x.AcquisitionSource == "Shop");
++    }
++
++    [Fact]
++    public async Task Purchase_RejectsNonShopItems()
++    {
++        await using var db = CreateDb();
++        await CatalogSeeder.SeedAsync(db);
++        var user = AddUser(db);
++        var service = new CommerceService(db);
++
++        var ex = await Assert.ThrowsAsync<ApiException>(() => service.PurchaseAsync(user.Id,
++            new PurchaseRequest { ItemId = "weapon.m4", Quantity = 1, IdempotencyKey = "itest-initial-001" },
++            CancellationToken.None));
++
++        Assert.Equal(StatusCodes.Status409Conflict, ex.StatusCode);
++        Assert.Equal(ApiErrorCodes.ItemDisabled, ex.Code);
+     }
+ 
+     private static MatchSubmissionRequest Request(string clientMatchId, int kills, int deaths, bool isWin, int duration = 300) =>
+diff --git a/fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs b/fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs
+index 3f3c68aa..3ae38cc1 100644
+--- a/fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs
++++ b/fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs
+@@ -2,238 +2,356 @@ using System.Net;
+ using System.Net.Http.Headers;
+ using System.Net.Http.Json;
+ using System.Text.Json;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.DependencyInjection;
++using UnityFps.Api.Data;
+ using Xunit;
+ 
+ namespace UnityFps.Api.Tests;
+ 
+ /// <summary>
+-/// 房间注册表 API 契约测试（Docs/19 N4）：创建/列表/加入/心跳/退出/解散。
+-/// 房间码语义：6 位无易混淆字符；心跳懒清理不在本测试范围（30s TTL）。
++/// 房间 API 契约测试（Docs/27 v1 CF 等待房间语义）：创建/加入只进 Waiting（无票据/无实例租用）；
++/// 租 DS/签票在 start（票据断言见 ServerInstanceApiTests 与 CFWaitingRoomTests）；
++/// leader 离开转移管理权而非解散房间；最后一名成员离开删除房间。
++/// 旧 CreateRoomReturnsConnectionWithTicket 已改写为等待语义；开始签票断言由 CreateStartedRoom* 链路保留（覆盖不删减）。
+ /// </summary>
+-public sealed class RoomApiTests : IClassFixture<ApiFactory>
++public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
+ {
+-    private readonly HttpClient client;
++    private readonly ServerApiFactory factory;
+ 
+-    public RoomApiTests(ApiFactory factory) => client = factory.CreateClient();
++    public RoomApiTests(ServerApiFactory factory) => this.factory = factory;
+ 
+-    private async Task<(string Token, string Username)> RegisterAsync()
+-    {
+-        var username = "room_" + Guid.NewGuid().ToString("N")[..8];
+-        var register = await client.PostAsJsonAsync("/api/auth/register", new { username, password = "Password123!" });
+-        Assert.Equal(HttpStatusCode.Created, register.StatusCode);
+-        using var json = JsonDocument.Parse(await register.Content.ReadAsStringAsync());
+-        return (json.RootElement.GetProperty("token").GetString()!, username);
+-    }
+-
+-    private HttpClient AuthorizedClient(string token)
+-    {
+-        var c = factoryClient();
+-        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+-        return c;
+-    }
+-
+-    private static HttpClient factoryClient() => new ApiFactory().CreateClient();
++    private HttpClient NewClient() => factory.CreateClient();
+ 
+     [Fact]
+-    public async Task CreateRoomReturnsCodeAndAddress()
++    public async Task CreateRoomReturnsWaitingSnapshotWithoutConnection()
+     {
+-        var (token, username) = await RegisterAsync();
+-        var auth = AuthorizedClient(token);
++        var client = NewClient();
++        var (token, username) = await ServerTest.RegisterUserAsync(client);
++        var auth = ServerTest.Authorized(client, token);
+ 
+-        var create = await auth.PostAsJsonAsync("/api/rooms", new { hostAddress = "192.168.1.10", hostPort = 7770, maxPlayers = 4 });
++        var create = await auth.PostAsJsonAsync("/api/rooms", new { maxPlayers = 4 });
+         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+-        var room = await create.Content.ReadFromJsonAsync<JsonElement>();
++        var snapshot = await create.Content.ReadFromJsonAsync<JsonElement>();
++        var room = snapshot.GetProperty("room");
+         var code = room.GetProperty("roomCode").GetString()!;
+-        Assert.Equal(6, code.Length);
+         Assert.Matches("^[A-HJ-NP-Z2-9]{6}$", code); // 无 I/O/0/1
+-        Assert.Equal(username, room.GetProperty("hostUsername").GetString());
+-        Assert.Equal("192.168.1.10", room.GetProperty("hostAddress").GetString());
++        Assert.Equal(username, room.GetProperty("leaderUsername").GetString());
+         Assert.Equal(4, room.GetProperty("maxPlayers").GetInt32());
+         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
++        Assert.Equal("Waiting", room.GetProperty("status").GetString());
++        Assert.Equal("TDM", room.GetProperty("mode").GetString());      // 默认模式
++        Assert.Equal("arena", room.GetProperty("mapId").GetString());   // 默认地图
++        Assert.Equal(1, room.GetProperty("roomVersion").GetInt64());
++        Assert.False(room.TryGetProperty("matchId", out var matchId) && matchId.ValueKind == JsonValueKind.String); // 未开局无比赛（null 序列化为 Null 字面量）
++        Assert.Equal(JsonValueKind.Null, snapshot.GetProperty("connection").ValueKind); // 等待房间连接信息为 null（不携带票据）
+     }
+ 
+     [Fact]
+-    public async Task JoinByCodeIncrementsCountAndReturnsAddress()
++    public async Task PlayerReportedAddressIsIgnored()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.5", hostPort = 7770 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var (guestToken, _) = await RegisterAsync();
+-        var guestClient = AuthorizedClient(guestToken);
+-        var join = await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+-        Assert.Equal(HttpStatusCode.OK, join.StatusCode);
+-        var joined = await join.Content.ReadFromJsonAsync<JsonElement>();
+-        Assert.Equal(2, joined.GetProperty("joinedPlayers").GetInt32());
+-        Assert.Equal("10.0.0.5", joined.GetProperty("hostAddress").GetString());
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client); // 默认地址 10.1.0.5
++        var (token, _) = await ServerTest.RegisterUserAsync(client);
++        // 旧客户端请求体带 hostAddress/hostPort：解析兼容，值一律忽略
++        var create = await ServerTest.Authorized(client, token).PostAsJsonAsync("/api/rooms",
++            new { maxPlayers = 4, hostAddress = "evil.example.com", hostPort = 1234 });
++        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
++        var snapshot = await create.Content.ReadFromJsonAsync<JsonElement>();
++        Assert.False(snapshot.TryGetProperty("serverAddress", out _)); // 创建响应不再包含连接地址
++
++        // 直连地址以服务器实例注册上报为准：开局连接信息的地址来自实例
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++        await ServerTest.JoinRoomAsync(client, guestToken, code);
++        await ServerTest.ReadyAsync(client, guestToken, code);
++        var start = await ServerTest.StartRoomAsync(client, token, code);
++        Assert.Equal("10.1.0.5", ServerTest.ConnectionAddress(start));
+     }
+ 
+     [Fact]
+-    public async Task JoinUnknownRoomReturns404()
++    public async Task ListExposesRoomsWithoutSensitiveFields()
+     {
+-        var (token, _) = await RegisterAsync();
+-        var auth = AuthorizedClient(token);
+-        var join = await auth.PostAsync("/api/rooms/ZZZZZZ/join", null);
+-        Assert.Equal(HttpStatusCode.NotFound, join.StatusCode);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (token, username) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, token);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var list = await client.GetAsync("/api/rooms");
++        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
++        var raw = await list.Content.ReadAsStringAsync();
++        Assert.Contains(code, raw);
++        Assert.Contains(username, raw);
++        Assert.DoesNotContain("joinTicket", raw);   // 列表绝不序列化票据
++        Assert.DoesNotContain("ticketHash", raw);
++        Assert.DoesNotContain("serverKey", raw);
++        Assert.DoesNotContain("hostAddress", raw);  // 新 DTO 不再暴露直连地址字段
+     }
+ 
+     [Fact]
+-    public async Task HostLeaveDissolvesRoom()
++    public async Task JoinByCodeAddsMemberWithoutTicket()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "1.2.3.4" });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var leave = await hostClient.PostAsync("/api/rooms/leave", null);
+-        Assert.Equal(HttpStatusCode.OK, leave.StatusCode);
+-
+-        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        Assert.DoesNotContain(list, r => r.GetProperty("roomCode").GetString() == code);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        var joined = await ServerTest.JoinRoomAsync(client, guestToken, code);
++        Assert.Equal(2, joined.GetProperty("room").GetProperty("joinedPlayers").GetInt32());
++        Assert.Equal(JsonValueKind.Null, joined.GetProperty("connection").ValueKind); // Waiting 无票据（null 而非缺席）
++        Assert.Equal("Blue", joined.GetProperty("you").GetProperty("teamId").GetString()); // TDM 自动分队：红1→蓝
+     }
+ 
+     [Fact]
+-    public async Task HeartbeatKeepsRoomVisible()
++    public async Task JoinUnknownRoomReturns404()
+     {
+-        var (token, _) = await RegisterAsync();
+-        var auth = AuthorizedClient(token);
+-        var create = await auth.PostAsJsonAsync("/api/rooms", new { hostAddress = "5.6.7.8" });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var beat = await auth.PostAsync("/api/rooms/heartbeat", null);
+-        Assert.Equal(HttpStatusCode.OK, beat.StatusCode);
+-
+-        var list = await auth.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        Assert.Contains(list, r => r.GetProperty("roomCode").GetString() == code);
++        var client = NewClient();
++        var (token, _) = await ServerTest.RegisterUserAsync(client);
++        var join = await ServerTest.Authorized(client, token).PostAsync("/api/rooms/ZZZZZZ/join", null);
++        Assert.Equal(HttpStatusCode.NotFound, join.StatusCode);
+     }
+ 
++    /// <summary>Docs/27 §2：leader 离开=确定性转移，房间保留。</summary>
+     [Fact]
+-    public async Task UnauthenticatedRoomAccessIsRejected()
++    public async Task LeaderLeaveTransfersToEarliestJoined()
+     {
+-        var response = await client.GetAsync("/api/rooms");
+-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (leaderToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, leaderToken, maxPlayers: 8);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var (firstGuestToken, firstGuestName) = await ServerTest.RegisterUserAsync(client);
++        await ServerTest.JoinRoomAsync(client, firstGuestToken, code);
++        var (secondGuestToken, _) = await ServerTest.RegisterUserAsync(client);
++        await ServerTest.JoinRoomAsync(client, secondGuestToken, code);
++
++        var leave = await ServerTest.Authorized(client, leaderToken).PostAsync("/api/rooms/leave", null);
++        Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
++
++        var list = await ServerTest.Authorized(client, leaderToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        var room = Assert.Single(list!, r => r.GetProperty("roomCode").GetString() == code);
++        Assert.Equal(2, room.GetProperty("joinedPlayers").GetInt32());       // 房间仍在，人数 2
++        Assert.Equal("Waiting", room.GetProperty("status").GetString());
++        Assert.Equal(firstGuestName, room.GetProperty("leaderUsername").GetString()); // 最早加入者接任
+     }
+ 
+-    // ---- 退出对局 Phase E：Leave 幂等 / 人数真相 / 并发 ----
+-
+     [Fact]
+-    public async Task MemberLeaveInTwoPlayerRoomReducesToOneAndKeepsRoom()
++    public async Task LastMemberLeaveDeletesRoomForReuse()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.9", maxPlayers = 4 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var (guestToken, _) = await RegisterAsync();
+-        var guestClient = AuthorizedClient(guestToken);
+-        await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+-
+-        var leave = await guestClient.PostAsync("/api/rooms/leave", null);
+-        Assert.Equal(HttpStatusCode.OK, leave.StatusCode);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client); // 唯一实例
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var leave = await ServerTest.Authorized(client, hostToken).PostAsync("/api/rooms/leave", null);
++        Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
++
++        var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == code);
++
++        // 实例可复用：第二个用户不注册新实例也能开局租到同一实例（否则唯一实例被占用会 409）
++        var (secondToken, _) = await ServerTest.RegisterUserAsync(client);
++        var (_, _, _, started) = await ServerTest.CreateStartedRoomAsync(client);
++        Assert.Equal("10.1.0.5", ServerTest.ConnectionAddress(started));
++        _ = secondToken;
++    }
+ 
+-        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        var room = Assert.Single(list, r => r.GetProperty("roomCode").GetString() == code);
+-        Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
+-        Assert.True(room.GetProperty("isOpen").GetBoolean());
++    [Fact]
++    public async Task CreateWithoutInstanceSucceedsAndStartRequiresServer()
++    {
++        // 独立空存储工厂：保证"无实例"前提不受同类其他测试残留影响
++        using var isolated = ServerApiFactory.WithConfig(new Dictionary<string, string?>());
++        var client = isolated.CreateClient();
++        var (token, _) = await ServerTest.RegisterUserAsync(client);
++        // CF：创建不再要求实例存在（Waiting 不连 DS）
++        var snapshot = await ServerTest.CreateRoomAsync(client, token);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        await ServerTest.JoinRoomAsync(client, guestToken, code);
++        await ServerTest.ReadyAsync(client, guestToken, code);
++
++        // 开局才需要实例：无可用 DS → 409 NO_SERVER_AVAILABLE
++        var start = await ServerTest.Authorized(client, token).PostAsync($"/api/rooms/{code}/start", null);
++        Assert.Equal(HttpStatusCode.Conflict, start.StatusCode);
++        using var problem = JsonDocument.Parse(await start.Content.ReadAsStringAsync());
++        Assert.Equal("NO_SERVER_AVAILABLE", problem.RootElement.GetProperty("code").GetString());
+     }
+ 
+     [Fact]
+-    public async Task MemberLeaveInThreePlayerRoomOnlyDecrements()
++    public async Task MemberLeaveInTwoPlayerRoomReducesToOneAndKeepsRoom()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.10", maxPlayers = 8 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+ 
+-        var guestTokens = new List<string>();
+-        for (var i = 0; i < 2; i++)
+-        {
+-            var (t, _) = await RegisterAsync();
+-            guestTokens.Add(t);
+-            await AuthorizedClient(t).PostAsync($"/api/rooms/{code}/join", null);
+-        }
+-        var before = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        Assert.Equal(3, before.Single(r => r.GetProperty("roomCode").GetString() == code).GetProperty("joinedPlayers").GetInt32());
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        await ServerTest.JoinRoomAsync(client, guestToken, code);
+ 
+-        await AuthorizedClient(guestTokens[0]).PostAsync("/api/rooms/leave", null);
++        var leave = await ServerTest.Authorized(client, guestToken).PostAsync("/api/rooms/leave", null);
++        Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
+ 
+-        var after = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        var room = after.Single(r => r.GetProperty("roomCode").GetString() == code);
+-        Assert.Equal(2, room.GetProperty("joinedPlayers").GetInt32());
+-        Assert.True(room.GetProperty("isOpen").GetBoolean(), ">2 人局非房主退出仅减员，房间继续开放");
++        var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        var room = Assert.Single(list!, r => r.GetProperty("roomCode").GetString() == code);
++        Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
++        Assert.Equal("Waiting", room.GetProperty("status").GetString());
+     }
+ 
+     [Fact]
+     public async Task LeaveReplayIsIdempotent()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.11", maxPlayers = 4 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var (guestToken, _) = await RegisterAsync();
+-        var guestClient = AuthorizedClient(guestToken);
+-        await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+-
+-        var first = await guestClient.PostAsync("/api/rooms/leave", null);
+-        var replay = await guestClient.PostAsync("/api/rooms/leave", null);
+-        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+-        Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // 重复离开=幂等成功
+-
+-        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        var room = list.Single(r => r.GetProperty("roomCode").GetString() == code);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        await ServerTest.JoinRoomAsync(client, guestToken, code);
++
++        var first = await ServerTest.Authorized(client, guestToken).PostAsync("/api/rooms/leave", null);
++        var replay = await ServerTest.Authorized(client, guestToken).PostAsync("/api/rooms/leave", null);
++        Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
++        Assert.Equal(HttpStatusCode.NoContent, replay.StatusCode); // 重复离开=幂等成功
++
++        var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == code);
+         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 重放不得二次减员
+     }
+ 
+     [Fact]
+     public async Task ConcurrentMemberLeavesAreAllApplied()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.12", maxPlayers = 8 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 8);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+ 
+-        var clients = new List<HttpClient>();
++        var guests = new List<HttpClient>();
+         for (var i = 0; i < 3; i++)
+         {
+-            var (t, _) = await RegisterAsync();
+-            var c = AuthorizedClient(t);
+-            clients.Add(c);
+-            await c.PostAsync($"/api/rooms/{code}/join", null);
++            var (t, _) = await ServerTest.RegisterUserAsync(client);
++            // 每个身份独立 client（共享 client 会互相覆盖 Authorization 头，并发时三发同 token）
++            guests.Add(ServerTest.Authorized(factory.CreateClient(), t));
++            await guests[^1].PostAsync($"/api/rooms/{code}/join", null);
+         }
+ 
+-        var leaves = await Task.WhenAll(clients.Select(c => c.PostAsync("/api/rooms/leave", null)));
+-        Assert.All(leaves, l => Assert.Equal(HttpStatusCode.OK, l.StatusCode));
++        var leaves = await Task.WhenAll(guests.Select(g => g.PostAsync("/api/rooms/leave", null)));
++        Assert.All(leaves, l => Assert.Equal(HttpStatusCode.NoContent, l.StatusCode));
+ 
+-        var list = await hostClient.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+-        var room = list.Single(r => r.GetProperty("roomCode").GetString() == code);
++        var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == code);
+         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 并发退出后 Members.Count 为真相
+     }
+ 
+     [Fact]
+-    public async Task DuplicateJoinIsIdempotent()
++    public async Task DuplicateJoinIsIdempotentInWaiting()
+     {
+-        var (hostToken, _) = await RegisterAsync();
+-        var hostClient = AuthorizedClient(hostToken);
+-        var create = await hostClient.PostAsJsonAsync("/api/rooms", new { hostAddress = "10.0.0.13", maxPlayers = 4 });
+-        var code = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roomCode").GetString()!;
+-
+-        var (guestToken, _) = await RegisterAsync();
+-        var guestClient = AuthorizedClient(guestToken);
+-        var first = await guestClient.PostAsync($"/api/rooms/{code}/join", null);
+-        var replay = await guestClient.PostAsync($"/api/rooms/{code}/join", null);
++        var client = NewClient();
++        await ServerTest.RegisterInstanceAsync(client);
++        var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
++        var guest = ServerTest.Authorized(client, guestToken);
++        var first = await guest.PostAsync($"/api/rooms/{code}/join", null);
++        var replay = await guest.PostAsync($"/api/rooms/{code}/join", null);
+         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+         Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // 重复加入（重入）=幂等返回当前房间
+ 
+         var joined = await replay.Content.ReadFromJsonAsync<JsonElement>();
+-        Assert.Equal(2, joined.GetProperty("joinedPlayers").GetInt32()); // 重复加入不得重复计数
++        Assert.Equal(2, joined.GetProperty("room").GetProperty("joinedPlayers").GetInt32()); // 重复加入不得重复计数
++        Assert.Equal(JsonValueKind.Null, joined.GetProperty("connection").ValueKind); // Waiting 无票据重发（票据断言移交开局链路）
++    }
++
++    /// <summary>成员保活心跳（Docs/27 §2）：成员调用成功；非成员无副作用同样成功（兼容旧客户端）。</summary>
++    [Fact]
++    public async Task MemberHeartbeatRefreshesKeepalive()
++    {
++        var client = NewClient();
++        var (token, _) = await ServerTest.RegisterUserAsync(client);
++        var snapshot = await ServerTest.CreateRoomAsync(client, token);
++        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
++
++        var beat = await ServerTest.Authorized(client, token).PostAsync("/api/rooms/heartbeat", null);
++        Assert.Equal(HttpStatusCode.NoContent, beat.StatusCode);
++
++        var detail = await ServerTest.Authorized(client, token).GetFromJsonAsync<JsonElement>($"/api/rooms/{code}");
++        Assert.Equal(1, detail.GetProperty("members").GetArrayLength());
++    }
++
++    [Fact]
++    public async Task UnauthenticatedRoomAccessIsRejected()
++    {
++        var client = NewClient();
++        var response = await client.GetAsync("/api/rooms");
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+     }
+ 
+     [Fact]
+     public async Task LeaveWithoutTokenIsRejected()
+     {
++        var client = NewClient();
+         var response = await client.PostAsync("/api/rooms/leave", null);
+         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+     }
++
++    /// <summary>
++    /// 审计 P1-3 等价回归：无实例绑定的空状态历史行（client-hosted 时代的形态）
++    /// 不会以 Status="" 出现在列表，且被懒清理删除不残留（Docs/27 v1 维护扫描的未知状态清除分支）。
++    /// </summary>
++    [Fact]
++    public async Task LegacyUnboundRoomsWithBlankStatusArePurgedNotListed()
++    {
++        var client = NewClient();
++        using (var scope = factory.Services.CreateScope())
++        {
++            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
++            var legacyUser = new UserAccount
++            {
++                Username = "legacy_" + Guid.NewGuid().ToString("N")[..8],
++                NormalizedUsername = "LEGACY_" + Guid.NewGuid().ToString("N")[..8],
++                PasswordHash = "legacy",
++                CreatedAtUtc = DateTime.UtcNow,
++            };
++            db.Users.Add(legacyUser);
++            await db.SaveChangesAsync(); // 先落用户取 Id
++
++            db.GameRooms.Add(new GameRoom
++            {
++                RoomCode = "LEGAC1",
++                HostUserId = legacyUser.Id,
++                HostUsername = legacyUser.Username,
++                HostAddress = "192.168.1.1",
++                HostPort = 7770,
++                MaxPlayers = 8,
++                JoinedPlayers = 1,
++                IsOpen = true,
++                Status = "", // 迁移回填前的历史形态
++                CreatedAtUtc = DateTime.UtcNow,
++                LastHeartbeatUtc = DateTime.UtcNow,
++                Members = { new GameRoomMember { UserId = legacyUser.Id, JoinedAtUtc = DateTime.UtcNow } },
++            });
++            await db.SaveChangesAsync();
++        }
++
++        var list = await ServerTest.Authorized(factory.CreateClient(),
++            (await ServerTest.RegisterUserAsync(client)).Token).GetFromJsonAsync<JsonElement[]>("/api/rooms");
++        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == "LEGAC1");
++
++        // 懒清理兜底：无实例绑定的空状态行必须被删除，不得残留为僵尸数据
++        using (var scope = factory.Services.CreateScope())
++        {
++            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
++            Assert.False(await db.GameRooms.AnyAsync(x => x.RoomCode == "LEGAC1"));
++        }
++    }
+ }
