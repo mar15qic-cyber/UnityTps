@@ -1,0 +1,471 @@
+ M "Assets/Codely/Fonts/NotoSansSC-Regular SDF.asset"
+ M Assets/_Project/Editor/CP5_HudBuilder.cs
+ M Assets/_Project/Editor/EditModeTestRunner.cs
+ M Assets/_Project/Editor/FPWeaponPoseProfileEditor.cs
+ M Assets/_Project/Editor/LPWDualLayerCalibrationWindow.cs
+ M Assets/_Project/Editor/LPWWeaponProductionPipeline.cs
+ M Assets/_Project/Prefabs/Weapons/FP_Handgun02_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Rifle02_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Rifle03_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_SMG02_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/FP_Sniper02_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle1_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle2_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle3_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle4_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle5_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle6_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol1_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol2_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol3_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol4_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol5_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol6_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG1_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG2_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG3_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG4_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG5_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG6_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun1_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun2_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun3_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun4_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun5_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle1_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle2_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle3_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle4_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle5_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle6_01_View.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle1_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle2_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle3_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle4_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle5_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle6_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol1_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol2_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol3_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol4_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol6_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG1_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG2_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG3_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG4_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG5_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG6_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun1_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun2_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun3_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun5_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle1_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle2_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle3_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle4_01.prefab
+ M Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle6_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_02.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
+ M Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_02.prefab
+ M Assets/_Project/Scenes/Arena.unity
+ M Assets/_Project/Scenes/Arena_LPWTest.unity
+ D Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset
+ D Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset.meta
+ M Assets/_Project/ScriptableObjects/Audio/AudioProfile_Handgun.asset
+ M Assets/_Project/ScriptableObjects/Audio/AudioProfile_Rifle.asset
+ M Assets/_Project/ScriptableObjects/Audio/AudioProfile_Rifle02.asset
+ M Assets/_Project/ScriptableObjects/Audio/AudioProfile_SMG.asset
+ M Assets/_Project/ScriptableObjects/Audio/AudioProfile_Shotgun.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day2_DemoBalance.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day2_ServicePistol.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_AssaultRifle.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun02.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Rifle02.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Rifle03.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_SMG01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_SMG02.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Shotgun01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper02.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPWWeaponManifest.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle1_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle2_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle3_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle4_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle5_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle6_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol1_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol2_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol3_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol4_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol5_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol6_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG1_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG2_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG3_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG4_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG5_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG6_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun1_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun2_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun3_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun4_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun5_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle1_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle2_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle3_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle4_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle5_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle6_01.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_Pistol5_06.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_Rifle2_02.asset
+ M Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_SMG1_01.asset
+ M Assets/_Project/Scripts/Account/AccountContracts.cs
+ M Assets/_Project/Scripts/Account/AccountSession.cs
+ M Assets/_Project/Scripts/Account/ApiClient.cs
+ M Assets/_Project/Scripts/Account/ApiTransportFailureClassifier.cs
+ M Assets/_Project/Scripts/Account/IApiClient.cs
+ M Assets/_Project/Scripts/Core/WeaponStatModifier.cs
+ M Assets/_Project/Scripts/Debug/LPWAdsRuntimeVerifier.cs
+ M Assets/_Project/Scripts/Gameplay/Combat/CombatResolver.cs
+ M Assets/_Project/Scripts/Gameplay/Health/DamageableTarget.cs
+ M Assets/_Project/Scripts/Gameplay/Menu/GameplayMenuController.cs
+ M Assets/_Project/Scripts/Gameplay/Network/MatchEventKind.cs
+ M Assets/_Project/Scripts/Gameplay/Network/MatchLifecycle.cs
+ M Assets/_Project/Scripts/Gameplay/Network/MatchRules.cs
+ M Assets/_Project/Scripts/Gameplay/Network/NetworkCombatAuthority.cs
+ M Assets/_Project/Scripts/Gameplay/Network/NetworkHud.cs
+ M Assets/_Project/Scripts/Gameplay/Network/NetworkWeaponState.cs
+ M Assets/_Project/Scripts/Gameplay/Network/PlayerNetworkAdapter.cs
+ M Assets/_Project/Scripts/Gameplay/Player/InputReader.cs
+ M Assets/_Project/Scripts/Gameplay/Player/PlayerAimState.cs
+ M Assets/_Project/Scripts/Gameplay/Settings/SettingsDraft.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/Arsenal.cs
+ D Assets/_Project/Scripts/Gameplay/Weapon/FPWeaponAttachmentView.cs
+ D Assets/_Project/Scripts/Gameplay/Weapon/FPWeaponAttachmentView.cs.meta
+ M Assets/_Project/Scripts/Gameplay/Weapon/LPWWeaponManifest.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/WeaponAudioProfile.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/WeaponController.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/WeaponDefinition.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/WeaponRuntime.cs
+ M Assets/_Project/Scripts/Gameplay/Weapon/WeaponStatResolver.cs
+ M Assets/_Project/Scripts/Presentation/Animation/DetachableMagazineView.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPAimAnimStateMachine.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPLeftHandIK.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPRightHandIK.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPWeaponAnimator.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseProfile.cs
+ M Assets/_Project/Scripts/Presentation/Animation/FPWeaponRig.cs
+ M Assets/_Project/Scripts/Presentation/Animation/TPWeaponMeshSwapper.cs
+ M Assets/_Project/Scripts/Presentation/Animation/TwoBoneIKSolver.cs
+ M Assets/_Project/Scripts/Presentation/Camera/FPCameraRig.cs
+ M Assets/_Project/Scripts/Presentation/Camera/FPWeaponMotion.cs
+ M Assets/_Project/Scripts/Presentation/HUD/MatchHudView.cs
+ M Assets/_Project/Scripts/Presentation/HUD/WeaponAudioView.cs
+ M Assets/_Project/Scripts/Presentation/HUD/WeaponHudView.cs
+ M Assets/_Project/Scripts/Presentation/Weapon/WeaponView.cs
+ M Assets/_Project/Scripts/UI/AppRoot.cs
+ M Assets/_Project/Scripts/UI/DesignSystem/UIComponents.cs
+ M Assets/_Project/Scripts/UI/DesignSystem/UIMotion.cs
+ M Assets/_Project/Scripts/UI/GameplayLoadoutBootstrap.cs
+ M Assets/_Project/Scripts/UI/LobbyPage.cs
+ M Assets/_Project/Scripts/UI/LobbyPresenter.cs
+ M Assets/_Project/Scripts/UI/Menu/GameplayMenuView.cs
+ M Assets/_Project/Scripts/UI/Pages/LobbyPresenter.ShellPages.cs
+ M Assets/_Project/Scripts/UI/Pages/LobbyPresenter.SubPages.cs
+ D Assets/_Project/Scripts/UI/Settings.meta
+ M Assets/_Project/Scripts/UI/WeaponAssetCatalog.cs
+ M Assets/_Project/Scripts/UI/WeaponPreviewController.cs
+ M Assets/_Project/Tests/EditMode/Account/ApiClientNetworkErrorTests.cs
+ M Assets/_Project/Tests/EditMode/AttachmentCalibrationFrameTests.cs
+ M Assets/_Project/Tests/EditMode/FPAimAnimStateMachineTests.cs
+ M Assets/_Project/Tests/EditMode/LPWDualLayerCalibrationTests.cs
+ M Assets/_Project/Tests/EditMode/LPWProductionAssetTests.cs
+ M Assets/_Project/Tests/EditMode/LPWWeaponPoseAdapterTests.cs
+ M Assets/_Project/Tests/EditMode/LobbySubPageTests.cs
+ M Assets/_Project/Tests/EditMode/ReloadAnimationTimingTests.cs
+ M Assets/_Project/Tests/EditMode/SettingsModelTests.cs
+ M Assets/_Project/Tests/EditMode/WeaponBalanceIntegrityTests.cs
+ M Assets/_Project/Tests/PlayMode/LPWWeaponPlayModeTests.cs
+ M CODELY.md
+ M Docs/00-总览与导航.md
+ M Packages/manifest.json
+ M Packages/packages-lock.json
+ M ProjectSettings/ProjectSettings.asset
+ M fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs
+ M fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs
+ M fps-backend/src/UnityFps.Api/Data/AppDbContext.cs
+ M fps-backend/src/UnityFps.Api/Data/Entities.cs
+ M fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs
+ M fps-backend/src/UnityFps.Api/Features/Contracts.cs
+ M fps-backend/src/UnityFps.Api/Program.cs
+ M fps-backend/src/UnityFps.Api/Services/CommerceService.cs
+ M fps-backend/src/UnityFps.Api/Services/LoadoutService.cs
+ M fps-backend/src/UnityFps.Api/Services/Mapping.cs
+ M fps-backend/src/UnityFps.Api/Services/RoomService.cs
+ M fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs
+ M fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs
+ M fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs
+ M fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs
+ M fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs
+?? .zcode/
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Handgun.wav
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Handgun.wav.meta
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_Heavy.wav
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_Heavy.wav.meta
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_M4.wav
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_M4.wav.meta
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_SMG.wav
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_SMG.wav.meta
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Shotgun.wav
+?? Assets/_Project/Audio/Generated/Fire_Suppressed_Shotgun.wav.meta
+?? Assets/_Project/Editor/DedicatedServerBuild.cs
+?? Assets/_Project/Editor/DedicatedServerBuild.cs.meta
+?? Assets/_Project/Prefabs/Weapons/FP_Handgun03_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_Handgun03_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/FP_Handgun04_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_Handgun04_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/FP_SMG03_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_SMG03_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/FP_SMG04_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_SMG04_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/FP_SMG05_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_SMG05_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/FP_Sniper03_View.prefab
+?? Assets/_Project/Prefabs/Weapons/FP_Sniper03_View.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_03.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_03.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_04.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_04.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_05.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_05.prefab.meta
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_03.prefab
+?? Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_03.prefab.meta
+?? Assets/_Project/Resources/AttachmentAssetCatalog.asset
+?? Assets/_Project/Resources/AttachmentAssetCatalog.asset.meta
+?? Assets/_Project/Resources/AttachmentCalibration.asset
+?? Assets/_Project/Resources/AttachmentCalibration.asset.meta
+?? Assets/_Project/Resources/OpticViewCatalog.asset
+?? Assets/_Project/Resources/OpticViewCatalog.asset.meta
+?? Assets/_Project/Resources/WeaponAssetCatalog.asset
+?? Assets/_Project/Resources/WeaponAssetCatalog.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun03.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun03.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun04.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun04.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG03.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG03.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG04.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG04.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG05.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_SMG05.asset.meta
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper03.asset
+?? Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper03.asset.meta
+?? Assets/_Project/Scripts/Debug/OpticAimCalibrationOverlay.cs
+?? Assets/_Project/Scripts/Debug/OpticAimCalibrationOverlay.cs.meta
+?? Assets/_Project/Scripts/Editor/AttachmentCalibrationWindow.cs
+?? Assets/_Project/Scripts/Editor/AttachmentCalibrationWindow.cs.meta
+?? Assets/_Project/Scripts/Editor/AttachmentCatalogBuilder.cs
+?? Assets/_Project/Scripts/Editor/AttachmentCatalogBuilder.cs.meta
+?? Assets/_Project/Scripts/Editor/AttachmentSocketBuilder.cs
+?? Assets/_Project/Scripts/Editor/AttachmentSocketBuilder.cs.meta
+?? Assets/_Project/Scripts/Editor/OpticAimCalibrationWindow.cs
+?? Assets/_Project/Scripts/Editor/OpticAimCalibrationWindow.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Movement/AuthoritativeMovementState.cs
+?? Assets/_Project/Scripts/Gameplay/Movement/AuthoritativeMovementState.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Movement/MovementPredictionCore.cs
+?? Assets/_Project/Scripts/Gameplay/Movement/MovementPredictionCore.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/AttachmentSnapshotCodec.cs
+?? Assets/_Project/Scripts/Gameplay/Network/AttachmentSnapshotCodec.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/AuthFailurePolicy.cs
+?? Assets/_Project/Scripts/Gameplay/Network/AuthFailurePolicy.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/ClientAuthFailureHandler.cs
+?? Assets/_Project/Scripts/Gameplay/Network/ClientAuthFailureHandler.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerBootstrap.cs
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerBootstrap.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerLifecycle.cs
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerLifecycle.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerOptions.cs
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerOptions.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerRuntime.cs
+?? Assets/_Project/Scripts/Gameplay/Network/DedicatedServerRuntime.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/GameplayClientInvariantProbe.cs
+?? Assets/_Project/Scripts/Gameplay/Network/GameplayClientInvariantProbe.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/JoinTicketAuthenticator.cs
+?? Assets/_Project/Scripts/Gameplay/Network/JoinTicketAuthenticator.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/JoinTicketBroadcasts.cs
+?? Assets/_Project/Scripts/Gameplay/Network/JoinTicketBroadcasts.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/MatchEligibility.cs
+?? Assets/_Project/Scripts/Gameplay/Network/MatchEligibility.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/MatchKillAttributionPolicy.cs
+?? Assets/_Project/Scripts/Gameplay/Network/MatchKillAttributionPolicy.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/MatchPlayerIdentity.cs
+?? Assets/_Project/Scripts/Gameplay/Network/MatchPlayerIdentity.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/MatchScoreboardSnapshot.cs
+?? Assets/_Project/Scripts/Gameplay/Network/MatchScoreboardSnapshot.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/NetworkLaunchContext.cs
+?? Assets/_Project/Scripts/Gameplay/Network/NetworkLaunchContext.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/NetworkLoadoutPolicy.cs
+?? Assets/_Project/Scripts/Gameplay/Network/NetworkLoadoutPolicy.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/PlayerDisconnectQueue.cs
+?? Assets/_Project/Scripts/Gameplay/Network/PlayerDisconnectQueue.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/ServerLagCompensation.cs
+?? Assets/_Project/Scripts/Gameplay/Network/ServerLagCompensation.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Network/ServerTicketValidator.cs
+?? Assets/_Project/Scripts/Gameplay/Network/ServerTicketValidator.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Player/AdsFovMath.cs
+?? Assets/_Project/Scripts/Gameplay/Player/AdsFovMath.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Settings/UserSettingsSync.cs
+?? Assets/_Project/Scripts/Gameplay/Settings/UserSettingsSync.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentAssetCatalog.cs
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentAssetCatalog.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentCalibration.cs
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentCalibration.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentSocket.cs
+?? Assets/_Project/Scripts/Gameplay/Weapon/AttachmentSocket.cs.meta
+?? Assets/_Project/Scripts/Gameplay/Weapon/WeaponAttachmentView.cs
+?? Assets/_Project/Scripts/Gameplay/Weapon/WeaponAttachmentView.cs.meta
+?? Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseMath.cs
+?? Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseMath.cs.meta
+?? Assets/_Project/Scripts/Presentation/Animation/LPWGunPoseDriver.cs
+?? Assets/_Project/Scripts/Presentation/Animation/LPWGunPoseDriver.cs.meta
+?? Assets/_Project/Scripts/Presentation/HUD/MatchScoreboardView.cs
+?? Assets/_Project/Scripts/Presentation/HUD/MatchScoreboardView.cs.meta
+?? Assets/_Project/Scripts/Presentation/HUD/OpticAdsView.cs
+?? Assets/_Project/Scripts/Presentation/HUD/OpticAdsView.cs.meta
+?? Assets/_Project/Scripts/Presentation/HUD/OpticViewCatalog.cs
+?? Assets/_Project/Scripts/Presentation/HUD/OpticViewCatalog.cs.meta
+?? Assets/_Project/Scripts/UI/Menu/LeaveTransactionCoordinator.cs
+?? Assets/_Project/Scripts/UI/Menu/LeaveTransactionCoordinator.cs.meta
+?? Assets/_Project/Scripts/UI/NetworkPlayerLoadoutApplier.cs
+?? Assets/_Project/Scripts/UI/NetworkPlayerLoadoutApplier.cs.meta
+?? Assets/_Project/Scripts/UI/RoomConnectionGate.cs
+?? Assets/_Project/Scripts/UI/RoomConnectionGate.cs.meta
+?? Assets/_Project/Tests/EditMode/AttachmentSnapshotSyncTests.cs
+?? Assets/_Project/Tests/EditMode/AttachmentSnapshotSyncTests.cs.meta
+?? Assets/_Project/Tests/EditMode/AttachmentStatTests.cs
+?? Assets/_Project/Tests/EditMode/AttachmentStatTests.cs.meta
+?? Assets/_Project/Tests/EditMode/AuthFailurePolicyTests.cs
+?? Assets/_Project/Tests/EditMode/AuthFailurePolicyTests.cs.meta
+?? Assets/_Project/Tests/EditMode/BodyHitboxAlignmentTests.cs
+?? Assets/_Project/Tests/EditMode/BodyHitboxAlignmentTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerDisconnectTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerDisconnectTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerEntryTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerEntryTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerHeartbeatTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerHeartbeatTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerLifecycleTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerLifecycleTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerNetworkLaunchTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerNetworkLaunchTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerOptionsTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerOptionsTests.cs.meta
+?? Assets/_Project/Tests/EditMode/DedicatedServerStartupSequenceTests.cs
+?? Assets/_Project/Tests/EditMode/DedicatedServerStartupSequenceTests.cs.meta
+?? Assets/_Project/Tests/EditMode/FPWeaponAdsFireRoutingTests.cs
+?? Assets/_Project/Tests/EditMode/FPWeaponAdsFireRoutingTests.cs.meta
+?? Assets/_Project/Tests/EditMode/FPWeaponMotionFiniteRecoveryTests.cs
+?? Assets/_Project/Tests/EditMode/FPWeaponMotionFiniteRecoveryTests.cs.meta
+?? Assets/_Project/Tests/EditMode/FormalLpfpAssetIntegrityTests.cs
+?? Assets/_Project/Tests/EditMode/FormalLpfpAssetIntegrityTests.cs.meta
+?? Assets/_Project/Tests/EditMode/GameplayClientInvariantProbeTests.cs
+?? Assets/_Project/Tests/EditMode/GameplayClientInvariantProbeTests.cs.meta
+?? Assets/_Project/Tests/EditMode/GunsmithPageTests.cs
+?? Assets/_Project/Tests/EditMode/GunsmithPageTests.cs.meta
+?? Assets/_Project/Tests/EditMode/JoinTicketAuthenticatorTests.cs
+?? Assets/_Project/Tests/EditMode/JoinTicketAuthenticatorTests.cs.meta
+?? Assets/_Project/Tests/EditMode/JoinTicketClientSessionTests.cs
+?? Assets/_Project/Tests/EditMode/JoinTicketClientSessionTests.cs.meta
+?? Assets/_Project/Tests/EditMode/JoinTicketRejectionDeliveryTests.cs
+?? Assets/_Project/Tests/EditMode/JoinTicketRejectionDeliveryTests.cs.meta
+?? Assets/_Project/Tests/EditMode/LagCompensationPolicyTests.cs
+?? Assets/_Project/Tests/EditMode/LagCompensationPolicyTests.cs.meta
+?? Assets/_Project/Tests/EditMode/LeaveTransactionCoordinatorTests.cs
+?? Assets/_Project/Tests/EditMode/LeaveTransactionCoordinatorTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MatchEligibilityTests.cs
+?? Assets/_Project/Tests/EditMode/MatchEligibilityTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MatchKillAttributionPolicyTests.cs
+?? Assets/_Project/Tests/EditMode/MatchKillAttributionPolicyTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MatchLifecycleRearmTests.cs
+?? Assets/_Project/Tests/EditMode/MatchLifecycleRearmTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MatchPlayerIdentityTests.cs
+?? Assets/_Project/Tests/EditMode/MatchPlayerIdentityTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MatchScoreboardSnapshotTests.cs
+?? Assets/_Project/Tests/EditMode/MatchScoreboardSnapshotTests.cs.meta
+?? Assets/_Project/Tests/EditMode/MovementPredictionCoreTests.cs
+?? Assets/_Project/Tests/EditMode/MovementPredictionCoreTests.cs.meta
+?? Assets/_Project/Tests/EditMode/NetworkLoadoutAndSingleActiveTests.cs
+?? Assets/_Project/Tests/EditMode/NetworkLoadoutAndSingleActiveTests.cs.meta
+?? Assets/_Project/Tests/EditMode/OpticAimCalibrationTests.cs
+?? Assets/_Project/Tests/EditMode/OpticAimCalibrationTests.cs.meta
+?? Assets/_Project/Tests/EditMode/OpticAimContextTests.cs
+?? Assets/_Project/Tests/EditMode/OpticAimContextTests.cs.meta
+?? Assets/_Project/Tests/EditMode/OpticViewCatalogTests.cs
+?? Assets/_Project/Tests/EditMode/OpticViewCatalogTests.cs.meta
+?? Assets/_Project/Tests/EditMode/P30Handgun04AssetTests.cs
+?? Assets/_Project/Tests/EditMode/P30Handgun04AssetTests.cs.meta
+?? Assets/_Project/Tests/EditMode/PlayerDisconnectQueueTests.cs
+?? Assets/_Project/Tests/EditMode/PlayerDisconnectQueueTests.cs.meta
+?? Assets/_Project/Tests/EditMode/RoomConnectionGateTests.cs
+?? Assets/_Project/Tests/EditMode/RoomConnectionGateTests.cs.meta
+?? Assets/_Project/Tests/EditMode/SuppressedFireSoundTests.cs
+?? Assets/_Project/Tests/EditMode/SuppressedFireSoundTests.cs.meta
+?? Assets/_Project/Tests/EditMode/WeaponSlotAmmoPersistenceTests.cs
+?? Assets/_Project/Tests/EditMode/WeaponSlotAmmoPersistenceTests.cs.meta
+?? Assets/_Project/Tests/PlayMode/FPWeaponAdsFireSamplingTests.cs
+?? Assets/_Project/Tests/PlayMode/FPWeaponAdsFireSamplingTests.cs.meta
+?? Docs/21-weapon-identity-matrix.csv
+?? Docs/22-firing-jitter-audit.md
+?? Docs/26-CF房间TDM聊天与实体倍镜实施计划.md
+?? Docs/28-CF无人值守推进执行计划.md
+?? Docs/交接/2026-09-07-Day2审计与主项目集成接管.md
+?? Docs/交接/2026-09-07-Day3审计与最终验收准入.md
+?? Docs/交接/2026-09-08-CF契约阶段计划与延后问题档案.md
+?? Docs/交接/2026-09-08-Day3实机房间流程问题审计.md
+?? Docs/交接/2026-09-08-Day4最终验收与发布-报告.md
+?? Docs/交接/2026-09-08-Day4最终验收报告审计.md
+?? Docs/交接/2026-09-08-Day4残余收口复审与CF准入.md
+?? Docs/交接/2026-09-08-Day4残余门禁收口-报告.md
+?? Docs/交接/2026-09-08-GateA复审与Day4最终日计划.md
+?? Docs/交接/2026-09-08-GateA多人准入修复-报告.md
+?? Docs/交接/2026-09-08-P0实例租约闭环修复-报告.md
+?? Docs/交接/2026-09-08-P0追加修复复审与下一步计划.md
+?? Docs/交接/20260908-2300-基线脏文件清单.txt
+?? fps-backend/src/UnityFps.Api/Controllers/ServerInstancesController.cs
+?? fps-backend/src/UnityFps.Api/Controllers/SettingsController.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260901044346_AddAttachmentCompat.Designer.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260901044346_AddAttachmentCompat.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260905163056_AddServerInstancesAndJoinTickets.Designer.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260905163056_AddServerInstancesAndJoinTickets.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260907082531_AddUserSettings.Designer.cs
+?? fps-backend/src/UnityFps.Api/Data/Migrations/20260907082531_AddUserSettings.cs
+?? fps-backend/src/UnityFps.Api/Services/AttachmentSystemSeeder.cs
+?? fps-backend/src/UnityFps.Api/Services/ServerInstanceOptions.cs
+?? fps-backend/src/UnityFps.Api/Services/ServerInstanceService.cs
+?? fps-backend/src/UnityFps.Api/Services/UserSettingsService.cs
+?? fps-backend/src/UnityFps.Api/out_test/
+?? fps-backend/src/UnityFps.Api/out_test_day2/
+?? fps-backend/tests/UnityFps.Api.Tests/AttachmentApiTests.cs
+?? fps-backend/tests/UnityFps.Api.Tests/RoomSameRoomRejoinTests.cs
+?? fps-backend/tests/UnityFps.Api.Tests/ServerInstanceApiTests.cs
+?? fps-backend/tests/UnityFps.Api.Tests/ServerInstanceDisconnectReportTests.cs
+?? fps-backend/tests/UnityFps.Api.Tests/UserSettingsTests.cs
+?? fps-backend/tests/UnityFps.Api.Tests/out_test/
+?? fps-backend/tests/UnityFps.Api.Tests/out_test_day2/
