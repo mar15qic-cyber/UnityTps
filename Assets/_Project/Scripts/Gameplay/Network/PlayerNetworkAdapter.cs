@@ -198,27 +198,32 @@ namespace Game.Gameplay.Network
 #endif
         }
 
-        // ---- 2026-09-18 第三轮：受击代理几何标定（排查报告 §3.1；方案 §6.2 要求"校准参数显式保存"）----
+        // ---- 2026-09-19 第五轮：复合受击体（躯干 + 头部双胶囊，用户实机拍板"动工1"）----
+        // 第三轮把胶囊**中心**标定到身体，但半径 0.35 维持旧值（方案 §6.2 禁盲缩、待四向扫描）。
+        // 14:16 实机视频（修复后构建）证实：头部可视半宽 ≈0.12m，头旁 0.2m+ 的"可见空气"仍在
+        // 0.35 半径胶囊内被判定命中（帧 h_018：瞄头旁后方空气掉血+血雾悬空）。
+        // 用户拍板按方案 §6.2 升级路径做复合代理：躯干 + 头部双胶囊，同节点（BodyHitbox）双
+        // Collider——归因链（collider→TP_Model 的 DamageableTarget）、延迟补偿注册
+        // （GetComponentsInChildren<Collider>）、HitVolumeTag 角色语义全部不变。
 
-        /// <summary>受击胶囊中心偏移，单位米，表达在**受击体自身坐标系**（= TP_Model 朝向系，
-        /// 因为 hitbox 是 TP_Model 的子节点且不改旋转）。z 分量是本轮实测值：
-        /// prefab 作者偏移 <c>TP_Model.localPosition.z = 0.341</c>（prefab 行 1192-1216），
-        /// 而角色 <c>SkinnedMeshRenderer</c> 世界包围盒中心换算到玩家根空间为 <c>z = 0.333</c>
-        /// （Arena 场景 Player 实读，见排查报告 §3.1 表）。
-        /// 修复前恒为 0 → 胶囊轴线落在逻辑根上，与可见身体差 0.33m：
-        /// 身体后方约 0.43m 空气可被打中、胸口最前约 0.24m 反而打不中。</summary>
-        [Tooltip("受击胶囊中心（模型系，米）。z 必须贴合可见 TP 模型的前后中心，不是逻辑根。")]
-        [SerializeField] private Vector3 bodyHitboxCenter = new Vector3(0f, 0.9f, 0.333f);
+        /// <summary>躯干胶囊中心（模型系，米）：覆盖脚底→肩部（y 0..1.40）。z 沿用第三轮标定
+        /// 的身体前后中心 0.333。半径 0.26 依据：持枪姿态躯干可视半宽 ≈0.22~0.26m
+        /// （0.35 旧值让躯干旁约 0.09~0.13m 可见空气可命中）。</summary>
+        [Tooltip("躯干受击胶囊中心（模型系，米）。")]
+        [SerializeField] private Vector3 torsoHitboxCenter = new Vector3(0f, 0.70f, 0.333f);
+        [Tooltip("躯干受击胶囊半径（米）：持枪躯干可视半宽 ≈0.22~0.26。")]
+        [SerializeField, Min(0.05f)] private float torsoHitboxRadius = 0.26f;
+        [Tooltip("躯干受击胶囊总高（米）：脚底 0 → 肩部 1.40。")]
+        [SerializeField, Min(0.2f)] private float torsoHitboxHeight = 1.40f;
 
-        /// <summary>受击胶囊半径（米）。0.35 是既有值——**本轮不缩**：横向可瞄准空区要在
-        /// 持枪/站立的四向实机扫描后再定（方案 §6.1/§6.2 明令不得凭单帧画面盲缩半径）。</summary>
-        [Tooltip("受击胶囊半径（米）。四向实机轮廓标定前保持 0.35（方案 §6.1 待验项）。")]
-        [SerializeField, Min(0.05f)] private float bodyHitboxRadius = 0.35f;
-
-        /// <summary>受击胶囊总高（米）：覆盖脚底到头顶。实测角色包围盒高 1.855（含头盔），
-        /// 根空间 y 范围 -0.109..1.746 → 取 0..1.8 与原契约一致（下端=脚底、上端=头顶）。</summary>
-        [Tooltip("受击胶囊总高（米），覆盖脚底到头顶（实测含头盔 1.855）。")]
-        [SerializeField, Min(0.2f)] private float bodyHitboxHeight = 1.8f;
+        /// <summary>头部胶囊中心（模型系，米）：覆盖颈部→头顶（y 1.40..1.80，与躯干在 1.40
+        /// 无缝重叠，颈/肩不漏判）。半径 0.15 依据：头盔外廓可视半宽 ≈0.12~0.15m。</summary>
+        [Tooltip("头部受击胶囊中心（模型系，米）。")]
+        [SerializeField] private Vector3 headHitboxCenter = new Vector3(0f, 1.60f, 0.333f);
+        [Tooltip("头部受击胶囊半径（米）：头盔外廓可视半宽 ≈0.12~0.15。")]
+        [SerializeField, Min(0.05f)] private float headHitboxRadius = 0.15f;
+        [Tooltip("头部受击胶囊总高（米）：颈 1.40 → 头顶 1.80。")]
+        [SerializeField, Min(0.2f)] private float headHitboxHeight = 0.40f;
 
         /// <summary>Day3 验收修复（既有缺口）：玩家可受击碰撞体此前只有根 CharacterController 胶囊，
         /// 而 DamageableTarget 挂在 TP_Model 子节点——CombatResolver 的 GetComponentInParent 归因链
@@ -238,23 +243,26 @@ namespace Game.Gameplay.Network
                 hitboxGo.transform.SetParent(model, false);
                 hitboxTransform = hitboxGo.transform;
                 hitboxGo.layer = gameObject.layer; // 与玩家根节点同层（hitMask 可命中）
-                var hitbox = hitboxGo.AddComponent<CapsuleCollider>();
-                // 2026-09-10 审计 §3：受击判定与移动阻挡分离。实体胶囊与根 CharacterController 胶囊
-                // 几乎重合，是"双玩家贴近反复推拉抖动"的确定性冲突源；trigger 后玩家间唯一移动阻挡
-                // = 根 CharacterController（客户端预测与服务器权威阻挡同一来源），命中查询由
-                // CombatResolver 显式 QueryTriggerInteraction.Collide 保证（全场景无其他 trigger）。
-                hitbox.isTrigger = true;
-                hitbox.center = bodyHitboxCenter;
-                hitbox.radius = bodyHitboxRadius;
-                hitbox.height = bodyHitboxHeight;
-                hitbox.direction = 1; // Y 轴
+                hitboxGo.AddComponent<CapsuleCollider>(); // [0] 躯干
+                hitboxGo.AddComponent<CapsuleCollider>(); // [1] 头部
             }
-            // Day4 残余审计 P0-1（仍然有效）：hitbox **原点**对齐玩家逻辑根（世界坐标），
-            // 由 Collider.center 提供半身高偏移——避免"原点对齐根+0.9 又叠加 center 0.9 → 实际中心
-            // 在 +1.8m"那种腿/下躯干漏判（BodyHitboxAlignmentTests 的纵向断言锁这条）。
-            // 2026-09-18 第三轮补充（排查报告 §3.1）：center 的 **z 分量必须贴合可见 TP 模型**，
-            // 不能停在 0。TP_Model 作者偏移 z=0.341、实测身体包围盒中心 z=0.333，
-            // 旧值 0 让胶囊轴线落在根上 → 身体后方约 0.43m 空气可被打中、胸口最前约 0.24m 打不中。
+
+            // 2026-09-10 审计 §3：受击判定与移动阻挡分离。实体胶囊与根 CharacterController 胶囊
+            // 几乎重合，是"双玩家贴近反复推拉抖动"的确定性冲突源；trigger 后玩家间唯一移动阻挡
+            // = 根 CharacterController（客户端预测与服务器权威阻挡同一来源），命中查询由
+            // CombatResolver 显式 QueryTriggerInteraction.Collide 保证（全场景无其他 trigger）。
+            // 第五轮：双胶囊**每次调用都按序列化参数重配**——池化复用对象可能是旧单胶囊（只有
+            // [0]），在此补齐 [1] 并整体重配；旧形状/旧字段值一律被当前参数覆盖（幂等自愈）。
+            var hitboxColliders = hitboxTransform.GetComponents<CapsuleCollider>();
+            if (hitboxColliders.Length < 2)
+                hitboxTransform.gameObject.AddComponent<CapsuleCollider>();
+            hitboxColliders = hitboxTransform.GetComponents<CapsuleCollider>();
+            ConfigureHitboxCapsule(hitboxColliders[0], torsoHitboxCenter, torsoHitboxRadius, torsoHitboxHeight);
+            ConfigureHitboxCapsule(hitboxColliders[1], headHitboxCenter, headHitboxRadius, headHitboxHeight);
+            // Day4 残余审计 P0-1（纵向契约，第五轮双胶囊表述）：躯干下端=脚底（y=0）、头上端=头顶
+            // （y=1.80）、两胶囊在 y=1.40 无缝重叠（颈/肩不漏判）——纵向半身高不再由单一 center 表达，
+            // 由 torso/head 两组参数直接给出；BodyHitboxAlignmentTests 的纵向断言锁这条。
+            // 2026-09-18 第三轮（排查报告 §3.1）：center 的 **z 分量必须贴合可见 TP 模型**（0.333）。
             // 2026-09-19 第四轮（实机 03:50 视频取证 + 本轮分析）：钉扎**不得用当帧位姿**。
             // 本方法只在 OnStartNetwork 跑一次；池化复用/死亡表现未复位时 TP_Model 可能带着
             // "前倾 85°+贴地抬升"等瞬态姿态，InverseTransformPoint(当帧) 会把瞬态烤进受击体
@@ -287,11 +295,24 @@ namespace Game.Gameplay.Network
             EnsureMovementBlockerRoles();
         }
 
-        /// <summary>受击体节点在模型系的常量钉扎（2026-09-19 第四轮）：由作者位姿
-        /// (p_base, R_base) 与标定中心解出，使"作者位姿下中心=根∘标定中心、模型偏离时中心随身体"
-        /// 同时成立。纯数学，无场景依赖（EditMode 可直驱断言）。</summary>
+        /// <summary>受击体节点在模型系的常量钉扎（2026-09-19 第四/五轮）：把节点原点钉到
+        /// "根在模型系的表达" = −(R_base⁻¹ · p_base)，与具体胶囊中心无关——复合受击体的
+        /// 躯干/头部两个 center 都表达在此节点坐标系内，随节点一起满足：
+        /// 作者位姿下中心=根∘(R_base·center)（基准恒等旋转时即 根∘center），
+        /// 模型偏离基准（视觉平滑/死亡）时中心随身体走。纯数学，无场景依赖。</summary>
         private Vector3 PinInModelSpace(Vector3 baseLocalPos, Quaternion baseLocalRot)
-            => Quaternion.Inverse(baseLocalRot) * (bodyHitboxCenter - baseLocalPos) - bodyHitboxCenter;
+            => -(Quaternion.Inverse(baseLocalRot) * baseLocalPos);
+
+        /// <summary>按参数重配一个受击胶囊（trigger + Y 轴 + 中心/半径/高）。幂等，每次
+        /// EnsureBodyHitbox 都执行——池化复用/旧序列化值在此被当前参数整体覆盖。</summary>
+        private static void ConfigureHitboxCapsule(CapsuleCollider capsule, Vector3 center, float radius, float height)
+        {
+            capsule.isTrigger = true;
+            capsule.center = center;
+            capsule.radius = radius;
+            capsule.height = height;
+            capsule.direction = 1; // Y 轴
+        }
 
         /// <summary>死亡表现复位后的受击体兜底重钉（2026-09-19 第四轮）：
         /// NetworkCombatAuthority.ResetDeathVisual 还原 TP_Model 作者位姿后调用——此刻死亡门禁
