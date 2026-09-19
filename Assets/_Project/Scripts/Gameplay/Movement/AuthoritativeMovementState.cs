@@ -23,6 +23,9 @@ namespace Game.Gameplay.Movement
         public int IdleStepsAtSnapshot;
         /// <summary>玩家在服务器上已死亡：接收端必须清空预测历史并硬对位。</summary>
         public bool Dead;
+        /// <summary>服务器当前生命代际（F14，2026-09-19 审计）：Owner 上行输入以此盖章，
+        /// 服务器按当前代际校验——旧代际在途批次拒收，不得作为新生命输入消费。</summary>
+        public uint LifeEpoch;
         /// <summary>服务器当前权威姿态（位置/旋转/速度/移动状态/步态）。</summary>
         public MovementSnapshot Snapshot;
     }

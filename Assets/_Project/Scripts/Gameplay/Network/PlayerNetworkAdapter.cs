@@ -97,6 +97,9 @@ namespace Game.Gameplay.Network
         private float _traceRebaseError;
         /// <summary>输入 epoch：启动/冻结/重生/接管边界递增（审计 §3.3"明确输入 epoch"）。</summary>
         private int _inputEpoch;
+        /// <summary>服务器当前生命代际（F14，2026-09-19 审计）：最新权威快照回传值——Owner
+        /// 上行输入盖章用。旧代际在途批次由服务器按代际拒收清队（协议 v6 wire 字段）。</summary>
+        private uint _serverLifeEpoch;
         /// <summary>最新一次上行的客户端 tick。</summary>
         private uint _latestSentTick;
         /// <summary>最近一次权威快照携带的服务器"无真实输入"步数（审计 §3.2-2）。</summary>
@@ -355,6 +358,8 @@ namespace Game.Gameplay.Network
                 // 2026-09-15 渲染位置插值前置：把 CameraPivot 挪到专用偏移节点下（运行时、零资产改动）
                 EnsureViewOffsetRoot();
                 ResetOwnerPredictionState();
+                // F13：Owner 本地预测的后坐随机流与服务器同源（按 weaponId+owner+生命代际派生）
+                ApplyDeterministicRecoilSeeds();
                 // 2026-09-08 P0 §6 一.3：运行时不变量探针（Development/Editor）——
                 // 延迟 1s 扫描本进程唯一性（InputReader/主相机/AudioListener/Owner Player = 1）
                 GameplayClientInvariantProbe.EnsureAttachedTo(gameObject);
@@ -498,6 +503,9 @@ namespace Game.Gameplay.Network
             // 由 OnStartClient Owner 分支重新激活，不受影响（FN weaver 禁 IsOwner→Owner.IsLocalClient）。
             bool ownedByLocalClient = NetworkObject != null && NetworkObject.Owner != null && NetworkObject.Owner.IsLocalClient;
             if (!ownedByLocalClient) DeactivateLocalPresentationForServer();
+            // F13：服务器权威侧后坐随机流同源播种（与 Owner 端同键；此时武器尚未首装，
+            // Definition 为空的控制器会跳过——首装后由权威 apply/重生边界再补种）
+            ApplyDeterministicRecoilSeeds();
             _locomotor?.SetSimulationMode(MovementSimulationMode.ServerAuthority);
             // Day3 Phase 1：服务器固定 tick 权威模拟（订阅本实例 tick 处理器）
             WireServerTick();
@@ -725,7 +733,8 @@ namespace Game.Gameplay.Network
                     _input != null ? _input.Move : Vector2.zero,
                     _input != null && _input.Sprint,
                     jump,
-                    _pendingYaw, _pendingPitch, tick);
+                    _pendingYaw, _pendingPitch, tick,
+                    _serverLifeEpoch); // F14：上行输入以最新权威生命代际盖章
                 if (jump && _input != null) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -817,13 +826,25 @@ namespace Game.Gameplay.Network
             _diag.NoteSubmit(payload.Length);
         }
 
-        /// <summary>Owner 战斗意图上行（纯客户端）：开火携带服务器 tick 估算（Phase 2 回溯），换弹走服务器验证。</summary>
+        /// <summary>Owner 战斗意图上行（纯客户端）：开火携带服务器 tick 估算（Phase 2 回溯），换弹走服务器验证。
+        /// F19（2026-09-19 审计）：上行语义对齐本地武器 FireMode——半自动只在按下沿提交一次
+        /// （旧实现一律逐渲染帧 FireHeld 上行；服务器只校验死活/去重/冷却/弹药，长按半自动
+        /// 会在服务器按 RPM 连续结算而本地只表现一发 → 发次/弹药/后坐两端分叉）。</summary>
         private void HandleOwnerCombatRequests()
         {
             if (_weaponController == null) _weaponController = GetComponentInParent<WeaponController>();
             if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
-            if (_weaponController != null && _combatAuthority != null && _input != null && _input.FireHeld)
-                _combatAuthority.SubmitFireRequest(EstimateServerTick());
+            if (_combatAuthority != null && _input != null)
+            {
+                bool wantsFire;
+                if (_weaponController != null && _weaponController.Definition != null
+                    && _weaponController.Definition.FireMode == WeaponFireMode.Automatic)
+                    wantsFire = _input.FireHeld;      // 自动武器：持续按住，按服务器冷却节奏结算
+                else
+                    wantsFire = _input.FirePressed;   // 半自动/泵动等：一次按下只上行一次
+                if (wantsFire)
+                    _combatAuthority.SubmitFireRequest(EstimateServerTick());
+            }
             if (_combatAuthority != null && _input != null && _input.ReloadPressed)
                 _combatAuthority.SubmitReloadRequest();
         }
@@ -832,6 +853,46 @@ namespace Game.Gameplay.Network
         private uint EstimateServerTick()
         {
             return _lastServerTick + (_localTick - _localTickAtLastAck);
+        }
+
+        /// <summary>
+        /// F13（2026-09-19 审计）：对全部武器应用确定性后坐种子——键 = (weaponId, ownerClientId,
+        /// 生命代际)。Owner 本地预测与服务器权威模拟两端独立调用同一键 → 同一 yaw 随机流起点。
+        /// 在 OnStartClient(owner)/OnStartServer/重生边界调用；同键幂等不重置进行中 stream。
+        /// </summary>
+        internal void ApplyDeterministicRecoilSeeds()
+        {
+            long ownerClientId = NetworkObject != null && NetworkObject.Owner != null
+                ? NetworkObject.Owner.ClientId
+                : -1L;
+            ulong lifeGeneration = _combatAuthority != null ? _combatAuthority.LifeGeneration : 0UL;
+            var weapons = GetComponentsInChildren<WeaponController>(true);
+            for (int i = 0; i < weapons.Length; i++)
+            {
+                var definition = weapons[i].Definition;
+                if (definition == null) continue;
+                weapons[i].ApplyDeterministicRecoilSeed(
+                    ComputeRecoilSeed(definition.WeaponId, ownerClientId, lifeGeneration));
+            }
+        }
+
+        /// <summary>FNV-1a 派生（恒非零；0 是 WeaponRecoilState 的"时间随机"语义保留值）。</summary>
+        internal static int ComputeRecoilSeed(string weaponId, long ownerClientId, ulong lifeGeneration)
+        {
+            unchecked
+            {
+                ulong hash = 1469598103934665603UL;
+                foreach (char character in weaponId ?? string.Empty)
+                {
+                    hash ^= character;
+                    hash *= 1099511628211UL;
+                }
+                hash ^= (ulong)ownerClientId;
+                hash *= 1099511628211UL;
+                hash ^= lifeGeneration * 0x9E3779B97F4A7C15UL;
+                hash *= 1099511628211UL;
+                return (int)(hash & 0x7FFFFFFF) | 1;
+            }
         }
 
         // ---- 服务器权威模拟（Day3 Phase 1 核心）----
@@ -850,7 +911,8 @@ namespace Game.Gameplay.Network
             {
                 bool hostJump = _input.JumpQueued;
                 var hostCmd = new MovementCommand(
-                    _input.Move, _input.Sprint, hostJump, _pendingYaw, _pendingPitch, ++_hostSourceTick);
+                    _input.Move, _input.Sprint, hostJump, _pendingYaw, _pendingPitch, ++_hostSourceTick,
+                    _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u); // F14：Host 本地即权威，直接读当前代际
                 if (hostJump) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -927,6 +989,8 @@ namespace Game.Gameplay.Network
                 // 审计 §3.2-2：告诉客户端"本快照的位姿比 LastClientTick 多推进了几步无输入步"
                 IdleStepsAtSnapshot = _serverQueue.ConsecutiveEmptyTicks,
                 Dead = _combatAuthority != null && _combatAuthority.IsDead,
+                // F14：随快照下发当前生命代际——Owner 上行输入以此盖章供服务器校验
+                LifeEpoch = _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u,
                 Snapshot = snapshot,
             };
         }
@@ -945,14 +1009,35 @@ namespace Game.Gameplay.Network
             // 输入（LocalMovementFrozen 包含两者），此时到达的只可能是"冻结快照到达客户端之前"
             // 已发出的批次——若照常入队，死亡→重生后旧 epoch 命令会被当作新输入消费（客户端重生
             // 从 ack 重新生成同号 tick，旧命令先到先消费会把新命令挤成 stale 静默丢弃）。
-            // 丢弃即清理 epoch 残留；每 tick 的 Clear() 保留兜底。协议不为此加 epoch 字段（留待 v5）。
+            // 丢弃即清理 epoch 残留；每 tick 的 Clear() 保留兜底。
             if (MovementFrozen)
             {
                 _serverQueue.NoteDroppedFrozen(commands.Length);
                 return;
             }
+            // F14（2026-09-19 审计）：输入生命代际闸——冻结门开后才到达的旧代际批次同样拒收。
+            // 批次首条代际与本玩家当前生命代际不符（死亡前在途/重放）→ 整批拒收并清空队列
+            //（清队即"新基线"，客户端以新快照 ack 对齐）。epoch=0 且从未重生过的会话恒通过
+            //（代际自 0 起，兼容既有测试与首生会话）。
+            uint currentEpoch = _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u;
+            if (commands.Length > 0 && commands[0].LifeEpoch != currentEpoch)
+            {
+                _serverQueue.NoteDroppedStaleEpoch(commands.Length);
+                _serverQueue.Clear();
+                Debug.Log($"[MoveDiag] drop batch role=server reason=staleEpoch batchEpoch={commands[0].LifeEpoch} currentEpoch={currentEpoch} count={commands.Length}");
+                return;
+            }
             for (int i = 0; i < commands.Length; i++)
+            {
+                if (commands[i].LifeEpoch != currentEpoch)
+                {
+                    // 批内混杂代际（不可能的正常路径）：整批拒绝，防旧代际夹带
+                    _serverQueue.NoteDroppedStaleEpoch(commands.Length);
+                    _serverQueue.Clear();
+                    return;
+                }
                 _serverQueue.Enqueue(commands[i]);
+            }
         }
 
         // ---- 校正（Owner 接收服务器权威快照）----
@@ -970,6 +1055,9 @@ namespace Game.Gameplay.Network
         {
             _lastServerTick = state.ServerTick;
             _lastIdleStepsAtSnapshot = state.IdleStepsAtSnapshot;
+            // F14：学习服务器当前生命代际——新基线（重生）快照先于本地感知到达时，
+            // 后续上行即携带新代际；旧代际在途批次由服务器拒收清队。
+            _serverLifeEpoch = state.LifeEpoch;
             _diag.AuthoritativePitchDegrees = state.Snapshot.Pitch;
 
             if (state.Dead)

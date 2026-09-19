@@ -343,6 +343,19 @@ namespace Game.Gameplay.Network
             // 2026-09-18 实机问题1 兜底：观察端远端视觉缓冲立即失效（幂等），下一帧必走对位分支；
             // 并开启 3s [RespawnTrace] 采样（服务器/观察端双侧取证，定位后可拆）。
             GetComponent<PlayerNetworkAdapter>()?.HandleRespawnedFromNetwork();
+            // F12（2026-09-19 审计）：Owner 本地预测弹药/两槽缓存对齐重生基线——服务器已在
+            // ServerRespawn 权威重置（ServerResetAmmoToLoadoutDefault）并经 SyncVar 下发 HUD，
+            // 但 Owner 的本地 Runtime 与切枪缓存仍停在死亡前残弹：HUD 满弹而本地 TryFire 被
+            // TryConsumeRound 拒绝（本地表现缺失、与服务器发次分叉）。Host/服务器走本地权威
+            // 路径已重置（IsServerInitialized 排除）；远端观察者 Runtime 不 Tick 无需重置。
+            if (!IsServerInitialized && FishNetLifecycleGuard.IsLocalOwner(this))
+            {
+                var ownerWeapons = GetComponentsInChildren<WeaponController>(true);
+                for (int i = 0; i < ownerWeapons.Length; i++)
+                    ownerWeapons[i].OwnerResetAmmoToRespawnBaseline();
+                // F13：重生后后坐随机流以新生命代际重种（两端同键同流）
+                GetComponent<PlayerNetworkAdapter>()?.ApplyDeterministicRecoilSeeds();
+            }
         }
 
         /// <summary>远端死亡事件。</summary>
@@ -509,6 +522,9 @@ namespace Game.Gameplay.Network
             var weaponControllers = GetComponentsInChildren<WeaponController>(true);
             for (int i = 0; i < weaponControllers.Length; i++)
                 weaponControllers[i].ServerResetAmmoToLoadoutDefault();
+            // F13（2026-09-19 审计）：服务器权威侧同步重种后坐随机流（与 Owner 同键：
+            // weaponId+ownerClientId+新生命代际）——两端 stream 起点一致
+            GetComponent<PlayerNetworkAdapter>()?.ApplyDeterministicRecoilSeeds();
             // 2026-09-18 审计 §5：此处原有"重生瞬移后补一次 1mm 沉降 Move 让根 CC 进入 Raycast
             // 命中集"（实机问题6）。玩家移动控制器现在被显式排除在射击判定之外，该 Move 不再
             // 修复任何东西，只会给出生沉降引入一个无人需要的副作用——连同方法一起删除。
@@ -578,6 +594,14 @@ namespace Game.Gameplay.Network
 
         /// <summary>当前生命代际（每次服务器重生 +1；仅服务器侧有意义，LagComp 命中判定消费）。</summary>
         public ulong LifeGeneration => _lifeGeneration;
+
+        /// <summary>F14（2026-09-19 审计）：生命代际的 uint 视图——输入批次盖章（Owner）与
+        /// 批次校验/快照回传（服务器）统一取值口径（ulong→uint 截断在会话寿命内无回绕风险）。</summary>
+        internal uint CurrentLifeEpoch => (uint)_lifeGeneration;
+
+        /// <summary>F14 测试接缝：无头直驱递增代际（真实路径在 ServerRespawn 内递增，
+        /// 但该路径需要完整 NetworkObject/目标组件——EditMode 用接缝直接推进代际时钟）。</summary>
+        internal void BumpLifeGenerationForTests() => _lifeGeneration++;
 
         /// <summary>指定 tick 是否处于出生保护窗口（服务器判定语义：快照采集 tick &lt; 截止 tick）。</summary>
         public bool IsInvincibleAt(uint tick) => _invincibleUntilTick.Value != 0u && tick < _invincibleUntilTick.Value;

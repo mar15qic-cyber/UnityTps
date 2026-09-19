@@ -22,6 +22,10 @@ namespace Game.Gameplay.Movement
         /// Locomotor 不消费此字段：俯仰由相机层（FPMouseLook/服务器侧 pivot 重放）消费。</summary>
         public float PitchDelta;
         public uint Tick;
+        /// <summary>输入生命代际（F14，2026-09-19 审计）：Owner 以最新权威快照回传的服务器
+        /// 生命代际盖章；服务器逐批校验——旧代际批次（死亡前在途、冻结门开后才到达）拒收
+        /// 并清队，不得作为新生命输入消费。协议 v5→v6（wire 字段新增）。</summary>
+        public uint LifeEpoch;
 
         /// <summary>兼容构造器（Locomotor 离线路径等既有调用点零改动）：PitchDelta 默认 0。</summary>
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, uint tick)
@@ -35,6 +39,18 @@ namespace Game.Gameplay.Movement
             YawDelta = yawDelta;
             PitchDelta = pitchDelta;
             Tick = tick;
+            LifeEpoch = 0u;
+        }
+
+        public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, float pitchDelta, uint tick, uint lifeEpoch)
+        {
+            Move = Vector2.ClampMagnitude(move, 1f);
+            Sprint = sprint;
+            Jump = jump;
+            YawDelta = yawDelta;
+            PitchDelta = pitchDelta;
+            Tick = tick;
+            LifeEpoch = lifeEpoch;
         }
     }
 

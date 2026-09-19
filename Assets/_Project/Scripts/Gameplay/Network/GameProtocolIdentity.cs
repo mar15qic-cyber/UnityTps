@@ -31,8 +31,11 @@ namespace Game.Gameplay.Network
         ///      IdleStepsAtSnapshot（服务器无真实输入步数；2026-09-16 审计 §3.2-2/§6.2）；
         /// v5 = NetworkCombatAuthority 新增 SyncVar&lt;uint&gt; _respawnAtTick / _invincibleUntilTick
         ///      （Phase 1 重生调度与出生保护；2026-09-17 四组需求轮）——SyncVar 增删即 wire 形状变更。
+        /// v6 = MovementCommand 新增 LifeEpoch（输入生命代际盖章）+ AuthoritativeMovementState
+        ///      新增 LifeEpoch（服务器代际回传）——F14（2026-09-19 审计）：旧生命在途输入批次
+        ///      在复活后到达时必须被服务器按代际拒收，不得作为新生命输入消费。
         /// </summary>
-        public const string ProtocolId = "fps-net-v5";
+        public const string ProtocolId = "fps-net-v6";
 
         /// <summary>协议不匹配的冻结错误码（DS 拒绝广播 + 后端入房筛选共用字面值）。</summary>
         public const string ProtocolMismatchCode = "PROTOCOL_MISMATCH";

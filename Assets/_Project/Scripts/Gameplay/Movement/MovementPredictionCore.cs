@@ -396,10 +396,20 @@ namespace Game.Gameplay.Movement
         /// 死亡前"已发出未确认"的旧命令不得在重生后作为新 epoch 输入被消费）。</summary>
         public long DroppedFrozen { get; private set; }
 
+        /// <summary>旧生命代际拒收的在途命令计数（F14，2026-09-19 审计——冻结门已开但仍
+        /// 迟到抵达的旧代际批次；不得作为新生命输入消费）。</summary>
+        public long DroppedStaleEpoch { get; private set; }
+
         /// <summary>冻结窗口拒收整批输入（调用方判定冻结；不入队不模拟，丢弃留痕）。</summary>
         public void NoteDroppedFrozen(int commands)
         {
             if (commands > 0) DroppedFrozen += commands;
+        }
+
+        /// <summary>旧生命代际拒收整批输入（F14：不入队不模拟，丢弃留痕）。</summary>
+        public void NoteDroppedStaleEpoch(int commands)
+        {
+            if (commands > 0) DroppedStaleEpoch += commands;
         }
 
         /// <summary>入队（ServerRpc 批量载荷逐条调用；容忍乱序/重复/突发）。</summary>

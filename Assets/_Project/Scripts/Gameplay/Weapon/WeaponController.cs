@@ -156,8 +156,7 @@ namespace Game.Gameplay.Weapon
         internal void InvokeRemoteReloadForPresentation() => OnReloadStarted?.Invoke();
 
         private IBalanceConfig _balance;
-        private WeaponRecoilState _recoil = new();
-        private readonly WeaponAccuracyState _accuracy = new();
+        private WeaponRecoilState _recoil = new();        private readonly WeaponAccuracyState _accuracy = new();
         private readonly AttachmentStatModifierSource _attachmentSource = new();   // 配件层（Priority=0，Docs/21 Phase D）
         private System.Random _random = new();     // 可播种（seed=0 随机）；弹道散布唯一随机源
         private int _seed;
@@ -311,6 +310,21 @@ namespace Game.Gameplay.Weapon
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
         }
 
+        /// <summary>
+        /// Owner 本地重生补弹镜像（F12，2026-09-19 审计）：服务器重生已权威重置并经 SyncVar
+        /// 下发 HUD，但 Owner 本地预测 Runtime 与两槽缓存仍停在死亡前残弹——HUD 满弹而本地
+        /// TryFire 被 TryConsumeRound 拒绝（本地动画/音效缺失，与服务器发次分叉）。两端
+        /// definition/balance 同源 → MagazineSize/ReserveAmmo 确定性一致；仅 Owner 客户端调用
+        /// （NetworkCombatAuthority.ObserversRespawned；服务器/Host 走 ServerResetAmmoToLoadoutDefault）。
+        /// </summary>
+        public void OwnerResetAmmoToRespawnBaseline()
+        {
+            if (Runtime == null) return;
+            _ammoCacheByWeaponId.Clear();
+            Runtime.RestoreAmmo(Runtime.MagazineSize, Stat.ReserveAmmo);
+            OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+        }
+
         /// <summary>切枪中途换装（Arsenal 在交换点调用）：硬重置运行时并广播，供 FP/TP 表现切换。</summary>
         public void EquipDefinition(WeaponDefinition next)
         {
@@ -341,6 +355,27 @@ namespace Game.Gameplay.Weapon
             _seed = seed;
             _random = seed == 0 ? new System.Random() : new System.Random(seed);
         }
+
+        private int _recoilSeedApplied;
+
+        /// <summary>
+        /// F13（2026-09-19 审计）：确定性后坐种子。两端（Owner 本地预测 / 服务器权威模拟）
+        /// 以同源键（weaponId+ownerClientId+生命代际）派生同一 seed → 同一 yaw 随机流起点；
+        /// 旧实现 _recoil = new() 恒走 System.Random() 时间种子，两端流必然分叉。
+        /// 同 seed 幂等（换枪/重生重复调用不重置进行中的 stream）；0 = 未应用（WeaponRecoilState
+        /// 的 0 参数是"时间随机"语义，拒绝）。注意：接受发次两端分叉（请求被服务器拒绝）时
+        /// stream 仍会错位——彻底闭环需要服务器接受序回传（wire 变更，另行设计）。
+        /// </summary>
+        public void ApplyDeterministicRecoilSeed(int seed)
+        {
+            if (seed == 0) return;
+            if (_recoilSeedApplied == seed) return;
+            _recoilSeedApplied = seed;
+            _recoil = new WeaponRecoilState(seed);
+        }
+
+        /// <summary>测试接缝：读取已应用的后坐种子（0=未应用，仍为时间随机）。</summary>
+        internal int RecoilSeedAppliedForTests => _recoilSeedApplied;
 
         /// <summary>
         /// 执行一次开火（本地预测/离线/服务器三路径共用）。rewindContext：服务器路径由

@@ -349,5 +349,34 @@ namespace Game.Gameplay.Tests
                 ?? throw new System.InvalidOperationException($"field not found: {target.GetType().Name}.{field}");
             f.SetValue(target, value);
         }
+
+        // ---- F12（2026-09-19 审计）：Owner 本地重生补弹镜像 ----
+
+        [Test]
+        public void OwnerResetAmmo_MirrorsRespawnBaseline_IncludingSlotCache()
+        {
+            // 死亡前残弹状态：主枪耗 5 发（7/48）
+            FireRounds(5);
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(7), "前置：死亡前残弹");
+
+            // Owner 收到重生通知 → 本地镜像（ObservesRespawned 在 Owner 客户端调用的方法）
+            _controller.OwnerResetAmmoToRespawnBaseline();
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(12), "本地 Runtime 补满——TryFire 不再被残弹拒绝");
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(48), "备弹回配装初始值");
+
+            // 两槽缓存一并清空：副枪耗弹后回主枪，再镜像 → 副枪缓存不得读回残弹
+            FireRounds(2); // 主枪再耗 2 发（10/48）→ 进缓存
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+            FireRounds(2); // rifle 28/120
+            _controller.OwnerResetAmmoToRespawnBaseline(); // 当前槽 rifle 补满
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(30), "当前槽（rifle）补满");
+
+            _arsenal.TrySelectSlot(0);
+            CompleteSwitch();
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(30), "镜像后切回副枪必须读满弹（缓存已清，旧实现读回 28）");
+        }
     }
 }
