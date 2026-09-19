@@ -60,6 +60,24 @@ namespace Game.UI
         // Camera/RenderTexture need a GPU frame; skip in EditMode so structure tests can run headless.
         private bool CanRender => output != null && output.canvas != null;
 
+        /// <summary>当前预览模型实例（枪匠页实时换装用）.</summary>
+        public GameObject ModelInstance => modelInstance;
+
+        /// <summary>
+        /// 枪匠页实时换装（Docs/21 Phase F）：在预览实例的 Attach_* 挂点上应用当前草稿装配。
+        /// 每次选择变更后调用；配件层随实例层同步到 PreviewLayer 以入镜。
+        /// </summary>
+        public void ApplyPreviewAttachments(Game.Gameplay.Weapon.AttachmentAssetCatalog catalog,
+            string weaponItemId, System.Collections.Generic.IEnumerable<Game.Gameplay.Weapon.AttachmentAssetEntry> entries)
+        {
+            if (modelInstance == null) return;
+            var view = modelInstance.GetComponent<Game.Gameplay.Weapon.WeaponAttachmentView>();
+            if (view == null) view = modelInstance.AddComponent<Game.Gameplay.Weapon.WeaponAttachmentView>();
+            view.ApplyAttachments(catalog, weaponItemId, entries, laserBeamEnabled: false); // 枪匠预览：不挂激光束
+            foreach (var spawned in view.Spawned)
+                if (spawned != null) SetLayerRecursively(spawned, PreviewLayer);
+        }
+
         public void OnPointerDown(PointerEventData eventData)
         {
             dragging = true;
@@ -141,7 +159,14 @@ namespace Game.UI
 
         private void CleanupStage()
         {
-            if (stage != null) Destroy(stage);
+            // Destroy is deferred until the end of the frame. Disable first so
+            // Initialize/refresh can never render the old stage beside the new
+            // one during that hand-off (notably after a shop purchase).
+            if (stage != null)
+            {
+                stage.SetActive(false);
+                Destroy(stage);
+            }
             if (renderTexture != null)
             {
                 renderTexture.Release();

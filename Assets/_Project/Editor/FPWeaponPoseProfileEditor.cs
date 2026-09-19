@@ -20,12 +20,15 @@ namespace Game.EditorTools
         private SerializedProperty _trigger;
         private SerializedProperty _magazineWell;
         private SerializedProperty _magazineGrip;
+        private SerializedProperty _magazineInsertGuide;
+        private SerializedProperty _magazineExtracted;
         private SerializedProperty _hasRootCalibration;
         private SerializedProperty _calibratedRootLocalPosition;
         private SerializedProperty _calibratedRootLocalEulerAngles;
         private SerializedProperty _manualRootTransform;
         private SerializedProperty _alignRootToRightHand;
         private SerializedProperty _magazineOut;
+        private SerializedProperty _hasMagazineCalibration;
         private SerializedProperty _magazineIn;
         private SerializedProperty _emptyOut;
         private SerializedProperty _emptyIn;
@@ -33,12 +36,32 @@ namespace Game.EditorTools
         private SerializedProperty _magazineInsertWeight;
         private SerializedProperty _magazineHeldLocalPosition;
         private SerializedProperty _magazineHeldLocalEulerAngles;
+        private SerializedProperty _lockMagazineToWellAxis;
+        private SerializedProperty _magazineInsertionAxisLocal;
+        private SerializedProperty _magazineExtractedDistance;
+        private SerializedProperty _magazineInsertStartDistance;
+        private SerializedProperty _referenceFamily;
+        private SerializedProperty _animationFamilyContactOffsets;
+        private SerializedProperty _magazineReachWindow;
+        private SerializedProperty _magazineInsertWindow;
+        private SerializedProperty _magazineAlignWindow;
+        private SerializedProperty _poseCalibrationMode;
+        private SerializedProperty _supportGripStyle;
+        private SerializedProperty _adsFirePresentationMode;
+        private SerializedProperty _hasAdsGunPose;
+        private SerializedProperty _adsGunLocalPosition;
+        private SerializedProperty _adsGunLocalEulerAngles;
+        private SerializedProperty _hasElbowPoleHints;
+        private SerializedProperty _leftElbowPoleHintCameraLocal;
+        private SerializedProperty _rightElbowPoleHintCameraLocal;
 
         private Game.Presentation.Animation.FPWeaponPoseProfile Profile
             => (Game.Presentation.Animation.FPWeaponPoseProfile)target;
 
         private void OnEnable()
         {
+            if (targets == null || targets.Length == 0 || targets[0] == null)
+                return;
             _weaponRoot = serializedObject.FindProperty("weaponRoot");
             _rightHand = serializedObject.FindProperty("rightHand");
             _rightHandGrip = serializedObject.FindProperty("rightHandGrip");
@@ -46,12 +69,15 @@ namespace Game.EditorTools
             _trigger = serializedObject.FindProperty("trigger");
             _magazineWell = serializedObject.FindProperty("magazineWell");
             _magazineGrip = serializedObject.FindProperty("magazineGrip");
+            _magazineInsertGuide = serializedObject.FindProperty("magazineInsertGuide");
+            _magazineExtracted = serializedObject.FindProperty("magazineExtracted");
             _hasRootCalibration = serializedObject.FindProperty("hasRootCalibration");
             _calibratedRootLocalPosition = serializedObject.FindProperty("calibratedRootLocalPosition");
             _calibratedRootLocalEulerAngles = serializedObject.FindProperty("calibratedRootLocalEulerAngles");
             _manualRootTransform = serializedObject.FindProperty("manualRootTransform");
             _alignRootToRightHand = serializedObject.FindProperty("alignRootToRightHand");
             _magazineOut = serializedObject.FindProperty("magazineOutNormalized");
+            _hasMagazineCalibration = serializedObject.FindProperty("hasMagazineCalibration");
             _magazineIn = serializedObject.FindProperty("magazineInNormalized");
             _emptyOut = serializedObject.FindProperty("emptyMagazineOutNormalized");
             _emptyIn = serializedObject.FindProperty("emptyMagazineInNormalized");
@@ -59,6 +85,24 @@ namespace Game.EditorTools
             _magazineInsertWeight = serializedObject.FindProperty("magazineInsertWeight");
             _magazineHeldLocalPosition = serializedObject.FindProperty("magazineHeldLocalPosition");
             _magazineHeldLocalEulerAngles = serializedObject.FindProperty("magazineHeldLocalEulerAngles");
+            _lockMagazineToWellAxis = serializedObject.FindProperty("lockMagazineToWellAxis");
+            _magazineInsertionAxisLocal = serializedObject.FindProperty("magazineInsertionAxisLocal");
+            _magazineExtractedDistance = serializedObject.FindProperty("magazineExtractedDistance");
+            _magazineInsertStartDistance = serializedObject.FindProperty("magazineInsertStartDistance");
+            _referenceFamily = serializedObject.FindProperty("referenceFamily");
+            _animationFamilyContactOffsets = serializedObject.FindProperty("animationFamilyContactOffsets");
+            _magazineReachWindow = serializedObject.FindProperty("magazineReachWindow");
+            _magazineInsertWindow = serializedObject.FindProperty("magazineInsertWindow");
+            _magazineAlignWindow = serializedObject.FindProperty("magazineAlignWindow");
+            _poseCalibrationMode = serializedObject.FindProperty("poseCalibrationMode");
+            _supportGripStyle = serializedObject.FindProperty("supportGripStyle");
+            _adsFirePresentationMode = serializedObject.FindProperty("adsFirePresentationMode");
+            _hasAdsGunPose = serializedObject.FindProperty("hasAdsGunPose");
+            _adsGunLocalPosition = serializedObject.FindProperty("adsGunLocalPosition");
+            _adsGunLocalEulerAngles = serializedObject.FindProperty("adsGunLocalEulerAngles");
+            _hasElbowPoleHints = serializedObject.FindProperty("hasElbowPoleHints");
+            _leftElbowPoleHintCameraLocal = serializedObject.FindProperty("leftElbowPoleHintCameraLocal");
+            _rightElbowPoleHintCameraLocal = serializedObject.FindProperty("rightElbowPoleHintCameraLocal");
         }
 
         public override void OnInspectorGUI()
@@ -75,6 +119,20 @@ namespace Game.EditorTools
             Draw(_trigger);
             Draw(_magazineWell);
             Draw(_magazineGrip);
+            Draw(_magazineInsertGuide);
+            Draw(_magazineExtracted);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("AnchoredDualPoseV2", EditorStyles.boldLabel);
+            Draw(_poseCalibrationMode);
+            Draw(_supportGripStyle);
+            Draw(_adsFirePresentationMode);
+            Draw(_hasAdsGunPose);
+            Draw(_adsGunLocalPosition);
+            Draw(_adsGunLocalEulerAngles);
+            Draw(_hasElbowPoleHints);
+            Draw(_leftElbowPoleHintCameraLocal);
+            Draw(_rightElbowPoleHintCameraLocal);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Root Calibration", EditorStyles.boldLabel);
@@ -88,6 +146,7 @@ namespace Game.EditorTools
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Reload Phases", EditorStyles.boldLabel);
+            Draw(_hasMagazineCalibration);
             Draw(_magazineOut);
             Draw(_magazineIn);
             Draw(_emptyOut);
@@ -96,6 +155,21 @@ namespace Game.EditorTools
             Draw(_magazineInsertWeight);
             Draw(_magazineHeldLocalPosition);
             Draw(_magazineHeldLocalEulerAngles);
+            Draw(_lockMagazineToWellAxis);
+            if (_lockMagazineToWellAxis != null && _lockMagazineToWellAxis.boolValue)
+            {
+                Draw(_magazineInsertionAxisLocal);
+                Draw(_magazineExtractedDistance);
+                Draw(_magazineInsertStartDistance);
+                EditorGUILayout.HelpBox(
+                    "稳定弹匣模式会在 MagOut 到 MagIn 全程锁定 MagazineWell 朝向，并将弹匣轨迹投影到插拔轴。",
+                    MessageType.Info);
+            }
+            Draw(_referenceFamily);
+            Draw(_animationFamilyContactOffsets);
+            Draw(_magazineReachWindow);
+            Draw(_magazineInsertWindow);
+            Draw(_magazineAlignWindow);
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -173,23 +247,58 @@ namespace Game.EditorTools
 
         private void OnSceneGUI()
         {
+            if (target == null || serializedObject == null || serializedObject.targetObject == null)
+                return;
             serializedObject.Update();
-            if (_manualRootTransform == null || !_manualRootTransform.boolValue) return;
             Transform root = _weaponRoot.objectReferenceValue as Transform;
             if (root == null) return;
 
-            Handles.color = new Color(0.25f, 0.8f, 1f, 0.9f);
-            Handles.Label(root.position, "  FP weapon root (manual)");
-            EditorGUI.BeginChangeCheck();
-            Vector3 position = Handles.PositionHandle(root.position, root.rotation);
-            Quaternion rotation = Handles.RotationHandle(root.rotation, root.position);
-            if (!EditorGUI.EndChangeCheck()) return;
+            bool changed = false;
+            if (_manualRootTransform != null && _manualRootTransform.boolValue)
+            {
+                Handles.color = new Color(0.25f, 0.8f, 1f, 0.9f);
+                Handles.Label(root.position, "  FP weapon root (manual)");
+                EditorGUI.BeginChangeCheck();
+                Vector3 position = Handles.PositionHandle(root.position, root.rotation);
+                Quaternion rotation = Handles.RotationHandle(root.rotation, root.position);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObjects(new Object[] { root, Profile }, "Move FP weapon root");
+                    root.position = position;
+                    root.rotation = rotation;
+                    CaptureRoot(root);
+                    changed = true;
+                }
+            }
 
-            Undo.RecordObjects(new Object[] { root, Profile }, "Move FP weapon root");
-            root.position = position;
-            root.rotation = rotation;
-            CaptureRoot(root);
+            changed |= DrawInterfaceHandle(Profile.RightHandGrip, new Color(1f, .35f, .2f), "RightHandGrip");
+            changed |= DrawInterfaceHandle(Profile.LeftSupportGrip, new Color(.2f, 1f, .35f), "LeftSupportGrip");
+            changed |= DrawInterfaceHandle(Profile.Trigger, new Color(1f, .8f, .2f), "Trigger");
+            changed |= DrawInterfaceHandle(Profile.MagazineWell, new Color(.9f, .35f, 1f), "MagazineWell");
+            changed |= DrawInterfaceHandle(Profile.MagazineGrip, new Color(.35f, .9f, 1f), "MagazineGrip");
+            changed |= DrawInterfaceHandle(Profile.MagazineInsertGuide, new Color(1f, .55f, .1f), "MagazineInsertGuide");
+            changed |= DrawInterfaceHandle(Profile.RearSight, Color.cyan, "RearSight");
+            changed |= DrawInterfaceHandle(Profile.FrontSight, Color.magenta, "FrontSight");
+            if (changed) SceneView.RepaintAll();
+        }
+
+        private bool DrawInterfaceHandle(Transform marker, Color color, string label)
+        {
+            if (marker == null) return false;
+            Handles.color = color;
+            Handles.Label(marker.position, "  " + label);
+            EditorGUI.BeginChangeCheck();
+            Vector3 position = Handles.PositionHandle(marker.position, marker.rotation);
+            Quaternion rotation = Handles.RotationHandle(marker.rotation, marker.position);
+            if (!EditorGUI.EndChangeCheck()) return false;
+
+            Undo.RecordObject(marker, "Edit " + label);
+            marker.position = position;
+            marker.rotation = rotation;
+            EditorUtility.SetDirty(marker);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(marker);
             SceneView.RepaintAll();
+            return true;
         }
 
         private void CaptureRoot(Transform root)

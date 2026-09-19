@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_AssaultRifle2_01
   m_EditorClassIdentifier: 
   weaponId: lpw.rifle.02
-  displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 02"
+  displayName: AUG
+  catalogItemId: weapon.lpw.rifle.02
   fireMode: 1
   firstPersonViewPrefab: {fileID: 5236474534108398800, guid: 0d4878b177031de4aadcf802ecd86715, type: 3}
   thirdPersonViewPrefab: {fileID: 6381590407862986081, guid: c87dfea73a502a140937f6ead0fd3d1a, type: 3}
@@ -29,9 +30,9 @@ MonoBehaviour:
     AimOut: {fileID: 0}
     AimFire: {fileID: 0}
     AimIdle: {fileID: 0}
-  firstPersonAnimationFamily: 1
-  rifleHasVerticalGrip: 0
-  rifleAnimationFamily: 1
+  firstPersonAnimationFamily: 3
+  rifleHasVerticalGrip: 1
+  rifleAnimationFamily: 3
   rifle01Animations:
     Idle: {fileID: 7400046, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
     Fire: {fileID: 7400040, guid: 182b7f11db452bc458d35a6c9eced06f, type: 3}
@@ -57,17 +58,17 @@ MonoBehaviour:
     AimFire: {fileID: 0}
     AimIdle: {fileID: 0}
   rifle03Animations:
-    Idle: {fileID: 0}
-    Fire: {fileID: 0}
-    ReloadAmmoLeft: {fileID: 0}
-    ReloadOutOfAmmo: {fileID: 0}
-    Draw: {fileID: 0}
-    Holster: {fileID: 0}
+    Idle: {fileID: 7400046, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    Fire: {fileID: 7400040, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    ReloadAmmoLeft: {fileID: 7400058, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    ReloadOutOfAmmo: {fileID: 7400060, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    Draw: {fileID: 7400064, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    Holster: {fileID: 7400044, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
     DryFire: {fileID: 0}
-    AimIn: {fileID: 0}
-    AimOut: {fileID: 0}
-    AimFire: {fileID: 0}
-    AimIdle: {fileID: 0}
+    AimIn: {fileID: 7400020, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    AimOut: {fileID: 7400030, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    AimFire: {fileID: 7400000, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
+    AimIdle: {fileID: 7400002, guid: c3c8f58a520431048a9de2e4a8023757, type: 3}
   thirdPersonLocomotion:
     Idle: {fileID: 7400016, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
     WalkForward: {fileID: 7400054, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}

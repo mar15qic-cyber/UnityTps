@@ -31,16 +31,25 @@ namespace Game.Presentation.Animation
         [SerializeField] private PlayerAimState aimState;   // 只读 Ads01 / AdsTransitionSeconds
         [SerializeField] private ActionSystem actionSystem; // 只读 IsBusy（换弹/切枪互斥）
         [SerializeField] private InputReader input;         // 只读 AimHeld（开镜意图）
+        [SerializeField] private FPWeaponPoseProfile poseProfile;
         [SerializeField, Min(0f)] private float fireFadeSeconds = 0.04f;
         [SerializeField, Min(0f)] private float actionFadeSeconds = 0.12f;
         [SerializeField, Min(0f)] private float aimFadeSeconds = 0.08f;
         [SerializeField, Min(0f)] private float aimPoseFadeSeconds = 0.05f;
+
+        // ProceduralOnly deliberately keeps the gun out of AimFire.  The
+        // authored clip still contains useful trigger/support-arm feedback,
+        // so it is evaluated on a masked layer which cannot write the
+        // Armature root, camera, or weapon branch.
+        private const int ArmFeedbackLayer = 1;
 
         /// <summary>动作版本号：每次 Reload/Switch 递增；阶段事件携带版本，回调校验失效即丢弃。</summary>
         public int CurrentActionVersion { get; private set; }
 
         /// <summary>换弹阶段事件（参数：类型、动作版本号）。订阅方校验版本 == CurrentActionVersion。</summary>
         public event Action<WeaponAnimEventType, int> OnAnimStage;
+        public event Action OnProceduralFire;
+        public int ProceduralFireCount { get; private set; }
 
         private AnimancerComponent _animancer;
         private WeaponAnimationSet _clips;
@@ -52,6 +61,32 @@ namespace Game.Presentation.Animation
         private bool _holsterRequestedThisFrame;
         private float _aimOutTimer;    // 收镜 clip 适配窗剩余（完成判定）
         private float _aimFireTimer;   // ADS 开火 clip 剩余时长
+        private AnimancerState _reloadState;
+        private AnimancerState _drawState;
+        private AnimancerState _holsterState;
+        private float _drawIdleBlendRemaining;
+        private AnimancerLayer _armFeedbackLayer;
+        private AvatarMask _armFeedbackMask;
+
+        /// <summary>
+        /// The presentation clock for reload. Gameplay still decides when
+        /// ammo is committed, but all visual reload consumers read this same
+        /// Animancer state rather than independently integrating ActionSystem.
+        /// </summary>
+        public bool HasReloadAnimationClock => _reloadState != null;
+        public float CurrentReloadNormalizedTime => _reloadState == null
+            ? 0f
+            : Mathf.Clamp01(_reloadState.NormalizedTime);
+
+        /// <summary>
+        /// True while a draw/holster state or its explicit draw-to-idle fade is
+        /// still the owner of the arm pose. This is intentionally independent
+        /// of the longer gameplay switch timer.
+        /// </summary>
+        public bool IsWeaponTransitionAnimationActive
+            => (_drawState != null && (_drawState.IsPlaying || _drawState.Weight > .001f))
+                || (_holsterState != null && (_holsterState.IsPlaying || _holsterState.Weight > .001f))
+                || _drawIdleBlendRemaining > 0f;
 
         private void Awake()
         {
@@ -62,6 +97,9 @@ namespace Game.Presentation.Animation
             if (aimState == null) aimState = GetComponentInParent<PlayerAimState>();
             if (actionSystem == null) actionSystem = GetComponentInParent<ActionSystem>();
             if (input == null) input = GetComponentInParent<InputReader>();
+            if (poseProfile == null) poseProfile = GetComponent<FPWeaponPoseProfile>();
+
+            ConfigureArmFeedbackLayer();
         }
 
         private void OnEnable()
@@ -76,6 +114,11 @@ namespace Game.Presentation.Animation
             _holsterRequestedThisFrame = false;
             _aimOutTimer = 0f;
             _aimFireTimer = 0f;
+            _reloadState = null;
+            _drawState = null;
+            _holsterState = null;
+            _drawIdleBlendRemaining = 0f;
+            StopArmFeedback(0f);
             if (controller == null) return;
             controller.OnShotFired += HandleShot;
             controller.OnDryFire += HandleDryFire;
@@ -95,12 +138,19 @@ namespace Game.Presentation.Animation
 
         private void OnDisable()
         {
-            if (controller == null) return;
-            controller.OnShotFired -= HandleShot;
-            controller.OnDryFire -= HandleDryFire;
-            controller.OnReloadStarted -= HandleReloadStarted;
-            controller.OnReloadCompleted -= HandleReloadCompleted;
-            controller.OnReloadInterrupted -= HandleReloadInterrupted;
+            if (controller != null)
+            {
+                controller.OnShotFired -= HandleShot;
+                controller.OnDryFire -= HandleDryFire;
+                controller.OnReloadStarted -= HandleReloadStarted;
+                controller.OnReloadCompleted -= HandleReloadCompleted;
+                controller.OnReloadInterrupted -= HandleReloadInterrupted;
+            }
+            _reloadState = null;
+            _drawState = null;
+            _holsterState = null;
+            _drawIdleBlendRemaining = 0f;
+            StopArmFeedback(0f);
         }
 
         /// <summary>ADS 决策帧（Docs/18 §4.2）：采样本帧事实 → 状态机决策 → 执行指令。
@@ -112,6 +162,8 @@ namespace Game.Presentation.Animation
             float dt = Time.deltaTime;
             if (_aimOutTimer > 0f) _aimOutTimer = Mathf.Max(0f, _aimOutTimer - dt);
             if (_aimFireTimer > 0f) _aimFireTimer = Mathf.Max(0f, _aimFireTimer - dt);
+            if (_drawIdleBlendRemaining > 0f)
+                _drawIdleBlendRemaining = Mathf.Max(0f, _drawIdleBlendRemaining - dt);
 
             float ads01 = aimState != null ? aimState.Ads01 : 0f;
             var command = _aimFsm.Tick(new FPAimAnimInput(
@@ -123,7 +175,8 @@ namespace Game.Presentation.Animation
                 aimInFinished: ads01 >= 0.95f,          // clip 已适配过渡窗：ads01 到高位 ≈ clip 播完
                 aimOutFinished: _aimOutTimer <= 0f,
                 aimFireFinished: _aimFireTimer <= 0f,
-                holsterRequested: _holsterRequestedThisFrame));
+                holsterRequested: _holsterRequestedThisFrame,
+                proceduralAdsFire: _proceduralAdsFire && ads01 > 0f));
             Execute(command);
 
             // 腰射空仓：aim 轨道外走既有 DryFire 通道；aim 态无素材保持贴腮姿势（T9）
@@ -143,6 +196,7 @@ namespace Game.Presentation.Animation
                 case FPAimAnimCommand.PlayAimOut: ExecuteAimOut(); break;
                 case FPAimAnimCommand.PlayAimIdle: ExecuteAimIdle(); break;
                 case FPAimAnimCommand.PlayAimFire: ExecuteAimFire(); break;
+                case FPAimAnimCommand.ProceduralFire: ExecuteProceduralFire(); break;
                 case FPAimAnimCommand.PlayHipFire: PlayFire(); break;
                 case FPAimAnimCommand.Yield: break; // 换弹/切枪已由事件处理器接管主轨道
             }
@@ -152,6 +206,7 @@ namespace Game.Presentation.Animation
         /// 与 PlayerAimState.Ads01 斜坡同步完成——FOV 收敛与举枪动作同窗，无割裂。</summary>
         private void ExecuteAimIn()
         {
+            StopArmFeedback(aimFadeSeconds);
             if (!_clipsReady || _clips.AimIn == null) return;
             var state = _animancer.Play(_clips.AimIn, aimFadeSeconds, FadeMode.FromStart);
             state.Speed = FitToAdsWindow(_clips.AimIn.length);
@@ -161,6 +216,7 @@ namespace Game.Presentation.Animation
         /// 被 holster/fire 替换时 OnEnd 不触发，由替换者接管）。完成判定走 _aimOutTimer。</summary>
         private void ExecuteAimOut()
         {
+            StopArmFeedback(aimFadeSeconds);
             if (!_clipsReady || _clips.AimOut == null) return;
             var state = _animancer.Play(_clips.AimOut, aimFadeSeconds, FadeMode.FromStart);
             state.Speed = FitToAdsWindow(_clips.AimOut.length);
@@ -173,6 +229,7 @@ namespace Game.Presentation.Animation
         /// 一次性播放后 Animancer 结束态定格即静态保持。AimIdle 缺失回退 aim_in 末帧定格。</summary>
         private void ExecuteAimIdle()
         {
+            StopArmFeedback(aimPoseFadeSeconds);
             if (!_clipsReady || _clips.AimIn == null) return;
             if (_clips.AimIdle != null)
             {
@@ -203,6 +260,18 @@ namespace Game.Presentation.Animation
             }
         }
 
+        private void ExecuteProceduralFire()
+        {
+            // Keep the current AimIdle/aim-in gun pose.  The authored AimFire
+            // clip is replayed only on the arm branches, while LPWGunPoseDriver
+            // and the Cinemachine recoil extension consume the same shot event
+            // exactly once.  This restores the visible trigger/support-arm
+            // feedback without allowing the clip to fight the gun pose.
+            PlayArmFeedback();
+            ProceduralFireCount++;
+            OnProceduralFire?.Invoke();
+        }
+
         private float FitToAdsWindow(float clipLength)
         {
             float window = aimState != null ? aimState.AdsTransitionSeconds : 0f;
@@ -212,12 +281,23 @@ namespace Game.Presentation.Animation
         /// <summary>换枪交换点：加载新武器 clip 集并播出枪动画。</summary>
         public void PlayDraw()
         {
+            StopArmFeedback(actionFadeSeconds);
             LoadClips();
             _aimFsm.ResetToHip(); // 切枪后从干净腰射态进入
+            _holsterState = null;
+            _drawIdleBlendRemaining = 0f;
             _playedBeforeStart = true;
             if (!_clipsReady) return;
             if (_clips.Draw != null)
-                PlayAction(_clips.Draw);
+            {
+                _drawState = _animancer.Play(_clips.Draw, actionFadeSeconds, FadeMode.FromStart);
+                // Arsenal's DrawTime is the gameplay transition window. Fit the
+                // authored clip to that same window so IK ownership changes on
+                // the real animation end rather than at a second, unrelated timer.
+                _drawState.Speed = ReloadAnimationTiming.GetPlaybackSpeed(
+                    _clips.Draw, controller.Definition.DrawTime);
+                _drawState.Events(this).OnEnd = HandleDrawEnded;
+            }
             else if (_clips.Idle != null)
                 _animancer.Play(_clips.Idle);
         }
@@ -228,13 +308,19 @@ namespace Game.Presentation.Animation
         /// 交换被打断时由 OnWeaponEquipped→PlayDraw 重播出枪兜底。</summary>
         public void PlayHolster()
         {
+            StopArmFeedback(actionFadeSeconds);
             LoadClips();
             _aimFsm.ResetToHip(); // 消除同帧竞争：收枪后不得再发 aim 指令覆盖收枪 clip
+            _drawState = null;
+            _drawIdleBlendRemaining = 0f;
             _holsterRequestedThisFrame = true;
             _playedBeforeStart = true;
             if (!_clipsReady) return;
             if (_clips.Holster != null)
-                _animancer.Play(_clips.Holster, actionFadeSeconds, FadeMode.FromStart);
+            {
+                _holsterState = _animancer.Play(_clips.Holster, actionFadeSeconds, FadeMode.FromStart);
+                _holsterState.Events(this).OnEnd = null;
+            }
         }
 
         /// <summary>开火事件只记标志：决策延迟到 Update 由状态机分流
@@ -243,6 +329,7 @@ namespace Game.Presentation.Animation
 
         private void PlayFire()
         {
+            StopArmFeedback(fireFadeSeconds);
             if (!_clipsReady || _clips.Fire == null) return;
             var state = _animancer.Play(_clips.Fire, fireFadeSeconds, FadeMode.FromStart);
             state.Events(this).OnEnd = PlayIdle;
@@ -253,6 +340,7 @@ namespace Game.Presentation.Animation
         /// <summary>腰射空仓（aim 轨道外）：原有 DryFire 通道。</summary>
         private void PlayDryFire()
         {
+            StopArmFeedback(fireFadeSeconds);
             if (!_clipsReady) return;
             if (_clips.DryFire != null)
             {
@@ -264,6 +352,7 @@ namespace Game.Presentation.Animation
 
         private void HandleReloadStarted()
         {
+            StopArmFeedback(actionFadeSeconds);
             if (!_clipsReady || controller?.Runtime == null) return;
             bool wasOnAimTrack = _aimFsm.IsOnAimTrack;
             _aimFsm.ResetToHip(); // 换弹接管主轨道，aim 状态归零
@@ -280,7 +369,11 @@ namespace Game.Presentation.Animation
             // ActionSystem remains authoritative at Stat.ReloadTime. Fit the entire clip
             // into that window so the completion callback never cuts a long rifle reload.
             state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.Stat.ReloadTime);
-            state.Events(this).OnEnd = PlayIdle;
+            _reloadState = state;
+            // Do not let Animancer end the state and switch to Idle ahead of
+            // the gameplay callback. The state remains the single visual
+            // clock until ActionSystem commits the reload.
+            state.Events(this).OnEnd = null;
 
             // CP6 分阶段事件：归一化时间点由 AudioProfile 数据驱动（版本号防打断误触发）
             var profile = controller.Definition.AudioProfile;
@@ -308,6 +401,8 @@ namespace Game.Presentation.Animation
         private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _)
         {
             CurrentActionVersion++; // 使在途阶段回调全部失效
+            _reloadState = null;
+            StopArmFeedback(actionFadeSeconds);
             PlayIdle();
         }
 
@@ -315,19 +410,77 @@ namespace Game.Presentation.Animation
         private void HandleReloadCompleted()
         {
             CurrentActionVersion++; // 正常完成同样推进版本（OnEnd 已到，防御性失效）
+            _reloadState = null;
+            StopArmFeedback(actionFadeSeconds);
             PlayIdle();
         }
 
+        /// <summary>腰射基线（切枪/动作收尾/复活重建共用）。</summary>
         private void PlayIdle()
         {
+            StopArmFeedback(actionFadeSeconds);
             if (_clipsReady && _clips.Idle != null)
                 _animancer.Play(_clips.Idle, actionFadeSeconds);
         }
 
-        private void PlayAction(AnimationClip clip)
+        // ---- 2026-09-16 审计 §4：Owner FP 死亡/复活显式入口（表现层唯一所有者）----
+
+        /// <summary>
+        /// 死亡边界：停掉本帧行为、作废在途动作回调、把图**暂停**在当前姿态。
+        /// 为什么不用 Disable 模拟冻结：FP 视图 prefab 的 AnimancerComponent `_ActionOnDisable=0`
+        /// （DisableAction.Stop）会 Stop(+PauseGraph)，而 Stop 会重置状态选择——"停用即冻结死亡瞬间姿态"
+        /// 的假设不成立；且重新启用恢复的是"图在跑"，不是"重新选中腰射 Idle"（旧实现只还原 enabled）。
+        /// 暂停图则保持姿态且不丢状态，复活时由 ApplyRespawnState 明确重建。
+        /// </summary>
+        public void ApplyDeathState()
         {
-            var state = _animancer.Play(clip, actionFadeSeconds, FadeMode.FromStart);
-            state.Events(this).OnEnd = PlayIdle;
+            ClearTransientActionState();
+            if (_animancer != null && _animancer.IsGraphInitialized)
+                _animancer.Graph.PauseGraph();
+        }
+
+        /// <summary>
+        /// 复活边界：清掉死亡前 Fire/Reload/Draw/Holster/ADS 的过期状态与回调，按**当前权威武器**
+        /// 重新解析 clip 集并重建腰射 Idle，评估一次后再交还可见性（FPWeaponRig 负责显示）。
+        /// 这是"死亡后必须重新按 ADS 才恢复枪位"的直接修复：旧实现只恢复 enabled，Animancer 图
+        /// 停在死亡瞬间的 ADS/开火姿态，没有腰射 Idle 重建路径。
+        /// </summary>
+        public void ApplyRespawnState()
+        {
+            ClearTransientActionState();
+            if (_animancer == null) return;
+            if (_animancer.IsGraphInitialized) _animancer.Graph.UnpauseGraph();
+            LoadClips(); // 死亡期间可能已换枪/换配件 → 按当前定义重建 clip 集与路由
+            _playedBeforeStart = false;
+            if (_clipsReady && _clips.Idle != null)
+            {
+                _animancer.Play(_clips.Idle, 0f);
+                _animancer.Evaluate(0f);
+            }
+        }
+
+        /// <summary>作废一切"死亡前已排定"的瞬时动作状态（flags/计时/OnEnd 回调/阶段事件版本）。</summary>
+        private void ClearTransientActionState()
+        {
+            _shotFiredThisFrame = false;
+            _dryFiredThisFrame = false;
+            _holsterRequestedThisFrame = false;
+            _aimOutTimer = 0f;
+            _aimFireTimer = 0f;
+            _drawIdleBlendRemaining = 0f;
+            _reloadState = null;
+            _drawState = null;
+            _holsterState = null;
+            CurrentActionVersion++;   // 在途 MagOut/MagIn/BoltRack 回调全部失效
+            _aimFsm.ResetToHip();
+            StopArmFeedback(0f);
+        }
+
+        private void HandleDrawEnded()
+        {
+            _drawState = null;
+            _drawIdleBlendRemaining = actionFadeSeconds;
+            PlayIdle();
         }
 
         private void LoadClips()
@@ -340,6 +493,98 @@ namespace Game.Presentation.Animation
             _clips = controller.Definition.FirstPersonAnimations;
             _clipsReady = _clips.Idle != null || _clips.Fire != null;
             _aimFsm.SetHasAimClips(_clips.HasAimClips);
+            _proceduralAdsFire = RoutesToProceduralAdsFire(poseProfile);
+            _aimFsm.SetProceduralAdsFire(_proceduralAdsFire);
         }
+
+        /// <summary>
+        /// Creates the one runtime mask needed by ProceduralOnly LPW views.
+        /// The LPW meshes keep the weapon under Armature/weapon while the two
+        /// authored arm chains remain direct Armature children, so masking the
+        /// chains is sufficient to exclude every gun/root transform and all
+        /// authored sight/camera displacement.
+        /// </summary>
+        private void ConfigureArmFeedbackLayer()
+        {
+            if (_animancer == null) return;
+
+            _armFeedbackLayer = _animancer.Layers[ArmFeedbackLayer];
+            _armFeedbackLayer.IsAdditive = false;
+            _armFeedbackLayer.Weight = 0f;
+
+            _armFeedbackMask = new AvatarMask();
+            _armFeedbackMask.hideFlags = HideFlags.HideAndDontSave;
+            // A transform mask must contain the Animator root and the complete
+            // hierarchy.  A sparse mask made only from arm_L/arm_R has no empty
+            // root entry and Unity does not reliably bind its Generic curves.
+            // Build the same shape as the imported LPFP mask assets, then keep
+            // only the authored arm branches active.  The empty root path stays
+            // active as the binding anchor; Armature, weapon, camera, magazine,
+            // sight and mesh branches remain explicitly disabled.
+            _armFeedbackMask.AddTransformPath(transform, true);
+            bool hasArmPath = false;
+            for (int i = 0; i < _armFeedbackMask.transformCount; i++)
+            {
+                string path = _armFeedbackMask.GetTransformPath(i);
+                bool active = string.IsNullOrEmpty(path) || IsArmFeedbackPath(path);
+                _armFeedbackMask.SetTransformActive(i, active);
+                hasArmPath |= !string.IsNullOrEmpty(path) && active;
+            }
+            if (!hasArmPath)
+            {
+                Destroy(_armFeedbackMask);
+                _armFeedbackMask = null;
+                return;
+            }
+            _animancer.Layers.SetMask(ArmFeedbackLayer, _armFeedbackMask);
+        }
+
+        /// <summary>Replays AimFire on the arm-only layer for one shot.</summary>
+        private void PlayArmFeedback()
+        {
+            if (!_proceduralAdsFire || !_clipsReady || _clips.AimFire == null
+                || _armFeedbackLayer == null || _armFeedbackMask == null)
+                return;
+
+            _armFeedbackLayer.Weight = 1f;
+            var state = _armFeedbackLayer.Play(_clips.AimFire, fireFadeSeconds, FadeMode.FromStart);
+            state.Events(this).OnEnd = HandleArmFeedbackEnded;
+        }
+
+        private void HandleArmFeedbackEnded() => StopArmFeedback(fireFadeSeconds);
+
+        /// <summary>
+        /// Removes the arm-only overlay before another owner (aim, reload,
+        /// holster, or hip fire) takes the animation graph back.
+        /// </summary>
+        private void StopArmFeedback(float fadeSeconds = 0f)
+        {
+            if (_armFeedbackLayer == null) return;
+            if (fadeSeconds <= 0f)
+            {
+                _armFeedbackLayer.Weight = 0f;
+                return;
+            }
+            _armFeedbackLayer.StartFade(0f, fadeSeconds);
+        }
+
+        private static bool IsArmFeedbackPath(string path)
+        {
+            return path == "Armature/arm_L"
+                || path.StartsWith("Armature/arm_L/", StringComparison.Ordinal)
+                || path == "Armature/arm_R"
+                || path.StartsWith("Armature/arm_R/", StringComparison.Ordinal);
+        }
+
+        /// <summary>ADS 开火路由（抖动修复核心）：资产模式 ProceduralOnly 本身决定路由，
+        /// 不再要求 HasCompleteAnchoredDualPoseV2——Legacy 视图同样进入程序化开火。
+        /// 否则 28 把 Legacy 枪每发以 FadeMode.FromStart 重启 AimFire，
+        /// 与程序化弹簧在不同坐标空间和更新阶段争夺姿态（抖动/漂移根因之一）。
+        /// 无 Profile 的原生 LPFP 武器保持 LegacyAimFire（作者动画即反馈）。</summary>
+        public static bool RoutesToProceduralAdsFire(FPWeaponPoseProfile profile)
+            => profile != null
+                && profile.AdsFirePresentationMode == LPWAdsFirePresentationMode.ProceduralOnly;
+
+        private bool _proceduralAdsFire;
     }
 }

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_AssaultRifle
   m_EditorClassIdentifier: 
   weaponId: rifle.day3
-  displayName: Day 3 Assault Rifle
+  displayName: AK-47
+  catalogItemId: weapon.m4
   fireMode: 1
   firstPersonViewPrefab: {fileID: 7125712017163613421, guid: 0e79b307bab4d604d81ce1f7a80f3614, type: 3}
   thirdPersonViewPrefab: {fileID: 7707036890514972092, guid: 00b5bb45ca5329c4aa7d80498cc8eabc, type: 3}

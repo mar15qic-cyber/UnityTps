@@ -32,6 +32,10 @@ namespace Game.Gameplay.Weapon
         [Tooltip("同类 Fire 变体：随机轮换（CP6 池 2~3 路 OneShot 防高速截断）")]
         public ClipEntry[] FireVariants;
 
+        [Header("开火（消音）")]
+        [Tooltip("装配消音器（配件 isSuppressor）后的 Fire 变体池；留空=诚实降级回普通 FireVariants")]
+        public ClipEntry[] FireVariantsSuppressed;
+
         [Header("扳机")]
         public ClipEntry DryFire;          // LPFP 无专属 → 留空待 Validator
 

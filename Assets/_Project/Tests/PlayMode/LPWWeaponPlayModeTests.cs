@@ -29,7 +29,8 @@ namespace Game.Gameplay.PlayModeTests
 
                 var fp = Object.Instantiate(definition.FirstPersonViewPrefab);
                 var tp = Object.Instantiate(definition.ThirdPersonViewPrefab);
-                Assert.That(fp.GetComponentsInChildren<Transform>(true).Any(x => x.name == "LPW_Gun"), Is.True, itemId + " FP gun");
+                string fpHierarchy = string.Join(",", fp.GetComponentsInChildren<Transform>(true).Select(x => x.name));
+                Assert.That(fp.GetComponentsInChildren<Transform>(true).Any(x => x.name == "LPW_Gun" || x.name.StartsWith("LPW_Gun")), Is.True, itemId + " FP gun [root=" + fp.name + "; hierarchy=" + fpHierarchy + "]");
                 Assert.That(tp.transform.Find("Muzzle"), Is.Not.Null, itemId + " TP muzzle");
                 Assert.That(tp.transform.Find("LeftHandTarget"), Is.Not.Null, itemId + " TP hand target");
 

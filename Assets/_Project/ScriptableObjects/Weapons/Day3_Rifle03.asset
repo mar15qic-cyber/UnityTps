@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Rifle03
   m_EditorClassIdentifier: 
   weaponId: rifle.03
-  displayName: Day 3 Rifle 03
+  displayName: FN SCAR
+  catalogItemId: weapon.rifle03
   fireMode: 1
   firstPersonViewPrefab: {fileID: 7300609143011265440, guid: e47c0f42033f5314ebb6bc24482111e5, type: 3}
   thirdPersonViewPrefab: {fileID: 6531982378343359995, guid: 1f872d3d9cf52e94599ac62c2fe16092, type: 3}

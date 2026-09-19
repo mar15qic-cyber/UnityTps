@@ -9,6 +9,7 @@ namespace Game.Gameplay.Network
     /// </summary>
     public static class MatchExitState
     {
+        public static bool VoluntaryLeaveRequested { get; set; }
         /// <summary>结算流已接管本次终局的回大厅导航（客户端本地标记）。</summary>
         public static bool SettlementNavigationPending { get; set; }
 
@@ -17,6 +18,7 @@ namespace Game.Gameplay.Network
 
         public static void Reset()
         {
+            VoluntaryLeaveRequested = false;
             SettlementNavigationPending = false;
             DisconnectHandled = false;
         }

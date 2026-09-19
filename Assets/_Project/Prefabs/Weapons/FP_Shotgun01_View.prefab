@@ -1,5 +1,50 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2801071642461765801
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3929302550140220168}
+  - component: {fileID: 79066648794657264}
+  m_Layer: 0
+  m_Name: Attach_Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3929302550140220168
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2801071642461765801}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
+  m_LocalPosition: {x: -0.000001534403, y: 0.32797727, z: 0.43022466}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 379035595196351084}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &79066648794657264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2801071642461765801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slot: 1
 --- !u!1 &2918059486482996577
 GameObject:
   m_ObjectHideFlags: 0
@@ -31,6 +76,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 379035595196351084}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3535035510676906379
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 910486916615905427}
+  - component: {fileID: 1405268507418982913}
+  m_Layer: 0
+  m_Name: Attach_Tactical
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &910486916615905427
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3535035510676906379}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
+  m_LocalPosition: {x: -0.0000013044596, y: 0.17074074, z: 0.3046167}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 379035595196351084}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1405268507418982913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3535035510676906379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slot: 3
 --- !u!1 &6742420203730414801
 GameObject:
   m_ObjectHideFlags: 0
@@ -323,6 +413,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7754797299860848564}
+    - targetCorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3929302550140220168}
+    - targetCorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 910486916615905427}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       insertIndex: -1
@@ -397,8 +493,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
+  aimState: {fileID: 0}
+  actionSystem: {fileID: 0}
+  input: {fileID: 0}
+  poseProfile: {fileID: 0}
   fireFadeSeconds: 0.04
   actionFadeSeconds: 0.12
+  aimFadeSeconds: 0.08
+  aimPoseFadeSeconds: 0.05
 --- !u!114 &7213019220028193080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -424,3 +526,5 @@ MonoBehaviour:
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
   sightReference: {fileID: 7754797299860848564}
+  alignAdsToSightAxis: 0
+  debugShotDiagnostics: 0

@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -108,6 +111,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.ConfigureLogging(logging => logging.ClearProviders().AddDebug());
-        Environment.SetEnvironmentVariable("Database__AllowInMemoryFallback", "true");
+        // 测试宿主隔离（Gate A-4，2026-09-08 复审 §1.4）：与 ServerApiFactory 同范式——经
+        // ConfigureAppConfiguration 注入（DbContext 选项构建时可读），普通 `dotnet test` 无需
+        // 调用方预设任何隐藏环境变量；不再写进程级环境变量（会泄漏给同进程其它测试/工厂）。
+        // 每个工厂实例唯一 InMemory 库名 → 并行工厂互不共享存储，消除跨工厂 Seed 竞争。
+        // 生产环境缺 GameDb 连接串仍由 Program 顶层 fail-closed（本配置只在测试工厂注入）。
+        var values = new Dictionary<string, string?>
+        {
+            ["Database:AllowInMemoryFallback"] = "true",
+            ["Database:InMemoryName"] = "test-" + Guid.NewGuid().ToString("N"),
+        };
+        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(values!));
     }
 }

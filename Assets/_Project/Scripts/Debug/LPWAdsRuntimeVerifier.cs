@@ -134,7 +134,10 @@ namespace Game.Debugging
             Vector3 axis = hasSightLine
                 ? (frontSight - rearSight).normalized
                 : -profile.WeaponRoot.right;
-            Vector3 up = Vector3.ProjectOnPlane(profile.WeaponRoot.up, camera.transform.forward).normalized;
+            Transform sightFrame = profile.RearSight != null ? profile.RearSight : view.SightReference;
+            Vector3 up = Vector3.ProjectOnPlane(
+                sightFrame != null ? sightFrame.up : profile.WeaponRoot.up,
+                camera.transform.forward).normalized;
             Transform leftHand = FindDeep(profile.transform, "hand_L");
             return new Measurement
             {

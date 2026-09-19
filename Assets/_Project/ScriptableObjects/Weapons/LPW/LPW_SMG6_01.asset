@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SMG6_01
   m_EditorClassIdentifier: 
   weaponId: lpw.smg.06
-  displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 06"
+  displayName: UMP45
+  catalogItemId: weapon.lpw.smg.06
   fireMode: 1
   firstPersonViewPrefab: {fileID: 3889890873085287202, guid: dd620785dad1a7e409aa5b8fe25fb1ec, type: 3}
   thirdPersonViewPrefab: {fileID: 529512485997984772, guid: 9f9b8cdcf4b51b24283afef27d3466e6, type: 3}

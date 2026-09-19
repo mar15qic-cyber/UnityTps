@@ -5,6 +5,19 @@ using UnityEngine.UI;
 
 namespace Game.UI
 {
+    /// <summary>uGUI ScrollRect 不响应鼠标滚轮——本组件桥接 IScrollHandler → ScrollRect 滚动。</summary>
+    public sealed class MouseWheelScroll : MonoBehaviour, IScrollHandler
+    {
+        public ScrollRect target;
+        public float sensitivity = 0.15f;
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (target == null) return;
+            var pos = target.verticalNormalizedPosition + eventData.scrollDelta.y * sensitivity;
+            target.verticalNormalizedPosition = Mathf.Clamp01(pos);
+        }
+    }
+
     /// <summary>
     /// Stylized component factory for the LowPoly look (Docs/20 §2.3): rounded corners via
     /// procedural 9-slice sprites, 2px dark borders, pseudo-3D button thickness, hover/press
@@ -211,6 +224,48 @@ namespace Game.UI
 
             UITypography.Text("Label", root.transform, label, UITheme.FontBody, UITheme.TextMuted,
                 new Vector2(0.14f, 0f), new Vector2(0.98f, 1f), TextAlignmentOptions.Left, FontStyles.Bold);
+
+            var button = root.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.ColorTint;
+            var colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 1f, 1f, 0.9f);
+            colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.35f);
+            colors.fadeDuration = 0.06f;
+            button.colors = colors;
+            return button;
+        }
+
+        /// <summary>Horizontal top-bar tab (2026-09-16 大厅壳重做): centered label + bottom accent bar
+        /// when selected. Node names ("ActiveBar"/"Label") match NavPill so SetNavPillSelected works for both.</summary>
+        public static Button TopTab(string name, Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            root.transform.SetParent(parent, false);
+            Place(root.GetComponent<RectTransform>(), anchorMin, anchorMax);
+            var image = root.GetComponent<Image>();
+            image.sprite = UISprites.RoundedRect(UITheme.RadiusButton);
+            image.type = Image.Type.Sliced;
+            image.color = Color.clear;
+
+            var bar = new GameObject("ActiveBar", typeof(RectTransform), typeof(Image));
+            bar.transform.SetParent(root.transform, false);
+            var barImage = bar.GetComponent<Image>();
+            barImage.sprite = UISprites.RoundedRect(2f);
+            barImage.type = Image.Type.Sliced;
+            barImage.color = UITheme.AccentPrimary;
+            barImage.raycastTarget = false;
+            barImage.enabled = false;
+            var barRect = bar.GetComponent<RectTransform>();
+            barRect.anchorMin = new Vector2(0.12f, 0.02f);
+            barRect.anchorMax = new Vector2(0.88f, 0.02f);
+            barRect.offsetMin = Vector2.zero;
+            barRect.offsetMax = new Vector2(0f, 3f);
+
+            UITypography.Text("Label", root.transform, label, UITheme.FontBody, UITheme.TextMuted,
+                Vector2.zero, Vector2.one, TextAlignmentOptions.Center, FontStyles.Bold);
 
             var button = root.GetComponent<Button>();
             button.targetGraphic = image;

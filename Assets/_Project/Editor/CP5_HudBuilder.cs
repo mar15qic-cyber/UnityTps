@@ -178,6 +178,10 @@ namespace Game.EditorTools
             hso.FindProperty("hintText").objectReferenceValue = hintText;
             hso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 真开镜表现（OpticAdsView 自建遮罩/分划层，Awake 自动解析当前玩家引用）。
+            if (canvasGo.GetComponent<OpticAdsView>() == null)
+                canvasGo.AddComponent<OpticAdsView>();
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[CP5-HUD] 构建完成并保存：WeaponHudCanvas（准心MVC+弹药/武器/提示）@" + scene.path);

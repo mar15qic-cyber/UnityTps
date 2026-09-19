@@ -24,7 +24,10 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
         {
             Subject = new ClaimsIdentity([
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)]),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                // 单活会话（2026-09-17）：登录即 +1 的会话版本；OnTokenValidated 比对库值，
+                // 旧客户端 token（旧 tv）在任何认证端点上立即 401——同账号多端登录=后者顶替前者。
+                new Claim("tv", user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))]),
             Expires = expires,
             Issuer = issuer,
             Audience = audience,

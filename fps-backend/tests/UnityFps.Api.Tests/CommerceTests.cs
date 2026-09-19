@@ -15,7 +15,7 @@ public sealed class CommerceTests
         await using var db = CreateDb();
         await CatalogSeeder.SeedAsync(db);
         var ids = await db.CatalogItems.Select(x => x.ItemId).ToListAsync();
-        Assert.Equal(39, ids.Count);
+        Assert.Equal(45, ids.Count); // 16 LPFP legacy（含 handgun03/04、smg03/04/05、sniper03）+ 29 LPW
         Assert.Equal(29, ids.Count(x => x.StartsWith("weapon.lpw.")));
         Assert.DoesNotContain(await db.CatalogItems.Select(x => x.AssetKey).ToListAsync(), x =>
             x.StartsWith("lpw/") && !x.EndsWith("_01", StringComparison.Ordinal));

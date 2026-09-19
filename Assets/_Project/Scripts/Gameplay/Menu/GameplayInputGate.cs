@@ -15,6 +15,7 @@ namespace Game.Gameplay.Menu
         private static bool _menuOpen;
         private static bool _hardLocked;
         private static bool _dead;
+        private static bool _chatFocused;
         private static int _resumeGraceFrames;
 
         /// <summary>菜单是否打开（InputReader 据此清 ADS 切换意图等内部态）。</summary>
@@ -26,20 +27,31 @@ namespace Game.Gameplay.Menu
         /// <summary>本地玩家是否死亡（门控来源；表现冻结仍由既有链路处理）。</summary>
         public static bool Dead => _dead;
 
+        /// <summary>聊天输入聚焦（Docs/27 §11 独立占用原因：封锁移动/视角/开火/ADS/换弹/切枪，不重构既有枚举）。</summary>
+        public static bool ChatFocused => _chatFocused;
+
         /// <summary>恢复宽限帧剩余数（关闭菜单后短暂屏蔽，防止「返回游戏」的点击误开火/误视角）。</summary>
         public static int ResumeGraceFrames => _resumeGraceFrames;
 
         /// <summary>游戏输入是否被禁止（任一原因命中即为 true）。</summary>
-        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _resumeGraceFrames > 0;
+        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _chatFocused || _resumeGraceFrames > 0;
 
         /// <summary>菜单开合（GameplayMenuController 调用；开=屏蔽输入+解锁光标由控制器做）。</summary>
         public static void SetMenuOpen(bool open)
         {
             if (_menuOpen == open) return;
             _menuOpen = open;
+            if (open)
+            {
+                // Docs/26 §3.1：菜单打开时聊天让出焦点（草稿保留，光标归菜单所有）
+                _chatFocused = false;
+            }
             if (!open)
                 _resumeGraceFrames = 1; // 关闭后下一帧才恢复采样（同帧点击不再进入游戏输入）
         }
+
+        /// <summary>聊天输入聚焦（ChatHudView 调用；关闭只释放该原因，其他原因不变）。</summary>
+        public static void SetChatFocused(bool focused) => _chatFocused = focused;
 
         /// <summary>硬锁（终局/场景切换）。锁死后即便「关闭菜单」也保持屏蔽，直到显式 Reset。</summary>
         public static void SetHardLocked(bool locked)

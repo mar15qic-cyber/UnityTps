@@ -97,6 +97,10 @@ namespace Game.Gameplay.Movement
         public string VersionHash => versionHash;
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;
+        /// <summary>走步态周期（秒）：相位以 1/周期 每秒固定推进（2026-09-17 远端相位本地积分消费）。</summary>
+        public float WalkCycleDuration => walkCycleDuration;
+        /// <summary>冲刺步态周期（秒）。</summary>
+        public float SprintCycleDuration => sprintCycleDuration;
         public bool IsValid => HasValidTracks(walkTracks) && HasValidTracks(sprintTracks);
 
         public Vector2 EvaluateDelta(

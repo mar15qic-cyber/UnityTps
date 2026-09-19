@@ -21,13 +21,15 @@ namespace Game.Gameplay.Weapon
         public readonly float RecoilRecoveryScale;  // 同上
         public readonly float PatternScale;         // 同上
         public readonly float FirstShotScale;       // 同上
-        public readonly float AdsRecoilScale;       // 同上
-        public readonly float SpreadScale;          // 同上
+        public readonly float AdsRecoilScale;        // 同上
+        public readonly float SpreadScale;           // 同上
+        public readonly float MagazineSize;          // (MagSize+Σadd)×Πmul，Clamp [1,200]
 
         public ResolvedWeaponStats(WeaponStat stat,
             float verticalRecoilDeg, float horizontalRecoilDeg,
             float aimRecoilScale, float viewModelKickScale, float recoilRecoveryScale,
-            float patternScale, float firstShotScale, float adsRecoilScale, float spreadScale)
+            float patternScale, float firstShotScale, float adsRecoilScale, float spreadScale,
+            float magazineSize = 0f)
         {
             Stat = stat;
             VerticalRecoilDeg = verticalRecoilDeg;
@@ -39,6 +41,7 @@ namespace Game.Gameplay.Weapon
             FirstShotScale = firstShotScale;
             AdsRecoilScale = adsRecoilScale;
             SpreadScale = spreadScale;
+            MagazineSize = magazineSize > 0f ? magazineSize : stat.MagSize;
         }
 
         // ---- 组合访问器（CP4 消费端语义；Docs/13 §6.2 情境倍率另在消费时叠加）----
@@ -114,7 +117,8 @@ namespace Game.Gameplay.Weapon
                 ComposeScale(adds, muls, WeaponStatId.RecoilPatternScale),
                 ComposeScale(adds, muls, WeaponStatId.FirstShotRecoil),
                 ComposeScale(adds, muls, WeaponStatId.AdsRecoil),
-                ComposeScale(adds, muls, WeaponStatId.Spread));
+                ComposeScale(adds, muls, WeaponStatId.Spread),
+                Compose(baseStat.MagSize, adds, muls, WeaponStatId.MagazineSize, 1f, 200f));
         }
 
         private static float Compose(float baseValue, AddSums adds, MulProducts muls, WeaponStatId id, float min, float max)

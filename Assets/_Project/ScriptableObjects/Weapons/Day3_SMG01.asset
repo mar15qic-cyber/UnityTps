@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_SMG01
   m_EditorClassIdentifier: 
   weaponId: smg.01
-  displayName: Day 3 SMG 01
+  displayName: Kriss Vector
+  catalogItemId: weapon.smg01
   fireMode: 1
   firstPersonViewPrefab: {fileID: 7937880123324122464, guid: f7c57217057619b4a90d333d295dea36, type: 3}
   thirdPersonViewPrefab: {fileID: 3924758656610726626, guid: 07cccf1c327b02346b818246b2846d83, type: 3}

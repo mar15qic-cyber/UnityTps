@@ -14,8 +14,11 @@ public sealed class CommerceService(AppDbContext db)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new ApiException(StatusCodes.Status404NotFound, "PROFILE_NOT_FOUND", "档案不存在");
         var owned = user.Inventory.Select(x => x.ItemId).ToHashSet(StringComparer.Ordinal);
+        // 2026-09-07 修复：不再按 AcquisitionSource=Shop 过滤——初始武器（Initial）必须进入
+        // 目录响应，否则仓库列表缺行、玩家无法进入枪匠页改装初始武器（AK/M4）。
+        // 商城可见性由客户端按 acquisitionSource 过滤；可购性由 PurchaseAsync 服务端执法。
         var items = await db.CatalogItems.AsNoTracking()
-            .Where(x => x.AcquisitionSource == "Shop" && x.IsActive)
+            .Where(x => x.IsActive)
             .OrderBy(x => x.ItemId).ToListAsync(cancellationToken);
         return new ShopCatalogDto(user.Wallet?.Coins ?? 0, user.Profile?.Level ?? 1, items.Select(x => x.ToDto(owned.Contains(x.ItemId))).ToArray());
     }
@@ -58,6 +61,9 @@ public sealed class CommerceService(AppDbContext db)
                 ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ItemNotFound, "商品不存在");
             if (!item.IsActive || !item.IsImplemented)
                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ItemDisabled, "商品尚未开放");
+            // 目录响应含非商城行（初始/通行证奖励），购买仍只对 Shop 行开放（服务端执法）
+            if (item.AcquisitionSource != "Shop")
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.ItemDisabled, "该物品不可购买");
             if ((user.Profile?.Level ?? 1) < item.UnlockLevel)
                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LevelLocked, $"需要等级 {item.UnlockLevel}");
             if (user.Inventory.Any(x => x.ItemId == item.ItemId))

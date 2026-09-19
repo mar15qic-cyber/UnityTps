@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SMG4_01
   m_EditorClassIdentifier: 
   weaponId: lpw.smg.04
-  displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 04"
+  displayName: P90 II
+  catalogItemId: weapon.lpw.smg.04
   fireMode: 1
   firstPersonViewPrefab: {fileID: 1096872483796561190, guid: a19bb19e03b27f74890f574aee25b544, type: 3}
   thirdPersonViewPrefab: {fileID: 1343866032011768620, guid: 58dc8b17587108646a3893f5a721305a, type: 3}

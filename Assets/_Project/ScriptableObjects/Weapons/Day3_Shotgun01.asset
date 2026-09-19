@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Shotgun01
   m_EditorClassIdentifier: 
   weaponId: shotgun.01
-  displayName: Day 3 Shotgun 01
+  displayName: Benelli M3 Super-90
+  catalogItemId: weapon.shotgun01
   fireMode: 0
   firstPersonViewPrefab: {fileID: 379035595196849686, guid: 3784be4f26b03d24ba63b5956039aed1, type: 3}
   thirdPersonViewPrefab: {fileID: 5225663059114905009, guid: 5ea1fa58f83609546a3196eaea93f018, type: 3}

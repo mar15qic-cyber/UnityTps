@@ -62,6 +62,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2925572873735534648}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6235084699770860263
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4103536771799422210}
+  - component: {fileID: 4103424978254434613}
+  m_Layer: 0
+  m_Name: Attach_Optic
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4103536771799422210
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6235084699770860263}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
+  m_LocalPosition: {x: -0.001072613, y: 0.2738966, z: 0.10473905}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2925572873735534648}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4103424978254434613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6235084699770860263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slot: 0
 --- !u!1001 &2925572873735135980
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -304,6 +349,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400084, guid: b3236689d20e81b4493519925058781a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2388870766294426008}
+    - targetCorrespondingSourceObject: {fileID: 400084, guid: b3236689d20e81b4493519925058781a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4103536771799422210}
     - targetCorrespondingSourceObject: {fileID: 400046, guid: b3236689d20e81b4493519925058781a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8882209764369626616}
@@ -371,8 +419,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
+  aimState: {fileID: 0}
+  actionSystem: {fileID: 0}
+  input: {fileID: 0}
+  poseProfile: {fileID: 0}
   fireFadeSeconds: 0.04
   actionFadeSeconds: 0.12
+  aimFadeSeconds: 0.08
+  aimPoseFadeSeconds: 0.05
 --- !u!114 &8094044290004937739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -398,6 +452,8 @@ MonoBehaviour:
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
   sightReference: {fileID: 2388870766294426008}
+  alignAdsToSightAxis: 0
+  debugShotDiagnostics: 0
 --- !u!4 &2925572873735534632 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400068, guid: b3236689d20e81b4493519925058781a, type: 3}

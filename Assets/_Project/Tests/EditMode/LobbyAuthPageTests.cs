@@ -126,6 +126,25 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void LoginCard_CenteredWhenNavigationHidden()
+        {
+            var presenter = CreatePresenter();
+            // 2026-09-16 需求2：导航隐藏时 body 回收全屏 → 卡片锚点中心 x=0.5 = 屏幕居中
+            var bodyRect = BodyOf(presenter) as RectTransform;
+            Assert.That(bodyRect, Is.Not.Null);
+            SetField(presenter, "bodyRect", bodyRect);
+            Invoke(presenter, "SetNavigationVisible", false);
+            Assert.That(bodyRect.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(bodyRect.anchorMax, Is.EqualTo(Vector2.one));
+
+            Invoke(presenter, "RenderLoginPage");
+            var card = BodyOf(presenter).Find("AuthCard") as RectTransform;
+            Assert.That(card, Is.Not.Null);
+            var centerX = (card.anchorMin.x + card.anchorMax.x) * 0.5f;
+            Assert.That(centerX, Is.EqualTo(0.5f).Within(0.001f), "登录卡片必须在全屏 body 内水平居中");
+        }
+
+        [Test]
         public void AuthPages_EnterMotionLeavesCardFullyVisible()
         {
             var presenter = CreatePresenter();

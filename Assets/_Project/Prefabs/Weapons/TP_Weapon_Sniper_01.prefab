@@ -1,5 +1,50 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &584690649918172010
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7660892277253500589}
+  - component: {fileID: 121275012389304223}
+  m_Layer: 0
+  m_Name: Attach_Optic
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7660892277253500589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584690649918172010}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -0.009219785, y: 0.032796502, z: -0.06808035}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7670982791927924758}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &121275012389304223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584690649918172010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slot: 0
 --- !u!1 &5864148334298207712
 GameObject:
   m_ObjectHideFlags: 0
@@ -123,6 +168,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3303603569220673330}
+    - targetCorrespondingSourceObject: {fileID: 400000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7660892277253500589}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
 --- !u!4 &7670982791927924758 stripped

@@ -168,13 +168,33 @@ namespace Game.Gameplay.Menu
             if (Machine.State == GameplayMenuState.RebindCapture) PollRebindKey();
 
             // ESC 路由（-400 早于 InputReader：本帧消费，游戏输入侧看不到该帧 ESC）；
-            // 退出流程进行中 ESC 不再开菜单（防止断线等待期把菜单又拉起来）
+            // 退出流程进行中 ESC 不再开菜单（防止断线等待期把菜单又拉起来）；
+            // R9 审计修复：聊天聚焦时 ESC 归聊天视图（关闭聊天），不得误开战斗菜单
             var kb = Keyboard.current;
-            if (!_leaveRequested && kb != null && kb.escapeKey.wasPressedThisFrame && Machine.TryConsumeEscape())
+            if (!_leaveRequested && !GameplayInputGate.ChatFocused
+                && kb != null && kb.escapeKey.wasPressedThisFrame && Machine.TryConsumeEscape())
                 OnMenuToggled();
 
+            EnforceCursorState();
             UpdateLeaveContextView();
         }
+
+        /// <summary>光标兜底（2026-09-18 实机问题3：对局内 Windows 光标可见可移动）：
+        /// 锁定此前只在 ApplyState（菜单状态迁移）执行，挂载后从未初始锁——进对局后光标永不锁定。
+        /// 每帧按守卫补锁；以下任一情况不锁（归属其他写者/页面）：菜单可见（ApplyState 已解锁）、
+        /// 聊天聚焦（ChatHudView 拥有光标）、状态机锁定（SceneTransition/MatchEnded——结算页与
+        /// 场景切换窗口需要自由光标）。</summary>
+        private void EnforceCursorState()
+        {
+            if (!ShouldLockCursor(Machine.MenuVisible, GameplayInputGate.ChatFocused, Machine.IsLocked)) return;
+            if (Cursor.lockState == CursorLockMode.Locked) return;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
+        /// <summary>光标锁定判定（纯函数，internal=测试接缝）：三个豁免条件见 EnforceCursorState 注释。</summary>
+        internal static bool ShouldLockCursor(bool menuVisible, bool chatFocused, bool machineLocked)
+            => !menuVisible && !chatFocused && !machineLocked;
 
         private void ResolveLocalPlayer()
         {
@@ -218,8 +238,9 @@ namespace Game.Gameplay.Menu
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            else
+            else if (!GameplayInputGate.ChatFocused)
             {
+                // C4/I2：聊天聚焦时聊天视图拥有光标（菜单未开时），此处不得抢锁
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
@@ -396,11 +417,34 @@ namespace Game.Gameplay.Menu
             ApplyState();
         }
 
-        /// <summary>确认退出。busy 由视图侧按钮禁用承担（防双击/重复 RPC）。</summary>
+        /// <summary>确认退出（旧同步入口已废弃——退出改为视图驱动的异步事务，见 BeginLeaveTransaction）。</summary>
         public void ConfirmLeave()
         {
-            if (_leaveRequested || Machine.State != GameplayMenuState.LeaveConfirm) return;
+            // 幂等保护：事务已由视图发起则拒绝重复触发（视图 RunLeaveTransactionAsync 是唯一入口）。
+            // 只有联网分支才需要第二步——ReturnNow（离线/本地服）在 Begin 内已回大厅，
+            // 再走 Complete 会对已切场景的实例起协程。
+            if (BeginLeaveTransaction() == LeaveTransactionOutcome.ProceedNetwork) CompleteLeaveTransaction();
+        }
+
+        /// <summary>退出事务三态（§6 三.2）：Rejected=闸门拒绝；ReturnNow=离线/本地服已就地回大厅；
+        /// ProceedNetwork=联网客户端——视图继续「后端 leave 有界完成 → CompleteLeaveTransaction」。</summary>
+        public enum LeaveTransactionOutcome
+        {
+            Rejected,
+            ReturnNow,
+            ProceedNetwork,
+        }
+
+        /// <summary>退出事务·第一步（视图异步事务开头调用；原 ConfirmLeave 的同步前半，§6 三.2）：
+        /// 幂等闸（_leaveRequested + 状态校验）→ 立即关菜单 + 输入门。
+        /// 离线（无网络语义）→ ReturnNow（内部直接回大厅）；本地服 → ReturnNow（停服回大厅）；
+        /// 联网客户端 → ProceedNetwork。</summary>
+        public LeaveTransactionOutcome BeginLeaveTransaction()
+        {
+            if (_leaveRequested || Machine.State != GameplayMenuState.LeaveConfirm) return LeaveTransactionOutcome.Rejected;
             _leaveRequested = true;
+            MatchExitState.VoluntaryLeaveRequested = true;
+            MatchExitState.SettlementNavigationPending = false;
             Machine.ForceClose(); // 立即关菜单（后续是流程页/断线，不再有菜单）
             GameplayInputGate.SetMenuOpen(false);
             ApplyState();
@@ -409,7 +453,7 @@ namespace Game.Gameplay.Menu
             {
                 // 离线：无网络语义，直接回大厅
                 ReturnToLobbyLocally();
-                return;
+                return LeaveTransactionOutcome.ReturnNow;
             }
             if (IsLocalServer)
             {
@@ -417,10 +461,17 @@ namespace Game.Gameplay.Menu
                 // 不做假成功）。先停连接（远端会走 HostLost 流程），再回大厅。
                 StopAllConnections();
                 ReturnToLobbyLocally();
-                return;
+                return LeaveTransactionOutcome.ReturnNow;
             }
-            // 纯客户端：服务器权威退出（客户端不上报人数）；断线后由本协程兜底回大厅，
-            // 2 人局的 Ended 结算导航由 MatchSettlementFlow 负责（MatchExitState 协调不重复加载）
+            // 联网客户端：服务器权威退出（客户端不上报人数）——视图在后端 leave 有界完成后
+            // 调用 CompleteLeaveTransaction（2 人局的 Ended 结算导航由 MatchSettlementFlow 负责）
+            return LeaveTransactionOutcome.ProceedNetwork;
+        }
+
+        /// <summary>退出事务·第二步（视图在「后端 leave 成功或有界超时」后调用；原 ConfirmLeave 的网络后半）：
+        /// 服务器权威离开 → 有界等断开 → 停连接 → 本地清理/回大厅（终局结算导航优先）。</summary>
+        public void CompleteLeaveTransaction()
+        {
             if (_localCombat != null) _localCombat.SubmitLeaveMatchRequest();
             StartCoroutine(LeaveAndWaitForDisconnect());
         }
@@ -436,6 +487,9 @@ namespace Game.Gameplay.Menu
                 yield return null;
             }
             StopAllConnections();
+            // 退出事务 finally 语义（§6 三.2）：断开即清启动上下文——结算导航与本地回大厅
+            // 两条收尾路径都不得携带跨局残留
+            Game.Gameplay.Network.NetworkLaunchContext.Clear();
             if (!MatchExitState.SettlementNavigationPending)
                 ReturnToLobbyLocally();
         }
@@ -448,9 +502,17 @@ namespace Game.Gameplay.Menu
             if (nm.IsClientStarted) nm.ClientManager.StopConnection();
         }
 
-        /// <summary>本地安全清理并回大厅（防重复加载；已在大厅则跳过）。</summary>
+        /// <summary>本地安全清理并回大厅（防重复加载；已在大厅则跳过）。
+        /// 退出事务 finally 语义（§6 三.2）：清 NetworkLaunchContext（残留的启动上下文不得跨局存活）。
+        /// 审计 2026-09-16 §5.3-3：Gameplay 主动退出 = 聊天房间会话退出（Gameplay 不引用 UI，
+        /// 按本项目既有反射惯例调用 Game.UI.Chat.ChatController.StopAndClear——同 TryMount 入口）。</summary>
         public static void ReturnToLobbyLocally()
         {
+            Game.Gameplay.Network.NetworkLaunchContext.Clear();
+            var chatType = System.Type.GetType("Game.UI.Chat.ChatController, Game.UI");
+            chatType?.GetMethod("StopAndClear",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?.Invoke(null, null);
             if (SceneManager.GetActiveScene().name == LobbySceneName) return;
             GameplayInputGate.ResetAll();
             SceneManager.LoadScene(LobbySceneName, LoadSceneMode.Single);

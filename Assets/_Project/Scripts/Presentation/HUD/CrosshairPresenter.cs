@@ -49,7 +49,57 @@ namespace Game.Presentation.HUD
                           $"physGap={Model.TargetGap:F1}px display={Model.CurrentGap:F1}px", this);
         }
 
+        // ---- 联网 Owner 重绑（2026-09-18 实机问题4：对局无准星）----
+        // 在线模式场景作者玩家被模式门整树禁用，Awake 的一次性 FindObjectOfType 绑到禁用对象
+        // → controller.IsInitialized 恒 false → 准星恒隐藏。WeaponHudView 有 RebindToOwnerPlayer
+        // （弹药正常显示），本组件缺同样机制——按同款 0.5s 重扫补齐。离线无网络状态组件，重绑不发生。
+        private Game.Gameplay.Network.NetworkWeaponState _netWeaponState;
+        private float _netScanTimer;
+
         private void Update()
+        {
+            if (_netWeaponState == null)
+            {
+                _netScanTimer -= Time.unscaledDeltaTime;
+                if (_netScanTimer <= 0f)
+                {
+                    _netScanTimer = 0.5f;
+                    TryRebindToOwnerPlayer();
+                }
+            }
+            UpdateCrosshair();
+        }
+
+        private void TryRebindToOwnerPlayer()
+        {
+            foreach (var state in FindObjectsByType<Game.Gameplay.Network.NetworkWeaponState>(FindObjectsSortMode.None))
+            {
+                if (state == null || !state.IsOwnerPlayerSafe) continue;
+                var ownerController = state.GetComponentInChildren<WeaponController>(true);
+                var ownerAim = state.GetComponentInChildren<PlayerAimState>(true);
+                var ownerStateView = state.GetComponentInChildren<PlayerStateView>(true);
+                if (ownerController == null) continue; // 玩家对象尚未完全装配，下轮重扫
+                _netWeaponState = state;
+                Rebind(ownerController, ownerAim, ownerStateView);
+                Debug.Log("[CrosshairPresenter] 准星已重绑到联网 Owner 玩家（在线模式 authored 玩家不参与）", this);
+                return;
+            }
+        }
+
+        /// <summary>重绑准星数据源（internal=测试接缝）：换绑控制器并精确迁移开火事件订阅。</summary>
+        internal void Rebind(WeaponController nextController, PlayerAimState nextAimState, PlayerStateView nextPlayerState)
+        {
+            if (nextController != null && nextController != controller)
+            {
+                if (controller != null) controller.OnShotFired -= HandleShot;
+                controller = nextController;
+                if (isActiveAndEnabled) controller.OnShotFired += HandleShot;
+            }
+            if (nextAimState != null) aimState = nextAimState;
+            if (nextPlayerState != null) playerState = nextPlayerState;
+        }
+
+        private void UpdateCrosshair()
         {
             if (controller == null || !controller.IsInitialized) { Model.Visible = false; return; }
             if (_mainCam == null) _mainCam = UnityEngine.Camera.main;

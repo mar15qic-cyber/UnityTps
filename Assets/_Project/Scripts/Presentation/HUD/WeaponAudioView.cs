@@ -156,12 +156,24 @@ namespace Game.Presentation.HUD
 
         private void PlayFire()
         {
-            if (_profile == null || _profile.FireVariants == null || _profile.FireVariants.Length == 0) return;
-            var entry = _profile.FireVariants[Random.Range(0, _profile.FireVariants.Length)];
-            var voice = _fireVoices[_fireVoiceIndex];
-            _fireVoiceIndex = (_fireVoiceIndex + 1) % _fireVoices.Count;
+            var variants = SelectFireVariants(_profile, controller != null && controller.IsSuppressed);
+            if (variants == null || variants.Length == 0) return;
+            var entry = variants[Random.Range(0, variants.Length)];
+            var voice = GetOneShotSource();
             ApplyEntry(voice, entry);
             voice.Play();
+        }
+
+        /// <summary>Fire 池选择（纯函数，EditMode 可测）：装消音器且配了消音变体 → 消音池；
+        /// 消音池为空时诚实降级回普通池（不假装完成，与 §9-11 拍板一致）。</summary>
+        public static WeaponAudioProfile.ClipEntry[] SelectFireVariants(WeaponAudioProfile profile, bool isSuppressed)
+        {
+            if (profile == null) return null;
+            if (isSuppressed
+                && profile.FireVariantsSuppressed != null
+                && profile.FireVariantsSuppressed.Length > 0)
+                return profile.FireVariantsSuppressed;
+            return profile.FireVariants;
         }
 
         private void PlayEntry(WeaponAudioProfile.ClipEntry entry, string debugName)
@@ -176,7 +188,9 @@ namespace Game.Presentation.HUD
         {
             var src = GetOneShotSource();
             src.clip = clip;
-            src.volume = vol;
+            // SFX 分类音量消费点（共享设置 Phase B）：基础音量 × SFX 因子（0=真静音）；
+            // Master 由 AudioListener 全局承担，不在此重复衰减
+            src.volume = Game.Core.AudioBus.ComputeVolume(vol, Game.Core.AudioBus.Category.Sfx);
             src.pitch = pitch;
             src.Play();
         }
@@ -184,6 +198,7 @@ namespace Game.Presentation.HUD
         private AudioSource GetOneShotSource()
         {
             // 非连射音复用 fire 池的下一路（避免与在播 Fire 同轨截断）
+            EnsureFireVoices();
             var voice = _fireVoices[_fireVoiceIndex];
             _fireVoiceIndex = (_fireVoiceIndex + 1) % _fireVoices.Count;
             return voice;
@@ -192,7 +207,9 @@ namespace Game.Presentation.HUD
         private void ApplyEntry(AudioSource src, WeaponAudioProfile.ClipEntry entry)
         {
             src.clip = entry.Clip;
-            src.volume = Random.Range(entry.VolumeRange.x, entry.VolumeRange.y);
+            // SFX 分类音量消费点（共享设置 Phase B）：随机基础音量 × SFX 因子（0=真静音）
+            src.volume = Game.Core.AudioBus.ComputeVolume(
+                Random.Range(entry.VolumeRange.x, entry.VolumeRange.y), Game.Core.AudioBus.Category.Sfx);
             src.pitch = Random.Range(entry.PitchRange.x, entry.PitchRange.y);
         }
 
@@ -203,7 +220,8 @@ namespace Game.Presentation.HUD
 
         private void BuildFireVoices()
         {
-            for (int i = 0; i < fireVoiceCount; i++)
+            int desiredCount = Mathf.Max(1, fireVoiceCount);
+            for (int i = _fireVoices.Count; i < desiredCount; i++)
             {
                 var go = new GameObject("AudioVoice_" + i);
                 go.transform.SetParent(transform, false);
@@ -213,6 +231,13 @@ namespace Game.Presentation.HUD
                 src.outputAudioMixerGroup = _profile != null ? _profile.MixerGroup : null;
                 _fireVoices.Add(src);
             }
+        }
+
+        private void EnsureFireVoices()
+        {
+            BuildFireVoices();
+            if (_fireVoiceIndex < 0 || _fireVoiceIndex >= _fireVoices.Count)
+                _fireVoiceIndex = 0;
         }
     }
 }

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Sniper02
   m_EditorClassIdentifier: 
   weaponId: sniper.02
-  displayName: Day 3 Sniper 02
+  displayName: Barrett M82
+  catalogItemId: weapon.sniper02
   fireMode: 0
   firstPersonViewPrefab: {fileID: 1891692137310699289, guid: 8522bb99a7a1b6646b152b4c6e2c091a, type: 3}
   thirdPersonViewPrefab: {fileID: 1030842309789348031, guid: 1194cf96d29f0994f950847170d4b7a8, type: 3}
@@ -29,6 +30,11 @@ MonoBehaviour:
     AimOut: {fileID: 7400006, guid: 776f88d95c576834c81e01185e23a857, type: 3}
     AimFire: {fileID: 7400000, guid: 776f88d95c576834c81e01185e23a857, type: 3}
     AimIdle: {fileID: 7400002, guid: 776f88d95c576834c81e01185e23a857, type: 3}
+  builtInOptic:
+    opticId: builtin.weapon.sniper02
+    aimTier: 4
+    adsFovOverride: 12
+    magnification: 8
   firstPersonAnimationFamily: 0
   rifleHasVerticalGrip: 0
   rifleAnimationFamily: 1

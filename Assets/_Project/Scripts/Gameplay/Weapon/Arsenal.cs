@@ -24,6 +24,9 @@ namespace Game.Gameplay.Weapon
         public WeaponDefinition ActiveWeapon => ActiveIndex >= 0 && ActiveIndex < slots.Length ? slots[ActiveIndex] : null;
         public int SlotCount => slots.Length;
 
+        /// <summary>当前槽位定义（只读视图；网络武器状态同步/服务器权威两槽读取用，2026-09-08 P0 §6 二.4）。</summary>
+        public IReadOnlyList<WeaponDefinition> Slots => slots;
+
         /// <summary>切枪开始（旧武器收枪表现）。参数：旧武器、目标槽位。</summary>
         public event Action<WeaponDefinition, int> OnSwitchStarted;
         /// <summary>收枪时长耗尽，武器已实际交换（唯一交换点）。参数：新武器。</summary>
@@ -60,6 +63,27 @@ namespace Game.Gameplay.Weapon
             _swapped = false;
             _configuredInitialIndex = slots.Length == 0 ? 0 : Mathf.Clamp(initialIndex, 0, slots.Length - 1);
             if (_hasStarted && slots.Length > 0) TrySelectSlot(_configuredInitialIndex);
+        }
+
+        /// <summary>
+        /// 网络权威对齐入口（审计 2026-09-15 §3）：把 ActiveIndex 对齐到 definition 所属槽位并广播
+        /// OnActiveWeaponChanged——不发切枪动作、不产生收/出枪时序（表现层自行切模型），供
+        /// NetworkWeaponState/ServerSwitchRequest 在 EquipDefinition 之后调用，保证
+        /// Arsenal.ActiveIndex / Controller.Definition / FP·TP·HUD·音频四类消费者同源。
+        /// definition 不属于任何槽位（离线调试十槽旁路）或已对齐时为幂等空操作。
+        /// </summary>
+        public void AlignToEquippedDefinition(WeaponDefinition definition)
+        {
+            if (definition == null) return;
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] != definition) continue;
+                if (ActiveIndex == i) return; // 已对齐（本地预测路径已广播过事件）
+                _previousSlotIndex = ActiveIndex; // Q 快切历史保持"上一把"
+                ActiveIndex = i;
+                OnActiveWeaponChanged?.Invoke(slots[i]);
+                return;
+            }
         }
 
         private void Awake()

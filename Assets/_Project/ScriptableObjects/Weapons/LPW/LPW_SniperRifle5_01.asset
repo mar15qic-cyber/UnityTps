@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SniperRifle5_01
   m_EditorClassIdentifier: 
   weaponId: lpw.sniper.05
-  displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 05"
+  displayName: M1887
+  catalogItemId: weapon.lpw.sniper.05
   fireMode: 0
   firstPersonViewPrefab: {fileID: 1119550502948331294, guid: 62bbed76f998a58409c7126357153f84, type: 3}
   thirdPersonViewPrefab: {fileID: 7404343893731267241, guid: baae970d064969847b6662ad3105e1c9, type: 3}

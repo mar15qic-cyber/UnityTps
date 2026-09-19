@@ -1,0 +1,29 @@
+-- 演示热页（P1 验证用）：修改本文件任意文字，无需重新编译/重发客户端，
+-- 重启后（P2 起：下载热更包后）页面即按新脚本渲染。
+local Typography = CS.Game.UI.UITypography
+local Theme = CS.Game.UI.UITheme
+local Components = CS.Game.UI.UIComponents
+local Facade = CS.Game.UI.HotLuaFacade
+local Vector2 = CS.UnityEngine.Vector2
+local Alignment = CS.TMPro.TextAlignmentOptions
+local Styles = CS.TMPro.FontStyles
+
+Facade.RegisterPage("hello", "演示页", function(root)
+    Typography.Text("T_HotTitle", root.transform, "热更演示页", Theme.FontPageTitle, Theme.TextPrimary,
+        Vector2(0.03, 0.86), Vector2(0.60, 0.96), Alignment.Left, Styles.Bold)
+    Typography.Text("T_HotBody", root.transform,
+        "本页由 Lua 热更脚本渲染：修改脚本即可改变本页内容，无需重发客户端。",
+        Theme.FontBody, Theme.TextMuted,
+        Vector2(0.03, 0.70), Vector2(0.74, 0.84), Alignment.Left)
+
+    local clickCount = 0
+    local btn = Components.Button("Btn_HotDemo", root.transform, "点我试试",
+        Components.ButtonKind.Primary, Vector2(0.03, 0.56), Vector2(0.26, 0.66))
+    btn.onClick:AddListener(function()
+        clickCount = clickCount + 1
+        Typography.Text("T_HotClick", root.transform,
+            "热更按钮已点击 " .. clickCount .. " 次（最近一次 " .. os.date("%H:%M:%S") .. "）",
+            Theme.FontBody, Theme.AccentPrimary,
+            Vector2(0.03, 0.44), Vector2(0.74, 0.54), Alignment.Left)
+    end)
+end)

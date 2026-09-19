@@ -19,7 +19,7 @@ namespace Game.Gameplay.Tests
     public sealed class WeaponBalanceIntegrityTests
     {
         private const string BalanceAssetPath = "Assets/_Project/ScriptableObjects/Weapons/Day2_DemoBalance.asset";
-        private const string CatalogAssetPath = "Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset";
+        private const string CatalogAssetPath = "Assets/_Project/Resources/WeaponAssetCatalog.asset"; // 2026-09-08 移入 Resources（DS build 解析 definition 引用）
 
         /// <summary>本轮新增武器（实机暴露 1/0 弹药问题的一批）对应的正式定义资产。</summary>
         private static readonly string[] NewWeaponDefinitionPaths =

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Sniper01
   m_EditorClassIdentifier: 
   weaponId: sniper.01
-  displayName: Day 3 Sniper 01
+  displayName: M24 SWS
+  catalogItemId: weapon.sniper01
   fireMode: 0
   firstPersonViewPrefab: {fileID: 2925572873735234624, guid: 367e8f505080f0c4ab7702ce589346bc, type: 3}
   thirdPersonViewPrefab: {fileID: 7670982791927436342, guid: e10276abf7f52ca46b75b5bc8edcd355, type: 3}
@@ -29,6 +30,11 @@ MonoBehaviour:
     AimOut: {fileID: 7400006, guid: b3236689d20e81b4493519925058781a, type: 3}
     AimFire: {fileID: 7400000, guid: b3236689d20e81b4493519925058781a, type: 3}
     AimIdle: {fileID: 7400002, guid: b3236689d20e81b4493519925058781a, type: 3}
+  builtInOptic:
+    opticId: builtin.weapon.sniper01
+    aimTier: 4
+    adsFovOverride: 12
+    magnification: 8
   firstPersonAnimationFamily: 0
   rifleHasVerticalGrip: 0
   rifleAnimationFamily: 1

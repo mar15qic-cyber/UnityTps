@@ -59,10 +59,19 @@ namespace Game.Presentation.Animation
         {
             if (_animator == null || _spine == null) return;
 
+            // 2026-09-16 审计 D2 双保险：死亡期间**不得**再向骨骼叠加（死亡生命周期已统一停用本组件，
+            // 这里是防漏闸——旧实现漏停 TPAim/IK 时，Animator 冻结后同一 pitch 会逐帧叠加到同一骨骼上
+            // 造成持续扭曲，并让"死亡入口求一次的贴地包围盒"失效）。
+            if (_netAuthority == null) _netAuthority = GetComponentInParent<NetworkCombatAuthority>();
+            if (_netAuthority != null && _netAuthority.IsDead)
+            {
+                ResetAccumulatedPose(); // 复活从已知姿态重新收敛，不携带死亡前的俯仰累计
+                return;
+            }
+
             // 远端玩家（Docs/23 P0-5 G2b）：瞄准源 = NetworkCombatAuthority.AimDirectionWorld
             // （服务器同步俯仰后的 aimPivot 前向）；本地/离线玩家路径保持现状（相机中心射线）。
             Vector3 aimDir;
-            if (_netAuthority == null) _netAuthority = GetComponentInParent<NetworkCombatAuthority>();
             if (_netAuthority != null && !_netAuthority.IsOwnerPlayer)
             {
                 aimDir = _netAuthority.AimDirectionWorld;
@@ -103,6 +112,14 @@ namespace Game.Presentation.Animation
             if (_chest != null) ApplyAim(_chest, chestWeight, right, up, _pitch, yawDelta);
             if (_neck != null) ApplyAim(_neck, neckWeight, right, up, _pitch, yawDelta);
             if (_head != null) ApplyAim(_head, headWeight, right, up, _pitch, yawDelta);
+        }
+
+        /// <summary>清空俯仰平滑累计（死亡/复活边界，审计 D2）：复活后从当前瞄准重新收敛，
+        /// 不把死亡前的平滑速度/角度带进新姿态。</summary>
+        public void ResetAccumulatedPose()
+        {
+            _pitch = 0f;
+            _pitchVelocity = 0f;
         }
 
         /// <summary>在动画姿态之上叠加份额旋转（世界空间 delta → 该骨骼局部）。</summary>

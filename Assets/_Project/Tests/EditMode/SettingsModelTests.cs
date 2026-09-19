@@ -93,6 +93,8 @@ namespace Game.Gameplay.Tests
         [Test]
         public void AdsInputMode_DefaultsToHoldAndRoundTrips()
         {
+            // PlayerPrefs 是机器级持久状态（用户在编辑器实测开镜方式会写入），测试先清键保证确定性
+            PlayerPrefs.DeleteKey(AdsInputMode.PrefsKey);
             Assert.That(AdsInputMode.Toggle, Is.False, "默认应为长按模式");
             Assert.That(AdsInputMode.DisplayName(), Is.EqualTo("长按"));
 

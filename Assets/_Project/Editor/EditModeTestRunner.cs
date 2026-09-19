@@ -18,12 +18,44 @@ namespace Game.EditorTools
         /// <summary>Runs all EditMode tests whose full name contains the given filter (null/empty = all EditMode tests).</summary>
         public static void Run(string testNameContains)
         {
+            RunFiltered(testNameContains == null ? null : new[] { testNameContains });
+        }
+
+        /// <summary>Runs EditMode tests matching an explicit list of full fixture/test names (Docs/28 Q00：明确列表入口，禁止意外全量)。</summary>
+        public static void RunMany(string[] fullNames)
+        {
+            if (fullNames == null || fullNames.Length == 0) { Debug.LogWarning("RunMany requires explicit names; refuse to run all"); return; }
+            RunFiltered(fullNames);
+        }
+
+        private static void RunFiltered(string[] testNames)
+        {
             if (Running) { Debug.LogWarning("EditModeTestRunner already running"); return; }
             Running = true;
             LastSummary = string.Empty;
 
             var api = ScriptableObject.CreateInstance<TestRunnerApi>();
             var filter = new Filter { testMode = TestMode.EditMode };
+            if (testNames != null && testNames.Length > 0)
+                filter.testNames = testNames;
+            api.RegisterCallbacks(new Callbacks(summary =>
+            {
+                LastSummary = summary;
+                Running = false;
+                ScriptableObject.DestroyImmediate(api);
+            }));
+            api.Execute(new ExecutionSettings(filter));
+        }
+
+        /// <summary>Runs all PlayMode tests whose full name contains the given filter (null/empty = all PlayMode tests).</summary>
+        public static void RunPlayMode(string testNameContains)
+        {
+            if (Running) { Debug.LogWarning("TestRunner already running"); return; }
+            Running = true;
+            LastSummary = string.Empty;
+
+            var api = ScriptableObject.CreateInstance<TestRunnerApi>();
+            var filter = new Filter { testMode = TestMode.PlayMode };
             if (!string.IsNullOrWhiteSpace(testNameContains))
                 filter.testNames = new[] { testNameContains };
             api.RegisterCallbacks(new Callbacks(summary =>

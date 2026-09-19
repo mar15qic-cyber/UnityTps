@@ -27,7 +27,7 @@ namespace Game.Presentation.Weapon
         [SerializeField] private Transform shellPort;
         [Tooltip("普通表面命中反馈（弹孔/火花，含音效，自毁）")]
         [SerializeField] private GameObject impactPrefab;
-        [Tooltip("命中目标（有伤害）反馈，如血液；空则退回 impactPrefab")]
+        [Tooltip("命中角色（有伤害）反馈，如血花；空则不生成。绝不退回 impactPrefab——墙面弹孔不是角色贴花锚点")]
         [SerializeField] private GameObject damagedImpactPrefab;
 
         /// <summary>FPWeaponMotion 程序化 ADS 用：当前视图的枪口。</summary>
@@ -47,6 +47,16 @@ namespace Game.Presentation.Weapon
         public Transform SightReference => sightReference;
         /// <summary>替换枪模是否以显式 SightReference 修正动画底座的瞄准位置。</summary>
         public bool AlignAdsToSightAxis => alignAdsToSightAxis;
+
+        /// <summary>
+        /// Editor calibration hook. The override is intentionally runtime-only;
+        /// LPWDualLayerCalibrationWindow persists the authored marker into the
+        /// formal prefab after the designer confirms the view.
+        /// </summary>
+        public void OverrideSightReferenceForCalibration(Transform reference)
+        {
+            sightReference = reference;
+        }
 
         private LineRenderer _tracer;
         private Light _muzzleLight;
@@ -169,13 +179,34 @@ namespace Game.Presentation.Weapon
         private void SpawnImpact(WeaponShot shot)
         {
             if (!shot.Result.Hit) return;
-            GameObject prefab = shot.Result.Damaged && damagedImpactPrefab != null
-                ? damagedImpactPrefab
-                : impactPrefab;
-            if (prefab == null) return;
-            // LPFP Impact Prefab 按 +Z 朝向表面法线，自带命中音效与自毁
-            Instantiate(prefab, shot.Result.Point + shot.Result.Normal * 0.01f,
-                Quaternion.LookRotation(shot.Result.Normal));
+            // 2026-09-18 审计 §6.3：命中角色与命中环境是两类特效，**绝不互相兜底**。
+            // 角色命中点来自受击胶囊代理，不是蒙皮表面——把墙面弹孔贴到角色身上会在空气中
+            // 留下实体弹孔（无敌/友军/已死目标 Damaged=false 走弹孔分支就是这个症状）。
+            // 因此角色只播短时命中反馈；没配角色反馈就不生成，而不是退回弹孔。
+            if (shot.Result.Target != null)
+            {
+                if (damagedImpactPrefab == null) return;
+                // 挂到目标视觉体下：尸体倒地/移动时命中反馈跟随身体，不悬停在原站立位置
+                Instantiate(damagedImpactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
+                    Quaternion.LookRotation(shot.Result.Normal), shot.Result.Target.transform);
+                LogImpactDiagnostics(shot, "character");
+                return;
+            }
+            if (impactPrefab == null) return;
+            // 环境命中：继续落在真实命中表面（无父节点，世界坐标固定）
+            Instantiate(impactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
+                Quaternion.LookRotation(shot.Result.Normal), null);
+            LogImpactDiagnostics(shot, "environment");
+        }
+
+        /// <summary>本地预测特效的落点留证（与服务器权威 [FireTrace] 结算分开记录，审计 §6.3）：
+        /// 本视图的特效来自 Owner 本地射线，不能当作服务器掉血证据。</summary>
+        private void LogImpactDiagnostics(WeaponShot shot, string surface)
+        {
+            if (!debugShotDiagnostics) return;
+            Debug.Log($"[WeaponView][Predict] surface={surface} damaged={shot.Result.Damaged} " +
+                      $"point={shot.Result.Point.ToString("F3")} target=" +
+                      (shot.Result.Target != null ? shot.Result.Target.name : "null"), this);
         }
 
         private static void SetLayerRecursive(GameObject go, int layer)

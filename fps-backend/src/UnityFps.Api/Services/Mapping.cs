@@ -15,7 +15,8 @@ public static class Mapping
 
     public static CatalogItemDto ToDto(this CatalogItem item, bool owned) =>
         new(item.ItemId, item.ItemType, item.SlotType, item.DisplayName, item.Description, item.AssetKey,
-            item.PriceCoins, item.UnlockLevel, item.IsActive, owned, item.IsImplemented, item.CalibrationKey);
+            item.PriceCoins, item.UnlockLevel, item.IsActive, owned, item.IsImplemented, item.CalibrationKey,
+            item.AcquisitionSource);
 
     public static PassRewardDto ToDto(this PassReward reward, bool granted) =>
         new(reward.PassLevel, reward.RewardType, reward.ItemId, reward.CoinsAmount, granted);

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_Shotgun1_01
   m_EditorClassIdentifier: 
   weaponId: lpw.shotgun.01
-  displayName: "\u6218\u672F\u9730\u5F39\u67AA 01"
+  displayName: "\u6C64\u59C6\u68EE M1928"
+  catalogItemId: weapon.lpw.shotgun.01
   fireMode: 0
   firstPersonViewPrefab: {fileID: 7183335977626403184, guid: 1522fb0739a7bfb4d9d69994d5b945c2, type: 3}
   thirdPersonViewPrefab: {fileID: 5227809510066723879, guid: 6bc6fa13bd387ec48b7a175e6bc55195, type: 3}

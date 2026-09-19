@@ -8,8 +8,11 @@ public interface IProgressionRules
     int GetXpToNextLevel(int level);
     int GetUpgradeCost(string statId, int currentLevel);
 
-    /// <summary>结算数值校验：kills ≤ 30、duration ≤ 15min；超限抛异常由调用方转 422.</summary>
+    /// <summary>结算数值校验（旧路径）：kills ≤ 30、duration ≤ 15min；超限抛异常由调用方转 422.</summary>
     (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds);
+
+    /// <summary>结算数值校验（Docs/27 §7.2 模式感知）：带 matchId 的房间对局放宽为 kills ≤ 200、duration ≤ 20min；旧路径维持原上限.</summary>
+    (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds, bool matchScoped);
 
     /// <summary>账号 XP = 100 + 20×kills + 200×(win?1:0)，上限 1000.</summary>
     int GetMatchXp(int kills, bool isWin);
@@ -36,13 +39,19 @@ public sealed class DemoProgressionRules : IProgressionRules
     public int GetUpgradeCost(string statId, int currentLevel) => currentLevel + 1;
 
     public (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds)
+        => ValidateMatchPayload(kills, durationSeconds, matchScoped: false);
+
+    public (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds, bool matchScoped)
     {
-        if (kills < 0 || kills > 30)
+        // Docs/27 §7.2：TDM/新版对局（带 matchId）合法个人战绩可超旧 30 杀上限；伪造防线由比赛绑定校验承担
+        var maxKills = matchScoped ? 200 : 30;
+        var maxDuration = matchScoped ? 1200 : 900;
+        if (kills < 0 || kills > maxKills)
             throw new ApiException(StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.MatchPayloadRejected, "击杀数超出有效范围 (0–30)");
-        if (durationSeconds < 0 || durationSeconds > 900)
+                ApiErrorCodes.MatchPayloadRejected, $"击杀数超出有效范围 (0–{maxKills})");
+        if (durationSeconds < 0 || durationSeconds > maxDuration)
             throw new ApiException(StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.MatchPayloadRejected, "时长超出有效范围 (0–900s)");
+                ApiErrorCodes.MatchPayloadRejected, $"时长超出有效范围 (0–{maxDuration}s)");
         return (kills, durationSeconds);
     }
 

@@ -57,6 +57,36 @@ namespace UnityFps.Api.Data.Migrations
                     b.ToTable("AchievementDefinition", (string)null);
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.AttachmentCompat", b =>
+                {
+                    b.Property<string>("WeaponItemId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("AttachmentItemId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("CalibrationKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<bool>("IsImplemented")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("SlotType")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("WeaponItemId", "AttachmentItemId");
+
+                    b.HasIndex("AttachmentItemId");
+
+                    b.ToTable("AttachmentCompat", (string)null);
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.CatalogItem", b =>
                 {
                     b.Property<string>("ItemId")
@@ -131,6 +161,13 @@ namespace UnityFps.Api.Data.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("CurrentMatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("ExpectedProtocolId")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("HostAddress")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -153,16 +190,53 @@ namespace UnityFps.Api.Data.Migrations
                     b.Property<int>("JoinedPlayers")
                         .HasColumnType("int");
 
+                    b.Property<int>("KillTarget")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("LastHeartbeatUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("LastMatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("MapId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int>("MatchGeneration")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("int");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
 
                     b.Property<string>("RoomCode")
                         .IsRequired()
                         .HasMaxLength(6)
                         .HasColumnType("varchar(6)");
+
+                    b.Property<long>("RoomVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ServerInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StateChangedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int>("TimeLimitMinutes")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -170,6 +244,10 @@ namespace UnityFps.Api.Data.Migrations
 
                     b.HasIndex("RoomCode")
                         .IsUnique();
+
+                    b.HasIndex("ServerInstanceId");
+
+                    b.HasIndex("Status", "StateChangedAtUtc");
 
                     b.ToTable("GameRoom", (string)null);
                 });
@@ -182,11 +260,25 @@ namespace UnityFps.Api.Data.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<ulong>("ChatJoinSeq")
+                        .HasColumnType("bigint unsigned");
+
+                    b.Property<bool>("IsReady")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime>("JoinedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("LastSeenUtc")
                         .HasColumnType("datetime(6)");
 
                     b.Property<long>("RoomId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -225,6 +317,10 @@ namespace UnityFps.Api.Data.Migrations
                     b.Property<int>("Kills")
                         .HasColumnType("int");
 
+                    b.Property<string>("MatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
                     b.Property<int>("PassXpEarned")
                         .HasColumnType("int");
 
@@ -241,6 +337,8 @@ namespace UnityFps.Api.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MatchId");
 
                     b.HasIndex("UserId", "ClientMatchId")
                         .IsUnique();
@@ -501,6 +599,218 @@ namespace UnityFps.Api.Data.Migrations
                     b.ToTable("PlayerWallet", (string)null);
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchResult", b =>
+                {
+                    b.Property<string>("MatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PlayersJson")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("varchar(4096)");
+
+                    b.Property<string>("ReportedByInstanceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("RewardsAppliedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("RoomId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WinnerTeam")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.HasKey("MatchId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("RoomMatchResult", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchRoster", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("LeftAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("MatchId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("RoomId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("MatchId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("RoomMatchRoster", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.ServerInstance", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("BuildVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CurrentPlayers")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InstanceId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("LastHeartbeatUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("MapId")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProtocolId")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("RegisteredAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RoomCode")
+                        .HasMaxLength(6)
+                        .HasColumnType("varchar(6)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstanceId")
+                        .IsUnique();
+
+                    b.HasIndex("RoomCode");
+
+                    b.HasIndex("State", "LastHeartbeatUtc");
+
+                    b.ToTable("ServerInstance", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.ServerJoinTicket", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ConsumedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("MatchGeneration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("RoomCode")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("varchar(6)");
+
+                    b.Property<long>("ServerInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TicketHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("RoomCode");
+
+                    b.HasIndex("ServerInstanceId");
+
+                    b.HasIndex("TicketHash")
+                        .IsUnique();
+
+                    b.ToTable("ServerJoinTicket", (string)null);
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.ShopPurchase", b =>
                 {
                     b.Property<string>("PurchaseId")
@@ -566,6 +876,9 @@ namespace UnityFps.Api.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<long>("TokenVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -577,6 +890,28 @@ namespace UnityFps.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("UserAccount", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.UserSetting", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SettingKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("SettingValue")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("UserId", "SettingKey");
+
+                    b.ToTable("UserSetting", (string)null);
                 });
 
             modelBuilder.Entity("UnityFps.Api.Data.WalletLedgerEntry", b =>
@@ -616,6 +951,25 @@ namespace UnityFps.Api.Data.Migrations
                     b.ToTable("WalletLedgerEntry", (string)null);
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.AttachmentCompat", b =>
+                {
+                    b.HasOne("UnityFps.Api.Data.CatalogItem", "AttachmentItem")
+                        .WithMany()
+                        .HasForeignKey("AttachmentItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UnityFps.Api.Data.CatalogItem", "WeaponItem")
+                        .WithMany()
+                        .HasForeignKey("WeaponItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttachmentItem");
+
+                    b.Navigation("WeaponItem");
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.GameRoom", b =>
                 {
                     b.HasOne("UnityFps.Api.Data.UserAccount", "Host")
@@ -624,7 +978,14 @@ namespace UnityFps.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("UnityFps.Api.Data.ServerInstance", "ServerInstance")
+                        .WithMany()
+                        .HasForeignKey("ServerInstanceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Host");
+
+                    b.Navigation("ServerInstance");
                 });
 
             modelBuilder.Entity("UnityFps.Api.Data.GameRoomMember", b =>
@@ -731,6 +1092,28 @@ namespace UnityFps.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.RoomMatchRoster", b =>
+                {
+                    b.HasOne("UnityFps.Api.Data.GameRoom", "Room")
+                        .WithMany("Rosters")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.ServerJoinTicket", b =>
+                {
+                    b.HasOne("UnityFps.Api.Data.ServerInstance", "Instance")
+                        .WithMany()
+                        .HasForeignKey("ServerInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instance");
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.ShopPurchase", b =>
                 {
                     b.HasOne("UnityFps.Api.Data.CatalogItem", "Item")
@@ -750,9 +1133,22 @@ namespace UnityFps.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.UserSetting", b =>
+                {
+                    b.HasOne("UnityFps.Api.Data.UserAccount", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.GameRoom", b =>
                 {
                     b.Navigation("Members");
+
+                    b.Navigation("Rosters");
                 });
 
             modelBuilder.Entity("UnityFps.Api.Data.PlayerLoadout", b =>

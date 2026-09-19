@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_SMG02
   m_EditorClassIdentifier: 
   weaponId: smg.02
-  displayName: Day 3 SMG 02
+  displayName: Agram 2000
+  catalogItemId: weapon.smg02
   fireMode: 1
   firstPersonViewPrefab: {fileID: 3766298208268020765, guid: 2cc1a267c3e1e6c439da59cdc71701de, type: 3}
   thirdPersonViewPrefab: {fileID: 3843627004293600021, guid: 3a6d4094df6899645b06ff6e60bf599f, type: 3}

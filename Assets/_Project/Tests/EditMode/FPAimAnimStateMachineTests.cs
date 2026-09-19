@@ -13,8 +13,8 @@ namespace Game.Presentation.Tests
             bool aimHeld = false, float ads01 = 0f, bool busy = false,
             bool shot = false, bool dry = false,
             bool aimInFin = false, bool aimOutFin = false, bool aimFireFin = false,
-            bool holster = false)
-            => new FPAimAnimInput(aimHeld, ads01, busy, shot, dry, aimInFin, aimOutFin, aimFireFin, holster);
+            bool holster = false, bool proceduralAdsFire = false)
+            => new FPAimAnimInput(aimHeld, ads01, busy, shot, dry, aimInFin, aimOutFin, aimFireFin, holster, proceduralAdsFire);
 
         private static FPAimAnimStateMachine Armed()
         {
@@ -66,6 +66,30 @@ namespace Game.Presentation.Tests
             var fsm = Armed();
             fsm.Tick(In(aimHeld: true, ads01: 0.1f));
             Assert.That(fsm.Tick(In(aimHeld: true, ads01: 0.3f, shot: true)), Is.EqualTo(FPAimAnimCommand.PlayAimFire));
+        }
+
+        [Test]
+        public void SchemaSevenAdsFire_UsesProceduralFireAndKeepsAimTrack()
+        {
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true)), Is.EqualTo(FPAimAnimCommand.PlayAimIdle));
+
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, shot: true)), Is.EqualTo(FPAimAnimCommand.ProceduralFire));
+            Assert.That(fsm.IsOnAimTrack, Is.True);
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f)), Is.EqualTo(FPAimAnimCommand.None));
+        }
+
+        [Test]
+        public void SchemaSevenAdsFire_DuringAimInDoesNotEnterAimFireState()
+        {
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 0.3f, shot: true)), Is.EqualTo(FPAimAnimCommand.ProceduralFire));
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true)), Is.EqualTo(FPAimAnimCommand.PlayAimIdle));
         }
 
         [Test]
@@ -181,6 +205,104 @@ namespace Game.Presentation.Tests
             Assert.That(fsm.IsOnAimTrack, Is.False);
             // 重置后按住 → 重新入镜
             Assert.That(fsm.Tick(In(aimHeld: true, ads01: 0.5f)), Is.EqualTo(FPAimAnimCommand.PlayAimIn));
+        }
+
+        // ---------------- 抖动修复回归锁：ProceduralOnly 连发不重启 AimFire ----------------
+
+        [Test]
+        public void ProceduralOnly_AutoBurstInAim_NeverPlaysAimFire_AndFiresOncePerShot()
+        {
+            // ProceduralOnly（含 28 把 Legacy）：满 ADS 连发每发恰好一次 ProceduralFire，
+            // 状态恒保持在 Aim（维持当前瞄准姿势），绝不进入/重启 AimFire。
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 0.1f)), Is.EqualTo(FPAimAnimCommand.PlayAimIn));
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true)), Is.EqualTo(FPAimAnimCommand.PlayAimIdle));
+
+            for (int shot = 0; shot < 10; shot++)
+            {
+                Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, shot: true)),
+                    Is.EqualTo(FPAimAnimCommand.ProceduralFire), "shot " + shot);
+                Assert.That(fsm.IsOnAimTrack, Is.True, "shot " + shot + " 后仍必须在 aim 轨道");
+                // 下一帧（无新弹）：无指令，保持姿势
+                Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f)), Is.EqualTo(FPAimAnimCommand.None));
+            }
+        }
+
+        [Test]
+        public void ProceduralOnly_SemiAutoInAim_ProceduralFirePerShot_NoAimFireRestart()
+        {
+            // 半自动 ADS：点射间隔中无指令，每发一次 ProceduralFire。
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+            fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true));
+
+            for (int shot = 0; shot < 5; shot++)
+            {
+                Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, shot: true)),
+                    Is.EqualTo(FPAimAnimCommand.ProceduralFire));
+                // 点射间隔（3 帧冷却）：保持姿势无指令
+                for (int gap = 0; gap < 3; gap++)
+                    Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f)), Is.EqualTo(FPAimAnimCommand.None));
+            }
+        }
+
+        [Test]
+        public void ProceduralOnly_AutoBurstDuringAimIn_StaysOnAimIn_NoAimFireEntry()
+        {
+            // 入镜过渡中连发：ProceduralFire 不改变状态（AimIn clip 继续播完），不重启 AimFire。
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+            for (int shot = 0; shot < 4; shot++)
+                Assert.That(fsm.Tick(In(aimHeld: true, ads01: 0.3f, shot: true)),
+                    Is.EqualTo(FPAimAnimCommand.ProceduralFire));
+            Assert.That(fsm.IsOnAimTrack, Is.True);
+            // 过渡完成 → 正常回保持姿势
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true)),
+                Is.EqualTo(FPAimAnimCommand.PlayAimIdle));
+        }
+
+        [Test]
+        public void ProceduralOnly_AimFireStateShot_CollapsesBackToAim()
+        {
+            // 防御分支：极端情况下（配置中途切换）已处于 AimFire 态时收到开火，
+            // 必须收编回 Aim 并走 ProceduralFire，不得继续 FromStart 重启 AimFire。
+            var fsm = Armed();
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+            fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true));
+            // 非 ProceduralOnly 进入 AimFire 态
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, shot: true)), Is.EqualTo(FPAimAnimCommand.PlayAimFire));
+            // 配置切换：随后启用 ProceduralOnly
+            fsm.SetProceduralAdsFire(true);
+            Assert.That(fsm.Tick(In(aimHeld: true, ads01: 1f, shot: true)),
+                Is.EqualTo(FPAimAnimCommand.ProceduralFire));
+            Assert.That(fsm.IsOnAimTrack, Is.True);
+        }
+
+        [Test]
+        public void ProceduralOnly_WhileAimingOut_FallsBackToHipFire()
+        {
+            // 收镜中开火：视同腰射（原有语义不回归）。
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            fsm.Tick(In(aimHeld: true, ads01: 0.1f));
+            fsm.Tick(In(aimHeld: true, ads01: 1f, aimInFin: true));
+            fsm.Tick(In(aimHeld: false, ads01: 0.6f));
+            Assert.That(fsm.Tick(In(aimHeld: false, ads01: 0.3f, shot: true)),
+                Is.EqualTo(FPAimAnimCommand.PlayHipFire));
+            Assert.That(fsm.IsOnAimTrack, Is.False);
+        }
+
+        [Test]
+        public void ProceduralOnly_HipFire_StillUsesHipFireChannel()
+        {
+            // ProceduralOnly 只改变 ADS 轨道分流；腰射开火（Hip 态）不变。
+            var fsm = Armed();
+            fsm.SetProceduralAdsFire(true);
+            Assert.That(fsm.Tick(In(aimHeld: false, ads01: 0f, shot: true)), Is.EqualTo(FPAimAnimCommand.PlayHipFire));
+            Assert.That(fsm.IsOnAimTrack, Is.False);
         }
     }
 }

@@ -1,0 +1,6 @@
+<linker>
+  <!-- TeamFirstSpawnDirector reads PlayerSpawner's serialized private fields by reflection. -->
+  <assembly fullname="FishNet.Runtime">
+    <type fullname="FishNet.Component.Spawning.PlayerSpawner" preserve="all" />
+  </assembly>
+</linker>

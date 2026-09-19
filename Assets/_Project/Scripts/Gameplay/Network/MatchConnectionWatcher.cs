@@ -21,6 +21,14 @@ namespace Game.Gameplay.Network
 
         private void OnEnable()
         {
+            ResetSession();
+        }
+
+        /// <summary>新客户端会话复位（2026-09-15 P0-B：审计 §3.2——本组件随常驻 NetworkSystems
+        /// 跨场景存活，OnEnable 只在首次挂载触发，第二局不会自动复位 _wasConnected/_handled，
+        /// 上局的连接状态卡会吞掉本局的断线观测）。ClientMatchSessionCoordinator 每局连接前调用。</summary>
+        public void ResetSession()
+        {
             _wasConnected = false;
             _handled = false;
         }

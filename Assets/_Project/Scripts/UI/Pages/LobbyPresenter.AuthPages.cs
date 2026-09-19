@@ -37,7 +37,10 @@ namespace Game.UI
                 apiAvailable = true;
                 SetNavigationVisible(session.IsAuthenticated);
                 status.text = "服务在线 · " + (result.Data?.database ?? "database");
-                Navigate(session.IsAuthenticated ? LobbyPage.Lobby : LobbyPage.Login);
+                // CF 返房恢复（Docs/27 §11）：会话仍持有房间（结算返房/断线回大厅保留快照）→ 直接恢复等待房间页
+                Navigate(session.IsAuthenticated
+                    ? (session.Room != null ? LobbyPage.WaitingRoom : LobbyPage.Lobby)
+                    : LobbyPage.Login);
             }
             else
             {

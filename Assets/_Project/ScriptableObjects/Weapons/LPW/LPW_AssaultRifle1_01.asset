@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_AssaultRifle1_01
   m_EditorClassIdentifier: 
   weaponId: lpw.rifle.01
-  displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 01"
+  displayName: AKM II
+  catalogItemId: weapon.lpw.rifle.01
   fireMode: 1
   firstPersonViewPrefab: {fileID: 2303609561746704461, guid: f5cfff7f6b82747468745e5eac7d5a16, type: 3}
   thirdPersonViewPrefab: {fileID: 498352707694977045, guid: e430332a7caa08741bea83f868c5e775, type: 3}

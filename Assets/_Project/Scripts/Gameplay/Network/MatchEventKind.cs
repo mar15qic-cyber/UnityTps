@@ -10,7 +10,10 @@ namespace Game.Gameplay.Network
         Ended,
         MatchIdAssigned,
         /// <summary>玩家离开（&gt;2 人局仅移除不终局）：载荷含离开者 id 与比分快照（HUD/提示用）。</summary>
-        PlayerLeft
+        PlayerLeft,
+        /// <summary>全量战绩快照（战绩面板）：载荷 MatchScoreboardPayload JSON（显示名/击杀/助攻/ping/剩余时间），
+        /// 服务器周期（2s）+ 击杀/离场/终局时机广播。</summary>
+        ScoreboardSnapshot
     }
 
     /// <summary>比赛阶段：服务器权威推进（MatchLifecycle），客户端经事件镜像。</summary>

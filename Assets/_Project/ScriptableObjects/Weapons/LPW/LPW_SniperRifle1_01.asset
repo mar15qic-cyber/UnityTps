@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SniperRifle1_01
   m_EditorClassIdentifier: 
   weaponId: lpw.sniper.01
-  displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 01"
+  displayName: AWM II
+  catalogItemId: weapon.lpw.sniper.01
   fireMode: 0
   firstPersonViewPrefab: {fileID: 8179853504550025421, guid: d9faee024b191364a8168594385f9305, type: 3}
   thirdPersonViewPrefab: {fileID: 4555917917983865861, guid: 1fbea47fc1c55f243acd30e30d5a9a12, type: 3}

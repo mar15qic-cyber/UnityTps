@@ -27,27 +27,38 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
-var connectionString = builder.Configuration.GetConnectionString("GameDb");
-if (string.IsNullOrWhiteSpace(connectionString))
+// 提供方决策下沉到 DbContext 选项构建时（配置定稿后）：测试工厂经 ConfigureAppConfiguration
+// 注入的覆盖值在顶层读取时还不可见，只有在选项构建（首次解析 DbContext）时才可见。
+var configuredConnectionString = builder.Configuration.GetConnectionString("GameDb");
+if (string.IsNullOrWhiteSpace(configuredConnectionString))
 {
-    connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
+    configuredConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
 }
-
 var allowInMemoryFallback = builder.Environment.IsDevelopment()
     || builder.Configuration.GetValue("Database:AllowInMemoryFallback", false);
-if (!string.IsNullOrWhiteSpace(connectionString))
-{
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysql => mysql.EnableRetryOnFailure()));
-}
-else if (allowInMemoryFallback)
-{
-    builder.Services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("UnityFpsDevelopmentFallback"));
-}
-else
+if (string.IsNullOrWhiteSpace(configuredConnectionString) && !allowInMemoryFallback)
 {
     throw new InvalidOperationException("未配置 ConnectionStrings:GameDb；生产环境禁止静默降级到 InMemory。");
 }
+
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    // 测试隔离开关：Database:InMemoryName 存在 → 强制指定名 InMemory 存储。
+    var inMemoryName = configuration["Database:InMemoryName"];
+    if (inMemoryName is not null)
+    {
+        options.UseInMemoryDatabase(inMemoryName);
+        return;
+    }
+
+    var connectionString = configuration.GetConnectionString("GameDb");
+    if (string.IsNullOrWhiteSpace(connectionString))
+        connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__GameDb");
+    if (string.IsNullOrWhiteSpace(connectionString))
+        throw new InvalidOperationException("未配置 ConnectionStrings:GameDb；生产环境禁止静默降级到 InMemory。");
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysql => mysql.EnableRetryOnFailure());
+});
 
 var jwtKey = builder.Configuration["Jwt:SigningKey"] ?? Environment.GetEnvironmentVariable("Jwt__SigningKey");
 if (string.IsNullOrWhiteSpace(jwtKey))
@@ -72,6 +83,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
+        // 单活会话（2026-09-17 实测缺口）：比对 token 的 tv 声明与库中 TokenVersion——
+        // 同账号再次登录即顶替（旧 token 一律 401，客户端按 SessionExpired 回登录页）。
+        // 声明缺失（部署前签发的存量 token）按版本 0 处理：未重新登录的账号保持有效（向后兼容）。
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var principal = context.Principal;
+                var sub = principal?.FindFirst("sub")?.Value;
+                if (!long.TryParse(sub, out var userId))
+                {
+                    context.Fail("token missing sub");
+                    return;
+                }
+                var tokenVersion = long.TryParse(principal!.FindFirst("tv")?.Value, out var tv) ? tv : 0L;
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var current = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => (long?)u.TokenVersion)
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                if (current is null || current.Value != tokenVersion)
+                    context.Fail("session superseded by newer login");
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IProgressionRules, DemoProgressionRules>();
@@ -80,8 +115,12 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProfileService>();
 builder.Services.AddScoped<LoadoutService>();
 builder.Services.AddScoped<CommerceService>();
+builder.Services.AddScoped<UserSettingsService>();
 builder.Services.AddScoped<MatchService>();
+builder.Services.AddSingleton<RoomChatService>();
 builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<ServerInstanceService>();
+builder.Services.Configure<ServerInstanceOptions>(builder.Configuration.GetSection("ServerInstances"));
 builder.Services.AddScoped<PassService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -106,6 +145,20 @@ var app = builder.Build();
 // 不再叠 UseExceptionHandler——.NET8 无参重载会吞异常写 generic 500，
 // 导致 ApiController 内抛出的业务异常（404/409）被错误降级（JoinUnknown 房间案）。
 app.UseMiddleware<ApiExceptionMiddleware>();
+
+// 热更分发（2026-09-17 计划 P2）：匿名只读静态文件——客户端 Boot 阶段在登录前拉取，必须无鉴权。
+// 目录 fps-backend/hotupdate/（产物目录，不入库）：manifest.json（当前版本指针）+ <version>/<path>（版本目录不可变）。
+// 发布 = Tools/HotUpdate/Publish-HotUpdate.ps1 拷入新版本目录并覆盖 manifest.json，无需重启后端（每请求读盘）。
+var hotUpdateRoot = Path.Combine(app.Environment.ContentRootPath, "hotupdate");
+Directory.CreateDirectory(hotUpdateRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(hotUpdateRoot),
+    RequestPath = "/hotupdate",
+    ServeUnknownFileTypes = true,
+    DefaultContentType = "application/octet-stream",
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -123,7 +176,7 @@ app.MapGet("/health", (AppDbContext db) => Results.Ok(new
 
 app.MapControllers();
 
-if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
+if (!string.IsNullOrWhiteSpace(configuredConnectionString) || allowInMemoryFallback)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -132,6 +185,7 @@ if (!string.IsNullOrWhiteSpace(connectionString) || allowInMemoryFallback)
     await CatalogSeeder.SeedAsync(db);
     await DemoSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
     await PassSeeder.SeedAsync(db);
+    await AttachmentSystemSeeder.SeedAsync(db);
 }
 
 app.Run();

@@ -1,5 +1,50 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &198631479415211094
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8948783773948641046}
+  - component: {fileID: 1063090273784470722}
+  m_Layer: 0
+  m_Name: Attach_Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8948783773948641046
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 198631479415211094}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
+  m_LocalPosition: {x: 0.0016575422, y: 0.39162433, z: 0.43799832}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 617051488336154264}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1063090273784470722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 198631479415211094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slot: 1
 --- !u!1 &274876297257935046
 GameObject:
   m_ObjectHideFlags: 0
@@ -399,6 +444,7 @@ Transform:
   - {fileID: 599205496834556517}
   - {fileID: 6472077727890548040}
   - {fileID: 4186863125648106575}
+  - {fileID: 8948783773948641046}
   m_Father: {fileID: 5394978686472509463}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2019512892084999859
@@ -1813,7 +1859,6 @@ GameObject:
   - component: {fileID: 898467098015585784}
   - component: {fileID: 4170151261131440959}
   - component: {fileID: 8212117162666299186}
-  - component: {fileID: 2814291587482198825}
   m_Layer: 9
   m_Name: FP_Rifle_View
   m_TagString: Untagged
@@ -1885,8 +1930,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
+  aimState: {fileID: 0}
+  actionSystem: {fileID: 0}
+  input: {fileID: 0}
+  poseProfile: {fileID: 0}
   fireFadeSeconds: 0.04
   actionFadeSeconds: 0.12
+  aimFadeSeconds: 0.08
+  aimPoseFadeSeconds: 0.05
 --- !u!114 &4170151261131440959
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1912,6 +1963,7 @@ MonoBehaviour:
   impactPrefab: {fileID: 1124203126592631920, guid: f50a21d798e3627478a902a8b7d33e01, type: 3}
   damagedImpactPrefab: {fileID: 5017917704777769544, guid: 342ffcc54116cf84e9c149e122355db2, type: 3}
   sightReference: {fileID: 4186863125648106575}
+  alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
 --- !u!114 &8212117162666299186
 MonoBehaviour:
@@ -1928,18 +1980,6 @@ MonoBehaviour:
   _Animator: {fileID: 3056561130997410843}
   _Transitions: {fileID: 0}
   _ActionOnDisable: 0
---- !u!114 &2814291587482198825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7125712017163613421}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 156369912738d334b8a678a86e5742d0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &7324455358680693266
 GameObject:
   m_ObjectHideFlags: 0

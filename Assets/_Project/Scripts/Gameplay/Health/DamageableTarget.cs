@@ -43,7 +43,17 @@ namespace Game.Gameplay.Health
             bool networkActive = IsNetworkActive();
             if (!ShouldApplyDamage(networkActive, networkActive && InstanceFinder.NetworkManager.IsServerStarted)) return;
             if (!IsAlive || amount <= 0) return;
+            // Phase 2 出生保护终闸兜底：按服务器"当前时刻"拒绝一切伤害——
+            // 所有伤害入口（两段/单段/霰弹 pellet/离线）都收敛于本方法，闸在此保证不因新增入口绕过；
+            // 射击时刻口径（LagComp 回溯语境）另在 CombatResolver.ResolveHitscanTwoStage 的代际闸执行。
+            // 无 authority（靶子/authored 目标）或保护窗为 0（离线常态）恒放行。
+            var authority = GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>();
+            if (authority != null && authority.IsInvincibleNow) return;
             CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
+#if UNITY_SERVER && !UNITY_EDITOR
+            // Day4 Gate B 诊断：服务器权威受击留痕（谁掉血/掉到多少）
+            Debug.Log($"[CombatDamage] target={gameObject.transform.root.name} dmg={amount} hpNow={CurrentHealth} at={hitPoint.ToString("F1")}");
+#endif
             OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
             OnDamaged?.Invoke(hitPoint, hitDirection);
             if (CurrentHealth == 0) OnDied?.Invoke();

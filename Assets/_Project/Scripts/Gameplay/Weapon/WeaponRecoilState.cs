@@ -112,6 +112,13 @@ namespace Game.Gameplay.Weapon
             return requested + oldSign * consumed;
         }
 
+        /// <summary>当前后坐补偿债务（度；Pitch 上抬为正、Yaw 向右为正）。
+        /// 2026-09-16 审计 M3：Simulate 每步消费它 → 快照必须携带，重放前恢复，否则重放二次消费/少消费。</summary>
+        public Vector2 CompensationDebt => _offset;
+
+        /// <summary>恢复后坐补偿债务（预测重放/权威快照对位用）。</summary>
+        public void RestoreCompensationDebt(Vector2 debt) => _offset = debt;
+
         public void Tick(float deltaTime, in ResolvedWeaponStats s)
         {
             if (deltaTime <= 0f) return;

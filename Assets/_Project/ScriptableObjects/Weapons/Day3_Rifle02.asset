@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Rifle02
   m_EditorClassIdentifier: 
   weaponId: rifle.02
-  displayName: Day 3 Rifle 02
+  displayName: M4A1
+  catalogItemId: weapon.ak
   fireMode: 1
   firstPersonViewPrefab: {fileID: 3718030944617433981, guid: c8294fa8811a99b4e9d4980970bb9374, type: 3}
   thirdPersonViewPrefab: {fileID: 5313730131039769789, guid: d6128c4ed61111a41a3adecbdfecf348, type: 3}

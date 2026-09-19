@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_Pistol3_01
   m_EditorClassIdentifier: 
   weaponId: lpw.pistol.03
-  displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 03"
+  displayName: "\u6C99\u6F20\u4E4B\u9E70"
+  catalogItemId: weapon.lpw.pistol.03
   fireMode: 0
   firstPersonViewPrefab: {fileID: 129639193784140846, guid: 76f88e1932e33c841abdf863e24ce3ed, type: 3}
   thirdPersonViewPrefab: {fileID: 1423998994233296355, guid: 8be3cc7a263dfda4eb971b708583cb1c, type: 3}

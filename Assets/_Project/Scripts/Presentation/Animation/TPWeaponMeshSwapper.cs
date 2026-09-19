@@ -1,3 +1,4 @@
+using Game.Gameplay.Network;
 using Game.Gameplay.Weapon;
 using UnityEngine;
 
@@ -57,7 +58,19 @@ namespace Game.Presentation.Animation
 
         private void HandleWeaponChanged(WeaponDefinition definition)
         {
-            if (weaponBone == null || definition?.ThirdPersonViewPrefab == null) return;
+            if (weaponBone == null)
+            {
+                Debug.LogWarning($"[TPWeaponMeshSwapper] 右手骨骼未解析，TP 武器模型未挂载（{definition?.name}）", this);
+                return;
+            }
+            if (definition == null) return;
+            if (definition.ThirdPersonViewPrefab == null)
+            {
+                // 静默失败会让"第三人称没枪"完全不可见（2026-09-05 用户实测事故：
+                // 定义资产引用的 TP 预制体根 fileID 失配 → null → 直接 return）——必须留痕
+                Debug.LogWarning($"[TPWeaponMeshSwapper] {definition.name} 的 ThirdPersonViewPrefab 为空/断链，TP 无枪。请在 Inspector 重新指定 TP 武器预制体。", this);
+                return;
+            }
             if (_current != null) Destroy(_current);
             // 握把对齐偏移保留在武器预制体根 Transform 上（Instantiate 挂到父骨骼时原样生效）
             _current = Instantiate(definition.ThirdPersonViewPrefab, weaponBone);
@@ -71,6 +84,42 @@ namespace Game.Presentation.Animation
             // 枪口/左手挂点（Day4.2：TPWeaponFX 与 TPLeftHandIK 消费）
             CurrentMuzzle = _current.transform.Find("Muzzle");
             CurrentLeftHandTarget = _current.transform.Find("LeftHandTarget");
+
+            // 配件表现（Docs/21 Phase G）：远端可见的改装外形。Gate A-2（2026-09-08 复审）：
+            // 附件真相 = 服务器权威快照（远端玩家不得读本机 WeaponAttachmentStore 作为他人
+            // 附件真相）；快照不在位（离线/调试 Host）才回退本机存储。
+            var weaponItemId = definition.CatalogItemId;
+            var entries = new System.Collections.Generic.List<AttachmentAssetEntry>();
+            if (!TryResolveAuthoritativeAttachments(definition, entries) && !string.IsNullOrEmpty(weaponItemId))
+            {
+                var slotToItemId = new System.Collections.Generic.Dictionary<string, string>();
+                WeaponAttachmentStore.Load(weaponItemId, slotToItemId);
+                if (slotToItemId.Count > 0)
+                {
+                    var attachmentCatalog = AttachmentAssetCatalog.LoadOrDefault();
+                    foreach (var kv in slotToItemId)
+                        if (attachmentCatalog.TryGet(kv.Value, out var entry)) entries.Add(entry);
+                }
+            }
+            if (entries.Count > 0)
+            {
+                var view = _current.AddComponent<WeaponAttachmentView>();
+                view.ApplyAttachments(AttachmentAssetCatalog.LoadOrDefault(), weaponItemId, entries, laserBeamEnabled: false); // TP 视图非本地第一人称：不挂激光束
+                // 后挂入的配件不在上方层同步循环内，须补齐到身体层
+                foreach (var spawned in view.Spawned)
+                    if (spawned != null)
+                        foreach (var t in spawned.GetComponentsInChildren<Transform>(true))
+                            t.gameObject.layer = bodyLayer;
+            }
+        }
+
+        /// <summary>联网权威附件解析（Gate A-2）：快照在位返回 true（含权威空装配）；快照
+        /// 不在位（离线/调试 Host）返回 false 回退本机存储。</summary>
+        private bool TryResolveAuthoritativeAttachments(WeaponDefinition definition,
+            System.Collections.Generic.List<AttachmentAssetEntry> entries)
+        {
+            var networkState = GetComponentInParent<NetworkWeaponState>();
+            return networkState != null && networkState.TryGetAuthoritativeAttachments(definition, entries);
         }
     }
 }

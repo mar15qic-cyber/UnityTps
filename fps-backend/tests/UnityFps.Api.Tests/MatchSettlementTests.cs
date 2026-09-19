@@ -198,8 +198,11 @@ public sealed class MatchSettlementTests
     }
 
     [Fact]
-    public async Task ShopCatalogExcludesInitialWeaponsAndPassRewardAttachments()
+    public async Task Catalog_IncludesInitialWeaponsAndPassRewards_WithAcquisitionSource()
     {
+        // 2026-09-07 契约变更：目录响应不再排除 Initial/PassReward 行（仓库列表需要初始武器，
+        // 否则 AK/M4 无法进入枪匠页）；商城可见性由客户端按 acquisitionSource 过滤，
+        // 可购性由 PurchaseAsync 服务端执法。
         await using var db = CreateDb();
         await CatalogSeeder.SeedAsync(db);
         await PassSeeder.SeedAsync(db);
@@ -208,9 +211,29 @@ public sealed class MatchSettlementTests
 
         var catalog = await service.GetCatalogAsync(user.Id, CancellationToken.None);
 
-        Assert.Equal(36, catalog.Items.Length); // 39 武器 − 3 初始枪；配件不进商城
-        Assert.DoesNotContain(catalog.Items, x => CatalogSeeder.InitialWeapons.Contains(x.ItemId));
-        Assert.DoesNotContain(catalog.Items, x => x.ItemId.StartsWith("attach."));
+        var initial = catalog.Items.Where(x => CatalogSeeder.InitialWeapons.Contains(x.ItemId)).ToArray();
+        Assert.Equal(CatalogSeeder.InitialWeapons.Length, initial.Length);
+        Assert.All(initial, x => Assert.Equal("Initial", x.AcquisitionSource));
+        var passRewards = catalog.Items.Where(x => x.ItemId.StartsWith("attach.")).ToArray();
+        Assert.NotEmpty(passRewards);
+        Assert.All(passRewards, x => Assert.Equal("PassReward", x.AcquisitionSource));
+        Assert.Contains(catalog.Items, x => x.ItemId == "weapon.rifle03" && x.AcquisitionSource == "Shop");
+    }
+
+    [Fact]
+    public async Task Purchase_RejectsNonShopItems()
+    {
+        await using var db = CreateDb();
+        await CatalogSeeder.SeedAsync(db);
+        var user = AddUser(db);
+        var service = new CommerceService(db);
+
+        var ex = await Assert.ThrowsAsync<ApiException>(() => service.PurchaseAsync(user.Id,
+            new PurchaseRequest { ItemId = "weapon.m4", Quantity = 1, IdempotencyKey = "itest-initial-001" },
+            CancellationToken.None));
+
+        Assert.Equal(StatusCodes.Status409Conflict, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.ItemDisabled, ex.Code);
     }
 
     private static MatchSubmissionRequest Request(string clientMatchId, int kills, int deaths, bool isWin, int duration = 300) =>

@@ -8,7 +8,8 @@
         "FishNet.Runtime",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "XLua.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

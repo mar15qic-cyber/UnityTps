@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Game.Account;
+using Game.Gameplay.Network;
 using Game.Gameplay.Weapon;
 using TMPro;
 using UnityEngine;
@@ -27,11 +28,13 @@ namespace Game.UI
         private GameObject canvas;
         private GameObject navigationRoot;
         private Transform body;
+        private RectTransform bodyRect;
         private TMP_Text status;
         private CancellationTokenSource pageCts;
         private Action retryAction;
         private string gameplaySceneName = "Gameplay";
         private LobbyPage currentPage;
+        private string currentHotPageId;
         private bool apiAvailable;
         private ShopCatalogDto cachedCatalog;
         private InventoryDto cachedInventory;
@@ -86,6 +89,16 @@ namespace Game.UI
             currentPage = page;
             ClearBody();
             status.text = string.Empty;
+            // 审计 2026-09-16 §5.3-3：页面上下文兜底——离开等待房间页时卸载挂在本画布上的聊天 UI
+            //（保留房间会话历史；留房返房不丢）。旧实现 Navigate 只清 bodyObjects，Canvas 直挂的
+            // ChatHud 不在列表内 → 残留到大厅/登录页且 Enter 可重新打开。
+            Chat.ChatController.SetPageContext(
+                canvas != null ? canvas.GetComponent<Canvas>() : null,
+                chatAllowed: page == LobbyPage.WaitingRoom);
+            // 2026-09-10 审计 §5：导航可见性=页面状态不变量，由本唯一入口集中执行——不再依赖各跳转
+            // 分支自行恢复（ROOM_CLOSED/ROOM_NOT_FOUND 返厅、手动退房、战斗返回、登录成功全覆盖）。
+            // 渲染分支内的既有 SetNavigationVisible 调用保持幂等断言，不承担恢复职责。
+            SetNavigationVisible(WantsNavigationVisible(page));
             switch (page)
             {
                 case LobbyPage.Boot: RenderBoot(pageCts.Token); break;
@@ -105,13 +118,64 @@ namespace Game.UI
                 case LobbyPage.Error: RenderError("发生未知错误", retryAction); break;
                 case LobbyPage.SessionExpired: RenderSessionExpired(); break;
                 case LobbyPage.Loading: RenderLoading(); break;
+                case LobbyPage.OnlineJoin: RenderOnlineJoin(); break;
+                case LobbyPage.WaitingRoom: RenderWaitingRoom(); break;
+                // 热更页（稳定 seam）：枚举路由只是防御性转发——真实入口是 NavigateHot(id)
+                case LobbyPage.Hot: NavigateHot(currentHotPageId); break;
+            }
+            UpdateNavSelection();
+        }
+
+        /// <summary>热页导航（热更 seam 的 C# 消费端）：与 Navigate 相同的前置语义
+        /// （认证门 / pageCts 重建 / ClearBody / 聊天上下文 / 导航可见性单点），
+        /// 页面容器建好后把渲染交给注册的 Lua 委托；渲染异常不炸壳（状态行提示）。</summary>
+        public void NavigateHot(string id)
+        {
+            if (!HotPageRegistry.TryGet(id, out var page))
+            {
+                // 页面已不存在（热更脚本回退等场景）：回作战大厅，避免空白 body
+                if (currentPage == LobbyPage.Hot) { Navigate(LobbyPage.Lobby); return; }
+                return;
+            }
+            if (session == null || !session.IsAuthenticated)
+            {
+                Navigate(LobbyPage.Login);
+                return;
+            }
+            pageCts?.Cancel();
+            pageCts?.Dispose();
+            pageCts = new CancellationTokenSource();
+            retryAction = null;
+            currentPage = LobbyPage.Hot;
+            currentHotPageId = page.Id;
+            ClearBody();
+            status.text = string.Empty;
+            Chat.ChatController.SetPageContext(
+                canvas != null ? canvas.GetComponent<Canvas>() : null,
+                chatAllowed: false);
+            SetNavigationVisible(true);
+            var root = PageRoot("HotPage_" + page.Id);
+            try
+            {
+                page.Render(root);
+            }
+            catch (Exception e)
+            {
+                status.text = "热页渲染异常：" + e.Message;
+                UnityEngine.Debug.LogError("[HotUpdate] hot page render failed (" + page.Id + "): " + e.Message);
             }
             UpdateNavSelection();
         }
 
         private void ClearBody()
         {
-            foreach (var go in bodyObjects) if (go != null) Destroy(go);
+            foreach (var go in bodyObjects)
+            {
+                if (go == null) continue;
+                // EditMode 测试（结构断言驱动私有渲染方法）必须用 DestroyImmediate；运行时保持 Destroy 语义
+                if (Application.isPlaying) Destroy(go);
+                else DestroyImmediate(go);
+            }
             bodyObjects.Clear();
         }
 
@@ -181,6 +245,15 @@ namespace Game.UI
         private void SetNavigationVisible(bool value)
         {
             if (navigationRoot != null) navigationRoot.SetActive(value);
+            // 2026-09-16 需求2：导航隐藏时 body 回收为全屏。旧实现 body 恒锚在导航右侧
+            // （0.155-0.99），登录/启动等无导航页的卡片在 body 内居中≠屏幕居中，客户端实机右偏。
+            if (bodyRect != null)
+            {
+                bodyRect.anchorMin = value ? BodyAnchorMinVisible : Vector2.zero;
+                bodyRect.anchorMax = value ? BodyAnchorMaxVisible : Vector2.one;
+                bodyRect.offsetMin = Vector2.zero;
+                bodyRect.offsetMax = Vector2.zero;
+            }
             SetNavigationInteractable(value);
         }
 
@@ -189,7 +262,30 @@ namespace Game.UI
             return page == LobbyPage.Lobby || page == LobbyPage.Mission || page == LobbyPage.Armory ||
                    page == LobbyPage.WeaponDetails || page == LobbyPage.Shop || page == LobbyPage.Upgrades ||
                    page == LobbyPage.Settings || page == LobbyPage.Hud || page == LobbyPage.Pause ||
-                   page == LobbyPage.Results || page == LobbyPage.Loading;
+                   page == LobbyPage.Results || page == LobbyPage.Loading || page == LobbyPage.WaitingRoom ||
+                   page == LobbyPage.Hot;
+        }
+
+        /// <summary>页面 → 导航栏可见性不变量（2026-09-10 审计 §5）：已认证的作战大厅壳页
+        /// （大厅/任务/仓库/武器详情/商城/升级/设置/联机入口）显示完整侧栏；登录/注册/身份确认、
+        /// 等待房间、加载过渡、错误、会话过期、结算/暂停等全屏流程页一律隐藏。</summary>
+        private static bool WantsNavigationVisible(LobbyPage page)
+        {
+            switch (page)
+            {
+                case LobbyPage.Lobby:
+                case LobbyPage.Mission:
+                case LobbyPage.Armory:
+                case LobbyPage.WeaponDetails:
+                case LobbyPage.Shop:
+                case LobbyPage.Upgrades:
+                case LobbyPage.Settings:
+                case LobbyPage.OnlineJoin:
+                case LobbyPage.Hot:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private async Task SubmitAuthAsync(bool register, TMP_InputField usernameInput, TMP_InputField passwordInput, Button submitButton, RectTransform card)
@@ -244,6 +340,8 @@ namespace Game.UI
         {
             api.SetToken(value.token);
             session.Apply(value);
+            // 每玩家设置偏好（键位/音量/灵敏度）跟随账号：登录成功即拉取服务器值覆盖本地
+            AppRoot.Instance?.PullUserSettingsFromServer();
         }
 
         private void EnterAuthenticatedLobby()
@@ -252,18 +350,164 @@ namespace Game.UI
             Navigate(LobbyPage.Lobby);
         }
 
-        /// <summary>联机入口（Docs/19 N4）：进入 Arena 后按 F1=房主 / F2=加入（127.0.0.1，改 NetworkHud.clientAddress 连局域网）。
-        /// 房间码注册表 API 已就绪（/api/rooms），完整大厅房间列表 UI 属后续打磨——当前 LAN 直连已是 M7 可验收链路。</summary>
-        private void StartOnlineHost()
+        /// <summary>联机入口（Docs/27 v1.2 CF）：建房/加入都先进等待房间（Waiting 不连 DS）；
+        /// 只有 start ack / InMatch 重连的合法 connection 才写 NetworkLaunchContext 进入 Arena。</summary>
+        private void StartOnlineHost(CreateRoomRequest request) => _ = StartOnlineCreateAsync(request);
+
+        private void StartOnlineJoin() => Navigate(LobbyPage.OnlineJoin);
+
+        /// <summary>建房：成功后进入等待房间页（快照无 connection）。失败清上下文留在大厅。</summary>
+        private async Task StartOnlineCreateAsync(CreateRoomRequest request)
         {
-            status.text = "进入联机关卡：加载后按 F1 开房（client-hosted）";
-            _ = StartGameplayAsync();
+            if (!await BeginRoomRequestGuardAsync("create")) return;
+            // P0-A：申报本端应用协议代际——后端冻结在房间上，实例租用按协议筛选（旧 DS 不可见）
+            if (request != null) request.clientProtocolId = Game.Gameplay.Network.GameProtocolIdentity.ProtocolId;
+            status.text = "正在向服务器申请建房…";
+            var token = pageCts.Token;
+            var result = await api.CreateRoomAsync(request, token);
+            await HandleRoomEntryResponseAsync(result, token);
         }
 
-        private void StartOnlineClient()
+        /// <summary>按房间码加入：Waiting → 等待房间页；Starting/InMatch（重连/补人）→ 直接进战场。
+        /// 失败一律清上下文并留在大厅。</summary>
+        private async Task StartOnlineRoomAsync(string roomCode)
         {
-            status.text = "进入联机关卡：加载后按 F2 连接房主（默认 127.0.0.1，局域网改 NetworkHud.clientAddress）";
-            _ = StartGameplayAsync();
+            if (!await BeginRoomRequestGuardAsync("join")) return;
+            status.text = "正在申请加入房间…";
+            var token = pageCts.Token;
+            var result = await api.JoinRoomAsync(roomCode, null, Game.Gameplay.Network.GameProtocolIdentity.ProtocolId, token);
+            await HandleRoomEntryResponseAsync(result, token);
+        }
+
+        /// <summary>入房请求的前置校验；失败返回 false（状态栏已提示）。</summary>
+        private async Task<bool> BeginRoomRequestGuardAsync(string action)
+        {
+            if (!apiAvailable) { status.text = "后端服务未就绪，请先完成连接检查"; return false; }
+            if (!session.IsAuthenticated) { Navigate(LobbyPage.Login); return false; }
+            await Task.CompletedTask;
+            return true;
+        }
+
+        /// <summary>创建/加入响应统一处置（Docs/27 §5.2/§5.3）：快照入会话 →
+        /// 有 connection（Starting/InMatch 重连或补人）走战斗链路；否则进入等待房间页。</summary>
+        private async Task HandleRoomEntryResponseAsync(ApiResult<RoomSnapshotDto> result, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return;
+            if (!result.Success || result.Data?.room == null)
+            {
+                NetworkLaunchContext.Clear();
+                session.ClearRoom(); // 对称清理（§6 三.1）：失败路径不得残留上一局的房间快照
+                // P0 开发诊断（2026-09-08 审计 §4）：NO_SERVER_AVAILABLE 五类归因见后端结构化日志
+                Debug.LogWarning($"[Lobby] 房间申请失败 code={result.Code ?? "UNKNOWN"}——归因明细查后端日志或 /api/server-instances/pool");
+                if (result.Code == "AUTH_UNAUTHORIZED") Navigate(LobbyPage.SessionExpired);
+                else if (ApiClientErrorCodes.IsTransportFailure(result.Code))
+                {
+                    apiAvailable = false;
+                    SetNavigationInteractable(false);
+                    RenderError(ApiErrorMessages.ToUserMessage(result), () => Navigate(LobbyPage.Boot));
+                }
+                else status.text = ApiErrorMessages.ToUserMessage(result);
+                return;
+            }
+
+            var snapshot = result.Data;
+            session.ApplyRoomSnapshot(snapshot);
+            if (snapshot.connection != null)
+            {
+                // 重连/补人路径：response 自带可连接票据 → 战斗链路（Waiting 房间绝无 connection）
+                if (!await EnterBattleAsync(snapshot.connection, snapshot.room.roomCode))
+                    await CleanupRoomJoinFailureAsync(snapshot);
+                return;
+            }
+            status.text = "已进入房间 " + snapshot.room.roomCode;
+            Navigate(LobbyPage.WaitingRoom);
+        }
+
+        /// <summary>战斗链路（Docs/27 §11）：配装校验 → RoomConnectionGate 严格校验 →
+        /// 写 NetworkLaunchContext（附目标场景名/matchId；代际在 ConfigureClient 内递增）→
+        /// 推进 ConnectionGeneration（唯一递增点）→ 加载战斗场景。
+        /// Phase 8：目标场景 = 房间 mapId 经 GameMapCatalog 镜像解析（与 DS 同表）；未知地图拒绝入场
+        /// （一致性门：绝不加载与房间不符的场景）。场景就绪后的连接/认证/Owner 入场由
+        /// ClientMatchSessionCoordinator 按代际编排（P0-B）；失败（含分段超时）由协调器经认证失败
+        /// 覆盖层提示并自动返回等待房间页，本方法不重复轮询。
+        /// 任何失败路径都不写上下文、不推进代际、不加载场景。</summary>
+        private async Task<bool> EnterBattleAsync(RoomConnectionInfoDto connection, string roomCode)
+        {
+            if (!await ValidateLoadoutForArenaAsync())
+            {
+                RoomConnectionGate.Sanitize(connection);
+                return false;
+            }
+            // Phase 8 地图一致性门：房间 mapId → 场景名单向解析；未知地图 fail closed 回大厅
+            // P4 热更试点：解析改数据驱动（/api/maps 缓存优先，静态镜像兜底）；热更地图须 bundle 就绪
+            var roomMapId = session.Room?.MapId;
+            if (string.IsNullOrWhiteSpace(roomMapId)) roomMapId = "arena";
+            if (!HotMapCatalog.TryGetSceneName(roomMapId, out string sceneName))
+            {
+                RoomConnectionGate.Sanitize(connection);
+                status.text = $"无法进入战场：房间地图未知（{roomMapId}），请更新客户端";
+                return false;
+            }
+            if (HotSceneLoader.IsBundleScene(sceneName) && !HotSceneLoader.IsBundleReady(sceneName))
+            {
+                RoomConnectionGate.Sanitize(connection);
+                status.text = $"无法进入战场：地图（{roomMapId}）需要热更资源，请重启客户端下载后重试";
+                return false;
+            }
+            if (!RoomConnectionGate.TryValidate(connection, DateTime.UtcNow, out var validationError))
+            {
+                RoomConnectionGate.Sanitize(connection);
+                status.text = "无法进入战场：" + validationError;
+                return false;
+            }
+            RoomConnectionGate.WriteLaunchContext(connection, sceneName);
+            session.AdvanceConnectionGeneration();
+            status.text = "已取得比赛票据，正在进入战场…";
+            await LoadArenaAsync(sceneName);
+            return true;
+        }
+
+        /// <summary>入房失败但可能已创建后端成员资格时释放。仅对响应带有效 roomCode 的快照调用 Leave。
+        /// 对称清理（§6 三.1）：任何失败路径同时清 Session.Room 与 NetworkLaunchContext。</summary>
+        private async Task CleanupRoomJoinFailureAsync(RoomSnapshotDto snapshot)
+        {
+            NetworkLaunchContext.Clear();
+            session.ClearRoom();
+            try
+            {
+                if (snapshot?.room != null && !string.IsNullOrWhiteSpace(snapshot.room.roomCode))
+                    await api.LeaveRoomAsync(CancellationToken.None);
+            }
+            catch
+            {
+                // 离房是失败清理的 best-effort；主流程仍留在 Lobby，且不泄露 ticket。
+            }
+            finally
+            {
+                RoomConnectionGate.Sanitize(snapshot?.connection);
+            }
+        }
+
+        /// <summary>进入 Arena 前的服务器配装校验（建房/加入/本地开始共用）。</summary>
+        private async Task<bool> ValidateLoadoutForArenaAsync()
+        {
+            status.text = "正在验证服务器配装…";
+            var result = await api.GetLoadoutAsync(pageCts.Token);
+            if (!result.Success)
+            {
+                if (result.Code == "AUTH_UNAUTHORIZED") Navigate(LobbyPage.SessionExpired);
+                else status.text = "无法进入 Arena：" + ApiErrorMessages.ToUserMessage(result);
+                return false;
+            }
+            if (result.Data == null ||
+                !IsLpfpLoadoutItem(result.Data.primaryWeaponId) ||
+                !IsLpfpLoadoutItem(result.Data.secondaryWeaponId))
+            {
+                status.text = "无法进入 Arena：主线仅支持已映射的 LPFP 武器";
+                return false;
+            }
+            session.ApplyLoadout(result.Data);
+            return true;
         }
 
         private void StartGameplay() => _ = StartGameplayAsync();
@@ -272,24 +516,33 @@ namespace Game.UI
         {
             if (string.IsNullOrWhiteSpace(gameplaySceneName)) { status.text = "未配置 Gameplay 场景"; return; }
             if (!session.IsAuthenticated) { Navigate(LobbyPage.Login); return; }
-            status.text = "正在验证服务器配装…";
-            var result = await api.GetLoadoutAsync(pageCts.Token);
-            if (!result.Success)
-            {
-                if (result.Code == "AUTH_UNAUTHORIZED") Navigate(LobbyPage.SessionExpired);
-                else status.text = "无法进入 Arena：" + ApiErrorMessages.ToUserMessage(result);
-                return;
-            }
-            if (result.Data == null ||
-                !weaponAssets.TryResolveDefinition(result.Data.primaryWeaponId, out _) ||
-                !weaponAssets.TryResolveDefinition(result.Data.secondaryWeaponId, out _))
-            {
-                status.text = "无法进入 Arena：服务器配装对应的本地武器资源缺失";
-                return;
-            }
-            session.ApplyLoadout(result.Data);
+            if (!await ValidateLoadoutForArenaAsync()) return;
+            await LoadArenaAsync();
+        }
+
+        /// <summary>加载过渡页 + 战斗场景加载（NetworkHud 消费 NetworkLaunchContext 完成连接）。
+        /// Phase 8：sceneName 可选覆盖——联机路径传房间地图解析出的场景名；缺省回退
+        /// gameplaySceneName（离线演练 Arena）。</summary>
+        private async Task LoadArenaAsync(string sceneName = null)
+        {
+            var target = string.IsNullOrWhiteSpace(sceneName) ? gameplaySceneName : sceneName;
             Navigate(LobbyPage.Loading);
-            var loadOp = SceneManager.LoadSceneAsync(gameplaySceneName, LoadSceneMode.Single);
+            // P4 热更试点：非内置场景走 bundle 通道（文件由热更下载器预先落盘）
+            if (HotSceneLoader.IsBundleScene(target))
+            {
+                if (!await HotSceneLoader.TryLoadBundleSceneAsync(target,
+                        p => { if (loadingFill != null) loadingFill.fillAmount = p; }))
+                {
+                    // 罕见失败路径（文件损坏等）：完整失败清理，回大厅
+                    NetworkLaunchContext.Clear();
+                    session.ClearRoom();
+                    Navigate(LobbyPage.Lobby);
+                    status.text = "热更地图加载失败，已返回大厅";
+                    return;
+                }
+                return;
+            }
+            var loadOp = SceneManager.LoadSceneAsync(target, LoadSceneMode.Single);
             while (loadOp != null && !loadOp.isDone)
             {
                 if (loadingFill != null) loadingFill.fillAmount = Mathf.Clamp01(loadOp.progress / 0.9f);
@@ -297,9 +550,41 @@ namespace Game.UI
             }
         }
 
+        /// <summary>P4 热更试点：后台拉取 /api/maps 目录（建房页数据源）。成功且仍在本页则重渲染。</summary>
+        private async Task RefreshMapCatalogAsync()
+        {
+            try
+            {
+                var result = await api.ListMapsAsync(CancellationToken.None);
+                if (result.Success && result.Data != null && result.Data.Length > 0)
+                {
+                    HotMapCatalog.Store(result.Data);
+                    if (currentPage == LobbyPage.OnlineJoin) RenderOnlineJoin();
+                }
+            }
+            catch
+            {
+                // 后台拉取失败：保持兜底清单（内置 4 图），不打断建房页
+            }
+        }
+
+        private bool IsLpfpLoadoutItem(string itemId)
+        {
+            return weaponAssets != null
+                && weaponAssets.TryGet(itemId, out var entry)
+                && entry != null
+                && entry.IsLpfp
+                && weaponAssets.TryResolveDefinition(itemId, out var definition)
+                && definition != null;
+        }
+
         private async Task PurchaseAsync(CatalogItemDto item)
         {
-            if (item == null) return;
+            if (item == null || !IsLpfpWeaponItem(item))
+            {
+                status.text = "主线仅支持 LPFP 武器，无法购买该条目";
+                return;
+            }
             var key = Guid.NewGuid().ToString("N");
             status.text = "购买处理中…";
             var result = await api.PurchaseAsync(new PurchaseRequest { itemId = item.itemId, quantity = 1, idempotencyKey = key }, pageCts.Token);
@@ -326,7 +611,12 @@ namespace Game.UI
 
         private async Task EquipWeaponAsync(CatalogItemDto item)
         {
-            if (item == null || !item.isOwned || session.Loadout == null) { status.text = "未拥有或配装尚未加载"; return; }
+            if (item == null || !IsLpfpWeaponItem(item))
+            {
+                status.text = "主线仅支持 LPFP 武器，无法装备该条目";
+                return;
+            }
+            if (!item.isOwned || session.Loadout == null) { status.text = "未拥有或配装尚未加载"; return; }
             var request = new LoadoutRequest
             {
                 primaryWeaponId = item.slotType == "Primary" ? item.itemId : session.Loadout.primaryWeaponId,
@@ -353,10 +643,10 @@ namespace Game.UI
                 return;
             }
 
-            var optic = selections.FirstOrDefault(x => x.attachmentSlot == "Optic")?.attachmentItemId ?? string.Empty;
-            var muzzle = selections.FirstOrDefault(x => x.attachmentSlot == "Muzzle")?.attachmentItemId ?? string.Empty;
-            var magazine = selections.FirstOrDefault(x => x.attachmentSlot == "Magazine")?.attachmentItemId ?? string.Empty;
-            FPWeaponAttachmentView.SavePersisted(selectedWeapon.itemId, optic, muzzle, magazine);
+            var slotMap = new Dictionary<string, string>();
+            foreach (var slot in WeaponAttachmentStore.AllSlots)
+                slotMap[slot] = selections.FirstOrDefault(x => x.attachmentSlot == slot)?.attachmentItemId ?? string.Empty;
+            WeaponAttachmentStore.Save(selectedWeapon.itemId, slotMap);
             status.text = "配件已保存，版本 " + result.Data.version;
         }
 
@@ -364,6 +654,7 @@ namespace Game.UI
         {
             api.ClearToken();
             session.Clear();
+            Chat.ChatController.StopAndClear(); // 审计 §5.3-3：登出即房间会话退出（旧实现漏清聊天）
             SetNavigationVisible(false);
             Navigate(LobbyPage.Login);
         }

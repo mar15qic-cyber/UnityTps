@@ -1,6 +1,6 @@
 using Game.Gameplay.Network;
+using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Game.Presentation.HUD
@@ -16,10 +16,27 @@ namespace Game.Presentation.HUD
     {
         private Text _scoreText;
         private Text _killFeedText;
-        private Text _boardText;
-        private GameObject _boardPanel;
         private Image _healthFill;
-        private Text _healthText;
+        private TMP_Text _healthText;
+
+        // 2026-09-18 实机问题9（主流 FPS 简洁风）：主题令牌同源镜像（Presentation 不引 Game.UI，按值同源）
+        private static readonly Color TextPrimary = new Color32(0xF5, 0xF7, 0xFA, 0xFF);
+        private static readonly Color HpHealthy = new Color32(0x6B, 0xCB, 0x77, 0xFF);
+        private static readonly Color HpWarn = new Color32(0xFF, 0xA4, 0x1B, 0xFF);
+        private static readonly Color HpDanger = new Color32(0xFF, 0x6B, 0x6B, 0xFF);
+        private static TMP_FontAsset _hudFont;
+        private static TMP_FontAsset HudFont
+        {
+            get
+            {
+                if (_hudFont == null)
+                {
+                    _hudFont = Resources.Load<TMP_FontAsset>("Fonts/NotoSansSC-Regular SDF");
+                    if (_hudFont == null) _hudFont = TMP_Settings.defaultFontAsset;
+                }
+                return _hudFont;
+            }
+        }
 
         private readonly System.Collections.Generic.List<string> _feedLines = new();
         private readonly System.Collections.Generic.List<float> _feedTimes = new();
@@ -41,6 +58,10 @@ namespace Game.Presentation.HUD
             root.transform.SetParent(canvas.transform, false);
             var view = root.AddComponent<MatchHudView>();
             view.Build();
+            // Tab 战绩面板（同画布独立组件；旧内置两行板已由其取代）
+            MatchScoreboardView.TryMount(canvas);
+            // 复活/出生保护条（Phase 3：同画布独立组件，单一三态机）
+            RespawnProtectionHudView.TryMount(canvas);
         }
 
         private void OnEnable() => NetworkCombatAuthority.OnMatchEvent += HandleMatchEvent;
@@ -67,7 +88,6 @@ namespace Game.Presentation.HUD
             UpdateScore();
             UpdateHealth();
             UpdateFeed();
-            UpdateBoard();
         }
 
         private void ResolvePlayers()
@@ -87,6 +107,15 @@ namespace Game.Presentation.HUD
         private void UpdateScore()
         {
             if (_scoreText == null) return;
+            // Docs/26 §2.4 TDM：常驻 HUD 展示红蓝总分/目标/倒计时（服务器快照权威聚合；
+            // 离线或非团队模式回退既有个人比分行）
+            if (MatchScoreboardView.TryGetTeamScores(out int red, out int blue, out int timeLeft))
+            {
+                string timer = timeLeft >= 0 ? $"   {timeLeft / 60:00}:{timeLeft % 60:00}" : string.Empty;
+                _scoreText.text = $"<color=#F06B6B>RED {red:00}</color>   / {MatchRules.TargetKills} /   "
+                    + $"<color=#70A8FF>BLUE {blue:00}</color>{timer}";
+                return;
+            }
             int mine = _local != null ? _local.Kills : 0;
             int theirs = _opponent != null ? _opponent.Kills : 0;
             _scoreText.text = $"YOU {mine:00}   / {MatchRules.TargetKills} /   {theirs:00} ENEMY";
@@ -98,7 +127,11 @@ namespace Game.Presentation.HUD
             int hp = _local != null ? _local.Health : 0;
             // 服务器权威 HP（G3 出口）；满值 100 与 DamageableTarget 默认 maxHealth 对齐（显示用）
             _healthFill.fillAmount = Mathf.Clamp01(hp / 100f);
-            _healthText.text = $"HP {hp}";
+            // 2026-09-18 问题9：阈值变色（>50 主题绿 / 26-50 琥珀 / ≤25 红），数字满血保持主文本色
+            var color = hp > 50 ? HpHealthy : hp > 25 ? HpWarn : HpDanger;
+            _healthFill.color = color;
+            _healthText.text = hp.ToString();
+            _healthText.color = hp > 50 ? TextPrimary : color;
         }
 
         private void UpdateFeed()
@@ -114,15 +147,6 @@ namespace Game.Presentation.HUD
             }
         }
 
-        private void UpdateBoard()
-        {
-            var kb = Keyboard.current;
-            bool showTab = kb != null && kb.tabKey.isPressed;
-            if (_boardPanel.activeSelf != showTab) _boardPanel.SetActive(showTab);
-            if (showTab && _boardText != null)
-                _boardText.text = $"YOU    K {_local?.Kills ?? 0:00}   D {_local?.Deaths ?? 0:00}\nENEMY  K {_opponent?.Kills ?? 0:00}   D {_opponent?.Deaths ?? 0:00}";
-        }
-
         // ---- 纯代码 uGUI 构建（参照 WeaponHudView 先例：内置 ugui + 英文文案） ----
 
         private static Font BuiltinFont => Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -135,6 +159,19 @@ namespace Game.Presentation.HUD
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
+            // 2026-09-18 实机（00:55）排查"不同窗口尺寸下底部 UI 被切/挤到边"：
+            // 场景里游戏 HUD 的 Canvas 是 matchWidthOrHeight=0（纯按宽缩放，Arena.unity:4007），
+            // 而本项目所有运行时建的 Canvas 都是 0.5（UIComponents / LobbyViewFactory）。
+            // 两套基准并存 → 非 16:9 窗口下按 y 分数布局的条带整体漂移、贴边元素被切。
+            // 这里只在"已经是 Scale With Screen Size"时把基准对齐到 0.5，不改缩放模式本身。
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                var scaler = canvas.GetComponent<CanvasScaler>();
+                if (scaler != null && scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                    scaler.matchWidthOrHeight = 0.5f;
+            }
+
             // 顶部比分常驻条
             var score = CreateText("ScoreBar", rootRect, 26, Color.white, TextAnchor.MiddleCenter);
             Stretch(score.rectTransform, 0.25f, 0.75f, 0.94f, 0.985f);
@@ -146,28 +183,39 @@ namespace Game.Presentation.HUD
             _killFeedText = feed;
             _killFeedText.text = string.Empty;
 
-            // 血条（底部居中：底槽 + 填充）
-            var hpBack = CreateImage("HpBack", rootRect, new Color(0f, 0f, 0f, 0.55f));
-            Stretch(hpBack.rectTransform, 0.40f, 0.60f, 0.905f, 0.935f);
+            // 血量（2026-09-18 实机问题9，主流 FPS 简洁风：左下半透 chip 内大数字+细条+阈值变色；
+            // 原"顶中黑底绿条 HP 100"下线——顶部只留比赛状态条）
+            // 第三轮：底/左边距抬高一点，避免非 16:9 窗口下贴住屏幕边被切
+            var hpChip = CreateImage("HpChip", rootRect, new Color(0f, 0f, 0f, 0.45f));
+            Stretch(hpChip.rectTransform, 0.03f, 0.27f, 0.045f, 0.12f);
+            var hpText = CreateTmpText("HpNumber", hpChip.transform, "100", 44, TextPrimary,
+                TextAlignmentOptions.MidlineLeft);
+            Stretch(hpText.rectTransform, 0.05f, 0.44f, 0f, 1f);
+            _healthText = hpText;
+            var hpBarBack = CreateImage("HpBarBack", hpChip.transform, new Color(1f, 1f, 1f, 0.14f));
+            Stretch(hpBarBack.rectTransform, 0.48f, 0.94f, 0.40f, 0.60f);
             var hpFillGo = new GameObject("HpFill", typeof(RectTransform), typeof(Image));
-            hpFillGo.transform.SetParent(hpBack.transform, false);
+            hpFillGo.transform.SetParent(hpBarBack.transform, false);
             _healthFill = hpFillGo.GetComponent<Image>();
-            _healthFill.color = new Color(0.3f, 0.85f, 0.3f);
+            _healthFill.color = HpHealthy;
             Stretch((RectTransform)_healthFill.transform, 0f, 1f, 0f, 1f);
             _healthFill.type = Image.Type.Filled;
             _healthFill.fillMethod = Image.FillMethod.Horizontal;
-            var hpText = CreateText("HpText", rootRect, 15, Color.white, TextAnchor.MiddleCenter);
-            Stretch(hpText.rectTransform, 0.40f, 0.60f, 0.905f, 0.935f);
-            _healthText = hpText;
+        }
 
-            // Tab 按住比分板（居中面板，默认隐藏）
-            var board = CreateImage("Board", rootRect, new Color(0f, 0f, 0f, 0.72f));
-            Stretch(board.rectTransform, 0.32f, 0.68f, 0.32f, 0.62f);
-            _boardPanel = board.gameObject;
-            _boardPanel.SetActive(false);
-            var boardText = CreateText("BoardText", _boardPanel.transform, 24, Color.white, TextAnchor.MiddleCenter);
-            Stretch(boardText.rectTransform, 0.05f, 0.95f, 0.05f, 0.95f);
-            _boardText = boardText;
+        private static TMP_Text CreateTmpText(string name, Transform parent, string value, int size,
+            Color color, TextAlignmentOptions align)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (HudFont != null) text.font = HudFont;
+            text.fontSize = size;
+            text.color = color;
+            text.alignment = align;
+            text.raycastTarget = false;
+            text.text = value;
+            return text;
         }
 
         private static Text CreateText(string name, Transform parent, int size, Color color, TextAnchor anchor)

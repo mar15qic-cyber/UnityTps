@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day2_ServicePistol
   m_EditorClassIdentifier: 
   weaponId: pistol.day2
-  displayName: Day 2 Service Pistol
+  displayName: Glock 17
+  catalogItemId: weapon.service_pistol
   fireMode: 0
   firstPersonViewPrefab: {fileID: 1097454739981807468, guid: 34dab0d4b8a02034d885acdd3593802e, type: 3}
   thirdPersonViewPrefab: {fileID: 8213130621444502490, guid: 95aeb185d6221804885ea0fe87c6aef1, type: 3}

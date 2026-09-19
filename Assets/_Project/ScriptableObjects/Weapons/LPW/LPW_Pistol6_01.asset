@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_Pistol6_01
   m_EditorClassIdentifier: 
   weaponId: lpw.pistol.06
-  displayName: "\u6218\u672F\u534A\u81EA\u52A8\u624B\u67AA 06"
+  displayName: "\u5FAE\u578B Uzi"
+  catalogItemId: weapon.lpw.pistol.06
   fireMode: 0
   firstPersonViewPrefab: {fileID: 6554612464572261587, guid: 09c7e497512a9c14cbac833203e81209, type: 3}
   thirdPersonViewPrefab: {fileID: 1263040753540722421, guid: f4ffd589575b490439c9be4e1711d6ff, type: 3}

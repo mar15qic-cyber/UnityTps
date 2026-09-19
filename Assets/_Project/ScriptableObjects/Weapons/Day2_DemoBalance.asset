@@ -124,6 +124,126 @@ MonoBehaviour:
       Ballistic:
         PelletCount: 1
         PelletSpread: 0
+  - WeaponId: handgun.03
+    Stat:
+      Damage: 42
+      Rpm: 300
+      MagSize: 7
+      ReserveAmmo: 28
+      ReloadTime: 1.5
+      Spread: 0.3
+      MaxRange: 120
+      AdsFov: 50
+      Accuracy:
+        BaseHipSpread: 0.4
+        BaseAdsSpread: 0.12
+        MovementSpreadMax: 0.9
+        SprintSpreadExtra: 1.2
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.4
+        MaxBloom: 2.2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+  - WeaponId: handgun.04
+    Stat:
+      Damage: 28
+      Rpm: 400
+      MagSize: 12
+      ReserveAmmo: 48
+      ReloadTime: 1.35
+      Spread: 0.35
+      MaxRange: 120
+      AdsFov: 50
+      Accuracy:
+        BaseHipSpread: 0.4
+        BaseAdsSpread: 0.12
+        MovementSpreadMax: 0.9
+        SprintSpreadExtra: 1.2
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.4
+        MaxBloom: 2.2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+  - WeaponId: smg.03
+    Stat:
+      Damage: 18
+      Rpm: 900
+      MagSize: 50
+      ReserveAmmo: 200
+      ReloadTime: 2.3
+      Spread: 2.5
+      MaxRange: 120
+      AdsFov: 48
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+  - WeaponId: smg.04
+    Stat:
+      Damage: 19
+      Rpm: 850
+      MagSize: 30
+      ReserveAmmo: 120
+      ReloadTime: 2.2
+      Spread: 2.2
+      MaxRange: 120
+      AdsFov: 48
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+  - WeaponId: smg.05
+    Stat:
+      Damage: 22
+      Rpm: 750
+      MagSize: 20
+      ReserveAmmo: 80
+      ReloadTime: 2.0
+      Spread: 2.0
+      MaxRange: 120
+      AdsFov: 48
+      Accuracy:
+        BaseHipSpread: 0.25
+        BaseAdsSpread: 0.1
+        MovementSpreadMax: 0.8
+        SprintSpreadExtra: 1
+        AirborneSpreadExtra: 1.25
+        ShotBloomPerShot: 0.35
+        MaxBloom: 2
+        BloomRecoveryDelay: 0.15
+        BloomRecoverySpeed: 6
+  - WeaponId: sniper.03
+    Stat:
+      Damage: 100
+      Rpm: 45
+      MagSize: 5
+      ReserveAmmo: 25
+      ReloadTime: 2.8
+      Spread: 0.1
+      MaxRange: 250
+      AdsFov: 40
+      Accuracy:
+        BaseHipSpread: 2.2
+        BaseAdsSpread: 0.55
+        MovementSpreadMax: 1.5
+        SprintSpreadExtra: 1.8
+        AirborneSpreadExtra: 2
+        ShotBloomPerShot: 0.5
+        MaxBloom: 3.2
+        BloomRecoveryDelay: 0.18
+        BloomRecoverySpeed: 3.5
   - WeaponId: rifle.02
     Stat:
       Damage: 24

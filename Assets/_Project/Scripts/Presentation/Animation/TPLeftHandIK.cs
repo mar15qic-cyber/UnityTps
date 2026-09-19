@@ -30,6 +30,8 @@ namespace Game.Presentation.Animation
         private Transform _hand;
         private float _currentWeight;
         private bool _reloadSuppressed;
+        /// <summary>死亡闸门来源（审计 2026-09-16 D2：IK 必须在死亡期间停止写骨骼）。</summary>
+        private Game.Gameplay.Network.NetworkCombatAuthority _netAuthority;
 
         private void Awake()
         {
@@ -65,6 +67,14 @@ namespace Game.Presentation.Animation
 
         private void LateUpdate()
         {
+            // 2026-09-16 审计 D2 双保险：死亡期间 IK 不得继续解算已冻结的手臂（旧实现不在死亡停用名单里，
+            // 会在 Animator 冻结后持续改写三根左臂骨骼），并清空混合权重以便复活后从 0 平滑接入。
+            if (_netAuthority == null) _netAuthority = GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>();
+            if (_netAuthority != null && _netAuthority.IsDead)
+            {
+                _currentWeight = 0f;
+                return;
+            }
             var target = swapper != null ? swapper.CurrentLeftHandTarget : null;
             float goal = target != null && !_reloadSuppressed ? weight : 0f;
             _currentWeight = blendSeconds <= 0f

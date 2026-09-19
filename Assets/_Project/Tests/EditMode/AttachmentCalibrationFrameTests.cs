@@ -149,5 +149,46 @@ namespace Game.Gameplay.Tests
             Assert.That(Quaternion.Angle(viewB.Spawned[0].transform.localRotation, expectedRot), Is.LessThan(0.01f),
                 "旋转 delta 按共轭换帧后与预期一致");
         }
+
+        [Test]
+        public void Calibration_AppliedWhileHolstered_UsesRestFrameCapturedAtCacheTime()
+        {
+            // 切枪配件错位回归（2026-09-07 用户录屏）：FP 视图实例以收枪冻结姿态被重新激活，
+            // ApplyAttachments 又先于 PlayDraw 执行——校准换帧必须基于缓存静止帧（prefab
+            // 授权姿态），收枪姿态不得共轭进 delta（否则瞄具/镭射严重偏位，消音器因无校准行幸免）。
+            var restRotation = Quaternion.Euler(0f, 90f, 0f);        // 静止挂点帧（= 作者帧）
+            var holsterRotation = Quaternion.Euler(70f, 130f, 25f);  // 收枪冻结姿态（动画骨骼旋转）
+
+            // 挂点先于组件创建；EditMode 下 AddComponent 不跑 Awake，用一次空装配触发
+            // CacheSockets 在静止姿态完成挂点与静止帧捕获（等价运行时 Awake 时序）。
+            var root = new GameObject("CachedView");
+            var socketGo = new GameObject("Attach_Tactical");
+            socketGo.transform.SetParent(root.transform, false);
+            socketGo.transform.localRotation = restRotation;
+            var socket = socketGo.AddComponent<AttachmentSocket>();
+            var slotField = typeof(AttachmentSocket).GetField("slot",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            slotField.SetValue(socket, AttachmentSlotType.Tactical);
+            var view = root.AddComponent<WeaponAttachmentView>();
+            view.ApplyAttachments(null, "weapon.x", System.Array.Empty<AttachmentAssetEntry>(), laserBeamEnabled: false);
+
+            var authorFrame = Quaternion.Inverse(root.transform.rotation) * socketGo.transform.rotation;
+            var dragDelta = new Vector3(0.02f, -0.03f, 0.01f);
+            _calibration.Set("weapon.x", WeaponAttachmentView.LaserItemId, dragDelta, Vector3.zero, authorFrame);
+
+            // 模拟切枪回来：视图以收枪姿态被应用装配
+            socketGo.transform.localRotation = holsterRotation;
+            var entry = LaserEntry();
+            entry.prefab = _prefab;
+            entry.mountOffset = new Vector3(0.05f, 0f, 0f);
+            view.ApplyAttachments(_catalog, "weapon.x", new[] { entry }, laserBeamEnabled: false);
+
+            Assert.That(view.Spawned, Has.Count.EqualTo(1));
+            // 静止帧 == 作者帧：delta 直通，与"静止姿态下应用"逐位一致
+            var expected = entry.mountOffset + dragDelta;
+            var actual = view.Spawned[0].transform.localPosition;
+            Assert.That((actual - expected).magnitude, Is.LessThan(0.005f),
+                $"收枪姿态下应用必须等价静止应用：actual={actual:F6} expected={expected:F6}");
+        }
     }
 }

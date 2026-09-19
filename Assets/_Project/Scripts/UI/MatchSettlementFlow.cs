@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Game.Account;
 using Game.Gameplay.Network;
@@ -24,6 +25,48 @@ namespace Game.UI
 
         /// <summary>最近一次成功结算的响应（Results 页实数据源）。</summary>
         public static MatchResultDto LastResult { get; private set; }
+
+        /// <summary>最近一次房间对局权威结果（I4：Pending/Final 快照；等待房间页展示；新局开始时清除）。</summary>
+        public static RoomMatchResultViewDto LastRoomResult { get; private set; }
+
+        /// <summary>新局开始：清除上局结果展示（LobbyPresenter.OnWaitingStartClicked 调用）。</summary>
+        public static void ClearLastRoomResult() => LastRoomResult = null;
+
+        /// <summary>
+        /// 等待房间页的结果补刷新入口（R5 审计修复）：结算查询超限仍 Pending 时，等待房间页以此
+        /// 有界重拉权威结果——只允许 Final 升级（绝不倒退/覆盖为新局数据）。null 安全。
+        /// </summary>
+        public static void UpdateRoomResult(RoomMatchResultViewDto dto)
+        {
+            if (dto == null || LastRoomResult == null) return;
+            if (!string.Equals(dto.matchId, LastRoomResult.matchId, StringComparison.Ordinal)) return; // 旧任务结果不得触碰新局
+            if (dto.status != "Final" && LastRoomResult.status == "Final") return; // 已 Final 不倒退
+            LastRoomResult = dto;
+        }
+
+        /// <summary>上局结果文案（R2 模式感知；纯函数供 EditMode 锁定）：TDM 按胜队；KillRace 按
+        /// 逐玩家 isWin 取个人胜者；Pending 显示结算中；平局/无胜者显示平局。</summary>
+        public static string BuildRoomResultVerdict(RoomMatchResultViewDto result, string mode)
+        {
+            if (result == null) return null;
+            if (result.status != "Final") return "上局：结算中…";
+            if (GameModes.IsTeamMode(mode))
+            {
+                if (result.winnerTeam == TeamId.Red) return "上局：红队获胜";
+                if (result.winnerTeam == TeamId.Blue) return "上局：蓝队获胜";
+                return "上局：平局";
+            }
+            RoomMatchResultPlayerViewDto winner = null;
+            if (result.players != null)
+            {
+                foreach (var player in result.players)
+                {
+                    if (player == null || !player.isWin) continue;
+                    if (winner == null || player.kills > winner.kills) winner = player;
+                }
+            }
+            return winner != null ? "上局：" + winner.username + " 获胜" : "上局：平局";
+        }
 
         /// <summary>最近一次收集的服务器权威提交（无论成败；Results 页 K/D 展示用）。</summary>
         public static MatchSubmissionRequest LastRequest { get; private set; }
@@ -53,12 +96,25 @@ namespace Game.UI
         private static void HandleMatchEvent(MatchEventKind kind, string payload)
         {
             if (kind != MatchEventKind.Ended) return;
+            // Explicit leave owns navigation; the room session is being removed.
+            if (MatchExitState.VoluntaryLeaveRequested) return;
             _ = SubmitFromEndedPayloadAsync(payload);
         }
 
-        /// <summary>提交预校验（纯函数，Docs/23 §G.1：超限不发请求，避免后端 422）。</summary>
+        /// <summary>提交预校验（纯函数，Docs/23 §G.1：超限不发请求，避免后端 422）。
+        /// CF 房间对局放宽（Docs/27 §7.2 模式感知）：带 matchId 上限 200/1200s；旧路径维持 30/900s。</summary>
         public static bool IsValidSubmission(int kills, int durationSeconds)
             => kills >= 0 && kills <= MaxKills && durationSeconds >= 0 && durationSeconds <= MaxDurationSeconds;
+
+        public static bool IsValidSubmission(int kills, int durationSeconds, string matchId)
+        {
+            if (string.IsNullOrEmpty(matchId)) return IsValidSubmission(kills, durationSeconds);
+            return kills >= 0 && kills <= RoomMatchMaxKills && durationSeconds >= 0 && durationSeconds <= RoomMatchMaxDurationSeconds;
+        }
+
+        /// <summary>CF 房间对局提交上限（Docs/27 §7.2：matchScoped 放宽 200 杀 / 1200s）。</summary>
+        public const int RoomMatchMaxKills = 200;
+        public const int RoomMatchMaxDurationSeconds = 1200;
 
         private static async Task SubmitFromEndedPayloadAsync(string payload)
         {
@@ -94,11 +150,81 @@ namespace Game.UI
                 return;
             }
 
-            // 胜负文案：本条 isWin → VICTORY；其余任一条 isWin → DEFEAT；否则 DRAW（多人一致）
+            // 胜负文案：本条 isWin → VICTORY；其余任一条 isWin → DEFEAT；否则 DRAW（多人/团队一致）
             bool someoneElseWon = false;
             foreach (var entry in ended.players)
                 if (entry != null && entry != mine && entry.isWin) { someoneElseWon = true; break; }
             LastVerdictText = mine.isWin ? "VICTORY" : (someoneElseWon ? "DEFEAT" : "DRAW");
+
+            // ---- CF 房间对局分支（C3/Q05 + A04/V0 + R5 审计修复，Docs/27 §7.2/§5.7）----
+            // 终局载荷带权威 matchId = 房间对局：发奖责任统一归 DS（幂等键 ds-{matchId}-{userId}），
+            // TDM 与 KillRace 一致——客户端一律只查询权威结果，不再带 matchId 自报
+            //（后端对房间比赛自报统一 409；旧 kr- 键双发链路就此关闭）。
+            // 返房事务（R5）：查询→发布→ack→断战斗→清上下文→导航整条链共用捕获的
+            // room/match/generation，每个 await 后校验——被顶替（切房/新战斗连接）即终止，
+            // 旧任务绝不可能写新结果、ack 新房间或断开新连接。
+            if (!string.IsNullOrEmpty(ended.matchId))
+            {
+                LastRequest = null;
+                LastPendingRequest = null;
+                var api = AppRoot.Instance != null ? AppRoot.Instance.ApiClient : null;
+                var session = AppRoot.Instance != null ? AppRoot.Instance.Session : null;
+                var roomCode = session?.Room?.RoomCode;
+                var generationAtStart = session != null ? session.ConnectionGeneration : 0L;
+                Debug.Log($"[MatchSettlementFlow] 房间对局（mode={ended.mode}）：结果由服务器权威上报，客户端查询 matchId={ended.matchId}");
+
+                if (api == null || session == null || string.IsNullOrEmpty(roomCode))
+                {
+                    LastError = "会话/ApiClient 不可用，无法进入返房链";
+                    Debug.LogWarning("[MatchSettlementFlow] " + LastError);
+                    return;
+                }
+
+                var sequence = new MatchReturnSequence();
+                await sequence.RunAsync(roomCode, ended.matchId, generationAtStart, new MatchReturnSequence.Deps
+                {
+                    SnapshotSession = () => new MatchReturnSequence.SessionSnapshot(
+                        session.Room != null ? session.Room.RoomCode : null, session.ConnectionGeneration),
+                    QueryResultOnce = async () =>
+                    {
+                        var result = await api.GetRoomMatchResultAsync(roomCode, ended.matchId);
+                        return (result.Success && result.Data != null, result.Data);
+                    },
+                    Delay = () => Task.Delay(TimeSpan.FromSeconds(MatchReturnSequence.PollIntervalSeconds)),
+                    // F3：HTTP ack 委托只返回数据；不能在旧请求 await 内提前写 AccountSession。
+                    AckReturnWithData = async () =>
+                    {
+                        var ack = await api.ReturnRoomAsync(roomCode, ended.matchId);
+                        return (ack.Success, ack.Data);
+                    },
+                    ApplyAckSnapshot = snapshot =>
+                    {
+                        // RunAsync 已在 await 返回后做过守卫；这里再做一次同步身份检查，
+                        // 封住连接代际不变但玩家已切到另一房间的旧响应污染路径。
+                        var liveRoom = session.Room;
+                        if (liveRoom == null
+                            || !string.Equals(liveRoom.RoomCode, roomCode, StringComparison.Ordinal)
+                            || session.ConnectionGeneration != generationAtStart
+                            || snapshot?.room == null
+                            || !string.Equals(snapshot.room.roomCode, roomCode, StringComparison.Ordinal))
+                            return;
+                        session.RefreshRoomSnapshot(snapshot);
+                    },
+                    PublishResult = dto => LastRoomResult = dto,
+                    StopBattleConnection = StopBattleConnectionIfCurrent,
+                    ClearLaunchContext = () => NetworkLaunchContext.Clear(),
+                    NavigateToLobby = () => _ = LoadLobbySceneAsync(),
+                });
+                if (sequence.Superseded)
+                {
+                    // 被顶替：本流放弃结算导航权（新会话/新流程接管；MatchExitState 仲裁位归还）
+                    MatchExitState.SettlementNavigationPending = false;
+                    return;
+                }
+                // 回到大厅：不 Navigate（LobbyPresenter 引导检测 session.Room 自动恢复等待房间页）
+                return;
+            }
+
             var request = new MatchSubmissionRequest
             {
                 clientMatchId = MatchLifecycle.ClientMatchId,
@@ -189,10 +315,27 @@ namespace Game.UI
 
         private static NetworkCombatAuthority FindLocalAuthority()
         {
-            foreach (var player in Object.FindObjectsByType<NetworkCombatAuthority>(FindObjectsSortMode.None))
+            foreach (var player in UnityEngine.Object.FindObjectsByType<NetworkCombatAuthority>(FindObjectsSortMode.None))
                 if (player.IsOwnerPlayer) return player;
             return null;
         }
+
+        /// <summary>断开战斗连接（退战斗 ≠ 退房；R5：仅返房事务未被顶替时调用——绝不断新会话连接）。</summary>
+        private static void StopBattleConnectionIfCurrent()
+        {
+            var networkManager = FishNet.InstanceFinder.NetworkManager;
+            if (networkManager != null && networkManager.IsClientStarted)
+                networkManager.ClientManager.StopConnection();
+        }
+
+        /// <summary>加载大厅场景（R5：返房事务导航步；等待房间页由大厅引导自动恢复）。</summary>
+        private static async Task LoadLobbySceneAsync()
+        {
+            var op = SceneManager.LoadSceneAsync("Lobby", LoadSceneMode.Single);
+            while (op != null && !op.isDone) await Task.Yield();
+        }
+
+        // ---- I4：房间对局权威结果查询已迁入 MatchReturnSequence（R5：整条返房链统一代际守卫） ----
 
         /// <summary>回大厅并直接进入 Results 页：等场景加载 + LobbyBootstrap.Start（AddComponent 与
         /// Initialize 同步块）完成后再 Navigate，轮询上限 600 帧（约 10s@60fps）。</summary>
@@ -204,7 +347,7 @@ namespace Game.UI
             LobbyPresenter presenter = null;
             for (int i = 0; i < 600 && presenter == null; i++)
             {
-                presenter = Object.FindFirstObjectByType<LobbyPresenter>();
+                presenter = UnityEngine.Object.FindFirstObjectByType<LobbyPresenter>();
                 if (presenter == null) await Task.Yield();
             }
             presenter?.Navigate(LobbyPage.Results);

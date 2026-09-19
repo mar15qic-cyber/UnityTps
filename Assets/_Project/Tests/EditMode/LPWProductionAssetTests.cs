@@ -11,7 +11,9 @@ namespace Game.Gameplay.Tests
     public sealed class LPWProductionAssetTests
     {
         private const string ManifestPath = "Assets/_Project/ScriptableObjects/Weapons/LPW/LPWWeaponManifest.asset";
-        private const string CatalogPath = "Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset";
+        // 2026-09-08 追加 P0：catalog 资产移入 Resources（DS build 的 Resources.Load 必须命中
+        // 真资产——runtime 十条默认清单的 definition 依赖编辑器回退，不进 build）——测试路径同步。
+        private const string CatalogPath = "Assets/_Project/Resources/WeaponAssetCatalog.asset";
 
         [Test]
         public void ManifestContainsExactly29CanonicalGunTypes()
@@ -32,13 +34,19 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void CatalogContains39DirectBuildTimeDefinitions()
+        public void CatalogRows_AreUnique_AndResolveBySourceIdentity()
         {
+            // D4-A.4（Gate A 复审 §2.3）：正式 LPFP 行会随资产票据增长（39→45）——按来源/身份
+            // 断言，不再依赖脆弱总数。
             var catalog = AssetDatabase.LoadAssetAtPath<WeaponAssetCatalog>(CatalogPath);
             Assert.That(catalog, Is.Not.Null);
-            Assert.That(catalog.Entries, Has.Count.EqualTo(39));
-            Assert.That(catalog.Entries.Select(x => x.itemId).Distinct().Count(), Is.EqualTo(39));
+            // 结构不变式：itemId 唯一
+            Assert.That(catalog.Entries.Select(x => x.itemId).Distinct().Count(), Is.EqualTo(catalog.Entries.Count));
+            // LPW 身份行冻结在 29（Docs/25 历史只读遗产：不修不扩）——IsLpw 与 assetKey
+            // 命名空间迁移守卫必须一致
+            Assert.That(catalog.Entries.Count(x => x.IsLpw), Is.EqualTo(29));
             Assert.That(catalog.Entries.Count(x => x.itemId.StartsWith("weapon.lpw.", StringComparison.Ordinal)), Is.EqualTo(29));
+            // 构建版本解析不变式（对全部行，无论来源）
             Assert.That(catalog.Entries.All(x => x.definition != null), Is.True, "构建版本不得靠 Editor 搜索解析 Definition");
             Assert.That(catalog.Entries.All(x => x.previewPrefab != null), Is.True, "商城预览必须直接引用正式 TP prefab");
         }

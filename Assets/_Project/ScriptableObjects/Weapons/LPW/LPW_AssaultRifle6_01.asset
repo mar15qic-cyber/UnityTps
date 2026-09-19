@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_AssaultRifle6_01
   m_EditorClassIdentifier: 
   weaponId: lpw.rifle.06
-  displayName: "\u73B0\u4EE3\u7A81\u51FB\u6B65\u67AA 06"
+  displayName: M4A1 II
+  catalogItemId: weapon.lpw.rifle.06
   fireMode: 1
   firstPersonViewPrefab: {fileID: 8995279607294295930, guid: f8a5c9dc8a932a043bb5631e180a6b8d, type: 3}
   thirdPersonViewPrefab: {fileID: 9103437472673183717, guid: ac62f9e086f1187408aa4af0d064e60e, type: 3}

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SniperRifle4_01
   m_EditorClassIdentifier: 
   weaponId: lpw.sniper.04
-  displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 04"
+  displayName: M95
+  catalogItemId: weapon.lpw.sniper.04
   fireMode: 0
   firstPersonViewPrefab: {fileID: 1977619397190479287, guid: d32e4e2ec9661ad4aa97c36bc38e0aa6, type: 3}
   thirdPersonViewPrefab: {fileID: 8859113908407395807, guid: dc7ff566d1eb7484bb86517c19fb74f5, type: 3}

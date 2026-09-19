@@ -77,5 +77,19 @@ namespace Game.Gameplay.Weapon
             State = WeaponRuntimeState.Ready;
             ReloadRemaining = 0f;
         }
+
+        /// <summary>
+        /// Day4 残余审计 P0-2：跨切槽/配件重建的弹药恢复（服务器权威状态持久化）。
+        /// 当前弹药按新弹匣容量钳制（配件增减容量不得隐式补满/清零），备弹原样保留；
+        /// 换弹态不恢复（切枪已取消换弹），冷却清零（切枪时长已覆盖）。
+        /// </summary>
+        internal void RestoreAmmo(int currentAmmo, int reserveAmmo)
+        {
+            CurrentAmmo = Math.Clamp(currentAmmo, 0, MagazineSize);
+            ReserveAmmo = Math.Max(0, reserveAmmo);
+            State = WeaponRuntimeState.Ready;
+            ReloadRemaining = 0f;
+            CooldownRemaining = 0f;
+        }
     }
 }

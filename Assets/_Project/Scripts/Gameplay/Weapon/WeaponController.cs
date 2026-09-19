@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Game.Core;
 using Game.Gameplay.Action;
 using Game.Gameplay.Combat;
+using Game.Gameplay.Network;
 using Game.Gameplay.Player;
 using UnityEngine;
 
@@ -80,6 +82,23 @@ namespace Game.Gameplay.Weapon
         public ActionSystem Actions => actionSystem;
         public bool IsInitialized => Runtime != null;
 
+        /// <summary>当前装配是否含消音器（isSuppressor 配件）——WeaponAudioView 据此切换消音 Fire 池。</summary>
+        public bool IsSuppressed
+        {
+            get
+            {
+                var equipped = _attachmentSource.Equipped;
+                for (int i = 0; i < equipped.Count; i++)
+                    if (equipped[i] != null && equipped[i].isSuppressor) return true;
+                return false;
+            }
+        }
+
+        /// <summary>当前瞄具开镜情境：已装瞄具优先，否则使用武器自带瞄具，再否则为机瞄。</summary>
+        public OpticAimContext CurrentOpticAim => definition != null
+            ? OpticAimContext.Resolve(_attachmentSource.Equipped, definition.BuiltInOptic)
+            : OpticAimContext.None;
+
         /// <summary>解析后数值（唯一持有者；Initialize/EquipDefinition 重算，CP4 起为消费源）。</summary>
         public ResolvedWeaponStats Resolved { get; private set; }
         /// <summary>当前瞄准偏移（度；Pitch 向上为正、Yaw 向右为正）。CmFPCameraRecoil 回声与 FireRay 共用。</summary>
@@ -96,8 +115,31 @@ namespace Game.Gameplay.Weapon
         /// </summary>
         public Vector2 ConsumeRecoilCompensation(Vector2 requestedAimDeltaDeg)
             => _recoil.ConsumeCompensation(requestedAimDeltaDeg);
+
+        /// <summary>后坐补偿债务（度）——移动快照携带，保证预测重放从同一起点消费（审计 2026-09-16 M3）。</summary>
+        public Vector2 RecoilCompensationDebt => _recoil.CompensationDebt;
+
+        /// <summary>恢复后坐补偿债务（权威快照对位/重放前调用）。</summary>
+        public void RestoreRecoilCompensationDebt(Vector2 debt) => _recoil.RestoreCompensationDebt(debt);
+
         /// <summary>当前合成散布锥角（度）——弹道与准心 HUD 的同一数据源。</summary>
         public float CurrentSpreadDegrees => _accuracy.CurrentSpread(FireContext, Resolved);
+
+        /// <summary>
+        /// 廉价准入预检（审计 2026-09-16 §6.4）：回答"现在开火会不会被冷却/弹药/动作槽拒绝"，
+        /// **不消费任何状态、不做任何射线**（镜像 WeaponRuntime.TryConsumeRound 的三条前置）。
+        /// 用途=服务器在处理开火请求前先排除必被拒绝的请求，避免为它们付出 hitbox 回溯代价
+        /// （回溯要临时移动全部玩家 hitbox 并 SyncTransforms，逐渲染帧 FireHeld 时开销可观）。
+        /// </summary>
+        public bool CanAttemptFire
+            => Runtime != null && !actionSystem.IsBusy
+               && Runtime.State == WeaponRuntimeState.Ready
+               && Runtime.CooldownRemaining <= 0f
+               && Runtime.HasAmmo;
+
+        /// <summary>最近一次开火的权威几何证据（审计 §6.1；服务器侧有意义，离线/客户端为 default）。</summary>
+        public Combat.FireEvidence LastFireEvidence
+            => combatResolver != null ? combatResolver.LastTwoStageEvidence : default;
 
         public event System.Action<WeaponShot> OnShotFired;
         public event System.Action OnDryFire;
@@ -106,6 +148,7 @@ namespace Game.Gameplay.Weapon
         public event System.Action OnReloadCompleted;
         public event System.Action<ActionInterruptReason> OnReloadInterrupted;
         public event System.Action<WeaponDefinition> OnWeaponEquipped;
+        public event System.Action<OpticAimContext> OnAttachmentsChanged;
 
         /// <summary>远端表现触发（Docs/19 N2，NetworkWeaponState RPC 调用）：
         /// 只广播动画事件链，不结算弹道/弹药（服务器权威结算在 N3）。</summary>
@@ -115,8 +158,16 @@ namespace Game.Gameplay.Weapon
         private IBalanceConfig _balance;
         private WeaponRecoilState _recoil = new();
         private readonly WeaponAccuracyState _accuracy = new();
+        private readonly AttachmentStatModifierSource _attachmentSource = new();   // 配件层（Priority=0，Docs/21 Phase D）
         private System.Random _random = new();     // 可播种（seed=0 随机）；弹道散布唯一随机源
         private int _seed;
+
+        // Day4 残余审计 P0-2：按 WeaponId 索引的弹药持久化缓存——切槽只切换当前运行时引用，
+        // 每把武器保留自己服务器权威的弹匣/备弹状态（跨切槽往返/配件容量重算），切回即恢复
+        //（按新容量钳制，绝不隐式补满）。_runtimeWeaponId 记录当前 Runtime 归属，切出时写缓存。
+        private readonly Dictionary<string, (int currentAmmo, int reserveAmmo)> _ammoCacheByWeaponId = new();
+        private readonly Dictionary<string, AttachmentAssetEntry[]> _attachmentsByWeaponId = new();
+        private string _runtimeWeaponId;
 
         private WeaponFireContext FireContext
             => fireContextProvider != null ? fireContextProvider.Context : WeaponFireContext.Default;
@@ -147,13 +198,19 @@ namespace Game.Gameplay.Weapon
 
         private void Start()
         {
-            if (definition == null || _balance == null)
+            if (definition == null)
             {
-                Debug.LogError("[WeaponController] WeaponDefinition or IBalanceConfig is not assigned.", this);
+                Debug.LogError("[WeaponController] Start blocked: WeaponDefinition is not assigned.", this);
                 enabled = false;
                 return;
             }
-            Initialize(definition, _balance);
+            if (!TryResolveBalance(null, out IBalanceConfig resolvedBalance))
+            {
+                Debug.LogError("[WeaponController] Start blocked: no IBalanceConfig is assigned or resolvable.", this);
+                enabled = false;
+                return;
+            }
+            Initialize(definition, resolvedBalance);
         }
 
         private void OnDisable()
@@ -181,11 +238,76 @@ namespace Game.Gameplay.Weapon
 
         public void Initialize(WeaponDefinition weaponDefinition, IBalanceConfig balance)
         {
-            definition = weaponDefinition != null ? weaponDefinition : throw new ArgumentNullException(nameof(weaponDefinition));
-            _balance = balance ?? throw new ArgumentNullException(nameof(balance));
+            if (weaponDefinition == null) throw new ArgumentNullException(nameof(weaponDefinition));
+            if (!TryResolveBalance(balance, out IBalanceConfig resolvedBalance))
+            {
+                Debug.LogError($"[WeaponController] Initialize blocked for '{weaponDefinition.name}': no IBalanceConfig is assigned or resolvable.", this);
+                return;
+            }
+
+            // Resolve all prerequisites before replacing the current definition/runtime;
+            // a failed equip must leave the previous weapon state intact.
+            definition = weaponDefinition;
+            _balance = resolvedBalance;
             Stat = _balance.GetWeaponStat(definition.WeaponId);
-            Resolved = WeaponStatResolver.Resolve(Stat, null);   // Modifier 来源 Day4 无；接口就绪
-            Runtime = new WeaponRuntime(Stat.MagSize, Stat.ReserveAmmo);
+            RebuildResolvedStats();
+            OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+        }
+
+        private bool TryResolveBalance(IBalanceConfig requested, out IBalanceConfig resolved)
+        {
+            resolved = requested ?? _balance;
+            if (resolved == null && balanceConfigAsset is IBalanceConfig serializedBalance)
+                resolved = serializedBalance;
+            if (resolved != null) _balance = resolved;
+            return resolved != null;
+        }
+
+        /// <summary>
+        /// 整体替换装配配件集（枪匠保存后 / 换武器重套配装时调用）。
+        /// 重算解析数值并以新弹匣容量重建运行时（调用时机=装备期，非战斗中途——满弹重建语义正确）。
+        /// </summary>
+        public void SetAttachments(IEnumerable<AttachmentAssetEntry> attachments)
+        {
+            _attachmentSource.Reset(attachments);
+            if (definition != null)
+                _attachmentsByWeaponId[definition.WeaponId] = new List<AttachmentAssetEntry>(_attachmentSource.Equipped).ToArray();
+            RebuildResolvedStats();
+            OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+            OnAttachmentsChanged?.Invoke(CurrentOpticAim);
+        }
+
+        /// <summary>当前装配的配件（只读；FP/TP 表现层挂模型用）.</summary>
+        public IReadOnlyList<AttachmentAssetEntry> EquippedAttachments => _attachmentSource.Equipped;
+
+        private void RebuildResolvedStats()
+        {
+            // Day4 残余审计 P0-2：重建前把当前运行时弹药记入按 WeaponId 索引的缓存；
+            // 重建后同武器恢复（按新弹匣容量钳制——配件增减容量不得隐式补满/清零），
+            // 不同武器/首次装备 = 满弹新运行时（出生语义不变）。换弹态随切枪取消，不赠弹。
+            if (Runtime != null && !string.IsNullOrEmpty(_runtimeWeaponId))
+                _ammoCacheByWeaponId[_runtimeWeaponId] = (Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+
+            Resolved = WeaponStatResolver.Resolve(Stat,
+                _attachmentSource.Equipped.Count > 0 ? new List<IWeaponStatModifierSource> { _attachmentSource } : null);
+            // 弹匣容量可被加长弹匣修饰（数量型），运行时按解析值重建
+            Runtime = new WeaponRuntime(Mathf.Max(1, Mathf.RoundToInt(Resolved.MagazineSize)), Stat.ReserveAmmo);
+
+            if (definition != null && _ammoCacheByWeaponId.TryGetValue(definition.WeaponId, out var persisted))
+                Runtime.RestoreAmmo(persisted.currentAmmo, persisted.reserveAmmo);
+            _runtimeWeaponId = definition != null ? definition.WeaponId : null;
+        }
+
+        /// <summary>
+        /// 服务器重生弹药重置（2026-09-18 实机问题8）：弹匣补满+备弹回到配装初始值，
+        /// 切枪弹药缓存清空（否则切回该枪会读回死亡前的残弹）；换弹/冷却态随 RestoreAmmo 复位。
+        /// 仅服务器权威调用（NetworkCombatAuthority.ServerRespawn）；客户端经 SyncVar 同步。
+        /// </summary>
+        internal void ServerResetAmmoToLoadoutDefault()
+        {
+            if (Runtime == null) return;
+            _ammoCacheByWeaponId.Clear();
+            Runtime.RestoreAmmo(Runtime.MagazineSize, Stat.ReserveAmmo);
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
         }
 
@@ -193,13 +315,24 @@ namespace Game.Gameplay.Weapon
         public void EquipDefinition(WeaponDefinition next)
         {
             if (next == null) throw new ArgumentNullException(nameof(next));
+            if (!TryResolveBalance(null, out IBalanceConfig resolvedBalance))
+            {
+                Debug.LogError($"[WeaponController] Equip blocked for '{next.name}': no IBalanceConfig is assigned or resolvable.", this);
+                return;
+            }
             if (Runtime != null && Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.CancelReload();
             // 硬重置（Docs/13 §5.3-4）：仅切枪；停火/换弹自然恢复
             _recoil.HardReset();
             _accuracy.HardReset();
-            Initialize(next, _balance);
-            OnWeaponEquipped?.Invoke(next);
+            // 恢复目标枪自己的配件后再恢复弹药，避免扩容弹匣先被基础容量截断。
+            // 首次装备仍为空；服务器装备回调继续用权威快照覆盖，不继承上一把枪的配件。
+            _attachmentSource.Reset(_attachmentsByWeaponId.TryGetValue(next.WeaponId, out var savedAttachments)
+                ? savedAttachments : null);
+            Initialize(next, resolvedBalance);
+            OnAttachmentsChanged?.Invoke(CurrentOpticAim);
+            if (definition == next && Runtime != null)
+                OnWeaponEquipped?.Invoke(next);
         }
 
         /// <summary>注入随机种子（测试/网络回放）；seed=0 恢复随机。</summary>
@@ -209,7 +342,12 @@ namespace Game.Gameplay.Weapon
             _random = seed == 0 ? new System.Random() : new System.Random(seed);
         }
 
-        public bool TryFire()
+        /// <summary>
+        /// 执行一次开火（本地预测/离线/服务器三路径共用）。rewindContext：服务器路径由
+        /// NetworkCombatAuthority.ServerFireRequest 传入（Phase 2——实际回溯 tick 随行，供命中判定
+        /// 按射击时刻快照比对目标生命代际/无敌态）；本地/离线调用省略（default = 无回溯语境）。
+        /// </summary>
+        public bool TryFire(LagCompRewindContext rewindContext = default)
         {
             if (Runtime == null || actionSystem.IsBusy) return false;
             if (!Runtime.TryConsumeRound())
@@ -228,6 +366,14 @@ namespace Game.Gameplay.Weapon
             Vector3 aimDirection = AimDirection;
 
             // ② 命中结算（含 Shotgun 多弹丸：主方向一次取样，每弹丸围绕主方向独立 PelletSpread 锥，聚合单次广播）
+            // I4a/P4：服务器路径走两段权威命中（相机候选→逻辑枪口遮挡验证→身体锚点防伸墙，同回溯窗口单次伤害）；
+            // 客户端预测/离线保持单段相机射线（不改客户端命中权威语义）。
+            var serverObject = GetComponentInParent<FishNet.Object.NetworkObject>();
+            bool serverTwoStage = serverObject != null && serverObject.IsServerInitialized;
+            Vector3 logicalMuzzle = TwoStageHitResolver.LogicalMuzzle(
+                transform.root.position, transform.root.forward, transform.root.up);
+            Vector3 bodyAnchor = TwoStageHitResolver.BodyAnchor(transform.root.position);
+
             HitscanResult[] pellets = null;
             HitscanResult result;
             int pelletCount = Stat.Ballistic.PelletCount;
@@ -239,8 +385,11 @@ namespace Game.Gameplay.Weapon
                 for (int i = 0; i < pelletCount; i++)
                 {
                     Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread);
-                    pellets[i] = combatResolver.ResolveHitscan(
-                        origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+                    pellets[i] = serverTwoStage
+                        ? combatResolver.ResolveHitscanTwoStage(
+                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext)
+                        : combatResolver.ResolveHitscan(
+                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
                     if (primary == null && pellets[i].Damaged) primary = pellets[i];
                     if (firstHit == null && pellets[i].Hit) firstHit = pellets[i];
                 }
@@ -248,8 +397,11 @@ namespace Game.Gameplay.Weapon
             }
             else
             {
-                result = combatResolver.ResolveHitscan(
-                    origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+                result = serverTwoStage
+                    ? combatResolver.ResolveHitscanTwoStage(
+                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext)
+                    : combatResolver.ResolveHitscan(
+                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
             }
 
             // ③ Bloom 累计（影响下一发）

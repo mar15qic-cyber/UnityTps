@@ -1,0 +1,5 @@
+-- 热更引导脚本（require 链入口）：新增热页在此 require。
+-- 热更包发布时替换本文件即可增/删页面（客户端无需重发）。
+
+require 'hello_page'
+require 'career_page'

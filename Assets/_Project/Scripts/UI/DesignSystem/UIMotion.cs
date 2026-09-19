@@ -57,6 +57,7 @@ namespace Game.UI
             if (content != null) content.anchoredPosition = new Vector2(content.anchoredPosition.x, startY - UITheme.PageSlidePixels);
             Tween(UITheme.PageFadeSeconds, Ease.OutQuad, t =>
             {
+                if (group == null) return;
                 group.alpha = t;
                 if (content != null)
                     content.anchoredPosition = new Vector2(content.anchoredPosition.x, Mathf.Lerp(startY - UITheme.PageSlidePixels, startY, t));

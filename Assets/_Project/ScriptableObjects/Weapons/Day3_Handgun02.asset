@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Day3_Handgun02
   m_EditorClassIdentifier: 
   weaponId: handgun.02
-  displayName: Day 3 Handgun 02
+  displayName: Beretta M9
+  catalogItemId: weapon.handgun02
   fireMode: 0
   firstPersonViewPrefab: {fileID: 3029508402480614813, guid: 75e866fa59eeb1549b57dbd9f5f842d1, type: 3}
   thirdPersonViewPrefab: {fileID: 6573219461991808529, guid: 0ad99d0949cbada418106986c05e6184, type: 3}

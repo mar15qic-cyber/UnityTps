@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SniperRifle2_01
   m_EditorClassIdentifier: 
   weaponId: lpw.sniper.02
-  displayName: "\u7CBE\u786E\u5C04\u624B\u6B65\u67AA 02"
+  displayName: SVD
+  catalogItemId: weapon.lpw.sniper.02
   fireMode: 0
   firstPersonViewPrefab: {fileID: 4914439584867414878, guid: 061089885ad35ab489514f0b8674843e, type: 3}
   thirdPersonViewPrefab: {fileID: 5532224447213603165, guid: 7d8af3a456d10f44abdc9383cc5eac06, type: 3}

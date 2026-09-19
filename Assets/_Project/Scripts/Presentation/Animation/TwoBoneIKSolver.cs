@@ -30,6 +30,18 @@ namespace Game.Presentation.Animation
             Vector3 wrist = hand.position;
             Vector3 goal = Vector3.Lerp(wrist, targetPosition, positionWeight);
 
+            // Anchored LPW weapons already solve the gun to the authored wrist.
+            // Re-solving an effectively zero-length position error can choose a
+            // different elbow plane from the animation and twist the arm even
+            // though no positional correction is needed. Preserve that authored
+            // bend and apply only the explicitly bounded wrist rotation residual.
+            if ((goal - wrist).sqrMagnitude <= 0.00000001f)
+            {
+                if (rotationWeight > 0.0001f)
+                    hand.rotation = Quaternion.Slerp(hand.rotation, targetRotation, rotationWeight);
+                return;
+            }
+
             float upperLength = Vector3.Distance(shoulder, elbow);
             float lowerLength = Vector3.Distance(elbow, wrist);
             if (upperLength <= 0.00001f || lowerLength <= 0.00001f) return;

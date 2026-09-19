@@ -196,6 +196,70 @@ namespace Game.Gameplay.Tests
             Assert.That(order, Is.EqualTo(new[] { "start:1", "changed:test.rifle" }));
         }
 
+        // ---------- 审计 2026-09-15 §3：AlignToEquippedDefinition（网络权威对齐入口） ----------
+
+        [Test]
+        public void AlignToEquippedDefinition_RealignsIndex_AndBroadcasts()
+        {
+            // 场景：服务器权威说玩家持副武器（槽 1），本地 ActiveIndex 仍停在槽 0
+            WeaponDefinition changed = null;
+            _arsenal.OnActiveWeaponChanged += def => changed = def;
+
+            _arsenal.AlignToEquippedDefinition(_rifle);
+
+            Assert.That(_arsenal.ActiveIndex, Is.EqualTo(1), "ActiveIndex 对齐到 definition 所属槽位");
+            Assert.That(changed, Is.SameAs(_rifle), "必须广播 OnActiveWeaponChanged（TP/HUD/音频消费者同源）");
+        }
+
+        [Test]
+        public void AlignToEquippedDefinition_AlreadyAligned_IsNoOp()
+        {
+            var fired = 0;
+            _arsenal.OnActiveWeaponChanged += _ => fired++;
+            _controller.EquipDefinition(_pistol); // 模拟外部已 EquipDefinition 槽 0
+
+            _arsenal.AlignToEquippedDefinition(_pistol);
+
+            Assert.That(fired, Is.EqualTo(0), "已对齐时幂等空操作，不得重复广播（本地预测路径双事件防抖）");
+        }
+
+        [Test]
+        public void AlignToEquippedDefinition_ForeignDefinition_NoOp()
+        {
+            var foreign = NewWeapon("test.foreign", 0.3f, 0.3f);
+            try
+            {
+                var fired = 0;
+                _arsenal.OnActiveWeaponChanged += _ => fired++;
+
+                _arsenal.AlignToEquippedDefinition(foreign);
+
+                Assert.That(fired, Is.EqualTo(0), "definition 不属于任何槽位（调试旁路）不得改动索引");
+                Assert.That(_arsenal.ActiveIndex, Is.EqualTo(0));
+            }
+            finally
+            {
+                Object.DestroyImmediate(foreign);
+            }
+        }
+
+        [Test]
+        public void AlignToEquippedDefinition_UpdatesQuickSwapHistory()
+        {
+            // 对齐到槽 1 后 Q 快切应回到槽 0（_previousSlotIndex 记录对齐前的槽）
+            _arsenal.AlignToEquippedDefinition(_rifle);
+            Assert.That(_arsenal.ActiveIndex, Is.EqualTo(1));
+
+            _arsenal.TryQuickSwap();
+            for (int i = 0; i < 200; i++)
+            {
+                _actions.Tick(0.01f); // 逐步推进（一次大步会先完成动作，交换点永不触发）
+                _arsenal.EvaluateSwap();
+            }
+
+            Assert.That(_arsenal.ActiveIndex, Is.EqualTo(0), "Q 快切目标 = 对齐前的槽位");
+        }
+
         // ---------- 辅助 ----------
 
         private static WeaponDefinition NewWeapon(string id, float draw, float holster)

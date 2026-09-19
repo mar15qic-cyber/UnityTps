@@ -12,6 +12,11 @@ namespace Game.Gameplay.Settings
     /// </summary>
     public sealed class SettingsDraft
     {
+        /// <summary>设置持久化完成（ApplyAndPersist 末尾触发）——跨场景同步驱动（AppRoot）据此把
+        /// 偏好快照推送到服务器 UserSetting 表。注意 Game.Gameplay.Action 命名空间遮蔽，
+        /// 必须写全限定 System.Action。</summary>
+        public static event System.Action Persisted;
+
         public float MasterVolume;
         public float MusicVolume;
         public float SfxVolume;
@@ -122,6 +127,7 @@ namespace Game.Gameplay.Settings
             }
             SettingsModel.Save();
             SettingsRuntime.ReloadFromPersistedAndApply();
+            Persisted?.Invoke();
         }
 
         /// <summary>

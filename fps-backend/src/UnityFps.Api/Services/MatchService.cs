@@ -16,7 +16,66 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
     /// <summary>成就→通行证升级再触发成就的收敛上限（防死循环，Docs/17 风险 #1）.</summary>
     private const int ConvergenceMaxRounds = 3;
 
-    public async Task<MatchResultDto> SubmitAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// 玩家提交入口（复审 R02）：与服务器结算内部入口（SubmitAsync）分离。
+    /// TDM 对局由 DS 权威上报结算，玩家只能查询结果——带 matchId 的 TDM 自报、以及
+    /// 对局进行中不带 matchId 的旧路径降级绕过，一律 409 拒绝；KillRace 兼容路径保留
+    /// （成员带 matchId 自报 + 无房间玩家的旧 30 杀路径不变）。
+    /// </summary>
+    public async Task<MatchResultDto> SubmitForPlayerAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
+    {
+        if (request.MatchId is not null)
+        {
+            var room = await db.GameRooms.AsNoTracking()
+                .SingleOrDefaultAsync(
+                    x => x.CurrentMatchId == request.MatchId || x.LastMatchId == request.MatchId, cancellationToken);
+            // A04（V0）：房间比赛发奖责任统一归 DS（幂等键 ds-{matchId}-{userId}，即稳定的
+            // (matchId,userId) 口径），TDM 与 KillRace 一致——玩家带 matchId 自报一律 409
+            // （客户端改为查询 /api/rooms/{code}/matches/{matchId}）；旧非房间路径（无 matchId
+            // 的 30 杀兼容）明确隔离保留，双入口不再可能对同一局各结算一次。
+            if (room is not null)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
+                    "该对局由服务器权威结算，玩家仅可查询结果");
+            // room 为空 → 交由 SubmitAsync 的绑定校验按跨局伪造拒绝
+        }
+        else
+        {
+            // 无 matchId 的旧路径只对"不在任何对局中"的玩家开放，封死对局内降级绕过
+            // 2026-09-17 修复（既有缺陷，R02 守卫上线起真库即 500）：RoomStatus.Normalize 是 C# 方法，
+            // 关系提供方（MySQL）无法翻译谓词 → InvalidOperationException；InMemory 测试测不出。
+            // 改为先取本人所在房间状态再内存归一（与 RoomService 全部既有用法同风格；
+            // 本人房间数极少，无性能问题）。
+            var memberStatuses = await db.GameRooms.AsNoTracking()
+                .Where(r => r.Members.Any(m => m.UserId == userId))
+                .Select(r => r.Status)
+                .ToListAsync(cancellationToken);
+            var inLiveMatch = memberStatuses.Any(s =>
+                RoomStatus.Normalize(s) == RoomStatus.Starting
+                || RoomStatus.Normalize(s) == RoomStatus.InMatch
+                || RoomStatus.Normalize(s) == RoomStatus.Returning);
+            if (inLiveMatch)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
+                    "当前对局须携带比赛标识结算，拒绝无标识上报");
+        }
+        return await SubmitAsync(userId, request, cancellationToken);
+    }
+
+    public Task<MatchResultDto> SubmitAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
+        => SubmitCoreAsync(userId, request, cancellationToken, validateRoomBinding: true);
+
+    /// <summary>
+    /// 服务器内部结算入口（A02，V0）：RoomService 按 RoomMatchResult 持久化快照逐玩家发放奖励专用。
+    /// 名单/来源/资格核验已在终局登记时完成（ValidateReportedRoster + PlayersJson 落库），
+    /// 因此补偿路径与玩家当前房间成员资格、CurrentMatchId/LastMatchId、房间状态完全脱钩——
+    /// 离房/历史比赛后重试上报仍能恰一次补发。幂等键仍为 (UserId, ClientMatchId=ds-{matchId}-{userId})，
+    /// 重放/冲突语义不变。玩家接口守卫（SubmitForPlayerAsync）不放宽。
+    /// </summary>
+    public Task<MatchResultDto> SubmitServerSettlementAsync(long userId, MatchSubmissionRequest request,
+        CancellationToken cancellationToken)
+        => SubmitCoreAsync(userId, request, cancellationToken, validateRoomBinding: false);
+
+    private async Task<MatchResultDto> SubmitCoreAsync(long userId, MatchSubmissionRequest request,
+        CancellationToken cancellationToken, bool validateRoomBinding)
     {
         // 1. 幂等预检：同 (UserId, ClientMatchId) 已结算 → 载荷一致则重放，否则 409
         var existing = await db.Matches.AsNoTracking().SingleOrDefaultAsync(
@@ -24,8 +83,24 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         if (existing is not null)
             return await ReplayOrConflictAsync(userId, request, existing, cancellationToken);
 
-        // 2. 数值校验（kills ≤ 30、duration ≤ 900s；超限 422 拒绝，不做静默钳制——Docs/17 §4.5）
-        rules.ValidateMatchPayload(request.Kills, request.DurationSeconds);
+        // 2. 数值校验（Docs/27 §7.2 模式感知：带 matchId 的房间对局放宽上限；超限 422 拒绝，不做静默钳制）
+        //    + 比赛绑定校验（防跨局/伪造结算）：matchId 必须是提交者所在房间的当前或最近一局比赛
+        //    （A02：服务器内部奖励补偿按持久化快照核验，跳过该成员资格绑定校验）
+        if (request.MatchId is not null && validateRoomBinding)
+        {
+            var room = await db.GameRooms.AsNoTracking()
+                .Include(x => x.Members)
+                .SingleOrDefaultAsync(
+                    x => x.CurrentMatchId == request.MatchId || x.LastMatchId == request.MatchId, cancellationToken);
+            var matchBound = room is not null
+                && room.Members.Any(m => m.UserId == userId)
+                && RoomStatus.Normalize(room.Status) is RoomStatus.Starting or RoomStatus.InMatch
+                    or RoomStatus.Returning or RoomStatus.Waiting;
+            if (!matchBound)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
+                    "比赛身份与当前房间状态不符，拒绝结算");
+        }
+        rules.ValidateMatchPayload(request.Kills, request.DurationSeconds, matchScoped: request.MatchId is not null);
 
         var strategy = db.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -148,7 +223,8 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         {
             UserId = userId, Kills = request.Kills, Deaths = request.Deaths, Score = 0,
             XpEarned = xpEarned, CoinsEarned = coinsEarned, PassXpEarned = passXpEarned,
-            IsWin = request.IsWin, ClientMatchId = request.ClientMatchId, PlayedAtUtc = DateTime.UtcNow
+            IsWin = request.IsWin, ClientMatchId = request.ClientMatchId, MatchId = request.MatchId,
+            PlayedAtUtc = DateTime.UtcNow
         });
 
         return BuildResult(xpEarned, levelUps, wallet.Coins, coinsEarned, passXpEarned, pass,
@@ -217,6 +293,35 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
             : await db.LoadoutAttachments.CountAsync(x => x.LoadoutId == loadoutId, ct);
         return new MatchStats(totalKills, totalWins, totalMatches, request.Kills, accountLevel, passLevel,
             hasPurchase, request.IsWin && attachmentCount >= 3 ? 1 : 0);
+    }
+
+    /// <summary>战绩历史（热更试点 P3）：本人视角按 PlayedAtUtc 倒序分页 + 生涯汇总（服务端聚合，
+    /// 客户端只渲染不计算）。page/pageSize 越界钳制（1≤page、1≤pageSize≤50），空数据返回零值汇总。</summary>
+    public async Task<MatchHistoryPageDto> GetHistoryAsync(long userId, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        var query = db.Matches.AsNoTracking().Where(x => x.UserId == userId);
+        var totalCount = await query.CountAsync(cancellationToken);
+        var agg = await query.GroupBy(_ => 1).Select(g => new
+        {
+            TotalMatches = g.Count(),
+            Wins = g.Count(x => x.IsWin),
+            Kills = g.Sum(x => (long)x.Kills),
+            Deaths = g.Sum(x => (long)x.Deaths),
+            Xp = g.Sum(x => (long)x.XpEarned),
+            Coins = g.Sum(x => (long)x.CoinsEarned)
+        }).FirstOrDefaultAsync(cancellationToken);
+        var entries = await query.OrderByDescending(x => x.PlayedAtUtc)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var totalMatches = agg?.TotalMatches ?? 0;
+        var wins = agg?.Wins ?? 0;
+        return new MatchHistoryPageDto(
+            page, pageSize, totalCount, totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            new CareerSummaryDto(totalMatches, wins, agg?.Kills ?? 0, agg?.Deaths ?? 0, agg?.Xp ?? 0, agg?.Coins ?? 0,
+                totalMatches == 0 ? 0 : Math.Round(wins * 100.0 / totalMatches, 1)),
+            [.. entries.Select(x => new MatchHistoryEntryDto(
+                x.PlayedAtUtc.ToString("o"), x.IsWin, x.Kills, x.Deaths, x.Score, x.XpEarned, x.CoinsEarned))]);
     }
 
     private static int ComputeAchievementProgress(string metric, MatchStats stats) => metric switch

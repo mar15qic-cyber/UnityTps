@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_SMG2_01
   m_EditorClassIdentifier: 
   weaponId: lpw.smg.02
-  displayName: "\u7D27\u51D1\u578B\u51B2\u950B\u67AA 02"
+  displayName: MP5
+  catalogItemId: weapon.lpw.smg.02
   fireMode: 1
   firstPersonViewPrefab: {fileID: 2263737932527934942, guid: 7f9842b8fd5a0674698abbccc91b0270, type: 3}
   thirdPersonViewPrefab: {fileID: 2698694536436777526, guid: 2097b27ed4fab5744a4b9a1840fc50d3, type: 3}

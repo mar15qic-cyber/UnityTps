@@ -38,7 +38,12 @@ namespace Game.Gameplay.Network
         /// <summary>远端读取接口（RemotePlayerStateView 消费）。服务器/Owner 读真实 Locomotor。
         /// 生命周期安全（Docs/23 离线回归修复）：authored player 离线时所有权缓存未建立，
         /// 直接读 FishNet IsOwner 会 NRE——统一走 FishNetLifecycleGuard。</summary>
-        private bool UseRemoteState => FishNetLifecycleGuard.IsRemoteProxy(this);
+        private bool UseRemoteState => TestOverrideRemoteState || FishNetLifecycleGuard.IsRemoteProxy(this);
+
+        /// <summary>测试接缝（2026-09-16 审计 D1 定向用例）：强制走远端 SyncVar 读取路径——
+        /// 离线 EditMode 下 IsRemoteProxy 恒 false，否则"远端状态真的驱动了动画"无法断言。
+        /// 产品路径不设置它（默认 false）。</summary>
+        public bool TestOverrideRemoteState { get; set; }
 
         public LocomotionState State => UseRemoteState
             ? _state.Value

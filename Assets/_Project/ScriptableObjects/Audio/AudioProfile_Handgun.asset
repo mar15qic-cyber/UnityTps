@@ -16,6 +16,10 @@ MonoBehaviour:
   - Clip: {fileID: 8300000, guid: 0d57b9447052d4a49b2ce961178633ea, type: 3}
     VolumeRange: {x: 0.85, y: 0.92}
     PitchRange: {x: 1, y: 1.06}
+  FireVariantsSuppressed:
+  - Clip: {fileID: 8300000, guid: 8265393dc4ccaaf4cb78472b3f065063, type: 3}
+    VolumeRange: {x: 0.85, y: 0.92}
+    PitchRange: {x: 1, y: 1.06}
   DryFire:
     Clip: {fileID: 0}
     VolumeRange: {x: 0, y: 0}

@@ -37,5 +37,17 @@ namespace Game.Presentation.Camera
             _pitch = Mathf.Clamp(_pitch - pitchUpDelta, minPitch, maxPitch);
             transform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
         }
+
+        /// <summary>
+        /// 权威重生边界的本地基础俯仰归零（审计 2026-09-16 §2.1/§6-D）：服务器在重生快照里把权威
+        /// 俯仰写 0（ServerRespawn → snapshot.Pitch = 0），本地积分状态若不同步归零，两端基础俯仰
+        /// 从此持续偏离（位置/yaw 纠偏不会修 pitch，诊断表现为跨多条静止阶段仍保留 pitchGap）。
+        /// 只在权威重生边界调用一次——绝不逐帧回灌滞后的服务器俯仰抢玩家鼠标。
+        /// </summary>
+        public void ApplyRespawnBaseline()
+        {
+            _pitch = 0f;
+            transform.localRotation = Quaternion.identity;
+        }
     }
 }

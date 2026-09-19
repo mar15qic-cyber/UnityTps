@@ -36,13 +36,16 @@ namespace Game.Gameplay.Movement
 
 [Header("视角")]
         [SerializeField, Range(0.01f, 1f)] private float yawSensitivity = 0.1f;
-
         public LocomotionState State { get; private set; } = LocomotionState.Idle;
         public float HorizontalSpeed => _horizontalVelocity.magnitude;
         public Vector2 MoveInput => _lastCommand.Move;
         public float GaitPhase => _gaitPhase;
         public MovementSimulationMode SimulationMode => simulationMode;
         public string ProfileVersionHash => rootMotionProfile != null ? rootMotionProfile.VersionHash : string.Empty;
+        /// <summary>土狼时间配置值（秒）：外部构造快照（重生）需要它，否则计时被写成 0 → 下一 tick 分支分叉。</summary>
+        public float CoyoteSeconds => coyoteTime;
+        /// <summary>落地计时配置值（秒）。</summary>
+        public float LandSeconds => landDuration;
         public event Action<LocomotionState> OnStateChanged;
 
         private CharacterController _cc;
@@ -58,6 +61,28 @@ namespace Game.Gameplay.Movement
         private bool _sprintIntent;
         private bool _jumpConsumedThisStep;
         private uint _offlineTick;
+        /// <summary>上一次模拟步采样到的落地状态（审计 2026-09-16 M3：快照携带，不再用枚举反推）。</summary>
+        private bool _groundedSampled;
+        /// <summary>
+        /// 重放首步的接地来源（审计 2026-09-16 §3.2-1）：ApplyAuthoritativeSnapshot 把 CC 瞬移到
+        /// 权威位姿（期间禁用再启用），此刻 `_cc.isGrounded` 尚未重新求解，直接用它会拿错误的分支
+        /// （SimulateGround vs SimulateAir）→ 重放第一步就分叉。因此由快照显式给一次接地覆盖：
+        /// **只用一步**，后续步一律以实际接触（CC.isGrounded）更新（坡沿/跳跃语义不变）。
+        /// </summary>
+        private bool _hasGroundedOverride;
+        private bool _groundedOverride;
+
+        /// <summary>最近一次 Simulate 的完整物理/状态证据（诊断环形采样用；只读）。</summary>
+        public LocomotorStepDebug LastStepDebug { get; private set; }
+        /// <summary>最近一次权威快照恢复的证据（诊断用；只读）。</summary>
+        public LocomotorRestoreDebug LastRestoreDebug { get; private set; }
+
+        /// <summary>
+        /// 基础俯仰提供者（可选；由网络适配器注入）：客户端=相机节点当前俯仰，服务器=权威远端俯仰。
+        /// 未注入（离线/无相机）时为 0。审计 2026-09-16 §6.2：快照必须携带基础俯仰，
+        /// 否则两端 pitch 各自漂移且位置/yaw 纠偏不会修正它。
+        /// </summary>
+        public Func<float> PitchProvider { get; set; }
 
         private const float DefaultWalkSpeed = 1.58f;
         private const float DefaultSprintSpeed = 3.44f;
@@ -109,6 +134,7 @@ namespace Game.Gameplay.Movement
             _jumpConsumedThisStep = false;
             _lastCommand = command;
             _lastCommand.Move = Vector2.ClampMagnitude(command.Move, 1f);
+            Vector3 rootBefore = transform.position;
             // Yaw 后坐由同一 WeaponRecoilState 提供；鼠标反向输入先消费债务，
             // 剩余部分才真正旋转玩家身体，保证水平压枪与相机/射线同源。
             float yawDelta = command.YawDelta;
@@ -116,7 +142,11 @@ namespace Game.Gameplay.Movement
                 yawDelta = _weaponController.ConsumeRecoilCompensation(new Vector2(0f, yawDelta)).y;
             transform.Rotate(0f, yawDelta, 0f);
 
-            bool groundedBeforeMove = _cc.isGrounded;
+            // 审计 2026-09-16 §3.2-1：接地分支必须用"定义明确的来源"——重放首步取权威快照的
+            // grounded（刚瞬移过，CC 尚未重解算），其余步一律取 CC 实际接触。
+            bool groundedFromSnapshot = _hasGroundedOverride;
+            bool groundedBeforeMove = _hasGroundedOverride ? _groundedOverride : _cc.isGrounded;
+            _hasGroundedOverride = false;
             if (groundedBeforeMove)
             {
                 _coyoteTimer = coyoteTime;
@@ -140,8 +170,37 @@ namespace Game.Gameplay.Movement
                 : SimulateAir(command, deltaTime);
 
             _verticalVelocity += gravity * deltaTime;
-            _cc.Move(horizontalDelta + Vector3.up * (_verticalVelocity * deltaTime));
+            CollisionFlags collisionFlags = _cc.Move(horizontalDelta + Vector3.up * (_verticalVelocity * deltaTime));
+            // 2026-09-16 审计 M3：采样本步落地状态（快照携带；物理分支仍由 CC 决定，不反推）
+            _groundedSampled = _cc.isGrounded;
             UpdateState(deltaTime);
+
+            // 审计 2026-09-16 §3.3：把本步的输入/物理分支/状态完整留证（供两端按 tick 对齐）。
+            LastStepDebug = new LocomotorStepDebug
+            {
+                Tick = command.Tick,
+                MoveInput = _lastCommand.Move,
+                Sprint = command.Sprint,
+                Jump = command.Jump,
+                RootBefore = rootBefore,
+                RootAfterMove = transform.position,
+                GroundedBranch = groundedBeforeMove,
+                GroundedFromSnapshot = groundedFromSnapshot,
+                GroundedAfterMove = _groundedSampled,
+                CollisionFlags = collisionFlags,
+                HorizontalVelocity = _horizontalVelocity,
+                VerticalVelocity = _verticalVelocity,
+                GroundSpeed = _groundSpeed,
+                CoyoteTimer = _coyoteTimer,
+                LandTimer = _landTimer,
+                GaitPhase = _gaitPhase,
+                State = State,
+                SprintIntent = _sprintIntent,
+                ProfileHash = ProfileVersionHash,
+                RecoilDebt = _weaponController != null
+                    ? _weaponController.RecoilCompensationDebt
+                    : Vector2.zero,
+            };
         }
 
         public MovementSnapshot CaptureSnapshot()
@@ -154,7 +213,17 @@ namespace Game.Gameplay.Movement
                 HorizontalVelocity = _horizontalVelocity,
                 VerticalVelocity = _verticalVelocity,
                 LocomotionState = State,
-                GaitPhase = _gaitPhase
+                GaitPhase = _gaitPhase,
+                // 2026-09-16 审计 M3：确定性重放所需状态（原实现靠速度模长/枚举推断 → 重放不收敛）
+                Grounded = _groundedSampled,
+                GroundSpeed = _groundSpeed,
+                CoyoteTimer = _coyoteTimer,
+                LandTimer = _landTimer,
+                SprintIntent = _sprintIntent,
+                RecoilDebt = _weaponController != null
+                    ? _weaponController.RecoilCompensationDebt
+                    : Vector2.zero,
+                Pitch = PitchProvider != null ? PitchProvider() : 0f,
             };
         }
 
@@ -163,16 +232,57 @@ namespace Game.Gameplay.Movement
         {
             if (_cc == null) return;
             bool wasEnabled = _cc.enabled;
+            bool groundedBefore = _groundedSampled;
             _cc.enabled = false;
             transform.SetPositionAndRotation(snapshot.Position, snapshot.Rotation);
             _cc.enabled = wasEnabled;
+            // 审计 2026-09-16 §3.2-1：CC 刚被瞬移，isGrounded 尚未重新解算 → 下一步的分支输入
+            // 必须由快照显式给一次（只用一步，后续步回到实际接触）。
+            _hasGroundedOverride = true;
+            _groundedOverride = snapshot.Grounded;
+
+            LastRestoreDebug = new LocomotorRestoreDebug
+            {
+                CcWasEnabled = wasEnabled,
+                CcEnabledAfter = _cc.enabled,
+                GroundedBefore = groundedBefore,
+                GroundedSupplied = snapshot.Grounded,
+                CcGroundedAfter = _cc.isGrounded,
+                AppliedPosition = snapshot.Position,
+            };
 
             _horizontalVelocity = snapshot.HorizontalVelocity;
-            _groundSpeed = _horizontalVelocity.magnitude;
             _verticalVelocity = snapshot.VerticalVelocity;
             _gaitPhase = Mathf.Repeat(snapshot.GaitPhase, 1f);
             _lastCommand.Tick = snapshot.Tick;
             SetState(snapshot.LocomotionState);
+
+            // 2026-09-16 审计 M3：快照携带的模拟状态**精确恢复**。原实现用"速度模长 + 枚举"推断：
+            // ① _groundSpeed = |HorizontalVelocity| 在 RootMotion 相位下恒不等（该相位下瞬时速度与
+            //    步态相位相关）；② 空中 sprintIntent 推断不出（注释曾承认"由位置比较兜底"）；
+            // ③ coyote/land 计时被重置成满值。三者都会让硬校正后的下一 tick 继续分叉 → 来回纠偏。
+            _groundSpeed = snapshot.GroundSpeed;
+            _coyoteTimer = snapshot.CoyoteTimer;
+            _landTimer = snapshot.LandTimer;
+            _sprintIntent = snapshot.SprintIntent;
+            _groundedSampled = snapshot.Grounded;
+            // 武器后坐补偿债务也必须回到权威值：Simulate 每步消费它，否则重放会二次消费/少消费
+            // （审计 §M3"输入消费与视觉/武器副作用分离"）。
+            if (_weaponController != null)
+                _weaponController.RestoreRecoilCompensationDebt(snapshot.RecoilDebt);
+        }
+
+        /// <summary>Owner 小误差平滑收敛的位移入口（2026-09-10 审计 §3）：与 ApplyAuthoritativeSnapshot
+        /// 同一写入模式（CC 短暂禁用后直写 Transform）。替代调用方直接 transform.position += ——
+        /// 避免与 CharacterController.Move 的碰撞解算在同一帧内互相拉扯（双方贴近站位时放大可见抖动）。
+        /// 小步长不经 CC.Move：CC.Move 对亚厘米位移会被皮肤宽度吞掉，导致校正永久滞留。</summary>
+        public void ApplySmoothCorrection(Vector3 offset)
+        {
+            if (_cc == null || offset.sqrMagnitude < 1e-12f) return;
+            bool wasEnabled = _cc.enabled;
+            _cc.enabled = false;
+            transform.position += offset;
+            _cc.enabled = wasEnabled;
         }
 
         public void SetSimulationMode(MovementSimulationMode mode) => simulationMode = mode;
@@ -283,5 +393,51 @@ namespace Game.Gameplay.Movement
             if (definition != null && definition.ThirdPersonRootMotionProfile != null)
                 rootMotionProfile = definition.ThirdPersonRootMotionProfile;
         }
+    }
+
+    /// <summary>
+    /// 单个模拟步的物理/状态证据（诊断只读；审计 2026-09-16 §3.3）。
+    /// 与 MovementStepSample 的区别：这是"Locomotor 视角的原始事实"，不含网络/纠偏包装。
+    /// </summary>
+    public struct LocomotorStepDebug
+    {
+        public uint Tick;
+        public Vector2 MoveInput;
+        public bool Sprint;
+        public bool Jump;
+        public Vector3 RootBefore;
+        /// <summary>CC.Move 之后（不含平滑校正）。</summary>
+        public Vector3 RootAfterMove;
+        /// <summary>本步分支输入使用的 grounded（重放首步来自快照）。</summary>
+        public bool GroundedBranch;
+        /// <summary>本步分支输入是否来自权威快照（重放首步）。</summary>
+        public bool GroundedFromSnapshot;
+        public bool GroundedAfterMove;
+        public CollisionFlags CollisionFlags;
+        public Vector3 HorizontalVelocity;
+        public float VerticalVelocity;
+        public float GroundSpeed;
+        public float CoyoteTimer;
+        public float LandTimer;
+        public float GaitPhase;
+        public LocomotionState State;
+        public bool SprintIntent;
+        public string ProfileHash;
+        public Vector2 RecoilDebt;
+    }
+
+    /// <summary>
+    /// 权威快照恢复的证据（诊断只读）：记录 CC 禁启前/后的接地与瞬移结果——
+    /// 用于回答"重放首步的分支输入到底来自哪里"（审计 2026-09-16 §3.2-1）。
+    /// </summary>
+    public struct LocomotorRestoreDebug
+    {
+        public bool CcWasEnabled;
+        public bool CcEnabledAfter;
+        public bool GroundedBefore;
+        public bool GroundedSupplied;
+        /// <summary>瞬移+重新启用后 CC 自己报的接地（未重新解算，仅作对照）。</summary>
+        public bool CcGroundedAfter;
+        public Vector3 AppliedPosition;
     }
 }

@@ -33,12 +33,28 @@ namespace Game.Gameplay.Weapon
         private GameObject _lineNode;
         private PlayerAimState _aim;
         private Transform _playerRoot;
+        private IWeaponPresentationGate _presentationGate;
         private Vector3 _localCenter;
         private bool _centerResolved;
         private readonly RaycastHit[] _hits = new RaycastHit[16];
 
         /// <summary>腰射判定（纯函数）：Ads01 低于阈值即出束（开镜过渡过半即收束）。</summary>
         public static bool ShouldBeam(float ads01) => ads01 < AimGateAds01;
+
+        /// <summary>
+        /// 生命周期/可见性闸门（审计 2026-09-16 §4）：死亡/镜内/复活准备/无有效视图期间**不允许出束**。
+        /// 本组件是 LineRenderer 的持续写者，旧实现每帧 enabled=true，会绕过任何一次性隐藏
+        /// （"枪隐形但激光继续发射"）。解析失败（TP 视图/枪匠预览/校准窗等无 Owner 上下文）不得默认出束。
+        /// </summary>
+        public static bool PresentationAllowsBeam(IWeaponPresentationGate gate) => gate != null && gate.IsWeaponViewVisible;
+
+        private bool ResolvePresentationAllowsBeam()
+        {
+            // 接口引用不参与 Unity 伪空判定：实现者销毁后需重解析
+            if (_presentationGate == null || (_presentationGate as Object) == null)
+                _presentationGate = GetComponentInParent<IWeaponPresentationGate>();
+            return PresentationAllowsBeam(_presentationGate);
+        }
 
         /// <summary>器件发射方向（纯函数）：挂点局部 -X = 全局枪口前向约定（AttachmentSocket），
         /// 克隆的父节点即挂点——换弹/切枪枪身倾斜时光束随之偏转（真实 FPS 语义）。</summary>
@@ -96,6 +112,12 @@ namespace Game.Gameplay.Weapon
         {
             if (_line == null) return;
             if (_lineNode.layer != gameObject.layer) _lineNode.layer = gameObject.layer; // 装备层递归改层后同步
+            // 审计 §4：闸门必须先于一切出束逻辑——死亡/镜内/复活准备/无有效视图期间每帧维持关线
+            if (!ResolvePresentationAllowsBeam())
+            {
+                if (_line.enabled) _line.enabled = false;
+                return;
+            }
             if (_aim == null)
             {
                 _aim = GetComponentInParent<PlayerAimState>();

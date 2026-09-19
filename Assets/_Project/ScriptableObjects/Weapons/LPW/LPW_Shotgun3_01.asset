@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: LPW_Shotgun3_01
   m_EditorClassIdentifier: 
   weaponId: lpw.shotgun.03
-  displayName: "\u6218\u672F\u9730\u5F39\u67AA 03"
+  displayName: "M870 \u730E\u9E7F\u7248"
+  catalogItemId: weapon.lpw.shotgun.03
   fireMode: 0
   firstPersonViewPrefab: {fileID: 3266911541901880251, guid: f23ae5ebfcf87c842957e144f8764768, type: 3}
   thirdPersonViewPrefab: {fileID: 6264488225395533638, guid: 4c49589969dd5a64f824352425bbc2a2, type: 3}

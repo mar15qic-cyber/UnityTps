@@ -58,6 +58,16 @@ namespace Game.Gameplay.Tests
                 "Assets/_Project/ScriptableObjects/Weapons/Day3_AssaultRifle.asset", balance);
         }
 
+        [Test]
+        public void AugDrawClip_FitsDefinitionDrawWindow_WithoutASeparateIkHandoffTimer()
+        {
+            var definition = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(
+                "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle2_01.asset");
+            Assert.That(definition, Is.Not.Null, "AUG weapon definition is required for the draw handoff test.");
+            AssertClipFits(definition.FirstPersonAnimations.Draw, definition.DrawTime,
+                definition.name + ".FP.Draw");
+        }
+
         private static void AssertClipFits(AnimationClip clip, float reloadDuration, string label)
         {
             if (clip == null) return;

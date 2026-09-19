@@ -5,6 +5,17 @@ using UnityEngine;
 
 namespace Game.UI
 {
+    /// <summary>
+    /// Runtime provenance for a catalog row. Arena/Lobby mainline accepts LPFP
+    /// only and must not infer provenance from a display name.
+    /// </summary>
+    public enum WeaponAssetSource
+    {
+        LPFP = 0,
+        LPW = 1,
+        Other = 2
+    }
+
     [Serializable]
     public sealed class WeaponUiStats
     {
@@ -28,13 +39,38 @@ namespace Game.UI
         public string itemId;
         public string assetKey;
         public string definitionId;
+        [Tooltip("Authoritative asset provenance. Arena/Lobby mainline accepts LPFP only.")]
+        public WeaponAssetSource source = WeaponAssetSource.LPFP;
         public string previewPrefabPath;
         public bool supportsVerifiedAttachments;
+        [Tooltip("可装配件槽位（Docs/21 挂点审计；后端 AttachmentCompat 同源）：Optic/Muzzle/Magazine/Tactical/Underbarrel")]
+        public string[] slotCapabilities = Array.Empty<string>();
         public WeaponCatalogCategory category;
         public WeaponSlotType slotType;
         public WeaponDefinition definition;
         public GameObject previewPrefab;
         public WeaponUiStats stats;
+
+        // The legacy catalog predates the serialized source field. Keep its
+        // stable asset-key namespace as a migration guard so old LPW rows do
+        // not silently become Arena-compatible when source defaults to zero.
+        public bool IsLpfp => EffectiveSource == WeaponAssetSource.LPFP;
+
+        /// <summary>
+        /// Legacy rows predate <see cref="source"/>. Their stable asset-key
+        /// namespace remains an authoritative migration discriminator.
+        /// </summary>
+        public WeaponAssetSource EffectiveSource
+            => source == WeaponAssetSource.LPFP
+                && !string.IsNullOrEmpty(assetKey)
+                && assetKey.StartsWith("lpw/", StringComparison.OrdinalIgnoreCase)
+                ? WeaponAssetSource.LPW
+                : source;
+
+        public bool IsLpw => EffectiveSource == WeaponAssetSource.LPW;
+
+        public bool HasSlot(string slot)
+            => slotCapabilities != null && System.Array.IndexOf(slotCapabilities, slot) >= 0;
     }
 
     /// <summary>Stable server ItemId to Unity definition/prefab mapping. Display names are never used as keys.</summary>
@@ -94,6 +130,29 @@ namespace Game.UI
             var catalog = CreateInstance<WeaponAssetCatalog>();
             catalog.EnsureDefaults();
             return catalog;
+        }
+
+        private static WeaponAssetCatalog _runtimeInstance;
+
+        /// <summary>跨场景访问入口（Resources 加载；大厅经 Initialize 注入，战斗侧用此兜底）.</summary>
+        public static WeaponAssetCatalog LoadOrDefault()
+        {
+            if (_runtimeInstance != null) return _runtimeInstance;
+            _runtimeInstance = UnityEngine.Resources.Load<WeaponAssetCatalog>("WeaponAssetCatalog");
+            if (_runtimeInstance == null) _runtimeInstance = CreateRuntime();
+            return _runtimeInstance;
+        }
+
+        /// <summary>definitionId（如 rifle.day3）→ itemId（如 weapon.m4）反查.</summary>
+        public bool TryGetItemId(string definitionId, out string itemId)
+        {
+            EnsureDefaults();
+            itemId = null;
+            if (string.IsNullOrEmpty(definitionId)) return false;
+            foreach (var entry in entries)
+                if (entry != null && string.Equals(entry.definitionId, definitionId, StringComparison.Ordinal))
+                { itemId = entry.itemId; return true; }
+            return false;
         }
 
         private void EnsureDefaults()

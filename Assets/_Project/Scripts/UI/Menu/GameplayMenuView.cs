@@ -132,9 +132,12 @@ namespace Game.UI.Menu
                 new Vector2(0.08f, 0.10f), new Vector2(0.47f, 0.26f));
             _leaveConfirmButton.onClick.AddListener(() =>
             {
+                // 退出改为有界等待的异步事务（§6 三.2，2026-09-08）：冻结按钮（SetLeaveBusy）→
+                // BeginLeaveTransaction（幂等闸+关菜单）→ 后端 leave（有界超时）→ ClearRoom →
+                // CompleteLeaveTransaction（服务器权威离开→停连接→清理→回大厅）。
+                // 旧 fire-and-forget leave + 同帧切场景竞态已删除。
                 SetLeaveBusy(true);
-                FireLeaveRoomApi();
-                _controller?.ConfirmLeave();
+                RunLeaveTransaction();
             });
             var leaveCancel = UIMenuKit.MenuButton(_leaveDialog.transform, "LeaveCancel", "取 消", new Color(0.16f, 0.21f, 0.28f),
                 new Vector2(0.53f, 0.10f), new Vector2(0.92f, 0.26f));
@@ -251,22 +254,34 @@ namespace Game.UI.Menu
             }
         }
 
-        /// <summary>离开房间注册表（POST /api/rooms/leave；fire-and-forget，失败不打断本地流程）。</summary>
-        private async void FireLeaveRoomApi()
+        /// <summary>确认按钮点击的薄 UI 入口（Gate A-3）：冻结按钮 → 构建协调器（注入 AppRoot
+        /// 依赖：api/房间引用/清理/完成回调）→ async void 外围驱动可等待事务。事务主体在
+        /// LeaveTransactionCoordinator（依赖注入、EditMode 可测）。</summary>
+        private void RunLeaveTransaction()
         {
+            var controller = _controller;
+            if (controller == null) { SetLeaveBusy(false); return; }
             var app = AppRoot.Instance;
-            if (app == null || app.ApiClient == null) return;
-            if (app.Session?.Room == null) return;
-            try
-            {
-                var result = await app.ApiClient.LeaveRoomAsync();
-                if (result.Success) app.Session.ClearRoom();
-            }
-            catch (System.OperationCanceledException) { }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning("[GameplayMenuView] 房间注册表 leave 调用失败（不打断本地退出流程）: " + ex.Message);
-            }
+            var apiClient = app?.ApiClient;
+            bool apiAvailable = apiClient != null && app.Session != null && app.Session.IsAuthenticated;
+            var coordinator = new LeaveTransactionCoordinator(
+                begin: controller.BeginLeaveTransaction,
+                leaveApi: apiAvailable ? token => apiClient.LeaveRoomAsync(token) : null,
+                generationProvider: () => app != null && app.Session != null ? app.Session.ConnectionGeneration : 0L,
+                clearRoom: () => app?.Session?.ClearRoom(),
+                complete: controller.CompleteLeaveTransaction,
+                timeout: System.TimeSpan.FromSeconds(LeaveTransactionCoordinator.DefaultTimeoutSeconds),
+                warn: message => Debug.LogWarning(message));
+            RunLeaveCoordinatorAsync(coordinator);
+        }
+
+        /// <summary>async void 薄外围（Gate A-3）：只负责按钮态恢复；事务主体、导航、清理
+        /// 全在协调器与其注入的控制器回调内（离线/本地服就地回大厅；联网完成时停连接→
+        /// 清 NetworkLaunchContext→回大厅）。</summary>
+        private async void RunLeaveCoordinatorAsync(LeaveTransactionCoordinator coordinator)
+        {
+            bool started = await coordinator.RunAsync();
+            if (!started) SetLeaveBusy(false); // Rejected（重复点击/闸门拒绝）：恢复按钮
         }
     }
 }

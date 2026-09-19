@@ -10,6 +10,7 @@ namespace Game.Presentation.Animation
         PlayAimOut,  // 收镜过渡（一次性，从当前姿态淡出）
         PlayAimIdle, // ADS 保持姿势（aim_fire_pose 静态定格）
         PlayAimFire, // ADS 开火（一次性）
+        ProceduralFire, // ADS 开火：保持 AimIdle，只触发程序化枪械/相机后坐
         PlayHipFire, // 腰射开火（走既有 Fire 通道；Hip/AimOut 态的开火分流）
         Yield,       // 让位：换弹/切枪接管姿态，aim 轨道静默（回到 Hip 等动作结束）
     }
@@ -26,10 +27,12 @@ namespace Game.Presentation.Animation
         public readonly bool AimOutFinished;   // 收镜过渡完成（收镜 clip 适配窗播完）
         public readonly bool AimFireFinished;  // ADS 开火 clip 播完
         public readonly bool HolsterRequested; // 切枪收枪请求帧标志
+        public readonly bool ProceduralAdsFire; // AnchoredDualPoseV2 不播放 AimFire
 
         public FPAimAnimInput(
             bool aimHeld, float ads01, bool actionBusy, bool shotFired, bool dryFired,
-            bool aimInFinished, bool aimOutFinished, bool aimFireFinished, bool holsterRequested)
+            bool aimInFinished, bool aimOutFinished, bool aimFireFinished, bool holsterRequested,
+            bool proceduralAdsFire = false)
         {
             AimHeld = aimHeld;
             Ads01 = ads01;
@@ -40,6 +43,7 @@ namespace Game.Presentation.Animation
             AimOutFinished = aimOutFinished;
             AimFireFinished = aimFireFinished;
             HolsterRequested = holsterRequested;
+            ProceduralAdsFire = proceduralAdsFire;
         }
 
         /// <summary>全零输入（腰射静止帧）。</summary>
@@ -65,6 +69,11 @@ namespace Game.Presentation.Animation
         /// <summary>配置当前武器是否具备动画 ADS 轨道（切枪/LoadClips 时刷新）。</summary>
         public void SetHasAimClips(bool hasAimClips) => _hasAimClips = hasAimClips;
 
+        /// <summary>Schema-7 LPW keeps AimIdle and delegates shot motion to the gun layer.</summary>
+        public void SetProceduralAdsFire(bool enabled) => _proceduralAdsFire = enabled;
+
+        private bool _proceduralAdsFire;
+
         /// <summary>外部重置到 Hip（切枪收枪/换弹开始时由执行侧直接调用，
         /// 消除"事件在 Update 之后到达"的同帧指令竞争——否则残留的 aim 状态
         /// 可能在下一帧发出覆盖收枪/换弹 clip 的指令）。</summary>
@@ -73,12 +82,16 @@ namespace Game.Presentation.Animation
         /// <summary>每帧决策：唯一指令输出。</summary>
         public FPAimAnimCommand Tick(in FPAimAnimInput input)
         {
+            bool proceduralAdsFire = input.ProceduralAdsFire || _proceduralAdsFire;
             if (!_hasAimClips)
             {
                 // 无动画轨道：开火分流固定走腰射通道，ADS 由程序化轨道接管（T8）；
                 // 状态归零防切枪后旧状态残留
                 _state = State.Hip;
-                return input.ShotFired ? FPAimAnimCommand.PlayHipFire : FPAimAnimCommand.None;
+                if (!input.ShotFired) return FPAimAnimCommand.None;
+                return proceduralAdsFire && input.Ads01 > 0f
+                    ? FPAimAnimCommand.ProceduralFire
+                    : FPAimAnimCommand.PlayHipFire;
             }
 
             // 动作槽占用 / 收枪：无条件让位（T5/T6）。Reload/Switch 由 OnReloadStarted/
@@ -112,6 +125,8 @@ namespace Game.Presentation.Animation
                     }
                     if (input.ShotFired)
                     {
+                        if (proceduralAdsFire)
+                            return FPAimAnimCommand.ProceduralFire;
                         // 过渡中开火：一律走 ADS 开火（过渡窗仅 ~80ms，腰射 Fire 会被
                         // 紧随的 PlayAimIdle 截断产生姿势跳变；探针证实 aim_fire 起始≈贴腮态）
                         _state = State.AimFire;
@@ -132,6 +147,8 @@ namespace Game.Presentation.Animation
                     }
                     if (input.ShotFired)
                     {
+                        if (proceduralAdsFire)
+                            return FPAimAnimCommand.ProceduralFire;
                         _state = State.AimFire;
                         return FPAimAnimCommand.PlayAimFire;
                     }
@@ -145,7 +162,17 @@ namespace Game.Presentation.Animation
                         return FPAimAnimCommand.PlayAimOut;
                     }
                     if (input.ShotFired)
+                    {
+                        // ProceduralOnly（含 Legacy 视图）：任何 aim 轨道状态下都不得
+                        // 播放或以 FromStart 重启 AimFire。防御分支：配置中途切换时
+                        // 从 AimFire 态收编回 Aim，保持当前瞄准姿势。
+                        if (proceduralAdsFire)
+                        {
+                            _state = State.Aim;
+                            return FPAimAnimCommand.ProceduralFire;
+                        }
                         return FPAimAnimCommand.PlayAimFire; // 连射：重启（FromStart），状态不回
+                    }
                     if (input.AimFireFinished)
                     {
                         _state = State.Aim;

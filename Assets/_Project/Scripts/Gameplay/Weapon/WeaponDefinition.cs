@@ -23,6 +23,19 @@ namespace Game.Gameplay.Weapon
         Rifle03 = 3
     }
 
+    /// <summary>武器自带的光学瞄具（例如狙击枪出厂镜）。配件瞄具装备后覆盖此配置。</summary>
+    [Serializable]
+    public struct BuiltInOpticDefinition
+    {
+        public string opticId;
+        public OpticAimTier aimTier;
+        [Min(0f)] public float adsFovOverride;
+        [Min(0f), Tooltip("固定放大率（P4 实体镜 I4b，>1 生效）：镜内 RT 相机独立倍率；0/1 = 走既有 overlay 路径")]
+        public float magnification;
+
+        public bool IsValid => !string.IsNullOrWhiteSpace(opticId) && aimTier != OpticAimTier.None;
+    }
+
     /// <summary>FP 手臂动画集（clip 挂在各自 rig 的 view prefab 上，由 FPWeaponAnimator 直接播放）。
     /// ADS 四件套（Docs/18 §4.1）：未配置的武器由 FPWeaponMotion 程序化 ADS 兜底（零回归约束）。</summary>
     [Serializable]
@@ -90,10 +103,15 @@ namespace Game.Gameplay.Weapon
     {
         [SerializeField] private string weaponId = "weapon.demo";
         [SerializeField] private string displayName = "Demo Weapon";
+        [Tooltip("商城/配装目录 itemId（weapon.m4 等；由配件装配工具从 WeaponAssetCatalog 回填）——配件系统跨场景反查用")]
+        [SerializeField] private string catalogItemId = "";
         [SerializeField] private WeaponFireMode fireMode = WeaponFireMode.SemiAutomatic;
         [SerializeField] private GameObject firstPersonViewPrefab;
         [SerializeField] private GameObject thirdPersonViewPrefab;
         [SerializeField] private WeaponAnimationSet firstPersonAnimations;
+        [Header("Built-in optic")]
+        [Tooltip("出厂瞄具配置；装备配件瞄具后覆盖。留空表示仅机瞄。")]
+        [SerializeField] private BuiltInOpticDefinition builtInOptic;
         [Header("First-person animation family")]
         [Tooltip("Explicit animation family. Native preserves the authored firstPersonAnimations set.")]
         [SerializeField] private FirstPersonAnimationFamily firstPersonAnimationFamily = FirstPersonAnimationFamily.Native;
@@ -115,6 +133,8 @@ namespace Game.Gameplay.Weapon
 
         public string WeaponId => weaponId;
         public string DisplayName => displayName;
+        /// <summary>商城 itemId（weapon.m4 等）；空 = 未入目录（如 spike 测试枪）.</summary>
+        public string CatalogItemId => catalogItemId;
         public WeaponFireMode FireMode => fireMode;
         public GameObject FirstPersonViewPrefab => firstPersonViewPrefab;
         public GameObject ThirdPersonViewPrefab => thirdPersonViewPrefab;
@@ -122,6 +142,7 @@ namespace Game.Gameplay.Weapon
             || firstPersonAnimationFamily == FirstPersonAnimationFamily.Rifle03;
         public FirstPersonAnimationFamily FirstPersonAnimationFamily => ResolveFirstPersonAnimationFamily();
         public WeaponAnimationSet FirstPersonAnimations => ResolveFirstPersonAnimations();
+        public BuiltInOpticDefinition BuiltInOptic => builtInOptic;
         public TpLocomotionSet ThirdPersonLocomotion => thirdPersonLocomotion;
         public RootMotionProfile ThirdPersonRootMotionProfile => thirdPersonRootMotionProfile;
         public TpActionSet ThirdPersonActions => thirdPersonActions;

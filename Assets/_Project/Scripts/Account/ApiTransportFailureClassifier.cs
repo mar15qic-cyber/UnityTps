@@ -1,23 +1,24 @@
 using System;
-using UnityEngine.Networking;
 
 namespace Game.Account
 {
+    /// <summary>
+    /// 传输层失败分类（F10 改造后仅基于异常文本：HttpClient(UseProxy=false) 无
+    /// UnityWebRequest.Result 概念；status=0 的传输失败由 SendAsync 捕获分支归入本分类器）。
+    /// </summary>
     public static class ApiTransportFailureClassifier
     {
-        public static string Classify(UnityWebRequest.Result result, string error, bool explicitTimeout)
+        public static string Classify(string error)
         {
-            if (explicitTimeout || ContainsTimeout(error)) return ApiClientErrorCodes.Timeout;
+            if (ContainsTimeout(error)) return ApiClientErrorCodes.Timeout;
 
             var normalized = (error ?? string.Empty).Trim().ToLowerInvariant();
             if (normalized.Contains("ssl") || normalized.Contains("tls") || normalized.Contains("certificate"))
                 return ApiClientErrorCodes.Tls;
             if (normalized.Contains("dns") || normalized.Contains("resolve host") || normalized.Contains("name or service not known") || normalized.Contains("could not resolve"))
                 return ApiClientErrorCodes.Dns;
-            if (result == UnityWebRequest.Result.ConnectionError || normalized.Contains("connection refused") || normalized.Contains("failed to connect") || normalized.Contains("cannot connect") || normalized.Contains("connection reset"))
+            if (normalized.Contains("refused") || normalized.Contains("failed to connect") || normalized.Contains("cannot connect") || normalized.Contains("connection reset"))
                 return ApiClientErrorCodes.Connection;
-            if (result == UnityWebRequest.Result.DataProcessingError)
-                return ApiClientErrorCodes.Response;
             return ApiClientErrorCodes.Network;
         }
 
@@ -28,4 +29,3 @@ namespace Game.Account
         }
     }
 }
-

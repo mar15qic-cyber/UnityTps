@@ -1,7 +1,6 @@
 using Game.Account;
 using Game.UI;
 using NUnit.Framework;
-using UnityEngine.Networking;
 
 namespace Game.Gameplay.Tests
 {
@@ -10,32 +9,32 @@ namespace Game.Gameplay.Tests
         [Test]
         public void ExplicitTimeoutWinsOverTransportError()
         {
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.ConnectionError, "Cannot connect to destination host", true), Is.EqualTo(ApiClientErrorCodes.Timeout));
+            Assert.That(ApiTransportFailureClassifier.Classify("Request timeout"), Is.EqualTo(ApiClientErrorCodes.Timeout));
         }
 
         [Test]
         public void NativeTimeoutMessageIsClassifiedAsTimeout()
         {
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.ConnectionError, "Request timeout", false), Is.EqualTo(ApiClientErrorCodes.Timeout));
+            Assert.That(ApiTransportFailureClassifier.Classify("Request timeout"), Is.EqualTo(ApiClientErrorCodes.Timeout));
         }
 
         [Test]
         public void ConnectionRefusedIsNotReportedAsTimeout()
         {
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.ConnectionError, "Connection refused", false), Is.EqualTo(ApiClientErrorCodes.Connection));
+            Assert.That(ApiTransportFailureClassifier.Classify("Connection refused"), Is.EqualTo(ApiClientErrorCodes.Connection));
         }
 
         [Test]
         public void DnsAndTlsFailuresHaveDistinctCodes()
         {
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.ConnectionError, "Could not resolve host", false), Is.EqualTo(ApiClientErrorCodes.Dns));
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.ConnectionError, "TLS certificate validation failed", false), Is.EqualTo(ApiClientErrorCodes.Tls));
+            Assert.That(ApiTransportFailureClassifier.Classify("Could not resolve host"), Is.EqualTo(ApiClientErrorCodes.Dns));
+            Assert.That(ApiTransportFailureClassifier.Classify("TLS certificate validation failed"), Is.EqualTo(ApiClientErrorCodes.Tls));
         }
 
         [Test]
-        public void DataProcessingFailureHasResponseCode()
+        public void UnknownTransportFailureUsesGenericNetworkCode()
         {
-            Assert.That(ApiTransportFailureClassifier.Classify(UnityWebRequest.Result.DataProcessingError, "invalid body", false), Is.EqualTo(ApiClientErrorCodes.Response));
+            Assert.That(ApiTransportFailureClassifier.Classify("unexpected socket failure"), Is.EqualTo(ApiClientErrorCodes.Network));
         }
 
         [Test]

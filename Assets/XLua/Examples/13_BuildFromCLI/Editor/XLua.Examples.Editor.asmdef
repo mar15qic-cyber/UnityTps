@@ -1,0 +1,19 @@
+{
+    "name": "XLua.Examples.Editor",
+    "rootNamespace": "",
+    "references": [
+        "XLua.Runtime",
+        "XLua.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

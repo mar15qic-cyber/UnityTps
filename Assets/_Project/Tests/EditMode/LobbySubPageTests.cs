@@ -48,6 +48,14 @@ namespace Game.Gameplay.Tests
             });
             SetField(presenter, "session", session);
             catalogAsset = WeaponAssetCatalog.CreateRuntime();
+            // D4-A.4（Gate A 复审 §2.3）：IsLpfpWeaponItem 契约要求 entry.definition 可解析——
+            // CreateRuntime 兜底条目无定义引用，注入真实 Resources 目录中的同 id LPFP 定义，
+            // 让商城卡片走真实过滤逻辑（而非删除断言）。
+            var realCatalog = Resources.Load<WeaponAssetCatalog>("WeaponAssetCatalog");
+            Assert.That(realCatalog, Is.Not.Null, "真实 WeaponAssetCatalog 必须在 Resources 下可加载");
+            foreach (var entry in catalogAsset.Entries)
+                if (entry != null && entry.definition == null && realCatalog.TryGet(entry.itemId, out var realEntry) && realEntry != null)
+                    entry.definition = realEntry.definition;
             SetField(presenter, "weaponAssets", catalogAsset);
             return presenter;
         }
@@ -84,8 +92,9 @@ namespace Game.Gameplay.Tests
                 level = 1,
                 items = new[]
                 {
-                    new CatalogItemDto { itemId = "weapon.m4", itemType = "Weapon", slotType = "Primary", displayName = "M4", isOwned = true, isActive = true, isImplemented = true },
-                    new CatalogItemDto { itemId = "weapon.ak", itemType = "Weapon", slotType = "Primary", displayName = "AK", unlockLevel = 99, priceCoins = 1000, isOwned = false, isActive = true, isImplemented = true },
+                    // 2026-09-07 契约：商城页只显示 acquisitionSource=Shop 的行（初始武器进仓库不进商城）
+                    new CatalogItemDto { itemId = "weapon.m4", itemType = "Weapon", slotType = "Primary", displayName = "M4", isOwned = true, isActive = true, isImplemented = true, acquisitionSource = "Shop" },
+                    new CatalogItemDto { itemId = "weapon.ak", itemType = "Weapon", slotType = "Primary", displayName = "AK", unlockLevel = 99, priceCoins = 1000, isOwned = false, isActive = true, isImplemented = true, acquisitionSource = "Shop" },
                 },
             });
             SetField(presenter, "cachedInventory", new InventoryDto { coins = 500, items = Array.Empty<InventoryItemDto>() });
@@ -173,6 +182,83 @@ namespace Game.Gameplay.Tests
             var texts = AllTexts(page);
             Assert.That(texts, Has.Member("开始本地任务"));
             Assert.That(texts, Has.Member("返回大厅"));
+        }
+
+        // ---------- 2026-09-16 需求1：仓库 CF 风（左列类型标签 + 大网格 + 仅已拥有） ----------
+
+        private LobbyPresenter CreateArmoryPresenter()
+        {
+            var presenter = CreatePresenter();
+            SetField(presenter, "cachedCatalog", new ShopCatalogDto
+            {
+                coins = 500,
+                level = 1,
+                items = new[]
+                {
+                    new CatalogItemDto { itemId = "weapon.m4", itemType = "Weapon", slotType = "Primary", displayName = "M4", isOwned = true, isActive = true, isImplemented = true, acquisitionSource = "Initial" },
+                    new CatalogItemDto { itemId = "weapon.ak", itemType = "Weapon", slotType = "Primary", displayName = "AK", priceCoins = 1000, isOwned = false, isActive = true, isImplemented = true, acquisitionSource = "Shop" },
+                    new CatalogItemDto { itemId = "weapon.smg01", itemType = "Weapon", slotType = "Primary", displayName = "SMG-01", isOwned = true, isActive = true, isImplemented = true, acquisitionSource = "Shop" },
+                    new CatalogItemDto { itemId = "weapon.service_pistol", itemType = "Weapon", slotType = "Secondary", displayName = "Service Pistol", isOwned = true, isActive = true, isImplemented = true, acquisitionSource = "Initial" },
+                },
+            });
+            SetField(presenter, "cachedInventory", new InventoryDto { coins = 500, items = Array.Empty<InventoryItemDto>() });
+            return presenter;
+        }
+
+        [Test]
+        public void Armory_ShowsOnlyOwnedWeapons_WithTypeTabsAndCardActions()
+        {
+            var presenter = CreateArmoryPresenter();
+            Invoke(presenter, "RenderArmoryPage");
+            var body = GetField<Transform>(presenter, "body");
+            var page = body.Find("ArmoryPage");
+            Assert.That(page, Is.Not.Null);
+
+            Assert.That(page.Find("WeaponCard_weapon.m4"), Is.Not.Null, "初始枪 M4 必须在仓库可见");
+            Assert.That(page.Find("WeaponCard_weapon.service_pistol"), Is.Not.Null, "初始枪 Service Pistol 必须在仓库可见");
+            Assert.That(page.Find("WeaponCard_weapon.smg01"), Is.Not.Null);
+            Assert.That(page.Find("WeaponCard_weapon.ak"), Is.Null, "未拥有武器不出现在仓库");
+
+            foreach (var key in new[] { "All", "Rifle", "Smg", "Sniper", "Shotgun", "Pistol" })
+                Assert.That(page.Find("ArmoryTab_" + key), Is.Not.Null, $"缺少类型标签 {key}");
+
+            var card = page.Find("WeaponCard_weapon.m4");
+            Assert.That(card.Find("Gunsmith_weapon.m4/Face"), Is.Not.Null, "卡片应提供配件改装入口");
+            Assert.That(card.Find("Details_weapon.m4/Face"), Is.Not.Null, "卡片应保留详情入口");
+        }
+
+        [Test]
+        public void Armory_TypeTabClick_FiltersToPistolOnly()
+        {
+            var presenter = CreateArmoryPresenter();
+            Invoke(presenter, "RenderArmoryPage");
+            var body = GetField<Transform>(presenter, "body");
+            var pistolTab = body.Find("ArmoryPage/ArmoryTab_Pistol")?.GetComponent<Button>();
+            Assert.That(pistolTab, Is.Not.Null);
+            pistolTab.onClick.Invoke();
+
+            // EditMode 下 ClearBody 的 Destroy 延迟到帧末——取最后一次重建的 ArmoryPage
+            Transform page = null;
+            foreach (Transform child in body)
+                if (child.name == "ArmoryPage") page = child;
+            Assert.That(page, Is.Not.Null);
+            Assert.That(page.Find("WeaponCard_weapon.service_pistol"), Is.Not.Null);
+            Assert.That(page.Find("WeaponCard_weapon.m4"), Is.Null);
+            Assert.That(page.Find("WeaponCard_weapon.smg01"), Is.Null);
+        }
+
+        [Test]
+        public void Armory_EquippedBadge_FollowsServerLoadout()
+        {
+            var presenter = CreateArmoryPresenter();
+            var session = GetField<AccountSession>(presenter, "session");
+            session.ApplyLoadout(new LoadoutDto { primaryWeaponId = "weapon.m4", secondaryWeaponId = "weapon.service_pistol" });
+            Invoke(presenter, "RenderArmoryPage");
+            var body = GetField<Transform>(presenter, "body");
+            var page = body.Find("ArmoryPage");
+            Assert.That(page.Find("WeaponCard_weapon.m4/EquippedBadge"), Is.Not.Null);
+            Assert.That(page.Find("WeaponCard_weapon.service_pistol/EquippedBadge"), Is.Not.Null);
+            Assert.That(page.Find("WeaponCard_weapon.smg01/EquippedBadge"), Is.Null);
         }
 
         private static T GetField<T>(object target, string name)

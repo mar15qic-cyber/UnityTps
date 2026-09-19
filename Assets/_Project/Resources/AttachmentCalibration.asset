@@ -1,0 +1,781 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c717c60ac933a16499872c9013c464a6, type: 3}
+  m_Name: AttachmentCalibration
+  m_EditorClassIdentifier: 
+  rows:
+  - weaponItemId: weapon.lpw.rifle.02
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0.07124103, y: 0.009883832, z: 0.066}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.02
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: -0.000292385, y: -0.002079594, z: 0.061}
+    rotationEulerOffset: {x: 21.633705, y: -0.000008723482, z: -0.000009208104}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.02
+    attachmentItemId: attach.lpfp.optic.01
+    positionOffset: {x: -0.004833204, y: 0.00015569478, z: 0.06624836}
+    rotationEulerOffset: {x: 358.27127, y: 0.9863726, z: 342.19598}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.02
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: -0.018720804, y: 0.005597708, z: 0.06449998}
+    rotationEulerOffset: {x: 21.068502, y: 0.31155697, z: 358.3944}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.02
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: -0.011602856, y: -0.0012828223, z: 0.067000255}
+    rotationEulerOffset: {x: -0.0000066634425, y: 0.000010969805, z: 340.18005}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: -0.17713402, y: 0.21179649, z: -0.019}
+    rotationEulerOffset: {x: 83.99896, y: 179.99991, z: 179.99991}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.grip.01
+    positionOffset: {x: -0.21798939, y: 0.19070274, z: 0.010599992}
+    rotationEulerOffset: {x: 1.6558688, y: 356.02768, z: 0.0000026958487}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.tactical.light
+    positionOffset: {x: -0.15474857, y: 0.20710006, z: -0.015}
+    rotationEulerOffset: {x: 89.82983, y: 343.9068, z: 343.07462}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpfp.optic.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.optic.04
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.03
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.05
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.grip.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.tactical.light
+    positionOffset: {x: 0.04125143, y: 0.011100061, z: -0.03}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: 0.03286597, y: 0.015796494, z: -0.0302}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpfp.optic.01
+    positionOffset: {x: 0.139, y: -0.008749248, z: 0.00000008568168}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0.13839714, y: -0.00028282218, z: 0.00000024959445}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0.1394378, y: -0.00028734654, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0.14163935, y: -0.0041262787, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.06
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0.13370761, y: -0.00007959455, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.01
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.01
+    attachmentItemId: attach.lpw.optic.07
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.01
+    attachmentItemId: attach.lpw.optic.08
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.02
+    attachmentItemId: attach.lpw.optic.07
+    positionOffset: {x: 0.26942003, y: 0.000054508448, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.02
+    attachmentItemId: attach.lpw.optic.08
+    positionOffset: {x: 0.26457864, y: 0.00022446364, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.06
+    attachmentItemId: attach.lpw.optic.07
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.06
+    attachmentItemId: attach.lpw.optic.08
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.04
+    attachmentItemId: attach.lpw.optic.07
+    positionOffset: {x: 0.17742, y: 0.000054508448, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.sniper.04
+    attachmentItemId: attach.lpw.optic.08
+    positionOffset: {x: 0.18857864, y: 0.00022446364, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.smg.01
+    attachmentItemId: attach.lpw.muffler.01
+    positionOffset: {x: 0.00024102628, y: -0.013000002, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.06
+    attachmentItemId: attach.lpw.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.02
+    attachmentItemId: attach.lpw.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.04
+    attachmentItemId: attach.lpw.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.03
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.03
+    attachmentItemId: attach.lpw.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.pistol.03
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.01
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: -0.076534025, y: 0.18479648, z: -0.031}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpfp.optic.01
+    positionOffset: {x: 0.144, y: 0.00025075115, z: 0.00000008568168}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0.14339714, y: -0.0022828225, z: 0.00000024959445}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0.1457076, y: -0.00007959455, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: 0.1443792, y: -0.00020229165, z: -0.000000014901161}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.04
+    positionOffset: {x: 0.13498606, y: 0.00044261664, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.03
+    positionOffset: {x: 0.13514514, y: 0.00026965514, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0.12863936, y: -0.00012627803, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0.1314378, y: -0.00028734654, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.grip.01
+    positionOffset: {x: -0.11898939, y: 0.16500273, z: -0.000000007450581}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.lpw.rifle.04
+    attachmentItemId: attach.lpw.tactical.light
+    positionOffset: {x: -0.06814857, y: 0.18010005, z: -0.031}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0.06370761, y: -0.038279593, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0, y: -0.036282822, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: 0, y: -0.036202293, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.optic.03
+    positionOffset: {x: 0, y: -0.035730347, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0, y: -0.03612628, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0.06173779, y: -0.033287346, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0, y: -0.016282823, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0, y: -0.019079594, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: 0, y: -0.017202292, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpw.optic.03
+    positionOffset: {x: 0, y: -0.017430345, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0, y: -0.016026279, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0, y: -0.018287346, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -0.0000000022687816
+    authorFrameY: 0.70710695
+    authorFrameZ: 0.000000004632546
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.smg02
+    attachmentItemId: attach.lpfp.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -0.0000000022687816
+    authorFrameY: 0.70710695
+    authorFrameZ: 0.000000004632546
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0, y: -0.03228282, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpfp.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0, y: -0.034079596, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: 0, y: -0.032202292, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0, y: -0.032126278, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpw.optic.03
+    positionOffset: {x: 0, y: -0.033730343, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg05
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0, y: -0.033287346, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg01
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0.0004377904, y: -0.010287346, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg01
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0, y: -0.009282822, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg01
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0, y: -0.013079595, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0
+    authorFrameZ: 0
+    authorFrameW: 0
+  - weaponItemId: weapon.smg01
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: -0.08553403, y: 0.23589648, z: -0.0215}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071068
+    authorFrameZ: 0
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.smg03
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: -0.029034026, y: 0.20679648, z: -0.018}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.optic.02
+    positionOffset: {x: 0.062279195, y: -0.045202293, z: -0.000000014901161}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -4.6369096e-11
+    authorFrameY: 0.7071068
+    authorFrameZ: -1.23512e-10
+    authorFrameW: 0.70710677
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.tactical.light
+    positionOffset: {x: 0.05225143, y: 0.09010006, z: -0.017}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.muffler.02
+    positionOffset: {x: 0.00024102628, y: -0.0051161684, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.optic.01
+    positionOffset: {x: 0.064707614, y: -0.048079595, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -0.000000004015005
+    authorFrameY: 0.7071069
+    authorFrameZ: -0.0000000010802294
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.optic.06
+    positionOffset: {x: 0.069937795, y: -0.045187347, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 5.22934e-16
+    authorFrameY: 0.7071068
+    authorFrameZ: -3.3712213e-16
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpfp.optic.01
+    positionOffset: {x: 0.059, y: -0.049749248, z: 0.00000008568168}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpfp.optic.02
+    positionOffset: {x: 0.08639714, y: -0.04628282, z: 0.00000024959445}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -6.414115e-10
+    authorFrameY: 0.7071069
+    authorFrameZ: -4.77304e-10
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.optic.05
+    positionOffset: {x: 0.06263935, y: -0.050126277, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0
+    authorFrameY: 0.7071069
+    authorFrameZ: 0
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: 0.013865974, y: 0.09729649, z: -0.018}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: -6.414115e-10
+    authorFrameY: 0.7071069
+    authorFrameZ: -4.77304e-10
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.shotgun01
+    attachmentItemId: attach.lpfp.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -0.0000000018223992
+    authorFrameY: 0.7071068
+    authorFrameZ: 7.313438e-11
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.shotgun01
+    attachmentItemId: attach.lpw.tactical.laser
+    positionOffset: {x: 0.024265973, y: 0.009796493, z: -0.018}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: -2.004347e-10
+    authorFrameY: 0.7071069
+    authorFrameZ: -2.3616628e-10
+    authorFrameW: 0.7071069
+  - weaponItemId: weapon.shotgun01
+    attachmentItemId: attach.lpw.tactical.light
+    positionOffset: {x: 0.03225143, y: 0.0051000603, z: -0.025}
+    rotationEulerOffset: {x: 90, y: 0, z: 0}
+    authorFrameX: -0.0000000018223992
+    authorFrameY: 0.7071068
+    authorFrameZ: 7.313438e-11
+    authorFrameW: 0.7071068
+  - weaponItemId: weapon.rifle03
+    attachmentItemId: attach.lpfp.muffler.01
+    positionOffset: {x: 0, y: 0, z: 0}
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -6.414115e-10
+    authorFrameY: 0.7071069
+    authorFrameZ: -4.77304e-10
+    authorFrameW: 0.7071068
+  opticAimRows:
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.01
+    eyePointLocal: {x: 0.1, y: 0.04, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.02
+    eyePointLocal: {x: 0.12, y: 0.045, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.03
+    eyePointLocal: {x: 0.12, y: 0.045, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.04
+    eyePointLocal: {x: 0.14, y: 0.05, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.05
+    eyePointLocal: {x: 0.1, y: 0.04, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.06
+    eyePointLocal: {x: 0.1, y: 0.04, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.07
+    eyePointLocal: {x: 0.16, y: 0.055, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpw.optic.08
+    eyePointLocal: {x: 0.16, y: 0.055, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpfp.optic.01
+    eyePointLocal: {x: 0.14, y: 0.05, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.lpfp.optic.02
+    eyePointLocal: {x: 0.12, y: 0.045, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.rifle.optic
+    eyePointLocal: {x: 0.12, y: 0.045, z: 0}
+  - weaponItemId: 
+    opticItemId: attach.pistol.optic
+    eyePointLocal: {x: 0.1, y: 0.04, z: 0}
+  - weaponItemId: weapon.sniper01
+    opticItemId: builtin.weapon.sniper01
+    eyePointLocal: {x: 0.16, y: 0.055, z: 0}
+  - weaponItemId: weapon.sniper02
+    opticItemId: builtin.weapon.sniper02
+    eyePointLocal: {x: 0.16, y: 0.055, z: 0}
+  - weaponItemId: weapon.sniper03
+    opticItemId: builtin.weapon.sniper03
+    eyePointLocal: {x: 0.16, y: 0.055, z: 0}

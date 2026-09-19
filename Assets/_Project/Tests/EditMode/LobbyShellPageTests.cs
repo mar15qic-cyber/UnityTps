@@ -78,19 +78,38 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Shell_BuildsNavRailWithSixPillsAndStatus()
+        public void Shell_BuildsTopBarWithSixTabsAndStatus()
         {
             var presenter = CreatePresenter(buildShell: true);
-            var rail = presenter.transform.Find("LobbyCanvas/NavRail");
-            Assert.That(rail, Is.Not.Null, "NavRail should exist under canvas");
-            var pills = rail.GetComponentsInChildren<Button>(true);
+            var bar = presenter.transform.Find("LobbyCanvas/ShellTopBar");
+            Assert.That(bar, Is.Not.Null, "ShellTopBar should exist under canvas");
+            var pills = bar.GetComponentsInChildren<Button>(true);
             Assert.That(pills.Length, Is.EqualTo(6));
-            Assert.That(rail.Find("RailLogo")?.GetComponent<Image>()?.sprite, Is.Not.Null);
+            Assert.That(bar.Find("BarLogo")?.GetComponent<Image>()?.sprite, Is.Not.Null);
             var status = GetField<TMP_Text>(presenter, "status");
             Assert.That(status, Is.Not.Null);
             Assert.That(presenter.transform.Find("LobbyCanvas/PageBody"), Is.Not.Null);
             // Pre-auth shell must hide navigation.
-            Assert.That(rail.gameObject.activeSelf, Is.True, "rail created active; presenter hides it during Initialize");
+            Assert.That(bar.gameObject.activeSelf, Is.True, "top bar created active; presenter hides it during Initialize");
+        }
+
+        [Test]
+        public void NavigationHidden_ExpandsBodyToFullScreen()
+        {
+            var presenter = CreatePresenter(buildShell: true);
+            var bodyRect = presenter.transform.Find("LobbyCanvas/PageBody").GetComponent<RectTransform>();
+            Assert.That(bodyRect, Is.Not.Null);
+
+            // 2026-09-16 需求2：导航隐藏 → body 全屏（登录/启动页屏幕居中）；可见 → 顶栏下方区域
+            Invoke(presenter, "SetNavigationVisible", false);
+            Assert.That(bodyRect.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(bodyRect.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(bodyRect.offsetMin, Is.EqualTo(Vector2.zero));
+            Assert.That(bodyRect.offsetMax, Is.EqualTo(Vector2.zero));
+
+            Invoke(presenter, "SetNavigationVisible", true);
+            Assert.That(bodyRect.anchorMin.x, Is.GreaterThan(0f));
+            Assert.That(bodyRect.anchorMax.y, Is.LessThan(1f), "body must stay below the top bar when navigation is visible");
         }
 
         [Test]
@@ -109,7 +128,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void LobbyHome_Authenticated_BuildsProfileCardAndCtas()
+        public void LobbyHome_Authenticated_BuildsModeCardsProfileAndLoadout()
         {
             var presenter = CreatePresenter(buildShell: false);
             Authenticate(presenter);
@@ -117,15 +136,26 @@ namespace Game.Gameplay.Tests
             var body = GetField<Transform>(presenter, "body");
             var page = body.Find("LobbyPage");
             Assert.That(page, Is.Not.Null);
+            // 2026-09-16 需求4：三角洲行动式主页 = 左模式大卡 + 右档案/装备卡
+            Assert.That(page.Find("ModeCardOnline"), Is.Not.Null);
+            Assert.That(page.Find("ModeCardOffline"), Is.Not.Null);
             Assert.That(page.Find("ProfileCard"), Is.Not.Null);
+            Assert.That(page.Find("LoadoutCard"), Is.Not.Null);
 
             var labels = new List<string>();
             foreach (var t in page.GetComponentsInChildren<TMP_Text>(true))
                 labels.Add(t.text);
-            Assert.That(labels, Has.Member("进入战斗"));
+            Assert.That(labels, Has.Member("联机对战"));
+            Assert.That(labels, Has.Member("进入匹配大厅"));
+            Assert.That(labels, Has.Member("离线演练"));
+            Assert.That(labels, Has.Member("开始演练"));
             Assert.That(labels, Has.Member("退出会话"));
+            Assert.That(labels, Has.Member("前往仓库改装"));
             Assert.That(labels, Has.Member("Tester"));
             Assert.That(labels, Has.Member("COINS 12,345"));
+
+            // 配装未加载时的占位文案（api 为空的离线测试不会触发补拉）
+            Assert.That(labels, Has.Member("未配置"));
 
             // XP bar: 40/100 => 0.4
             var fills = page.GetComponentsInChildren<Image>(true);

@@ -156,6 +156,217 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void PoseMath_ComposesContactToWristOffsetInContactSpace()
+        {
+            Quaternion contactRotation = Quaternion.Euler(0f, 90f, 0f);
+            FPContactPose result = FPWeaponPoseMath.ComposeContactToWrist(
+                new Vector3(1f, 2f, 3f), contactRotation,
+                new Vector3(0f, 0f, .2f), Quaternion.Euler(0f, 15f, 0f));
+
+            Assert.That(result.Position.x, Is.EqualTo(1.2f).Within(.0001f));
+            Assert.That(result.Position.y, Is.EqualTo(2f).Within(.0001f));
+            Assert.That(result.Position.z, Is.EqualTo(3f).Within(.0001f));
+            Assert.That(Quaternion.Angle(result.Rotation,
+                contactRotation * Quaternion.Euler(0f, 15f, 0f)), Is.LessThan(.01f));
+        }
+
+        [Test]
+        public void AugRearMagazine_LocksRotationAndKeepsInsertionOnOneAxis()
+        {
+            var root = new GameObject("AUG_RearMagazinePoseTest");
+            root.SetActive(false);
+
+            try
+            {
+                Transform weaponRoot = NewBone("LPW_Gun", root.transform, Vector3.zero);
+                Transform rightHand = NewBone("hand_R", root.transform, new Vector3(.25f, 0f, 0f));
+                Transform rightGrip = NewBone("RightHandGrip", weaponRoot, new Vector3(.25f, 0f, 0f));
+                Transform support = NewBone("LeftSupportGrip", weaponRoot, new Vector3(.2f, .1f, 0f));
+                Transform trigger = NewBone("Trigger", weaponRoot, new Vector3(.2f, 0f, 0f));
+                Transform well = NewBone("MagazineWell", weaponRoot, new Vector3(1.2f, .1f, 0f));
+                Transform grip = NewBone("MagazineGrip", weaponRoot, new Vector3(1.2f, -.1f, 0f));
+                Transform insertGuide = NewBone("MagazineInsertGuide", weaponRoot, new Vector3(1.2f, 0f, 0f));
+                Transform extracted = NewBone("MagazineExtracted", weaponRoot, new Vector3(1.2f, -.2f, 0f));
+
+                var profile = root.AddComponent<FPWeaponPoseProfile>();
+                SetField(profile, "weaponRoot", weaponRoot);
+                SetField(profile, "rightHand", rightHand);
+                SetField(profile, "rightHandGrip", rightGrip);
+                SetField(profile, "leftSupportGrip", support);
+                SetField(profile, "trigger", trigger);
+                SetField(profile, "magazineWell", well);
+                SetField(profile, "magazineGrip", grip);
+                SetField(profile, "magazineInsertGuide", insertGuide);
+                SetField(profile, "magazineExtracted", extracted);
+                SetField(profile, "hasMagazineCalibration", true);
+                SetField(profile, "lockMagazineToWellAxis", true);
+                SetField(profile, "magazineInsertionAxisLocal", Vector3.up);
+                SetField(profile, "magazineOutNormalized", .2f);
+                SetField(profile, "magazineInNormalized", .7f);
+                SetField(profile, "magazineAlignWindow", .1f);
+                SetField(profile, "magazineInsertWindow", .1f);
+                SetField(profile, "magazineHeldLocalPosition", new Vector3(.1f, 0f, 0f));
+                SetField(profile, "magazineHeldLocalEulerAngles", Vector3.zero);
+                Invoke(profile, "Awake");
+
+                profile.BeginReload(false);
+                Assert.That(profile.GetReloadContactPhase(.4f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.ReachMagazineWell));
+
+                Assert.That(profile.TryGetMagazinePose(.2f, out FPContactPose tacticalOut), Is.True);
+                Assert.That(Vector3.Distance(tacticalOut.Position, well.position), Is.LessThan(.0001f),
+                    "Tactical MagOut must begin at the installed well pose without a position jump.");
+                Assert.That(profile.TryGetMagazinePose(.3f, out FPContactPose tacticalExtracted), Is.True);
+                Assert.That(Vector3.Distance(tacticalExtracted.Position, extracted.position), Is.LessThan(.0001f),
+                    "Tactical extractEnd must reach the axis-aligned extracted marker.");
+
+                foreach (float normalized in new[] { .2f, .25f, .3f, .4f, .53f, .59f, .6f, .65f, .7f })
+                {
+                    Assert.That(profile.TryGetMagazinePose(normalized, out FPContactPose magazine), Is.True,
+                        "AUG stable magazine pose missing at " + normalized);
+                    Assert.That(Quaternion.Angle(magazine.Rotation, well.rotation), Is.LessThan(.01f),
+                        "AUG magazine must never rotate during detached carry at " + normalized);
+                    Assert.That(magazine.Position.x, Is.EqualTo(well.position.x).Within(.0001f));
+                    Assert.That(magazine.Position.z, Is.EqualTo(well.position.z).Within(.0001f));
+                    Assert.That(profile.TryGetReloadHandTarget(normalized, out FPContactPose hand), Is.True);
+                    FPContactPose recomposed = FPWeaponPoseMath.ComposeHeldMagazine(
+                        hand.Position, hand.Rotation,
+                        new Vector3(.1f, 0f, 0f), Quaternion.identity);
+                    Assert.That(Vector3.Distance(recomposed.Position, magazine.Position), Is.LessThan(.0001f));
+                    Assert.That(Quaternion.Angle(recomposed.Rotation, magazine.Rotation), Is.LessThan(.01f));
+                }
+
+                Assert.That(profile.GetReloadContactPhase(.2001f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.ReachMagazineWell));
+                Assert.That(profile.GetReloadContactPhase(.55f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.ReachMagazineWell));
+
+                Assert.That(profile.GetReloadContactPhase(.2f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.ReachMagazineWell));
+
+                Assert.That(profile.GetReloadContactPhase(.7f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.ReachMagazineWell));
+                Assert.That(profile.TryGetReloadHandTarget(.7f, out FPContactPose insertion), Is.True);
+                FPContactPose expected = FPWeaponPoseMath.ResolveHandFromHeldMagazine(
+                    well, new Vector3(.1f, 0f, 0f), Quaternion.identity);
+                Assert.That(Vector3.Distance(insertion.Position, expected.Position), Is.LessThan(.0001f));
+                Assert.That(profile.GetReloadContactPhase(.7001f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.None),
+                    "The fixed well marker must release the hand immediately after MagIn.");
+
+                profile.BeginReload(true);
+                Assert.That(profile.TryGetMagazinePose(.12f, out FPContactPose emptyOut), Is.True);
+                Assert.That(Vector3.Distance(emptyOut.Position, well.position), Is.LessThan(.0001f),
+                    "Empty MagOut must begin at the installed well pose without a position jump.");
+                Assert.That(profile.TryGetMagazinePose(.22f, out FPContactPose emptyExtracted), Is.True);
+                Assert.That(Vector3.Distance(emptyExtracted.Position, extracted.position), Is.LessThan(.0001f),
+                    "Empty extractEnd must reach the axis-aligned extracted marker.");
+
+                foreach (float normalized in new[] { .12f, .17f, .22f, .28f, .35f, .4f, .45f })
+                {
+                    Assert.That(profile.TryGetMagazinePose(normalized, out FPContactPose emptyPose), Is.True,
+                        "AUG stable magazine pose missing during empty reload at " + normalized);
+                    Assert.That(Quaternion.Angle(emptyPose.Rotation, well.rotation), Is.LessThan(.01f));
+                    Assert.That(emptyPose.Position.x, Is.EqualTo(well.position.x).Within(.0001f));
+                    Assert.That(emptyPose.Position.z, Is.EqualTo(well.position.z).Within(.0001f));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void LegacyMagazineProfile_LeavesCarryUnconstrained()
+        {
+            var root = new GameObject("LegacyMagazineCarryTest");
+            root.SetActive(false);
+
+            try
+            {
+                Transform weaponRoot = NewBone("LPW_Gun", root.transform, Vector3.zero);
+                Transform rightHand = NewBone("hand_R", root.transform, new Vector3(.25f, 0f, 0f));
+                Transform rightGrip = NewBone("RightHandGrip", weaponRoot, new Vector3(.25f, 0f, 0f));
+                Transform support = NewBone("LeftSupportGrip", weaponRoot, new Vector3(.2f, .1f, 0f));
+                Transform trigger = NewBone("Trigger", weaponRoot, new Vector3(.2f, 0f, 0f));
+                Transform well = NewBone("MagazineWell", weaponRoot, new Vector3(.1f, .1f, 0f));
+                Transform grip = NewBone("MagazineGrip", weaponRoot, new Vector3(.1f, -.1f, 0f));
+
+                var profile = root.AddComponent<FPWeaponPoseProfile>();
+                SetField(profile, "weaponRoot", weaponRoot);
+                SetField(profile, "rightHand", rightHand);
+                SetField(profile, "rightHandGrip", rightGrip);
+                SetField(profile, "leftSupportGrip", support);
+                SetField(profile, "trigger", trigger);
+                SetField(profile, "magazineWell", well);
+                SetField(profile, "magazineGrip", grip);
+                SetField(profile, "hasMagazineCalibration", true);
+                SetField(profile, "magazineOutNormalized", .2f);
+                SetField(profile, "magazineInNormalized", .7f);
+                Invoke(profile, "Awake");
+
+                profile.BeginReload(false);
+                Assert.That(profile.UsesStableMagazineCarry, Is.False);
+                Assert.That(profile.GetReloadContactPhase(.4f),
+                    Is.EqualTo(FPWeaponPoseProfile.ReloadContactPhase.CarryMagazine));
+                Assert.That(profile.TryGetReloadHandTarget(.4f, out _), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SupportReferenceOffset_IsAppliedToContactInsteadOfTreatingMarkerAsWrist()
+        {
+            var root = new GameObject("SupportReferenceOffsetTest");
+            root.SetActive(false);
+
+            try
+            {
+                Transform weaponRoot = NewBone("LPW_Gun", root.transform, Vector3.zero);
+                Transform rightHand = NewBone("hand_R", root.transform, new Vector3(.25f, 0f, 0f));
+                Transform rightGrip = NewBone("RightHandGrip", weaponRoot, new Vector3(.25f, 0f, 0f));
+                Transform support = NewBone("LeftSupportGrip", weaponRoot, new Vector3(1f, 0f, 0f));
+                Transform trigger = NewBone("Trigger", weaponRoot, new Vector3(.2f, 0f, 0f));
+                Transform well = NewBone("MagazineWell", weaponRoot, new Vector3(.1f, -.1f, 0f));
+                Transform grip = NewBone("MagazineGrip", weaponRoot, new Vector3(.1f, -.2f, 0f));
+
+                var profile = root.AddComponent<FPWeaponPoseProfile>();
+                SetField(profile, "weaponRoot", weaponRoot);
+                SetField(profile, "rightHand", rightHand);
+                SetField(profile, "rightHandGrip", rightGrip);
+                SetField(profile, "leftSupportGrip", support);
+                SetField(profile, "trigger", trigger);
+                SetField(profile, "magazineWell", well);
+                SetField(profile, "magazineGrip", grip);
+                var offsets = new System.Collections.Generic.List<FPWeaponPoseProfile.AnimationFamilyContactOffset>
+                {
+                    new FPWeaponPoseProfile.AnimationFamilyContactOffset
+                    {
+                        family = FPAnimationReferenceFamily.Rifle03,
+                        configured = true,
+                        supportContactToWristLocalPosition = new Vector3(0f, .05f, 0f),
+                        supportContactToWristLocalEulerAngles = new Vector3(0f, 10f, 0f)
+                    }
+                };
+                SetField(profile, "referenceFamily", FPAnimationReferenceFamily.Rifle03);
+                SetField(profile, "animationFamilyContactOffsets", offsets);
+                Invoke(profile, "Awake");
+
+                Assert.That(profile.TryGetSupportHandTarget(out FPContactPose target), Is.True);
+                Assert.That(Vector3.Distance(target.Position,
+                    support.position + support.rotation * new Vector3(0f, .05f, 0f)), Is.LessThan(.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void WeaponDefinition_RifleFamilyResolverSelectsVerticalGripOnly()
         {
             var rifle = ScriptableObject.CreateInstance<WeaponDefinition>();

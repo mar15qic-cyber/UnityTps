@@ -1,0 +1,145 @@
+-- 战绩页（P3 热更试点·热更上线的第一个正式功能页）
+-- 数据经 HotLuaFacade.GetMatchHistory（LuaTable 契约见 HotLuaFacade.cs 注释）；
+-- 本文件同源发布：内置 Resources/Lua/career_page.lua.txt（离线兜底）+ 热更包（服务器优先）。
+local Typography = CS.Game.UI.UITypography
+local Theme = CS.Game.UI.UITheme
+local Components = CS.Game.UI.UIComponents
+local Facade = CS.Game.UI.HotLuaFacade
+local Vector2 = CS.UnityEngine.Vector2
+local Alignment = CS.TMPro.TextAlignmentOptions
+local Styles = CS.TMPro.FontStyles
+
+local PAGE_SIZE = 10
+
+-- 全局暴露：EditMode 冒烟直调（stub 数据渲染分支）与运行时翻页复用
+CareerPageRender = nil
+
+local function clearRoot(root)
+    local t = root.transform
+    while t.childCount > 0 do
+        local child = t:GetChild(0)
+        if CS.UnityEngine.Application.isPlaying then
+            CS.UnityEngine.Object.Destroy(child.gameObject)
+        else
+            CS.UnityEngine.Object.DestroyImmediate(child.gameObject)
+        end
+    end
+end
+
+local function shortTime(iso)
+    -- "2026-09-17T18:44:12.xxx" → "09-17 18:44"
+    if not iso or #iso < 16 then return tostring(iso or "") end
+    return string.sub(iso, 6, 10) .. " " .. string.sub(iso, 12, 16)
+end
+
+local function fmtNumber(n)
+    if n >= 10000 then
+        return string.format("%.1f", n / 10000) .. "w"
+    end
+    return tostring(n)
+end
+
+-- 渲染主体（dto=nil 且 err 非 nil → 错误态；dto.summary.totalMatches==0 → 空态）
+CareerPageRender = function(root, dto, err)
+    clearRoot(root)
+    local rt = root.transform
+
+    Typography.Text("T_CareerTitle", rt, "作战战绩", Theme.FontPageTitle, Theme.TextPrimary,
+        Vector2(0.03, 0.88), Vector2(0.60, 0.96), Alignment.Left, Styles.Bold)
+
+    if err then
+        Components.Panel("CareerErrorCard", rt, Theme.CardSurface, Vector2(0.03, 0.40), Vector2(0.97, 0.60))
+        Typography.Text("T_CareerErr", rt, "战绩加载失败：" .. tostring(err),
+            Theme.FontBody, Theme.TextMuted, Vector2(0.06, 0.46), Vector2(0.94, 0.58), Alignment.Left)
+        local retry = Components.Button("Btn_CareerRetry", rt, "重试", Components.ButtonKind.Primary,
+            Vector2(0.06, 0.30), Vector2(0.28, 0.42))
+        retry.onClick:AddListener(function()
+            show(root, 1)
+        end)
+        return
+    end
+
+    local summary = (dto and dto.summary) or {}
+    local total = summary.totalMatches or 0
+    if total == 0 then
+        Components.Panel("CareerEmptyCard", rt, Theme.CardSurface, Vector2(0.03, 0.42), Vector2(0.97, 0.66))
+        Typography.Text("T_CareerEmpty", rt, "还没有对局记录——去打一局吧！",
+            Theme.FontCardTitle, Theme.TextPrimary, Vector2(0.06, 0.48), Vector2(0.94, 0.62), Alignment.Left)
+        return
+    end
+
+    -- 生涯汇总卡
+    local kd = 0
+    if (summary.totalDeaths or 0) > 0 then kd = (summary.totalKills or 0) / summary.totalDeaths
+    elseif (summary.totalKills or 0) > 0 then kd = 99 end
+    local kdText = string.format("%.2f", kd)
+    if kd >= 99 then kdText = "99+" end
+    local card = Components.Panel("CareerSummaryCard", rt, Theme.CardSurface, Vector2(0.03, 0.72), Vector2(0.97, 0.86))
+    Typography.Text("T_CareerSummary1", rt,
+        string.format("总场次 %d    胜 %d    胜率 %.1f%%    K/D %s",
+            total, summary.wins or 0, summary.winRate or 0, kdText),
+        Theme.FontBody + 2, Theme.TextPrimary,
+        Vector2(0.06, 0.74), Vector2(0.94, 0.85), Alignment.Left, Styles.Bold)
+    Typography.Text("T_CareerSummary2", rt,
+        string.format("累计击杀 %s / 阵亡 %s    经验 %s    金币 %s",
+            fmtNumber(summary.totalKills or 0), fmtNumber(summary.totalDeaths or 0),
+            fmtNumber(summary.totalXp or 0), fmtNumber(summary.totalCoins or 0)),
+        Theme.FontBody, Theme.TextMuted,
+        Vector2(0.06, 0.725), Vector2(0.94, 0.775), Alignment.Left)
+
+    -- 对局列表（表头 + 行）
+    Typography.Text("T_ListHeader", rt, "时间          结果      击杀/阵亡       收益",
+        Theme.FontCaption, Theme.TextMuted, Vector2(0.06, 0.655), Vector2(0.94, 0.70), Alignment.Left)
+    local rows = (dto and dto.rows) or {}
+    local y = 0.585
+    local rowHeight = 0.055
+    for _, row in ipairs(rows) do
+        local resultText = "失败"
+        local resultColor = Theme.TextMuted
+        if row.isWin then
+            resultText = "胜利"
+            resultColor = Theme.AccentPrimary
+        end
+        Typography.Text("T_Row_" .. tostring(y), rt,
+            string.format("%s      %s      %d / %d      +%d XP  +%d 金币",
+                shortTime(row.playedAt), resultText, row.kills or 0, row.deaths or 0,
+                row.xp or 0, row.coins or 0),
+            Theme.FontBody, resultColor,
+            Vector2(0.06, y), Vector2(0.94, y + rowHeight), Alignment.Left)
+        y = y - rowHeight
+    end
+
+    -- 分页条
+    local page = (dto and dto.page) or 1
+    local totalPages = (dto and dto.totalPages) or 1
+    local prevBtn = Components.Button("Btn_CareerPrev", rt, "上一页", Components.ButtonKind.Secondary,
+        Vector2(0.30, 0.04), Vector2(0.46, 0.13))
+    prevBtn.interactable = page > 1
+    prevBtn.onClick:AddListener(function()
+        show(root, page - 1)
+    end)
+    Typography.Text("T_CareerPageInfo", rt, string.format("第 %d / %d 页（共 %d 局）", page, totalPages, dto.totalCount or 0),
+        Theme.FontBody, Theme.TextMuted, Vector2(0.48, 0.04), Vector2(0.70, 0.13), Alignment.Center)
+    local nextBtn = Components.Button("Btn_CareerNext", rt, "下一页", Components.ButtonKind.Secondary,
+        Vector2(0.72, 0.04), Vector2(0.88, 0.13))
+    nextBtn.interactable = page < totalPages
+    nextBtn.onClick:AddListener(function()
+        show(root, page + 1)
+    end)
+end
+
+function show(root, page)
+    clearRoot(root)
+    local rt = root.transform
+    Typography.Text("T_CareerTitle", rt, "作战战绩", Theme.FontPageTitle, Theme.TextPrimary,
+        Vector2(0.03, 0.88), Vector2(0.60, 0.96), Alignment.Left, Styles.Bold)
+    Typography.Text("T_CareerLoading", rt, "正在加载战绩…",
+        Theme.FontBody, Theme.TextMuted, Vector2(0.03, 0.70), Vector2(0.60, 0.80), Alignment.Left)
+    Facade.GetMatchHistory(page, PAGE_SIZE,
+        function(dto) CareerPageRender(root, dto, nil) end,
+        function(err) CareerPageRender(root, nil, err) end)
+end
+
+Facade.RegisterPage("career", "战绩", function(root)
+    show(root, 1)
+end)

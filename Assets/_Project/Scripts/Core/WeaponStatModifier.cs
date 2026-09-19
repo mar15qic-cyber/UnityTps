@@ -16,8 +16,9 @@ namespace Game.Core
         RecoilRecovery,      // Burst 恢复速度倍率（倍率型：base=1）
         RecoilPatternScale,  // Pattern 缩放倍率（倍率型：base=1，Pattern 资产预留）
         FirstShotRecoil,     // 首枪冲量倍率（倍率型：base=1）
-        AdsRecoil,           // ADS 后坐倍率（倍率型：base=1，叠加在 AdsRecoilMultiplier 上）
-        Spread               // 散布总倍率（倍率型：base=1，作用于合成公式末端）
+        AdsRecoil,             // ADS 后坐倍率（倍率型：base=1，叠加在 AdsRecoilMultiplier 上）
+        Spread,                // 散布总倍率（倍率型：base=1，作用于合成公式末端）
+        MagazineSize           // 弹匣容量（数量型：base=MStat.MagSize；加长弹匣 Add +N，Docs/21 Phase D）
     }
 
     public enum ModifierOperation
