@@ -82,12 +82,20 @@ function Get-InputDigest {
         if (-not (Test-Path $p)) { continue }
         $files = @()
         if (Test-Path $p -PathType Leaf) { $files = @($p) }
-        else { $files = @(Get-ChildItem $p -Recurse -File -ErrorAction SilentlyContinue | Sort-Object FullName) }
+        else {
+            # 与 C# StringComparer.Ordinal 排序严格一致（PS Sort-Object 默认文化排序 → 摘要漂移）
+            $names = New-Object 'System.Collections.Generic.List[string]'
+            Get-ChildItem $p -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { [void]$names.Add($_.FullName) }
+            $pathsArray = $names.ToArray()
+            [System.Array]::Sort($pathsArray, [System.StringComparer]::Ordinal)
+            $files = $pathsArray
+        }
         foreach ($f in $files) {
-            $rel = $f.FullName.Substring($root.Length + 1).Replace('\', '/')
+            $path = if ($f -is [System.IO.FileInfo]) { $f.FullName } else { $f }
+            $rel = $path.Substring($root.Length + 1).Replace('\', '/')
             $pathBytes = [System.Text.Encoding]::UTF8.GetBytes($rel + "`n")
             [void]$merger.TransformBlock($pathBytes, 0, $pathBytes.Length, $null, 0)
-            try { $content = [System.IO.File]::ReadAllBytes($f.FullName) } catch { $content = @() }
+            try { $content = [System.IO.File]::ReadAllBytes($path) } catch { $content = @() }
             $sha = [System.Security.Cryptography.SHA256]::Create()
             $contentHash = $sha.ComputeHash($content)
             $sha.Dispose()
