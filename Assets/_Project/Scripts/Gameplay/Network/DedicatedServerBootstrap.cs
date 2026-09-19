@@ -39,8 +39,10 @@ namespace Game.Gameplay.Network
         private readonly ServerHeartbeatTracker _heartbeatTracker = new();
         private readonly ServerListenGate _listenGate = new();
         private readonly PlayerDisconnectQueue _disconnectQueue = new();
-        /// <summary>终局上报持久补偿队列（2026-09-13）：有界重试耗尽落盘，运行期/重启后重放（R2/R3 已知限制收口）。</summary>
-        private readonly MatchResultPendingStore _pendingMatchResults = new();
+        /// <summary>终局上报持久补偿队列（2026-09-13）：有界重试耗尽落盘，运行期/重启后重放。
+        /// F10（2026-09-19 审计）：不得在 MonoBehaviour 字段初始化器构造（读 persistentDataPath
+        /// 非法）——在 RunStartupChainAsync 拿到有效 options 后按实例隔离目录创建。</summary>
+        private MatchResultPendingStore _pendingMatchResults;
         /// <summary>掉线上报泵单飞闸（并发通知只允许一个排水循环在途；新条目由在途循环 CollectPending 拾起）。</summary>
         private readonly SingleFlightGate _disconnectDrainGate = new();
         private float _heartbeatIntervalSeconds = DefaultHeartbeatSeconds;
@@ -182,6 +184,11 @@ namespace Game.Gameplay.Network
                 Debug.LogError($"[DedicatedServer] SERVER_CONFIG_FAILED: 启动上下文缺失或无效（{(_options == null ? "null" : _options.ValidationError)}）——不监听、不注册、不心跳");
                 return;
             }
+
+            // F09/F10（2026-09-19 审计）：补偿队列在 options 就绪后的主线程生命周期阶段创建，
+            // 目录按 <persistent>/server-results/<env指纹>/<instanceId>/ 隔离（五实例不再共用
+            // 同一文件互相覆盖）；共享遗留文件由首个启动的服务器实例收养一次（备份留痕）。
+            _pendingMatchResults = CreatePendingMatchResultsStore(_options);
 
             // P0-A 部署证据（启动即打印——启动器部署门按此行比对"运行进程 vs 目标构建"）：
             // 协议代际 + 本进程部署清单（buildId/构建时间/DLL 哈希摘要；编辑器内无清单 → <none>）
@@ -347,6 +354,15 @@ namespace Game.Gameplay.Network
             _ = DeliverMatchResultAsync(reporter, request);
         }
 
+        /// <summary>F09/F10：按实例隔离目录创建补偿队列（options 已验证；路径消毒+环境指纹见 store）。</summary>
+        private static MatchResultPendingStore CreatePendingMatchResultsStore(DedicatedServerOptions options)
+        {
+            var filePath = MatchResultPendingStore.BuildInstanceFilePath(
+                Application.persistentDataPath, options.BackendUrl, options.InstanceId);
+            MatchResultPendingStore.AdoptLegacySharedFileIfFirstBoot(Application.persistentDataPath, filePath);
+            return new MatchResultPendingStore(filePath);
+        }
+
         /// <summary>交付 + 补偿（2026-09-13）：交付失败落盘 MatchResultPendingStore，
         /// 注册成功等时机由 FlushPendingMatchResultsAsync 重放（幂等 by matchId）。</summary>
         private async Task DeliverMatchResultAsync(IServerMatchResultReporter reporter, ServerMatchResultReportRequest request)
@@ -360,7 +376,10 @@ namespace Game.Gameplay.Network
                 Debug.LogWarning($"[ServerRegistry] MATCH_RESULT_DELIVER_FAULT match={request.matchId}: {exception.Message}");
             }
             _pendingMatchResults.Append(request);
-            Debug.LogError($"[ServerRegistry] MATCH_RESULT_PERSISTED_FOR_COMPENSATION match={request.matchId} pending={_pendingMatchResults.Count}——已落盘，后端恢复后自动重放");
+            if (_pendingMatchResults.LastSaveSucceeded)
+                Debug.LogError($"[ServerRegistry] MATCH_RESULT_PERSISTED_FOR_COMPENSATION match={request.matchId} pending={_pendingMatchResults.Count}——已落盘，后端恢复后自动重放");
+            else
+                Debug.LogError($"[ServerRegistry] MATCH_RESULT_PENDING_SAVE_FAILED match={request.matchId} pending={_pendingMatchResults.Count}——磁盘写入失败，未持久化（保留内存待重试）");
         }
 
         /// <summary>
@@ -413,6 +432,7 @@ namespace Game.Gameplay.Network
         {
             if (_controlPlane is not IServerMatchResultReporter reporter) return;
             if (_pendingMatchResults.Count == 0) return;
+            _pendingMatchResults.EnsureSaved(); // F09：补偿泵每轮重试上次失败的落盘
             Debug.Log($"[ServerRegistry] MATCH_RESULT_COMPENSATION_FLUSH pending={_pendingMatchResults.Count}");
             foreach (var request in _pendingMatchResults.CollectSnapshot())
             {
