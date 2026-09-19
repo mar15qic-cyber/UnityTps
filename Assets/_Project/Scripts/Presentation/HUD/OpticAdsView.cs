@@ -1,6 +1,8 @@
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
 using Game.Presentation.Animation;
+using Game.Presentation.Camera;
+using Game.Presentation.Weapon;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -37,6 +39,7 @@ namespace Game.Presentation.HUD
 
         private CanvasGroup _scopeGroup;
         private CanvasGroup _reticleGroup;
+        private RectTransform _reticleFrame;
         private OpticVignetteGraphic _vignette;
         private OpticLensGraphic _lens;
         private TacticalOpticReticleGraphic _tacticalReticle;
@@ -45,6 +48,15 @@ namespace Game.Presentation.HUD
         private bool _hasProfile;
         private bool _viewmodelHidden;
         private static readonly HashSet<string> ProfileWarnings = new();
+
+        // ---- A2 分划-镜窗统一（2026-09-19 ADS 审计）：分划位置跟随真实镜窗中心的
+        //      FP 相机投影（与 FPWeaponMotion 光轴解共用 OpticAimGeometry 语义），
+        //      过渡/后坐期间分划留在镜窗内；无校准数据时保持旧居中行为。 ----
+        private OpticAimLocal _aimLocal;
+        private bool _aimResolved;
+        private string _aimKey;
+        private bool _reticleOnScreen = true;
+        private UnityEngine.Camera _fpCamera;
 
         private void Awake()
         {
@@ -68,7 +80,7 @@ namespace Game.Presentation.HUD
         }
 
         private void HandleOpticChanged(OpticAimContext _) => RefreshProfile();
-        private void HandleViewChanged(GameObject _) => RestoreViewmodel();
+        private void HandleViewChanged(GameObject _) { _aimKey = null; RestoreViewmodel(); }
 
         private void Update()
         {
@@ -91,6 +103,7 @@ namespace Game.Presentation.HUD
 
             if (_opticId == null || _opticId != controller.CurrentOpticAim.ItemId)
                 RefreshProfile();
+            RefreshAimBinding();
 
             float ads = Mathf.Clamp01(aimState.Ads01);
             if (_viewmodelHidden && weaponRig != null && !weaponRig.IsScopedViewmodelHidden)
@@ -113,6 +126,82 @@ namespace Game.Presentation.HUD
                 if (!_viewmodelHidden && ads >= hideViewmodelAt) HideViewmodel();
                 else if (_viewmodelHidden && ads <= restoreViewmodelAt) RestoreViewmodel();
             }
+
+            // 分划跟随真实镜窗投影（A2）：在 alpha 淡入后应用，出镜窗时隐去而不是硬贴屏幕内
+            UpdateReticleBinding();
+            if (_reticleGroup != null && !_reticleOnScreen)
+                _reticleGroup.alpha = 0f;
+        }
+
+        /// <summary>解析当前瞄具的挂点局部光轴数据（opticId/视图变化时重解析；含镜窗包围盒近似）。</summary>
+        private void RefreshAimBinding()
+        {
+            if (controller == null || !controller.IsInitialized) { _aimResolved = false; return; }
+            string opticId = controller.CurrentOpticAim.ItemId;
+            var view = weaponRig != null && weaponRig.ActiveView != null
+                ? weaponRig.ActiveView.GetComponent<WeaponView>()
+                : null;
+            string key = (opticId ?? string.Empty) + "#" + (view != null ? view.GetInstanceID() : 0);
+            if (_aimKey == key && _aimResolved) return;
+            _aimKey = key;
+            _aimResolved = false;
+            _aimLocal = default;
+            if (opticId != null && view != null
+                && OpticAimGeometry.TryResolveLocal(controller, view, out var local))
+            {
+                _aimLocal = local;
+                _aimResolved = true;
+            }
+        }
+
+        /// <summary>把分划容器锚到真实镜窗中心的 FP 相机投影位置（画布局部坐标）；
+        /// 无校准数据/相机不可用时保持居中（旧行为）。</summary>
+        private void UpdateReticleBinding()
+        {
+            if (_reticleFrame == null) return;
+            var rootRect = ((RectTransform)transform).rect;
+            _reticleFrame.sizeDelta = new Vector2(rootRect.width, rootRect.height);
+            _reticleOnScreen = true;
+
+            Vector2 canvasPosition = Vector2.zero;
+            bool bound = false;
+            if (_aimResolved && controller != null && controller.IsInitialized
+                && weaponRig != null && weaponRig.ActiveView != null)
+            {
+                var attachments = weaponRig.ActiveView.GetComponent<WeaponAttachmentView>();
+                var socket = attachments != null ? attachments.GetSocketTransform(AttachmentSlotType.Optic) : null;
+                var camera = ResolveFpCamera();
+                if (socket != null && camera != null)
+                {
+                    var frameData = OpticAimGeometry.Evaluate(_aimLocal, socket);
+                    Vector3 viewport = camera.WorldToViewportPoint(frameData.WindowCenterWorld);
+                    if (viewport.z > 0f)
+                    {
+                        canvasPosition = new Vector2(
+                            (viewport.x - 0.5f) * rootRect.width,
+                            (viewport.y - 0.5f) * rootRect.height);
+                        bound = true;
+                        // 镜窗中心出画面 12% 边距 → 分划隐去（不硬贴屏内掩盖对位错误）
+                        float excessX = Mathf.Abs(canvasPosition.x) - rootRect.width * 0.62f;
+                        float excessY = Mathf.Abs(canvasPosition.y) - rootRect.height * 0.62f;
+                        _reticleOnScreen = excessX <= 0f && excessY <= 0f;
+                    }
+                }
+            }
+            _reticleFrame.anchoredPosition = bound ? canvasPosition : Vector2.zero;
+        }
+
+        private UnityEngine.Camera ResolveFpCamera()
+        {
+            if (_fpCamera != null) return _fpCamera;
+            if (controller == null) return null;
+            var cameras = controller.GetComponentsInChildren<UnityEngine.Camera>(true);
+            foreach (var candidate in cameras)
+            {
+                if (candidate.name == "FP View Camera") { _fpCamera = candidate; break; }
+            }
+            if (_fpCamera == null && cameras.Length > 0) _fpCamera = cameras[cameras.Length - 1];
+            return _fpCamera;
         }
 
         private void RefreshProfile()
@@ -186,9 +275,17 @@ namespace Game.Presentation.HUD
             var rt = reticleGo.GetComponent<RectTransform>();
             Stretch(rt);
 
+            // A2：分划容器——位置每帧锚到真实镜窗中心的投影；无绑定数据时归零=旧居中行为。
+            var frameGo = new GameObject("ReticleFrame", typeof(RectTransform));
+            frameGo.transform.SetParent(reticleGo.transform, false);
+            _reticleFrame = frameGo.GetComponent<RectTransform>();
+            _reticleFrame.anchorMin = _reticleFrame.anchorMax = _reticleFrame.pivot = new Vector2(0.5f, 0.5f);
+            _reticleFrame.anchoredPosition = Vector2.zero;
+            _reticleFrame.sizeDelta = Vector2.zero;
+
             var tacticalGo = new GameObject("Tactical", typeof(RectTransform), typeof(CanvasRenderer),
                 typeof(TacticalOpticReticleGraphic));
-            tacticalGo.transform.SetParent(reticleGo.transform, false);
+            tacticalGo.transform.SetParent(_reticleFrame, false);
             Stretch(tacticalGo.GetComponent<RectTransform>());
             _tacticalReticle = tacticalGo.GetComponent<TacticalOpticReticleGraphic>();
             _tacticalReticle.raycastTarget = false;

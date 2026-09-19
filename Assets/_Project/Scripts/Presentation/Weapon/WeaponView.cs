@@ -1,11 +1,15 @@
 using Game.Gameplay.Weapon;
+using Game.Presentation.Camera;
 using UnityEngine;
 
 namespace Game.Presentation.Weapon
 {
-    /// <summary>WeaponController 事件的只读表现端：弹道、枪口光、Day4 枪口特效/弹壳/命中反馈、Day2 调试 HUD。</summary>
-    /// LateUpdate 顺序说明：必须在 FPWeaponMotion（order 20，写 viewmodel 后坐/姿态）之后执行，
-    /// 拖尾起点逐帧贴枪口时才能取到"当帧最终枪口位"——否则后坐动画期间起点滞后一帧（审计清单：后坐动画期间仍与枪管重合）。
+    /// <summary>WeaponController 事件的只读表现端：弹道、枪口光、Day4 枪口特效/弹壳/命中反馈、Day2 调试 HUD。
+    /// 2026-09-19 ADS 审计 S3 重构：曳光按"每发快照"冻结——起点=开火帧枪口、终点=跨相机屏幕匹配
+    /// 收敛到本发真实弹着点（世界相机投影 → FP overlay 相机反投影），已发出的飞行曳光不再被
+    /// 枪口动画/后坐逐帧拖动（旧 LateUpdate 重放已删除）。霰弹逐弹丸独立生命周期（池化）。
+    /// 近段留在 FirstPersonView 层（与枪模同投影），远段飞行段放 Default 层：世界相机与
+    /// 倍率镜 RT 均可见，接缝点经跨相机匹配对齐，合成画面连续。</summary>
     [DefaultExecutionOrder(30)]
     public sealed class WeaponView : MonoBehaviour
     {
@@ -14,7 +18,9 @@ namespace Game.Presentation.Weapon
         [SerializeField] private Color tracerColor = new(1f, 0.78f, 0.15f, 1f);
         [SerializeField, Min(0.01f)] private float tracerDuration = 0.045f;
         [SerializeField, Min(0.01f)] private float muzzleFlashDuration = 0.035f;
-        [Tooltip("拖尾视觉终点到枪口的最大长度（overlay 相机 far clip 5m，留余量避免生硬截断）。只影响视觉，不改命中点。")]
+        [Tooltip("FP 层近段长度：超过此距离的飞行段改由 Default 层世界段接力（跨相机接缝匹配对齐）。")]
+        [SerializeField, Min(0.3f)] private float nearSegmentLength = 1.2f;
+        [Tooltip("跨相机匹配不可用时的回退：近段最大长度（只影响视觉，不改命中点）。")]
         [SerializeField, Min(0.5f)] private float maxTracerLength = 4.25f;
 
         [Header("Day4 特效 prefab（空 = 不生成）")]
@@ -58,13 +64,21 @@ namespace Game.Presentation.Weapon
             sightReference = reference;
         }
 
-        private LineRenderer _tracer;
+        private sealed class TracerSegment
+        {
+            public LineRenderer Line;
+            public float Timer;
+        }
+
+        private const int TracerPoolSize = 8;
+        private readonly TracerSegment[] _overlayTracers = new TracerSegment[TracerPoolSize]; // FP 层近段
+        private readonly TracerSegment[] _worldTracers = new TracerSegment[TracerPoolSize];   // Default 层飞行段
         private Light _muzzleLight;
         private Material _tracerMaterial;
-        private float _tracerTimer;
         private float _flashTimer;
-        private Vector3 _firedDirection = Vector3.forward;   // 本发弹道方向（拖尾姿态基准）
-        private float _tracerLength;                          // 本发视觉长度（命中距离投影并限长）
+        private UnityEngine.Camera _worldCamera;
+        private UnityEngine.Camera _fpCamera;
+        private bool _camerasResolved;
 
         private void Awake()
         {
@@ -94,56 +108,133 @@ namespace Game.Presentation.Weapon
 
         private void Update()
         {
-            _tracerTimer -= Time.deltaTime;
             _flashTimer -= Time.deltaTime;
-            if (_tracer != null) _tracer.enabled = _tracerTimer > 0f;
+            TickPool(_overlayTracers);
+            TickPool(_worldTracers);
             if (_muzzleLight != null) _muzzleLight.enabled = _flashTimer > 0f;
         }
 
-        /// <summary>开火事件在动画求值前发生，HandleShot 记录的方向/长度在 LateUpdate 持续
-        /// 贴回当前帧真实枪口（Animancer/Animator 更新骨骼后），使拖尾起点与枪口动画逐帧重合、
-        /// 且始终平行于本发弹道方向（Day4 实机审计 §1：不再直接使用 Result.Point 作终点——
-        /// 自身命中/贴脸命中点会形成竖直/向下短线；命中点沿相机射线，与枪口弹道线平行偏移）。</summary>
-        private void LateUpdate()
+        private static void TickPool(TracerSegment[] pool)
         {
-            if (_tracer == null || !_tracer.enabled || muzzle == null) return;
-            Vector3 start = muzzle.position;
-            _tracer.SetPosition(0, start);
-            _tracer.SetPosition(1, start + _firedDirection * _tracerLength);
+            for (int i = 0; i < pool.Length; i++)
+            {
+                var segment = pool[i];
+                if (segment == null) continue;
+                if (segment.Timer > 0f)
+                {
+                    segment.Timer -= Time.deltaTime;
+                    if (segment.Line != null) segment.Line.enabled = segment.Timer > 0f;
+                }
+            }
         }
 
         private void HandleShot(WeaponShot shot)
         {
+            ResolveCameras();
+            // 每发快照（S3）：起点=开火帧枪口世界位（冻结，不随后坐/枪口动画移动）；
+            // 方向/终点=本发权威结算结果。霰弹逐弹丸独立生成，各自收敛到各自的真实终点。
             Vector3 start = muzzle != null ? muzzle.position : shot.Origin;
-
-            // 拖尾几何（审计 §1）：起点=枪口；方向=本发 FiredDirection（散布后真实弹道）；
-            // 长度=命中点在枪口弹道线上的投影，钳制 [0, maxTracerLength]（overlay 相机 far clip 5m）。
-            // 无命中时 Result.Point 已是 origin+dir*maxRange 远点，投影结果≈maxRange，同样被限长截断。
-            _firedDirection = shot.FiredDirection.sqrMagnitude > 1e-8f
+            Vector3 mainDirection = shot.FiredDirection.sqrMagnitude > 1e-8f
                 ? shot.FiredDirection.normalized
                 : Vector3.forward;
-            float projected = Vector3.Dot(shot.Result.Point - start, _firedDirection);
-            _tracerLength = Mathf.Clamp(projected, 0f, maxTracerLength);
 
-            _tracer.SetPosition(0, start);
-            _tracer.SetPosition(1, start + _firedDirection * _tracerLength);
-            _tracer.enabled = true;
-            _tracerTimer = tracerDuration;
+            bool hasPellets = shot.Pellets != null && shot.Pellets.Length > 1;
+            int count = hasPellets ? shot.Pellets.Length : 1;
+            for (int i = 0; i < count; i++)
+            {
+                var result = hasPellets ? shot.Pellets[i] : shot.Result;
+                Vector3 delta = result.Point - shot.Origin;
+                Vector3 direction = delta.sqrMagnitude > 1e-6f ? delta.normalized : mainDirection;
+                SpawnTracer(start, direction, result.Point);
+            }
+
             _muzzleLight.enabled = true;
             _flashTimer = muzzleFlashDuration;
 
             if (debugShotDiagnostics)
             {
-                Vector3 visualEnd = start + _firedDirection * _tracerLength;
-                Debug.Log($"[WeaponView] shot: origin={shot.Origin:F2} firedDir={_firedDirection:F3} " +
+                Debug.Log($"[WeaponView] shot: origin={shot.Origin:F2} firedDir={mainDirection:F3} " +
                           $"hit={shot.Result.Hit} damaged={shot.Result.Damaged} selfSkip={shot.Result.SelfHitsSkipped} " +
-                          $"resultPoint={shot.Result.Point:F2} visualEnd={visualEnd:F2} len={_tracerLength:F2}", this);
+                          $"resultPoint={shot.Result.Point:F2} pellets={(hasPellets ? count : 1)}", this);
             }
 
             SpawnMuzzleFlash();
             SpawnShellCasing();
             SpawnImpact(shot);
             // 命中标记已迁 CrosshairPresenter（CP5）；本组件只剩武器表现
+        }
+
+        /// <summary>本发曳光：FP 近段从冻结枪口沿真实弹道方向发出；终点（必要时经接缝接力）
+        /// 跨相机屏幕匹配收敛到真实弹着点在世界相机下的屏幕位置——分划/命中特效/曳光
+        /// 在最终合成画面里指向同一点（ADS 审计 A3）。</summary>
+        private void SpawnTracer(Vector3 start, Vector3 direction, Vector3 endPoint)
+        {
+            bool matched = false;
+            Vector3 overlayEnd = endPoint;
+            if (_worldCamera != null && _fpCamera != null)
+            {
+                var worldProjection = CameraProjection.From(_worldCamera);
+                var fpProjection = CameraProjection.From(_fpCamera);
+                if (CameraProjection.TryMatchAcrossCameras(worldProjection, fpProjection, endPoint,
+                        0.25f, Mathf.Max(1f, fpProjection.FarClip * 0.9f), out Vector3 matchedEnd))
+                {
+                    overlayEnd = matchedEnd;
+                    matched = true;
+                }
+            }
+            if (!matched)
+            {
+                // 回退：无世界/FP 相机对（非常规场景）→ 旧限长直线（已冻结，不再逐帧拖动）
+                float projected = Vector3.Dot(endPoint - start, direction);
+                overlayEnd = start + direction * Mathf.Clamp(projected, 0f, maxTracerLength);
+            }
+
+            float hitDistance = Vector3.Distance(start, endPoint);
+            float overlaySpan = Vector3.Distance(start, overlayEnd);
+            if (hitDistance <= nearSegmentLength || overlaySpan < 0.05f)
+            {
+                EnableSegment(_overlayTracers, start, overlayEnd);
+                return;
+            }
+
+            // 近段截断 + 世界段接力：接缝点经 FP→世界跨相机匹配，消除双相机视差断线
+            float t = Mathf.Clamp01(nearSegmentLength / Mathf.Max(0.01f, overlaySpan));
+            Vector3 seam = Vector3.LerpUnclamped(start, overlayEnd, t);
+            EnableSegment(_overlayTracers, start, seam);
+            if (_worldCamera != null && _fpCamera != null)
+            {
+                var fpProjection = CameraProjection.From(_fpCamera);
+                var worldProjection = CameraProjection.From(_worldCamera);
+                if (CameraProjection.TryMatchAcrossCameras(fpProjection, worldProjection, seam,
+                        0.25f, Mathf.Max(1f, worldProjection.FarClip * 0.95f), out Vector3 worldStart))
+                {
+                    EnableSegment(_worldTracers, worldStart, endPoint);
+                }
+            }
+        }
+
+        private void EnableSegment(TracerSegment[] pool, Vector3 start, Vector3 end)
+        {
+            var segment = AcquireSegment(pool);
+            if (segment == null || segment.Line == null) return;
+            segment.Line.SetPosition(0, start);
+            segment.Line.SetPosition(1, end);
+            segment.Line.enabled = true;
+            segment.Timer = tracerDuration;
+        }
+
+        private static TracerSegment AcquireSegment(TracerSegment[] pool)
+        {
+            TracerSegment nearestExpiry = null;
+            for (int i = 0; i < pool.Length; i++)
+            {
+                var candidate = pool[i];
+                if (candidate == null) continue;
+                if (candidate.Timer <= 0f) return candidate;
+                if (nearestExpiry == null || candidate.Timer < nearestExpiry.Timer) nearestExpiry = candidate;
+            }
+            // 池满：回收剩余寿命最短的一段（高射速连发/霰弹时的有界表现）
+            return nearestExpiry;
         }
 
         private void HandleDryFire() => _flashTimer = 0f;
@@ -217,9 +308,9 @@ namespace Game.Presentation.Weapon
 
         private void BuildEffects()
         {
-            // FP 视觉层：武器/枪口由 overlay 相机（FirstPersonView 层）渲染。tracer 与枪口灯若留在
-            // Layer 0 会被主相机（FOV 60）渲染——同一 muzzle.position 经两套 FOV 投影后屏幕位置不同，
-            // 拖尾起点会错位到准心方向。所有 FP 表现必须与武器同层。
+            // FP 视觉层：武器/枪口由 overlay 相机（FirstPersonView 层）渲染。近段曳光留在同层，
+            // 保证与枪模同投影、起点即可见枪口。远段飞行段放 Default 层：世界相机 mask（剔除 8/9）
+            // 与倍率镜 scope mask（同样剔除 8/9/UI）都渲染 Default → 镜内也有弹道，且远端观察者可复用。
             int firstPersonLayer = LayerMask.NameToLayer("FirstPersonView");
             if (firstPersonLayer < 0)
             {
@@ -227,23 +318,17 @@ namespace Game.Presentation.Weapon
                 firstPersonLayer = gameObject.layer;
             }
 
-            var tracerObject = new GameObject("Runtime_Tracer");
-            tracerObject.transform.SetParent(transform, false);
-            tracerObject.layer = firstPersonLayer;
-            _tracer = tracerObject.AddComponent<LineRenderer>();
-            _tracer.useWorldSpace = true;
-            _tracer.positionCount = 2;
-            _tracer.startWidth = 0.012f;
-            _tracer.endWidth = 0.003f;
-            _tracer.startColor = tracerColor;
-            _tracer.endColor = new Color(tracerColor.r, tracerColor.g, tracerColor.b, 0f);
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
             if (shader != null)
             {
                 _tracerMaterial = new Material(shader) { color = tracerColor };
-                _tracer.material = _tracerMaterial;
             }
-            _tracer.enabled = false;
+
+            for (int i = 0; i < TracerPoolSize; i++)
+                _overlayTracers[i] = CreateSegment("Runtime_Tracer_FP", firstPersonLayer,
+                    0.012f, 0.003f);
+            for (int i = 0; i < TracerPoolSize; i++)
+                _worldTracers[i] = CreateSegment("Runtime_Tracer_World", 0, 0.01f, 0.002f);
 
             var lightObject = new GameObject("Runtime_MuzzleFlash");
             lightObject.transform.SetParent(muzzle, false);
@@ -254,6 +339,46 @@ namespace Game.Presentation.Weapon
             _muzzleLight.intensity = 3f;
             _muzzleLight.range = 2f;
             _muzzleLight.enabled = false;
+        }
+
+        private TracerSegment CreateSegment(string name, int layer, float startWidth, float endWidth)
+        {
+            var segment = new TracerSegment();
+            var tracerObject = new GameObject(name);
+            tracerObject.transform.SetParent(transform, false);
+            tracerObject.layer = layer;
+            var line = tracerObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.startWidth = startWidth;
+            line.endWidth = endWidth;
+            line.startColor = tracerColor;
+            line.endColor = new Color(tracerColor.r, tracerColor.g, tracerColor.b, 0f);
+            if (_tracerMaterial != null) line.material = _tracerMaterial;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.enabled = false;
+            segment.Line = line;
+            return segment;
+        }
+
+        /// <summary>世界相机=本视图的祖先相机（Main Camera）；FP overlay 相机=其子相机（FP View Camera）。
+        /// 两相机位姿/FOV 是跨投影匹配的输入；任一缺失时曳光退回限长直线（诚实降级）。</summary>
+        private void ResolveCameras()
+        {
+            if (_camerasResolved) return;
+            _camerasResolved = true;
+            _worldCamera = GetComponentInParent<UnityEngine.Camera>();
+            if (_worldCamera != null)
+            {
+                foreach (var candidate in _worldCamera.GetComponentsInChildren<UnityEngine.Camera>(false))
+                {
+                    if (candidate != null && candidate != _worldCamera)
+                    {
+                        _fpCamera = candidate;
+                        break;
+                    }
+                }
+            }
         }
 
                 // CP5：准心/命中标记/弹药/操作提示已全部迁出 OnGUI → uGUI MVC

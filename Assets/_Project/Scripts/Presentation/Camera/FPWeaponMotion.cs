@@ -107,6 +107,9 @@ namespace Game.Presentation.Camera
         private Quaternion _dynamicTargetRotation; // 满 ADS 枢轴目标旋转（pivot 父系局部）
         private Vector3 _dynamicGripPivot;          // 右手握点（pivot 局部，瞄准不变量）
         private float _dynamicSightDepth;           // 授权瞄具深度（稳定帧前向投影）
+        private bool _opticAimSolveActive;          // 光轴眼点解生效（Legacy 动态机瞄枢轴层必须让位，
+                                                    // 否则后瞄对中会拖拽已被光轴解对齐的枪根）
+        private int _alignmentCalibrationVersion = -1; // 校准数据版本失效键（校准窗口改表即重解）
 
         private void Awake()
         {
@@ -203,6 +206,8 @@ namespace Game.Presentation.Camera
             _dynamicTargetRotation = Quaternion.identity;
             _dynamicGripPivot = Vector3.zero;
             _dynamicSightDepth = 0f;
+            _opticAimSolveActive = false;
+            _alignmentCalibrationVersion = -1;
             _lastAdsBlend = 0f;
         }
 
@@ -303,12 +308,15 @@ namespace Game.Presentation.Camera
             // ---- ADS 瞄准解（冻结缓存④）：入镜过渡逐帧重解；满 ADS 冻结 ----
             string opticId = _weapon != null ? _weapon.CurrentOpticAim.ItemId : null;
             bool opticChanged = !string.Equals(opticId, _alignmentOpticId, System.StringComparison.Ordinal);
+            int calibrationVersion = ResolveCalibrationVersion();
+            bool calibrationChanged = calibrationVersion != _alignmentCalibrationVersion;
             bool transitioning = adsBlend < FullAdsSolveFreeze;
             bool enteringFullAds = adsBlend >= FullAdsSolveFreeze && _lastAdsBlend < FullAdsSolveFreeze;
-            if (adsBlend > 0f && (transitioning || enteringFullAds || definitionChanged || viewChanged || opticChanged))
+            if (adsBlend > 0f && (transitioning || enteringFullAds || definitionChanged || viewChanged
+                || opticChanged || calibrationChanged))
             {
                 ComputeAimAlignmentPose(activeView, activeProfile, preSharedRotation,
-                    out Vector3 solvedPosition, out Quaternion solvedRotation);
+                    out Vector3 solvedPosition, out Quaternion solvedRotation, out bool opticSolveActive);
                 // 边界门：解输出异常（链路曾被污染后测得天文数字）时保留上一次有效缓存——
                 // 冻结语义下坏解一旦写入会被永久锁定。
                 if (IsFinite(solvedPosition) && solvedPosition.magnitude <= MaxAlignmentOffset
@@ -317,10 +325,25 @@ namespace Game.Presentation.Camera
                     _aimLocalPosition = solvedPosition;
                     _aimLocalRotation = solvedRotation;
                 }
-                if (!_anchoredDualPoseV2)
+                _opticAimSolveActive = opticSolveActive;
+                if (_opticAimSolveActive)
+                {
+                    // 光轴解接管枪根姿态：清掉动态机瞄枢轴可能残留的混合旋转，
+                    // 避免旧解的枢轴偏移叠加在光轴对齐后的枪根上。
+                    if (activeProfile != null && activeProfile.AdsPivot != null)
+                    {
+                        activeProfile.AdsPivot.localPosition = Vector3.zero;
+                        activeProfile.AdsPivot.localRotation = Quaternion.identity;
+                    }
+                    _dynamicSolved = false;
+                }
+                else if (!_anchoredDualPoseV2)
+                {
                     SolveDynamicLpwGunAdsCache(activeView, activeProfile, preSharedRotation);
+                }
                 _alignmentView = activeView;
                 _alignmentOpticId = opticId;
+                _alignmentCalibrationVersion = calibrationVersion;
             }
 
             // A failed solve keeps the last valid cache, but a cache can also be
@@ -334,8 +357,9 @@ namespace Game.Presentation.Camera
 
             // ---- Legacy 动态枪轴：应用冻结解的混合 + 逐帧共享平移残差 ----
             // （V2 的枪层姿态与后坐由 LPWGunPoseDriver 独占，本组件不触碰）
+            // 光轴眼点解生效时让位：机瞄后瞄对中会拖拽已被光轴解对齐的枪根（双写者冲突）。
             Vector3 sharedParent = Vector3.zero;
-            if (!_anchoredDualPoseV2)
+            if (!_anchoredDualPoseV2 && !_opticAimSolveActive)
                 sharedParent = ApplyDynamicLpwGunAdsPose(activeView, activeProfile, adsBlend,
                     preSharedPosition, preSharedRotation);
 
@@ -376,10 +400,12 @@ namespace Game.Presentation.Camera
         /// 再乘 cleanRootRotation 得父系偏移——旧实现的世界差值测量把上一帧后坐旋转
         /// 带进解里，连射时形成闭环并数值爆炸。</summary>
         private void ComputeAimAlignmentPose(WeaponView view, FPWeaponPoseProfile profile,
-            Quaternion cleanRootRotation, out Vector3 localPosition, out Quaternion localRotation)
+            Quaternion cleanRootRotation, out Vector3 localPosition, out Quaternion localRotation,
+            out bool opticSolveActive)
         {
             localPosition = Vector3.zero;
             localRotation = Quaternion.identity;
+            opticSolveActive = false;
             if (_viewCamera == null) _viewCamera = ResolveViewCamera();
             if (_viewCamera == null || transform.parent == null) return;
             if (view == null) return;
@@ -392,19 +418,38 @@ namespace Game.Presentation.Camera
             var aimPoint = view.SightReference != null ? view.SightReference : view.Muzzle;
 
             // 瞄具眼光轴对位（AttachmentCalibration.OpticAimRows 数据驱动，校准工具产物）：
-            // 有校准的 L1/L2 瞄具以眼点替代机瞄瞄线——视线穿过光轴，网格自带准星落屏幕中心=弹着点。
-            // 无记录时 TryResolveOpticEyeAim 返回 false，下方机瞄全部分支原样执行（零行为变化）。
-            if (TryResolveOpticEyeAim(view, out Vector3 opticEyeWorld))
+            // 有校准的瞄具以"完整眼距/轴向解"替代机瞄瞄线——2026-09-19 ADS 审计 A1 修复：
+            // 旧实现只对 x/y、z 恒 0、旋转不动，眼点停留在作者腰射深度 → 眼睛远在镜后，
+            // 镜窗又远又小（参考图一现象）。完整解把眼点送到 FP 相机、光轴对齐稳定相机前向、
+            // 滚转对齐相机 up，眼距与镜窗尺寸由校准数据直接决定（与分划投影共用 OpticAimGeometry 语义）。
+            // 无记录时 TryResolveOpticAimRoot 返回 false，下方机瞄全部分支原样执行（零行为变化）。
+            if (TryResolveOpticAimRoot(view, out Vector3 opticEyeRoot, out Vector3 opticAxisRoot, out Vector3 opticUpRoot))
             {
-                Vector3 eyeRoot = transform.InverseTransformPoint(opticEyeWorld);
-                Vector3 eyeOffsetParent = cleanRootRotation * eyeRoot;
-                if (!IsFinite(eyeRoot) || !IsFinite(eyeOffsetParent)) return;
-                localPosition = new Vector3(
-                    camParent.x - eyeOffsetParent.x,
-                    camParent.y - eyeOffsetParent.y,
-                    _anchoredDualPoseV2 && profile != null && profile.HasAdsCalibration
-                        ? profile.AdsViewmodelLocalPosition.z
-                        : 0f);
+                if (_anchoredDualPoseV2)
+                {
+                    // V2 枪层由 LPWGunPoseDriver 独占：根层旋转会与枪层解耦失配，
+                    // 维持旧 x/y 对位 + 作者 z（LPW 实验线行为不变，非本次样板目标）。
+                    Vector3 eyeOffsetParentV2 = cleanRootRotation * opticEyeRoot;
+                    if (!IsFinite(eyeOffsetParentV2)) return;
+                    localPosition = new Vector3(
+                        camParent.x - eyeOffsetParentV2.x,
+                        camParent.y - eyeOffsetParentV2.y,
+                        profile != null && profile.HasAdsCalibration
+                            ? profile.AdsViewmodelLocalPosition.z
+                            : 0f);
+                    opticSolveActive = true;
+                    return;
+                }
+
+                // 目标帧 = 父系 (前向 +Z, 上 +Y)；解 = source 帧的逆（OpticAimGeometry 纯数学，
+                // 固定点性质由 EditMode 测试锁定：应用后眼点=camParent、光轴=+Z，与相机旋转无关）。
+                Quaternion solvedRotation = OpticAimGeometry.SolveAimLocalRotation(opticAxisRoot, opticUpRoot);
+                if (!IsFinite(solvedRotation)) return;
+                Vector3 rotatedEyeParent = solvedRotation * opticEyeRoot;
+                if (!IsFinite(rotatedEyeParent)) return;
+                localPosition = OpticAimGeometry.SolveAimLocalPosition(solvedRotation, opticEyeRoot, camParent);
+                localRotation = solvedRotation;
+                opticSolveActive = true;
                 return;
             }
 
@@ -473,11 +518,15 @@ namespace Game.Presentation.Camera
             localPosition = new Vector3(camParent.x - markerOffsetParent.x, camParent.y - markerOffsetParent.y, 0f);
         }
 
-        /// <summary>解析当前瞄具的眼点世界坐标（全部光学档位 + 校准表有记录 + 视图有 Optic 挂点）。
-        /// 眼点定义在挂点局部系（-X=前向/+Y=上），随挂点/枪身姿态走，与对位写入无反馈回路。</summary>
-        private bool TryResolveOpticEyeAim(WeaponView view, out Vector3 eyeWorld)
+        /// <summary>解析当前瞄具的光轴瞄准数据（全部光学档位 + 校准表有记录 + 视图有 Optic 挂点），
+        /// 折算到 root 局部系：眼点坐标、光轴方向（眼点→目标，默认挂点前向 -X）、滚转参考 up。
+        /// 眼点/方向定义在挂点局部系（-X=前向/+Y=上），随挂点/枪身姿态走，与对位写入无反馈回路。</summary>
+        private bool TryResolveOpticAimRoot(WeaponView view,
+            out Vector3 eyeRoot, out Vector3 axisRoot, out Vector3 upRoot)
         {
-            eyeWorld = default;
+            eyeRoot = default;
+            axisRoot = default;
+            upRoot = default;
             if (view == null || _weapon == null || _weapon.Definition == null) return false;
             var ctx = _weapon.CurrentOpticAim;
             if (ctx.ItemId == null) return false;
@@ -490,7 +539,7 @@ namespace Game.Presentation.Camera
                 WarnOpticFallback(ctx, "缺少 AttachmentCalibration");
                 return false;
             }
-            if (!calibration.TryGetOpticEyePoint(_weapon.Definition.CatalogItemId, ctx.ItemId, out Vector3 eyeLocal))
+            if (!calibration.TryGetOpticAim(_weapon.Definition.CatalogItemId, ctx.ItemId, out var data))
             {
                 WarnOpticFallback(ctx, "缺少眼点校准");
                 return false;
@@ -502,11 +551,40 @@ namespace Game.Presentation.Camera
                 WarnOpticFallback(ctx, "视图缺少 Attach_Optic 挂点");
                 return false;
             }
-            eyeWorld = socket.TransformPoint(eyeLocal);
-            if (IsFinite(eyeWorld)) return true;
-            WarnOpticFallback(ctx, "眼点校准包含非法数值");
-            eyeWorld = default;
-            return false;
+            Vector3 eyeWorld = socket.TransformPoint(data.EyePointLocal);
+            Vector3 axisWorld = socket.TransformDirection(data.AxisDirectionLocal);
+            if (!IsFinite(eyeWorld) || !IsFinite(axisWorld) || axisWorld.sqrMagnitude < 1e-8f)
+            {
+                WarnOpticFallback(ctx, "眼点校准包含非法数值");
+                return false;
+            }
+            axisWorld.Normalize();
+            Vector3 rawUpWorld = socket.TransformDirection(Vector3.up);
+            Vector3 upOrtho = Vector3.ProjectOnPlane(rawUpWorld, axisWorld);
+            Vector3 upWorld = upOrtho.sqrMagnitude > 1e-8f ? upOrtho.normalized : Vector3.up;
+
+            eyeRoot = transform.InverseTransformPoint(eyeWorld);
+            axisRoot = transform.InverseTransformDirection(axisWorld).normalized;
+            upRoot = transform.InverseTransformDirection(upWorld).normalized;
+            if (!IsFinite(eyeRoot) || !IsFinite(axisRoot) || !IsFinite(upRoot)
+                || axisRoot.sqrMagnitude < 0.5f)
+            {
+                WarnOpticFallback(ctx, "眼点校准包含非法数值");
+                eyeRoot = default;
+                axisRoot = default;
+                upRoot = default;
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>当前校准数据版本（无表时 0）。FPWeaponMotion 以此作废冻结解缓存，
+        /// 校准窗口改表保存后无需重进场景。</summary>
+        private int ResolveCalibrationVersion()
+        {
+            var catalog = AttachmentAssetCatalog.LoadOrDefault();
+            var calibration = catalog != null ? catalog.Calibration : null;
+            return calibration != null ? calibration.DataVersion : 0;
         }
 
         private void WarnOpticFallback(OpticAimContext ctx, string reason)

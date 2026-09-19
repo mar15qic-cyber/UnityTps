@@ -45,6 +45,10 @@ namespace Game.EditorTools
         private int _opticIndex;
         private int _stepIndex = 1;
         private Vector3 _eyePoint;
+        private Vector3 _axisFrontPoint;   // 光轴前点（挂点局部，零=取挂点前向 -X）
+        private Vector3 _windowCenter;     // 镜窗中心（挂点局部，零=未标定）
+        private float _windowHalfWidth;    // 镜窗半宽（米）
+        private float _windowHalfHeight;   // 镜窗半高（米）
         private float _autoRelief = 0.05f;
         private bool _editDefault;      // false=组合覆盖（稀疏）；true=瞄具默认
         private Vector2 _scroll;
@@ -204,6 +208,34 @@ namespace Game.EditorTools
             }
 
             EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("③b 光轴前点（可选，零=挂点前向 -X）", EditorStyles.boldLabel);
+            DrawAxisRow("X", ref _axisFrontPoint.x);
+            DrawAxisRow("Y", ref _axisFrontPoint.y);
+            DrawAxisRow("Z", ref _axisFrontPoint.z);
+            EditorGUILayout.LabelField("③c 镜窗几何（零=运行时包围盒近似）", EditorStyles.boldLabel);
+            DrawAxisRow("X", ref _windowCenter.x);
+            DrawAxisRow("Y", ref _windowCenter.y);
+            DrawAxisRow("Z", ref _windowCenter.z);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                float halfW = EditorGUILayout.FloatField("半宽 m", _windowHalfWidth);
+                if (!Mathf.Approximately(halfW, _windowHalfWidth)) { _windowHalfWidth = Mathf.Max(0f, halfW); WriteRow(); }
+                float halfH = EditorGUILayout.FloatField("半高 m", _windowHalfHeight);
+                if (!Mathf.Approximately(halfH, _windowHalfHeight)) { _windowHalfHeight = Mathf.Max(0f, halfH); WriteRow(); }
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("推导镜窗（包围盒近似）")) AutoGuessWindow();
+                if (GUILayout.Button("清零光轴/镜窗"))
+                {
+                    _axisFrontPoint = Vector3.zero;
+                    _windowCenter = Vector3.zero;
+                    _windowHalfWidth = _windowHalfHeight = 0f;
+                    WriteRow();
+                }
+            }
+
+            EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("④ 保存 / 清除", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -255,10 +287,10 @@ namespace Game.EditorTools
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.Label(label, GUILayout.Width(14));
-                if (GUILayout.Button("-", GUILayout.Width(24))) { value -= Steps[_stepIndex]; WriteEyePoint(); }
+                if (GUILayout.Button("-", GUILayout.Width(24))) { value -= Steps[_stepIndex]; WriteRow(); }
                 float next = EditorGUILayout.FloatField(value, GUILayout.MinWidth(90));
-                if (!Mathf.Approximately(next, value)) { value = next; WriteEyePoint(); }
-                if (GUILayout.Button("+", GUILayout.Width(24))) { value += Steps[_stepIndex]; WriteEyePoint(); }
+                if (!Mathf.Approximately(next, value)) { value = next; WriteRow(); }
+                if (GUILayout.Button("+", GUILayout.Width(24))) { value += Steps[_stepIndex]; WriteRow(); }
                 GUILayout.Label($"{value * 1000f:F1} mm");
             }
         }
@@ -339,22 +371,59 @@ namespace Game.EditorTools
         private void LoadEyePointFromRows()
         {
             if (Calibration != null && CurrentOpticItemId != null
-                && Calibration.TryGetOpticEyePoint(CurrentWeaponItemId, CurrentOpticItemId, out var v))
+                && Calibration.TryGetOpticAim(CurrentWeaponItemId, CurrentOpticItemId, out var data))
             {
-                _eyePoint = v;
-                _status = $"已读取[{(_editDefault ? "默认" : "组合")}]记录：{_eyePoint * 1000f} mm";
+                _eyePoint = data.EyePointLocal;
+                _axisFrontPoint = data.HasAxisFront ? data.AxisFrontPointLocal : Vector3.zero;
+                _windowCenter = data.HasWindow ? data.WindowCenterLocal : Vector3.zero;
+                _windowHalfWidth = data.HasWindow ? data.WindowHalfWidthMeters : 0f;
+                _windowHalfHeight = data.HasWindow ? data.WindowHalfHeightMeters : 0f;
+                _status = $"已读取[{(_editDefault ? "默认" : "组合")}]记录：eye={_eyePoint * 1000f}mm"
+                    + (data.HasAxisFront ? " + 轴向" : "") + (data.HasWindow ? " + 镜窗" : "");
             }
             else
             {
                 _eyePoint = Vector3.zero;
+                _axisFrontPoint = Vector3.zero;
+                _windowCenter = Vector3.zero;
+                _windowHalfWidth = _windowHalfHeight = 0f;
                 _status = "该键无记录：先“按包围盒推导”得初值，再微调。";
             }
         }
 
-        private void WriteEyePoint()
+        /// <summary>把窗口内全部光轴字段写回当前键（眼点+光轴前点+镜窗；零值=语义缺省）。</summary>
+        private void WriteRow()
         {
             if (Calibration == null || CurrentOpticItemId == null) return;
-            Calibration.SetOpticEyePoint(CurrentWeaponItemId, CurrentOpticItemId, _eyePoint);
+            Calibration.SetOpticAim(CurrentWeaponItemId, CurrentOpticItemId, new OpticAimData
+            {
+                EyePointLocal = _eyePoint,
+                AxisFrontPointLocal = _axisFrontPoint,
+                WindowCenterLocal = _windowCenter,
+                WindowHalfWidthMeters = _windowHalfWidth,
+                WindowHalfHeightMeters = _windowHalfHeight,
+                HasAxisFront = _axisFrontPoint.sqrMagnitude > 1e-10f,
+                HasWindow = _windowCenter.sqrMagnitude > 1e-10f && _windowHalfWidth > 0f && _windowHalfHeight > 0f
+            });
+        }
+
+        /// <summary>镜窗初值推导：配件网格 OBB 折回挂点局部系（OpticAimGeometry 同源实现，
+        /// 与运行时未标定兜底一致），写入后可继续微调为正式值。</summary>
+        private void AutoGuessWindow()
+        {
+            var socket = FindActiveOpticSocket();
+            if (socket == null) { _status = "未找到激活视图的 Optic 挂点（先装备并强制 ADS）。"; return; }
+            if (!Game.Presentation.Camera.OpticAimGeometry.TryApproximateWindowFromRenderers(
+                    socket, out var center, out var halfW, out var halfH))
+            {
+                _status = "挂点下未找到配件网格（先装备瞄具）。";
+                return;
+            }
+            _windowCenter = center;
+            _windowHalfWidth = halfW;
+            _windowHalfHeight = halfH;
+            WriteRow();
+            _status = $"镜窗近似：center={_windowCenter * 1000f:F0}mm half={halfW * 1000f:F0}×{halfH * 1000f:F0}mm（近似值，请实机微调）。";
         }
 
         private void AutoGuessEyePoint()
@@ -383,7 +452,7 @@ namespace Game.EditorTools
             }
             // 挂点局部系 -X=前向：镜后=+X 端面中心，再加眼距
             _eyePoint = new Vector3(hi.x + _autoRelief, (lo.y + hi.y) * 0.5f, (lo.z + hi.z) * 0.5f);
-            WriteEyePoint();
+            WriteRow();
             _status = $"包围盒推导：{_eyePoint * 1000f} mm（微调至像素误差 ≈0）。";
         }
 
@@ -401,13 +470,39 @@ namespace Game.EditorTools
             if (socket == null || _fpCamera == null) return;
             var eyeWorld = socket.TransformPoint(_eyePoint);
             var sp = _fpCamera.WorldToScreenPoint(eyeWorld);
-            if (sp.z <= 0f) return;
             var gui = new Vector2(sp.x, Screen.height - sp.y);
             var center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            OpticAimCalibrationOverlay.EyeScreenPosition = gui;
-            OpticAimCalibrationOverlay.EyePixelError = Vector2.Distance(gui, center);
+            bool eyeInFront = sp.z > 0f;
+            if (eyeInFront)
+                OpticAimCalibrationOverlay.EyeScreenPosition = gui;
+            else
+                OpticAimCalibrationOverlay.EyeScreenPosition = null;
+            OpticAimCalibrationOverlay.EyePixelError = eyeInFront ? Vector2.Distance(gui, center) : -1f;
+
+            // S1 构图/轴向指标（ADS 审计 A1 验收所需的实机读数）
+            bool hasAxis = _axisFrontPoint.sqrMagnitude > 1e-10f;
+            Vector3 axisLocal = hasAxis ? (_axisFrontPoint - _eyePoint).normalized : new Vector3(-1f, 0f, 0f);
+            Vector3 axisWorld = socket.TransformDirection(axisLocal).normalized;
+            float eyeDistance = _eyePoint.magnitude;
+            float axisErrorDeg = -1f;
+            float windowFraction = -1f;
+            bool hasWindow = _windowCenter.sqrMagnitude > 1e-10f && _windowHalfWidth > 0f && _windowHalfHeight > 0f;
+            if (hasWindow)
+            {
+                var windowWorld = socket.TransformPoint(_windowCenter);
+                eyeDistance = Vector3.Distance(eyeWorld, windowWorld);
+                Vector3 toWindow = windowWorld - eyeWorld;
+                if (toWindow.sqrMagnitude > 1e-8f)
+                    axisErrorDeg = Vector3.Angle(axisWorld, toWindow.normalized);
+                float tanHalfFov = Mathf.Tan(_fpCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                if (eyeDistance > 1e-4f && tanHalfFov > 1e-4f)
+                    windowFraction = (_windowHalfHeight / eyeDistance) / tanHalfFov;
+            }
             OpticAimCalibrationOverlay.StatusText =
-                $"[{(_editDefault ? "默认" : "组合")}] {CurrentWeaponItemId}×{CurrentOpticItemId}  eye={_eyePoint * 1000f}mm";
+                $"[{(_editDefault ? "默认" : "组合")}] {CurrentWeaponItemId}×{CurrentOpticItemId}  eye={_eyePoint * 1000f}mm  "
+                + $"眼距={eyeDistance * 1000f:F0}mm  轴向{(hasAxis ? "前点" : "默认-X")}"
+                + (hasWindow ? $"  轴向误差={axisErrorDeg:F2}°  镜窗高占比={windowFraction * 100f:F1}%"
+                    : "  镜窗未标定（运行时包围盒近似）");
             Repaint();
         }
 

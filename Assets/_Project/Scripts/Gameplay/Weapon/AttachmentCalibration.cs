@@ -34,6 +34,9 @@ namespace Game.Gameplay.Weapon
     /// weaponItemId 空 = 该瞄具默认眼点（tier-1）；非空 = 逐 (武器×瞄具) 覆盖（tier-2，稀疏）。
     /// 有记录时 FPWeaponMotion 以眼点替代机瞄瞄线做 ADS 对位——视线穿过光轴，
     /// 瞄具网格自带准星落在屏幕中心=弹着点；无记录维持机瞄对位（诚实降级）。
+    /// 2026-09-19 扩展（ADS 审计 A1）：眼点只给"眼睛在哪"，完整光轴解还需
+    /// 光轴方向（axisFrontPointLocal，光轴上眼点前方一点；零向量=取挂点前向 -X）
+    /// 与镜窗几何（windowCenterLocal + 半宽/半高；零=未标定，运行时按配件包围盒近似）。
     /// </summary>
     [Serializable]
     public sealed class OpticAimCalibrationRow
@@ -41,6 +44,31 @@ namespace Game.Gameplay.Weapon
         public string weaponItemId = "";
         public string opticItemId;
         public Vector3 eyePointLocal;
+        public Vector3 axisFrontPointLocal;
+        public Vector3 windowCenterLocal;
+        public float windowHalfWidthMeters;
+        public float windowHalfHeightMeters;
+
+        public bool HasAxisFront => axisFrontPointLocal.sqrMagnitude > 1e-10f;
+        public bool HasWindow => windowCenterLocal.sqrMagnitude > 1e-10f
+            && windowHalfWidthMeters > 0f && windowHalfHeightMeters > 0f;
+    }
+
+    /// <summary>解析后的光轴瞄准数据（挂点局部系，-X=前向/+Y=上）。组合覆盖优先、瞄具默认兜底。</summary>
+    public struct OpticAimData
+    {
+        public Vector3 EyePointLocal;
+        public Vector3 AxisFrontPointLocal;
+        public Vector3 WindowCenterLocal;
+        public float WindowHalfWidthMeters;
+        public float WindowHalfHeightMeters;
+        public bool HasAxisFront;
+        public bool HasWindow;
+
+        /// <summary>光轴方向（挂点局部系，指向目标）：有前点用前点，否则挂点前向 (-1,0,0)。</summary>
+        public Vector3 AxisDirectionLocal => HasAxisFront
+            ? (AxisFrontPointLocal - EyePointLocal).normalized
+            : new Vector3(-1f, 0f, 0f);
     }
 
     /// <summary>
@@ -57,6 +85,10 @@ namespace Game.Gameplay.Weapon
         private Dictionary<string, AttachmentCalibrationRow> _index;
         private Dictionary<string, OpticAimCalibrationRow> _opticIndex;
 
+        /// <summary>光轴数据版本：任何 opticAimRows 写入/删除都会自增。
+        /// FPWeaponMotion 等缓存解的组件据此作废缓存（校准窗口改表后无需重进场景）。</summary>
+        public int DataVersion { get; private set; }
+
         public IReadOnlyList<AttachmentCalibrationRow> Rows => rows;
         public IReadOnlyList<OpticAimCalibrationRow> OpticAimRows => opticAimRows;
 
@@ -64,23 +96,36 @@ namespace Game.Gameplay.Weapon
         public bool TryGetOpticEyePoint(string weaponItemId, string opticItemId, out Vector3 eyePointLocal)
         {
             eyePointLocal = Vector3.zero;
-            if (string.IsNullOrEmpty(opticItemId)) return false;
-            EnsureOpticIndex();
-            if (!string.IsNullOrEmpty(weaponItemId)
-                && _opticIndex.TryGetValue(OpticKey(weaponItemId, opticItemId), out var combo))
-            {
-                eyePointLocal = combo.eyePointLocal;
-                return true;
-            }
-            if (_opticIndex.TryGetValue(OpticKey(string.Empty, opticItemId), out var fallback))
-            {
-                eyePointLocal = fallback.eyePointLocal;
-                return true;
-            }
-            return false;
+            if (!TryGetOpticAim(weaponItemId, opticItemId, out var data)) return false;
+            eyePointLocal = data.EyePointLocal;
+            return true;
         }
 
-        /// <summary>写入/更新一条眼点（校准窗口用；运行时只读）。weaponItemId 传空 = 写瞄具默认。</summary>
+        /// <summary>查完整光轴数据（眼点+光轴前点+镜窗）：解析规则与眼点一致（组合优先、默认兜底）。</summary>
+        public bool TryGetOpticAim(string weaponItemId, string opticItemId, out OpticAimData data)
+        {
+            data = default;
+            if (string.IsNullOrEmpty(opticItemId)) return false;
+            EnsureOpticIndex();
+            OpticAimCalibrationRow row = null;
+            if (!string.IsNullOrEmpty(weaponItemId)
+                && _opticIndex.TryGetValue(OpticKey(weaponItemId, opticItemId), out var combo))
+                row = combo;
+            else if (_opticIndex.TryGetValue(OpticKey(string.Empty, opticItemId), out var fallback))
+                row = fallback;
+            if (row == null) return false;
+            data.EyePointLocal = row.eyePointLocal;
+            data.AxisFrontPointLocal = row.axisFrontPointLocal;
+            data.WindowCenterLocal = row.windowCenterLocal;
+            data.WindowHalfWidthMeters = row.windowHalfWidthMeters;
+            data.WindowHalfHeightMeters = row.windowHalfHeightMeters;
+            data.HasAxisFront = row.HasAxisFront;
+            data.HasWindow = row.HasWindow;
+            return true;
+        }
+
+        /// <summary>写入/更新一条眼点（校准窗口用；运行时只读）。weaponItemId 传空 = 写瞄具默认。
+        /// 只改眼点字段，不动同行的光轴前点/镜窗数据。</summary>
         public void SetOpticEyePoint(string weaponItemId, string opticItemId, Vector3 eyePointLocal)
         {
             if (string.IsNullOrEmpty(opticItemId)) return;
@@ -93,6 +138,30 @@ namespace Game.Gameplay.Weapon
                 _opticIndex[key] = row;
             }
             row.eyePointLocal = eyePointLocal;
+            BumpDataVersion();
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
+        /// <summary>写入/更新一条完整光轴数据（眼点+前点+镜窗；校准窗口用）。字段语义见 OpticAimCalibrationRow。</summary>
+        public void SetOpticAim(string weaponItemId, string opticItemId, in OpticAimData data)
+        {
+            if (string.IsNullOrEmpty(opticItemId)) return;
+            EnsureOpticIndex();
+            var key = OpticKey(weaponItemId ?? string.Empty, opticItemId);
+            if (!_opticIndex.TryGetValue(key, out var row))
+            {
+                row = new OpticAimCalibrationRow { weaponItemId = weaponItemId ?? string.Empty, opticItemId = opticItemId };
+                opticAimRows.Add(row);
+                _opticIndex[key] = row;
+            }
+            row.eyePointLocal = data.EyePointLocal;
+            row.axisFrontPointLocal = data.HasAxisFront ? data.AxisFrontPointLocal : Vector3.zero;
+            row.windowCenterLocal = data.HasWindow ? data.WindowCenterLocal : Vector3.zero;
+            row.windowHalfWidthMeters = data.HasWindow ? data.WindowHalfWidthMeters : 0f;
+            row.windowHalfHeightMeters = data.HasWindow ? data.WindowHalfHeightMeters : 0f;
+            BumpDataVersion();
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
@@ -107,6 +176,7 @@ namespace Game.Gameplay.Weapon
             if (!_opticIndex.TryGetValue(key, out var row)) return false;
             opticAimRows.Remove(row);
             _opticIndex.Remove(key);
+            BumpDataVersion();
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
@@ -124,12 +194,17 @@ namespace Game.Gameplay.Weapon
             if (removed > 0)
             {
                 _opticIndex = null; // 强制重建索引
+                BumpDataVersion();
 #if UNITY_EDITOR
                 UnityEditor.EditorUtility.SetDirty(this);
 #endif
             }
             return removed;
         }
+
+        private void BumpDataVersion() => DataVersion++;
+
+        private void OnValidate() => BumpDataVersion();
 
         private void EnsureOpticIndex()
         {
