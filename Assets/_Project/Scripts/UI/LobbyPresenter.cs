@@ -463,7 +463,17 @@ namespace Game.UI
             RoomConnectionGate.WriteLaunchContext(connection, sceneName);
             session.AdvanceConnectionGeneration();
             status.text = "已取得比赛票据，正在进入战场…";
-            await LoadArenaAsync(sceneName);
+            // F17（2026-09-19 审计）：加载失败 = 未入场，必须返回 false——旧实现 LoadArenaAsync
+            // 清了本地房间后正常 return，本方法仍返回 true，等待房轮询当作入场成功收口，
+            // 后端成员/票据不走对称清理，用户丢失返房上下文只能等控制面超时。
+            // 失败路径的清理归调用方：等待房轮询 false 分支清上下文并保房间重新取票；
+            // 入房/重连路径走 CleanupRoomJoinFailureAsync（含后端 Leave）。
+            var loaded = await LoadArenaAsync(sceneName);
+            if (!loaded)
+            {
+                RoomConnectionGate.Sanitize(connection);
+                return false;
+            }
             return true;
         }
 
@@ -517,13 +527,20 @@ namespace Game.UI
             if (string.IsNullOrWhiteSpace(gameplaySceneName)) { status.text = "未配置 Gameplay 场景"; return; }
             if (!session.IsAuthenticated) { Navigate(LobbyPage.Login); return; }
             if (!await ValidateLoadoutForArenaAsync()) return;
-            await LoadArenaAsync();
+            if (!await LoadArenaAsync())
+            {
+                // 离线演练无房间可回：显式失败回大厅（F17：失败不得伪装成功停留加载页）
+                NetworkLaunchContext.Clear();
+                Navigate(LobbyPage.Lobby);
+            }
         }
 
         /// <summary>加载过渡页 + 战斗场景加载（NetworkHud 消费 NetworkLaunchContext 完成连接）。
         /// Phase 8：sceneName 可选覆盖——联机路径传房间地图解析出的场景名；缺省回退
-        /// gameplaySceneName（离线演练 Arena）。</summary>
-        private async Task LoadArenaAsync(string sceneName = null)
+        /// gameplaySceneName（离线演练 Arena）。
+        /// F17（2026-09-19 审计）：返回显式成败。失败时【不做】清理/导航（联机调用方保
+        /// 房间上下文重试；离线调用方自行回大厅），仅提示。</summary>
+        private async Task<bool> LoadArenaAsync(string sceneName = null)
         {
             var target = string.IsNullOrWhiteSpace(sceneName) ? gameplaySceneName : sceneName;
             Navigate(LobbyPage.Loading);
@@ -533,21 +550,25 @@ namespace Game.UI
                 if (!await HotSceneLoader.TryLoadBundleSceneAsync(target,
                         p => { if (loadingFill != null) loadingFill.fillAmount = p; }))
                 {
-                    // 罕见失败路径（文件损坏等）：完整失败清理，回大厅
-                    NetworkLaunchContext.Clear();
-                    session.ClearRoom();
-                    Navigate(LobbyPage.Lobby);
-                    status.text = "热更地图加载失败，已返回大厅";
-                    return;
+                    // 罕见失败路径（文件损坏等）：返回显式失败——旧实现在此清房回大厅并把
+                    // 成功返回给 EnterBattleAsync（F17 反例）
+                    status.text = "热更地图加载失败，将在等待房间自动重试";
+                    return false;
                 }
-                return;
+                return true;
             }
             var loadOp = SceneManager.LoadSceneAsync(target, LoadSceneMode.Single);
-            while (loadOp != null && !loadOp.isDone)
+            if (loadOp == null)
+            {
+                status.text = "场景加载失败（场景缺失或未加入构建设置）";
+                return false;
+            }
+            while (!loadOp.isDone)
             {
                 if (loadingFill != null) loadingFill.fillAmount = Mathf.Clamp01(loadOp.progress / 0.9f);
                 await Task.Yield();
             }
+            return true;
         }
 
         /// <summary>P4 热更试点：后台拉取 /api/maps 目录（建房页数据源）。成功且仍在本页则重渲染。</summary>

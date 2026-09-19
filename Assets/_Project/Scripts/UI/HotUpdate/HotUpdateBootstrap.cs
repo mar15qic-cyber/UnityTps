@@ -61,17 +61,31 @@ namespace Game.UI
                 var baseUrl = (string.IsNullOrEmpty(urlOverride) ? DefaultBaseUrl : urlOverride).TrimEnd('/');
 
                 // 1) 远端清单（不可达 → 回退已装/内置，不阻塞进大厅）
+                // F04（2026-09-19 审计）：所有失败出口必须恢复已安装根目录——新进程
+                // HotFilesRoot 初值为 null，不 ApplyInstalledRoot 会让已装热更包退回内置脚本。
                 var manifestJson = await DownloadTextAsync(baseUrl + "/manifest.json", 5f);
                 if (manifestJson == null)
                 {
-                    result.Kind = InstalledVersion() != null ? "fallback-installed" : "fallback-builtin";
+                    result.Kind = FallbackKind();
+                    ApplyInstalledRoot();
                     return Finish(result);
                 }
                 HotUpdateManifest remote = null;
                 try { remote = JsonUtility.FromJson<HotUpdateManifest>(manifestJson); } catch { /* 解析失败按不可达处理 */ }
                 if (remote == null || remote.files == null || remote.files.Length == 0)
                 {
-                    result.Kind = InstalledVersion() != null ? "fallback-installed" : "fallback-builtin";
+                    result.Kind = FallbackKind();
+                    ApplyInstalledRoot();
+                    return Finish(result);
+                }
+                // F18：清单结构整体校验（版本严格单段纯数字/路径消毒/size/hash/重复路径）——
+                // 校验失败视同坏 manifest，整包拒绝，不做任何下载。
+                var manifestInvalid = HotUpdateInstaller.ValidateManifest(remote);
+                if (manifestInvalid != null)
+                {
+                    result.Kind = FallbackKind();
+                    result.Error = manifestInvalid;
+                    ApplyInstalledRoot();
                     return Finish(result);
                 }
 
@@ -90,37 +104,52 @@ namespace Game.UI
                         ApplyInstalledRoot();
                         return Finish(result);
                     case HotUpdatePlan.DecisionKind.UpToDate:
+                        // F03：同内容新版本不得指向未创建的新目录——本地已装版本目录才是根真相；
+                        // 缺这步时冷启动 HotFilesRoot=null → 混入内置旧脚本/丢已装地图。
                         result.Kind = "uptodate";
+                        result.Version = installed?.version ?? remote.version;
+                        ApplyInstalledRoot();
+                        return Finish(result);
+                    case HotUpdatePlan.DecisionKind.Download:
+                        // F05：同版本异内容 = 发布事故/篡改——拒绝安装，保住当前可用包
+                        if (installed != null && HotUpdatePlan.CompareHotVersion(installed.version, remote.version) == 0)
+                        {
+                            result.Kind = "same-version-conflict";
+                            result.Version = installed.version;
+                            result.Error = "same version republished with different content (server-side republish is forbidden)";
+                            ApplyInstalledRoot();
+                            return Finish(result);
+                        }
+                        // 3) 安装事务：staging 完整物化（未变化文件逐字节复验后复制）→ 全量复验 →
+                        //    原子发布 → 指针原子替换（F03/F05/F18 的 IO 细节全部在 HotUpdateInstaller）
+                        var remoteVersion = remote.version;
+                        var baseForFetch = baseUrl;
+                        Func<HotUpdateManifest.HotUpdateFileEntry, Task<byte[]>> fetch = async file =>
+                        {
+                            // 超时按体积缩放（100KB/s 下限带宽假设）：小文件 20s、大 bundle 按比例放宽
+                            var timeoutSeconds = Mathf.Max(20f, file.size / (100f * 1024f));
+                            return await DownloadBytesAsync($"{baseForFetch}/{remoteVersion}/{file.path}", timeoutSeconds);
+                        };
+                        var install = await HotUpdateInstaller.InstallAsync(
+                            remote, manifestJson, HotFilesRootBase, installed, InstalledVersionDir(installed), fetch);
+                        if (!install.Success)
+                        {
+                            result.Kind = FallbackKind();
+                            result.Error = install.Error;
+                            result.FilesDownloaded = install.FilesDownloaded;
+                            ApplyInstalledRoot();
+                            return Finish(result);
+                        }
+                        result.FilesDownloaded = install.FilesDownloaded;
+                        result.Kind = "applied";
                         result.Version = remote.version;
                         ApplyRootFor(remote.version);
                         return Finish(result);
                 }
 
-                // 3) 差异下载 → 校验 → 落盘（版本目录内容不可变；失败立即回退，不写指针）
-                var targetDir = Path.Combine(HotFilesRootBase, remote.version);
-                foreach (var file in plan.Changed)
-                {
-                    // 超时按体积缩放（100KB/s 下限带宽假设）：小文件 20s、大 bundle 按比例放宽
-                    var timeoutSeconds = Mathf.Max(20f, file.size / (100f * 1024f));
-                    var data = await DownloadBytesAsync($"{baseUrl}/{remote.version}/{file.path}", timeoutSeconds);
-                    if (data == null || data.Length != file.size || !HotUpdatePlan.VerifyHash(data, file.hash))
-                    {
-                        result.Kind = InstalledVersion() != null ? "fallback-installed" : "fallback-builtin";
-                        result.Error = $"file verify failed: {file.path}";
-                        ApplyInstalledRoot();
-                        return Finish(result);
-                    }
-                    var filePath = Path.Combine(targetDir, HotUpdatePlan.SanitizeRelativePath(file.path));
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    File.WriteAllBytes(filePath, data);
-                    result.FilesDownloaded++;
-                }
-
-                // 4) 指针提交（最后一步：此前任何失败都保持旧指针）
-                File.WriteAllText(InstalledManifestPath, manifestJson);
-                result.Kind = "applied";
-                result.Version = remote.version;
-                ApplyRootFor(remote.version);
+                // 不可达决策分支（Decide 返回穷举）——按失败回退
+                result.Kind = FallbackKind();
+                ApplyInstalledRoot();
                 return Finish(result);
             }
             catch (Exception e)
@@ -141,6 +170,15 @@ namespace Game.UI
         }
 
         private static string InstalledManifestPath => Path.Combine(HotFilesRootBase, "installed.json");
+
+        private static string FallbackKind() => InstalledVersion() != null ? "fallback-installed" : "fallback-builtin";
+
+        private static string InstalledVersionDir(HotUpdateManifest installed)
+        {
+            if (installed == null || HotUpdateInstaller.ValidateVersionStrict(installed.version) != null) return null;
+            var dir = Path.Combine(HotFilesRootBase, installed.version);
+            return Directory.Exists(dir) ? dir : null;
+        }
 
         private static HotUpdateManifest LoadInstalledManifest()
         {
@@ -163,8 +201,11 @@ namespace Game.UI
 
         private static void ApplyRootFor(string version)
         {
-            if (string.IsNullOrWhiteSpace(version)) return;
-            var dir = Path.Combine(HotFilesRootBase, version);
+            // F18：版本参与路径拼接——严格单段校验 + 规范化后必须仍位于 HotFiles 根内
+            if (HotUpdateInstaller.ValidateVersionStrict(version) != null) return;
+            var rootFull = Path.GetFullPath(HotFilesRootBase);
+            var dir = Path.GetFullPath(Path.Combine(rootFull, version));
+            if (!dir.StartsWith(rootFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
             if (Directory.Exists(dir)) HotUpdateRuntime.HotFilesRoot = dir;
         }
 
