@@ -18,7 +18,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
 
         // EnableRetryOnFailure 与显式事务不兼容（InvalidOperationException）——注册本身是
         // 单次 SaveChanges 原子操作，事务包裹无必要；唯一约束冲突由 catch 转业务 409。
-        var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow };
+        var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow, TokenVersion = 1 };
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Wallet = new PlayerWallet { User = user, Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
@@ -34,14 +34,42 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
     public async Task<AuthSessionDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var normalized = Normalize(request.Username.Trim());
-        var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet)
-            .Include(x => x.Loadout!).ThenInclude(x => x.Attachments)
-            .SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, cancellationToken);
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "用户名或密码错误");
-        user.LastLoginAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        return CreateSession(user);
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async token =>
+        {
+            var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet)
+                .Include(x => x.Loadout!).ThenInclude(x => x.Attachments)
+                .SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, token);
+            if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+                throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "用户名或密码错误");
+
+            if (!db.Database.IsRelational())
+            {
+                // InMemory 仅测试宿主使用：单线程假并发，读改写语义可接受。
+                user.LastLoginAtUtc = DateTime.UtcNow;
+                user.TokenVersion++;
+                await db.SaveChangesAsync(token);
+                return CreateSession(user);
+            }
+
+            // 单活会话（2026-09-17 实测缺口）：每次登录 +1 → 本次签发的 token 携带新 tv，
+            // 该账号此前所有 token（旧 tv）在下一个认证请求立即 401（SessionExpired 语义）。
+            // F15（2026-09-19 审计）：读改写非原子——两个并发登录都读到 v 再各存 v+1，
+            // 两个 token 同时有效。改为事务内原子自增后回读：UPDATE 持有行 X 锁直到提交，
+            // 并发登录串行化，各取得唯一递增版本；只有最后提交者签发的 token 与库值一致。
+            var now = DateTime.UtcNow;
+            await using var tx = await db.Database.BeginTransactionAsync(token);
+            await db.Database.ExecuteSqlAsync(
+                $"UPDATE UserAccount SET TokenVersion = TokenVersion + 1, LastLoginAtUtc = {now} WHERE Id = {user.Id}", token);
+            var committedVersion = await db.Database.SqlQuery<long>(
+                $"SELECT TokenVersion AS Value FROM UserAccount WHERE Id = {user.Id}").SingleAsync(token);
+            await tx.CommitAsync(token);
+
+            // 原子路径绕过 SaveChanges：仅同步跟踪实体与库值，供 JWT 签发读取。
+            user.TokenVersion = committedVersion;
+            user.LastLoginAtUtc = now;
+            return CreateSession(user);
+        }, cancellationToken);
     }
 
     private AuthSessionDto CreateSession(UserAccount user)
