@@ -370,6 +370,12 @@ namespace Game.Gameplay.Weapon
             // 客户端预测/离线保持单段相机射线（不改客户端命中权威语义）。
             var serverObject = GetComponentInParent<FishNet.Object.NetworkObject>();
             bool serverTwoStage = serverObject != null && serverObject.IsServerInitialized;
+            // F01（2026-09-19 审计）：仅服务器权威结算把射手传入伤害链——击杀归因在
+            // DamageableTarget.ApplyDamage 的"伤害实际被结算"点登记（先于 OnDied），
+            // 离线/客户端预测传 null 不进注册表；霰弹逐 pellet 传入 → 多目标各归其位。
+            var attributionSource = serverTwoStage
+                ? GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>()
+                : null;
             Vector3 logicalMuzzle = TwoStageHitResolver.LogicalMuzzle(
                 transform.root.position, transform.root.forward, transform.root.up);
             Vector3 bodyAnchor = TwoStageHitResolver.BodyAnchor(transform.root.position);
@@ -387,9 +393,9 @@ namespace Game.Gameplay.Weapon
                     Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread);
                     pellets[i] = serverTwoStage
                         ? combatResolver.ResolveHitscanTwoStage(
-                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext)
+                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
                         : combatResolver.ResolveHitscan(
-                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, attributionSource);
                     if (primary == null && pellets[i].Damaged) primary = pellets[i];
                     if (firstHit == null && pellets[i].Hit) firstHit = pellets[i];
                 }
@@ -399,9 +405,9 @@ namespace Game.Gameplay.Weapon
             {
                 result = serverTwoStage
                     ? combatResolver.ResolveHitscanTwoStage(
-                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext)
+                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
                     : combatResolver.ResolveHitscan(
-                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root);
+                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, attributionSource);
             }
 
             // ③ Bloom 累计（影响下一发）

@@ -287,9 +287,10 @@ namespace Game.Gameplay.Network
                       $" finalCollider={(string.IsNullOrEmpty(evidence.FinalCollider) ? "-" : evidence.FinalCollider)}" +
                       $" finalLayer={(evidence.FinalLayer >= 0 ? UnityEngine.LayerMask.LayerToName(evidence.FinalLayer) : "-")}" +
                       $" finalOwnerObj={evidence.FinalOwnerObjectId} decision={evidence.Decision}");
-            // 击杀归因登记（Docs/23 P1-3）：服务器命中时记录"本射击者 → 被击中目标"
-            if (shot.Result.Target != null)
-                MatchLifecycle.RegisterHit(this, shot.Result.Target);
+            // 击杀归因登记（F01，2026-09-19 审计）：已不在开火事件补登记——登记下沉到
+            // DamageableTarget.ApplyDamage 的"伤害实际被结算"点（先于 OnDied 回调），
+            // 避免首发致死注册表为空、死亡清表后又被本事件把已死目标登记回去。
+            // 此处仅保留表现广播与机械证据日志。
         }
         private void HandleServerDryFire() { /* 空仓表现仅 Owner 本地有音效需求，无需广播 */ }
 
@@ -694,6 +695,10 @@ namespace Game.Gameplay.Network
 
         /// <summary>所属队伍（"None"/"Red"/"Blue"；服务器写、全端读）。</summary>
         public string TeamId => string.IsNullOrEmpty(_team.Value) ? MatchRules.TeamNone : _team.Value;
+
+        // ---- EditMode 测试接缝（InternalsVisibleTo；归因顺序回归直驱 SyncVar） ----
+        internal void SetTeamForTests(string team) => _team.Value = team;
+        internal void SetInvincibleUntilTickForTests(uint tick) => _invincibleUntilTick.Value = tick;
 
         /// <summary>本局入场时刻（服务器 realtime；I3：补入/重连从重生成时刻起算参与时长，Docs/26 §2.4）。</summary>
         private float _matchJoinedRealtime = -1f;

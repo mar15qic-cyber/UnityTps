@@ -716,6 +716,12 @@ namespace Game.Gameplay.Network
         public static void RegisterHit(NetworkCombatAuthority shooter, DamageableTarget target)
         {
             if (shooter == null || target == null) return;
+            // F01（2026-09-19 审计）：登记入口从服务器专属事件（HandleServerShot）下沉到
+            // DamageableTarget.ApplyDamage（离线/客户端预测同样经过）——在此闸住非服务器语境：
+            // 无 NetworkObject 为 EditMode 直驱（测试接缝，放行）；有 NetworkObject 但未以
+            // 服务器身份初始化（离线已生成物件/纯客户端）一律不进注册表。
+            var nob = shooter.NetworkObject;
+            if (nob != null && !nob.IsServerInitialized) return;
             _hitRegistry[target] = shooter;
             // 助攻登记：追加本次伤害射手并修剪窗口外记录（战绩面板）
             float now = Time.realtimeSinceStartup;
@@ -726,6 +732,17 @@ namespace Game.Gameplay.Network
             }
             records.Add(new AssistRecord(shooter, now));
             records.RemoveAll(record => now - record.Time > MatchRules.AssistWindowSeconds);
+        }
+
+        // ---- EditMode 测试接缝（InternalsVisibleTo("Game.Gameplay.Tests")；归因顺序回归） ----
+        internal static bool TryPeekKillerForTests(DamageableTarget target, out NetworkCombatAuthority killer) =>
+            _hitRegistry.TryGetValue(target, out killer);
+        internal static int PeekAssistRecordCountForTests(DamageableTarget target) =>
+            _assistRegistry.TryGetValue(target, out var records) ? records.Count : 0;
+        internal static void ClearAttributionForTests()
+        {
+            _hitRegistry.Clear();
+            _assistRegistry.Clear();
         }
 
         /// <summary>目标死亡时取走击杀者（取后移除，防残留引用泄漏）。</summary>
@@ -923,7 +940,15 @@ namespace Game.Gameplay.Network
         /// 有效 Owner + 连接已认证」的联网玩家计入（作者离线对象排除，见 MatchEligibility）。
         /// </summary>
         public static bool IsEligibleNetworkPlayer(NetworkCombatAuthority player)
-            => MatchEligibility.EvaluatePlayer(player);
+        {
+            // EditMode 测试接缝：无 NetworkObject 的直驱场景无法满足 EvaluatePlayer 的
+            // spawned/authenticated 前置；归因回归需要资格语义参与（助攻过滤等）。
+            if (EligibilityProbeForTests != null) return EligibilityProbeForTests(player);
+            return MatchEligibility.EvaluatePlayer(player);
+        }
+
+        /// <summary>仅测试装配点注入（运行时恒 null → 走 MatchEligibility.EvaluatePlayer）。</summary>
+        internal static System.Func<NetworkCombatAuthority, bool> EligibilityProbeForTests;
 
         private static List<NetworkCombatAuthority> FindPlayersStatic()
         {

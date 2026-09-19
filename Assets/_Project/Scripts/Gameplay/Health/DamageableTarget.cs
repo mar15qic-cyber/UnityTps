@@ -37,7 +37,7 @@ namespace Game.Gameplay.Health
             return nm != null && (nm.IsServerStarted || nm.IsClientStarted);
         }
 
-        public void ApplyDamage(int amount, Vector3 hitPoint, Vector3 hitDirection)
+        public void ApplyDamage(int amount, Vector3 hitPoint, Vector3 hitDirection, Game.Gameplay.Network.NetworkCombatAuthority damageSource = null)
         {
             // Docs/23 G3 服务器权威门：纯客户端的本地预测射线只出视觉，不扣生命值
             bool networkActive = IsNetworkActive();
@@ -50,6 +50,14 @@ namespace Game.Gameplay.Health
             var authority = GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>();
             if (authority != null && authority.IsInvincibleNow) return;
             CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
+            // F01（2026-09-19 审计）：击杀归因在"伤害实际被结算"时登记，且先于 OnDied 回调——
+            // 原实现在 OnShotFired（结算完成后）补登记：首发致死时注册表为空 → 击杀无归属，
+            // 死亡处理清表后又被本次开火事件把已死目标登记回去（污染下一生命归因）。
+            // 被拒绝的伤害（保护期/友军/旧生命/死体/零伤害）不会走到这里，不会覆盖上一有效伤害者。
+            // damageSource 仅服务器权威结算传入（离线/客户端预测为 null，不进注册表）；霰弹逐
+            // pellet 传入 → 多目标各归其位。登记资格闸（服务器已初始化）在 RegisterHit 内。
+            if (damageSource != null)
+                Game.Gameplay.Network.MatchLifecycle.RegisterHit(damageSource, this);
 #if UNITY_SERVER && !UNITY_EDITOR
             // Day4 Gate B 诊断：服务器权威受击留痕（谁掉血/掉到多少）
             Debug.Log($"[CombatDamage] target={gameObject.transform.root.name} dmg={amount} hpNow={CurrentHealth} at={hitPoint.ToString("F1")}");

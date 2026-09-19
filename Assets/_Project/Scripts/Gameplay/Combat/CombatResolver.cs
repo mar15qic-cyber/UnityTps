@@ -208,7 +208,8 @@ namespace Game.Gameplay.Combat
         public static bool EvidenceLoggingEnabled { get; set; } = true;
 
         public HitscanResult ResolveHitscan(
-            Vector3 origin, Vector3 direction, float maxRange, int damage, int layerMask, Transform ignoreRoot)
+            Vector3 origin, Vector3 direction, float maxRange, int damage, int layerMask, Transform ignoreRoot,
+            NetworkCombatAuthority attributionSource = null)
         {
             var geometry = ResolveGeometry(origin, direction, maxRange, layerMask, ignoreRoot);
             if (geometry.Hit && geometry.Target != null && geometry.Target.IsAlive)
@@ -216,7 +217,7 @@ namespace Game.Gameplay.Combat
                 // C3/Q04 TDM 友伤过滤（Docs/26 §2.4）：同队命中按阻挡处理——友军身体吸收子弹（射线截断）但不掉血
                 if (IsFriendlyBlocked(ignoreRoot, geometry.Target))
                     return new HitscanResult(true, false, geometry.Point, geometry.Normal, geometry.Target, geometry.SelfHitsSkipped);
-                geometry.Target.ApplyDamage(damage, geometry.Point, direction.normalized);
+                geometry.Target.ApplyDamage(damage, geometry.Point, direction.normalized, attributionSource);
                 return new HitscanResult(true, true, geometry.Point, geometry.Normal, geometry.Target, geometry.SelfHitsSkipped);
             }
 
@@ -235,7 +236,8 @@ namespace Game.Gameplay.Combat
         /// </summary>
         public HitscanResult ResolveHitscanTwoStage(
             Vector3 cameraOrigin, Vector3 direction, float maxRange, int damage, int layerMask, Transform ignoreRoot,
-            Vector3 muzzleOrigin, Vector3 bodyAnchor, LagCompRewindContext rewindContext = default)
+            Vector3 muzzleOrigin, Vector3 bodyAnchor, LagCompRewindContext rewindContext = default,
+            NetworkCombatAuthority attributionSource = null)
         {
             var dir = direction.normalized;
             var cameraCandidate = ResolveGeometry(cameraOrigin, dir, maxRange, layerMask, ignoreRoot);
@@ -297,7 +299,7 @@ namespace Game.Gameplay.Combat
                 }
                 else
                 {
-                    final.Target.ApplyDamage(damage, final.Point, dir);
+                    final.Target.ApplyDamage(damage, final.Point, dir, attributionSource);
                     result = new HitscanResult(true, true, final.Point, final.Normal, final.Target, final.SelfHitsSkipped);
                 }
             }
