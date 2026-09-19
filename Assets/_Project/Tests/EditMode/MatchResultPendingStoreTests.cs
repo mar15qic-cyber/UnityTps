@@ -48,10 +48,10 @@ namespace Game.Gameplay.Tests
         [Test]
         public void Append_ReloadAcrossRestart_RestoresRequestFields()
         {
-            var store = new MatchResultPendingStore(_directory);
+            var store = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json"));
             store.Append(Request("match-abc", winnerTeam: "Red"));
 
-            var reloaded = new MatchResultPendingStore(_directory); // 模拟 DS 进程重启
+            var reloaded = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json")); // 模拟 DS 进程重启
             Assert.That(reloaded.Count, Is.EqualTo(1), "落盘条目必须跨重启恢复");
             var snapshot = reloaded.CollectSnapshot();
             Assert.That(snapshot[0].matchId, Is.EqualTo("match-abc"));
@@ -66,7 +66,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void Append_SameMatchId_Idempotent()
         {
-            var store = new MatchResultPendingStore(_directory);
+            var store = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json"));
             store.Append(Request("match-abc"));
             store.Append(Request("match-abc")); // 同局重复落盘被拒（与后端幂等键一致）
             Assert.That(store.Count, Is.EqualTo(1));
@@ -75,7 +75,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void Append_NullOrEmptyMatchId_Rejected()
         {
-            var store = new MatchResultPendingStore(_directory);
+            var store = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json"));
             store.Append(null);
             store.Append(Request(""));
             Assert.That(store.Count, Is.EqualTo(0));
@@ -84,7 +84,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void CollectSnapshot_BlankWinnerTeamNormalizedToNull()
         {
-            var store = new MatchResultPendingStore(_directory);
+            var store = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json"));
             store.Append(Request("match-abc", winnerTeam: "")); // JsonUtility 往返产生的空白形态
 
             var snapshot = store.CollectSnapshot();
@@ -95,14 +95,14 @@ namespace Game.Gameplay.Tests
         [Test]
         public void Remove_TerminalOutcome_PersistsRemoval()
         {
-            var store = new MatchResultPendingStore(_directory);
+            var store = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json"));
             store.Append(Request("match-abc"));
             store.Append(Request("match-def"));
 
             Assert.That(store.Remove("match-abc"), Is.True, "终态移除必须成功");
             Assert.That(store.Remove("match-missing"), Is.False);
 
-            var reloaded = new MatchResultPendingStore(_directory); // 移除后文件同步（重启不复活）
+            var reloaded = new MatchResultPendingStore(Path.Combine(_directory, "match-result-pending.json")); // 移除后文件同步（重启不复活）
             Assert.That(reloaded.Count, Is.EqualTo(1));
             Assert.That(reloaded.CollectSnapshot()[0].matchId, Is.EqualTo("match-def"));
         }
