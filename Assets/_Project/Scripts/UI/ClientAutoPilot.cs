@@ -59,7 +59,11 @@ namespace Game.UI
                 MaxPlayers = int.TryParse(Arg("-itMax"), out var max) ? max : 2,
                 MinReadyPlayers = int.TryParse(Arg("-itWaitPlayers"), out var wait) ? wait : 2,
                 Mode = Arg("-itMode") ?? "TDM",
-                KillTarget = int.TryParse(Arg("-itKill"), out var kill) ? kill : 20,
+                // killTarget 默认按模式取白名单值（RoomSettingRules：TDM {50,100,150}、
+                // KillRace {10,20,30}）——旧固定 20 是 KillRace 值，TDM 建房被 422 SETTING_INVALID 拒。
+                KillTarget = int.TryParse(Arg("-itKill"), out var kill)
+                    ? kill
+                    : (string.Equals(Arg("-itMode") ?? "TDM", "KillRace", StringComparison.OrdinalIgnoreCase) ? 20 : 50),
                 TimeLimitMinutes = int.TryParse(Arg("-itTime"), out var time) ? time : 5,
                 NoReady = Array.Exists(args,
                     a => string.Equals(a, "-itNoReady", StringComparison.OrdinalIgnoreCase)),
