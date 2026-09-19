@@ -209,15 +209,22 @@ namespace Game.Gameplay.Network
         // Collider——归因链（collider→TP_Model 的 DamageableTarget）、延迟补偿注册
         // （GetComponentsInChildren<Collider>）、HitVolumeTag 角色语义全部不变。
 
-        /// <summary>躯干胶囊中心（模型系，米）：覆盖脚底→肩部（y 0..1.40）。z 沿用第三轮标定
+        /// <summary>躯干胶囊中心（模型系，米）：覆盖脚底→肩颈过渡带（y 0..1.50）。z 沿用第三轮标定
         /// 的身体前后中心 0.333。半径 0.26 依据：持枪姿态躯干可视半宽 ≈0.22~0.26m
-        /// （0.35 旧值让躯干旁约 0.09~0.13m 可见空气可命中）。</summary>
+        /// （0.35 旧值让躯干旁约 0.09~0.13m 可见空气可命中）。
+        /// F11（2026-09-19 审计）：躯干总高 1.40→1.50、centerY .70→.75——胶囊端点是球冠，
+        /// 旧参数躯干顶（球心 y=1.14）与头部底（球心 y=1.55）在 y=1.40 仅极点相切，横射
+        /// y≈1.40 直接漏过两体（y=1.39 可命中半宽仅 .071m）。上延 0.10m 后顶球心 y=1.24：
+        /// 接缝带 1.40~1.50 由躯干球冠提供 .15~.21m 有限宽度，头部球冠自上而下补齐，
+        /// 两体在 1.40~1.50 区间任意高度都有有限重叠（肩颈不漏判）；头旁/躯干旁空气反例
+        /// 不变（y=1.60 偏轴 0.20m、y=0.9 偏轴 0.30m 仍 MISS）。可见蒙皮轮廓的逐枪实测
+        /// 仍列实机待验（执行计划 B6 第 1/4 条）。</summary>
         [Tooltip("躯干受击胶囊中心（模型系，米）。")]
-        [SerializeField] private Vector3 torsoHitboxCenter = new Vector3(0f, 0.70f, 0.333f);
+        [SerializeField] private Vector3 torsoHitboxCenter = new Vector3(0f, 0.75f, 0.333f);
         [Tooltip("躯干受击胶囊半径（米）：持枪躯干可视半宽 ≈0.22~0.26。")]
         [SerializeField, Min(0.05f)] private float torsoHitboxRadius = 0.26f;
-        [Tooltip("躯干受击胶囊总高（米）：脚底 0 → 肩部 1.40。")]
-        [SerializeField, Min(0.2f)] private float torsoHitboxHeight = 1.40f;
+        [Tooltip("躯干受击胶囊总高（米）：脚底 0 → 肩颈过渡带上缘 1.50（与头部有限重叠）。")]
+        [SerializeField, Min(0.2f)] private float torsoHitboxHeight = 1.50f;
 
         /// <summary>头部胶囊中心（模型系，米）：覆盖颈部→头顶（y 1.40..1.80，与躯干在 1.40
         /// 无缝重叠，颈/肩不漏判）。半径 0.15 依据：头盔外廓可视半宽 ≈0.12~0.15m。</summary>

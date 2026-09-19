@@ -24,16 +24,21 @@ namespace Game.Gameplay.Tests
     ///    0.076/0.590 几乎重合（旧 0.35 的前后可视空气各 ≈0.09m 归零）。
     ///    旧"单胶囊 r=0.35"的隐含契约（头旁/躯干旁 0.25~0.30m 空气可命中）就此推翻，
     ///    并以侧向 MISS 用例显式锁死。
+    /// ⑤ 2026-09-19 F11 轮（四日审计）：胶囊端点是球冠——④的两胶囊在 y=1.40 仅极点相切，
+    ///    横射 y=1.40 漏过两体、y=1.39 半宽 0.071m。躯干总高 1.40→1.50（centerY .75）：
+    ///    接缝带 1.40~1.50 有 .15~.21m 有限宽度；头旁/躯干旁空气 MISS 反例原样保留。
+    ///    可见蒙皮轮廓逐枪实测仍列实机待验。
     ///
     /// EditMode 要点：AddComponent 不跑 Awake；改变换后 Physics.SyncTransforms()；
     /// 受击体是 trigger，射线查询必须显式 QueryTriggerInteraction.Collide（与 CombatResolver 同口径）。
     /// </summary>
     public sealed class BodyHitboxAlignmentTests
     {
-        /// <summary>躯干/头部胶囊的序列化参数（与 PlayerNetworkAdapter 第五轮字段一致）。</summary>
-        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.70f, 0.333f);
+        /// <summary>躯干/头部胶囊的序列化参数（与 PlayerNetworkAdapter F11 轮字段一致：
+        /// 躯干上延 1.50 与头部 1.40..1.80 形成 0.10m 有限重叠带）。</summary>
+        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.75f, 0.333f);
         private const float TorsoRadius = 0.26f;
-        private const float TorsoHeight = 1.40f;
+        private const float TorsoHeight = 1.50f;
         private static readonly Vector3 HeadCenter = new Vector3(0f, 1.60f, 0.333f);
         private const float HeadRadius = 0.15f;
         private const float HeadHeight = 0.40f;
@@ -287,6 +292,36 @@ namespace Game.Gameplay.Tests
             Assert.That(capsules[1].radius, Is.EqualTo(HeadRadius).Within(1e-4f), "头部半径按当前参数重配");
             Assert.That(capsules[1].center, Is.EqualTo(HeadCenter).Within(0.001f), "头部中心按当前参数重配");
             Assert.That(capsules[0].isTrigger && capsules[1].isTrigger, Is.True, "双胶囊均为 trigger（受击/阻挡分离）");
+        }
+
+        [Test]
+        public void Raycasts_ShoulderSeamBand_HasFiniteOverlapWidth_HeadSideAirStillMisses()
+        {
+            // F11（2026-09-19 审计）核心反例：旧参数躯干顶球心 y=1.14 与头部底球心 y=1.55 在
+            // y=1.40 仅极点相切——横射 y=1.40 漏过两体、y=1.39 可命中半宽仅 0.071m。
+            // 新参数躯干上延（顶球心 y=1.24）：接缝带各高度都有有限宽度（解析值见断言）。
+            var rootPos = new Vector3(5f, 0f, -3f);
+            Build(rootPos, new Vector3(0f, 0f, 0.341f), 0f, Vector3.one);
+            Physics.SyncTransforms();
+
+            // ① 轴向射线：接缝带全部命中（1.39/1.40/1.41/1.45——旧实现 1.40 必 MISS）
+            foreach (var height in new[] { 1.35f, 1.39f, 1.40f, 1.41f, 1.45f })
+            {
+                var shooter = rootPos + new Vector3(10f, height, TorsoCenter.z);
+                Assert.That(HitSurface(shooter, Vector3.left), Is.True,
+                    $"肩颈接缝高度 {height}m 的轴向射线必须命中（球冠极点相切不构成有限覆盖）");
+            }
+
+            // ② 宽度界（躯干 r=.26、顶球心 y=1.24）：y=1.40 半宽 ≈0.205 ——
+            //    偏轴 0.19 命中（有限覆盖），偏轴 0.22 必 MISS（不是把整个人体扩回旧空气命中）
+            var inSeam = rootPos + new Vector3(10f, 1.40f, TorsoCenter.z + 0.19f);
+            Assert.That(HitSurface(inSeam, Vector3.left), Is.True, "接缝带 y=1.40 偏轴 0.19m 在躯干球冠宽度内（命中）");
+            var outSeam = rootPos + new Vector3(10f, 1.40f, TorsoCenter.z + 0.22f);
+            Assert.That(HitSurface(outSeam, Vector3.left), Is.False, "接缝带 y=1.40 偏轴 0.22m 超出躯干球冠（MISS，宽度有界）");
+
+            // ③ 头旁空气反例保持：y=1.60（头部圆柱区）偏轴 0.20m 仍 MISS（躯干上延没有波及头侧）
+            var besideHead = rootPos + new Vector3(10f, 1.60f, TorsoCenter.z + 0.20f);
+            Assert.That(HitSurface(besideHead, Vector3.left), Is.False, "头旁 0.20m 空气不得命中（F11 不得以扩大全身换接缝）");
         }
 
         /// <summary>与 CombatResolver 同口径的受击查询（受击体是 trigger，必须显式 Collide）。</summary>
