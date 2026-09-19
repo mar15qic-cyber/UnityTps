@@ -1,3 +1,4 @@
+using Game.Gameplay.Network;
 using Game.Gameplay.Weapon;
 using Game.Presentation.Camera;
 using UnityEngine;
@@ -80,6 +81,15 @@ namespace Game.Presentation.Weapon
         private UnityEngine.Camera _fpCamera;
         private bool _camerasResolved;
 
+        // ---- S2（2026-09-19 ADS 审计）：Owner 预测→服务器确认闭环 ----
+        // 纯客户端 Owner 时：本地预测表现登记入队；服务器确认（接受→按偏差纠偏弹孔 /
+        // 拒绝→撤销弹孔）按 shotRequestId 去重后 FIFO 消费。Host/离线（本地即权威）不启用。
+        private PredictedShotRegistry _registry;
+        private NetworkCombatAuthority _authority;
+        private bool _consumeConfirmations;
+        [Tooltip("预测点与权威点偏差超过该值（米）才重定位持久表现（弹孔）")]
+        [SerializeField, Min(0.05f)] private float reconcileThresholdMeters = 0.35f;
+
         private void Awake()
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
@@ -92,6 +102,14 @@ namespace Game.Presentation.Weapon
             if (controller == null) return;
             controller.OnShotFired += HandleShot;
             controller.OnDryFire += HandleDryFire;
+            // S2：仅纯客户端 Owner 消费服务器确认（Host/服务器本地权威无预测分叉；离线无 authority）
+            if (_authority == null) _authority = GetComponentInParent<NetworkCombatAuthority>();
+            _consumeConfirmations = _authority != null && !_authority.IsServerInitialized;
+            if (_consumeConfirmations)
+            {
+                _registry ??= new PredictedShotRegistry();
+                _authority.OnShotConfirmed += HandleShotConfirmed;
+            }
         }
 
         private void OnDisable()
@@ -99,6 +117,9 @@ namespace Game.Presentation.Weapon
             if (controller == null) return;
             controller.OnShotFired -= HandleShot;
             controller.OnDryFire -= HandleDryFire;
+            if (_authority != null) _authority.OnShotConfirmed -= HandleShotConfirmed;
+            _consumeConfirmations = false;
+            _registry?.Clear(); // 生命/视图边界：跨生命残留登记一律作废（epoch 双保险）
         }
 
         private void OnDestroy()
@@ -160,8 +181,42 @@ namespace Game.Presentation.Weapon
 
             SpawnMuzzleFlash();
             SpawnShellCasing();
-            SpawnImpact(shot);
+            GameObject decal = SpawnImpact(shot);
+            // S2：预测登记（在 SpawnImpact 拿到持久表现载体后入队，等待服务器确认消费）
+            if (_consumeConfirmations && _registry != null)
+                _registry.Register(shot.Result.Point, shot.Result.Normal, shot.Result.Hit,
+                    _authority != null ? _authority.LifeEpochForPresentation : 0u, decal);
             // 命中标记已迁 CrosshairPresenter（CP5）；本组件只剩武器表现
+        }
+
+        /// <summary>服务器确认消费（S2）：去重 → FIFO 消费预测登记 → 接受按偏差纠偏持久表现 /
+        /// 拒绝撤销（弹孔不得留存）。曳光寿命（45ms）短于 RTT，确认只纠偏持久表现——
+        /// 预测暂态偏差符合票据"延迟允许暂态，确认后不得持续错误落点"。</summary>
+        private void HandleShotConfirmed(RemoteShotPresentation shot, bool accepted)
+        {
+            if (!_consumeConfirmations || _registry == null) return;
+            if (shot.ShotRequestId != 0u && _registry.IsDuplicateConfirm(shot.ShotRequestId)) return;
+            var entry = _registry.ConsumeOldestPending(_authority != null ? _authority.LifeEpochForPresentation : 0u);
+            if (entry == null) return;
+            if (entry.Decal == null) return;
+
+            if (!accepted)
+            {
+                Destroy(entry.Decal); // 拒发：本发未发生，弹孔不得留存
+                return;
+            }
+            if (!shot.FinalHit && entry.Hit)
+            {
+                Destroy(entry.Decal); // 权威判 miss（本地预测命中被推翻）
+                return;
+            }
+            if (!shot.FinalHit) return;
+            float deviationSq = (shot.FinalPoint - entry.PredictedPoint).sqrMagnitude;
+            if (deviationSq <= reconcileThresholdMeters * reconcileThresholdMeters) return;
+            // 纠偏：父节点（命中角色时）保持，位置/朝向改到权威落点
+            entry.Decal.transform.position = shot.FinalPoint + shot.FinalNormal * 0.01f;
+            if (shot.FinalNormal.sqrMagnitude > 0.5f)
+                entry.Decal.transform.rotation = Quaternion.LookRotation(shot.FinalNormal, Vector3.up);
         }
 
         /// <summary>本发曳光：FP 近段从冻结枪口沿真实弹道方向发出；终点（必要时经接缝接力）
@@ -267,27 +322,30 @@ namespace Game.Presentation.Weapon
             SetLayerRecursive(shell, 0);
         }
 
-        private void SpawnImpact(WeaponShot shot)
+        /// <summary>生成本发命中反馈；返回持久表现载体（弹孔/血花实例，null=未生成）——
+        /// S2 预测登记需要它做确认后的纠偏/撤销。</summary>
+        private GameObject SpawnImpact(WeaponShot shot)
         {
-            if (!shot.Result.Hit) return;
+            if (!shot.Result.Hit) return null;
             // 2026-09-18 审计 §6.3：命中角色与命中环境是两类特效，**绝不互相兜底**。
             // 角色命中点来自受击胶囊代理，不是蒙皮表面——把墙面弹孔贴到角色身上会在空气中
             // 留下实体弹孔（无敌/友军/已死目标 Damaged=false 走弹孔分支就是这个症状）。
             // 因此角色只播短时命中反馈；没配角色反馈就不生成，而不是退回弹孔。
             if (shot.Result.Target != null)
             {
-                if (damagedImpactPrefab == null) return;
+                if (damagedImpactPrefab == null) return null;
                 // 挂到目标视觉体下：尸体倒地/移动时命中反馈跟随身体，不悬停在原站立位置
-                Instantiate(damagedImpactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
+                var characterFx = Instantiate(damagedImpactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
                     Quaternion.LookRotation(shot.Result.Normal), shot.Result.Target.transform);
                 LogImpactDiagnostics(shot, "character");
-                return;
+                return characterFx;
             }
-            if (impactPrefab == null) return;
+            if (impactPrefab == null) return null;
             // 环境命中：继续落在真实命中表面（无父节点，世界坐标固定）
-            Instantiate(impactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
+            var decal = Instantiate(impactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
                 Quaternion.LookRotation(shot.Result.Normal), null);
             LogImpactDiagnostics(shot, "environment");
+            return decal;
         }
 
         /// <summary>本地预测特效的落点留证（与服务器权威 [FireTrace] 结算分开记录，审计 §6.3）：

@@ -72,6 +72,7 @@ namespace Game.Gameplay.Network
             {
                 Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（射手死亡——服务器拒绝，未回溯）");
+                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.ShooterDead);
                 return;
             }
             // Phase 6 重放防护：同一 shotRequestId 只结算一次（正常客户端逐发自增不会命中；
@@ -80,12 +81,14 @@ namespace Game.Gameplay.Network
             {
                 Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（shotId DUP——重放拒绝，未回溯未结算）");
+                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.Duplicate);
                 return;
             }
             if (_controller == null || !_controller.CanAttemptFire)
             {
                 Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌——未回溯）");
+                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.NotReady);
                 return;
             }
             var lagComp = ServerLagCompensation.Instance;
@@ -109,7 +112,17 @@ namespace Game.Gameplay.Network
             if (!accepted)
             {
                 Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌）");
+                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.NotReady);
             }
+        }
+
+        /// <summary>ShotRejectReason 的 wire 枚举（byte 扁平，避免枚举序列化歧义）。</summary>
+        public enum ShotRejectReason : byte
+        {
+            None = 0,
+            ShooterDead = 1,
+            Duplicate = 2,
+            NotReady = 3,
         }
 
         /// <summary>本请求的开火 id（ServerFireRequest → HandleServerShot 同调用栈内消费；
@@ -274,7 +287,15 @@ namespace Game.Gameplay.Network
 
         private void HandleServerShot(WeaponShot shot)
         {
-            ObserversShot(shot.Origin, shot.FiredDirection, shot.Result.Point, shot.Result.Hit);
+            // S2（2026-09-19 ADS 审计）：全量表现载荷广播——旧 4 标量广播丢弃散布/弹丸/最终点，
+            // 远端无从正确复现弹着；新载荷含逐弹丸终点（RemoteShotPresentation.FromShot）。
+            // 纯客户端 Owner 额外定向确认（Host/服务器本地权威无预测分叉，跳过）。
+            var presentation = RemoteShotPresentation.FromShot(shot, _pendingShotRequestId);
+            ObserversShot(presentation);
+            bool ownerIsRemote = NetworkObject != null && NetworkObject.Owner != null
+                && !NetworkObject.Owner.IsLocalClient;
+            if (ownerIsRemote)
+                TargetShotConfirmed(NetworkObject.Owner, presentation);
             // 审计 2026-09-15 §6：同 shotRequestId 的服务器结算日志（到达+几何结果+HP after）
             // 审计 2026-09-16 §6.1：补齐"命中但不可归属/已死/友军"与"根本没命中"的机械区分，
             // 并给出最终碰撞体/层/所属 NetworkObject——`target=null` 不再是无法解释的终态。
@@ -295,16 +316,45 @@ namespace Game.Gameplay.Network
         private void HandleServerDryFire() { /* 空仓表现仅 Owner 本地有音效需求，无需广播 */ }
 
         [ObserversRpc(ExcludeOwner = false, ExcludeServer = false, RunLocally = false)]
-        private void ObserversShot(Vector3 origin, Vector3 direction, Vector3 hitPoint, bool hit)
+        private void ObserversShot(RemoteShotPresentation shot)
         {
-            // 表现端钩子：远端 TP 弹道拖尾/枪口光（表现组件订阅；Owner 端本地已有 FP 表现，
-            // 本 RPC ExcludeOwner=false 但 Owner 的 WeaponView 已由本地事件驱动——远端表现组件
-            // 自行按 IsOwner 过滤）
-            OnRemoteShot?.Invoke(origin, direction, hitPoint, hit);
+            // S2 表现端钩子：远端 TP 弹道（RemoteShotFxView）按 IsOwner 过滤——Owner 端本地
+            // 已有 FP 表现；实例事件保留给本对象关联的表现消费者。
+            OnRemoteShot?.Invoke(shot);
+            OnRemoteShotGlobal?.Invoke(this, shot);
         }
 
-        /// <summary>远端开火表现事件（弹道/枪口光订阅；参数：起点/方向/命中点/是否命中）。</summary>
-        public event System.Action<Vector3, Vector3, Vector3, bool> OnRemoteShot;
+        /// <summary>远端开火表现事件（本实例=射手；载荷含最终点/逐弹丸）。旧 4 标量事件全仓零订阅者，
+        /// 已按 S2 载荷替换。</summary>
+        public event System.Action<RemoteShotPresentation> OnRemoteShot;
+
+        /// <summary>全局远端开火中继（静态）：任意射手的任意一发（含 Owner 自身——订阅者自行按
+        /// shooter.IsOwnerPlayer 过滤）。RemoteShotFxView 据此为观察者补弹道表现。</summary>
+        public static event System.Action<NetworkCombatAuthority, RemoteShotPresentation> OnRemoteShotGlobal;
+
+        // ---- S2b：Owner 定向确认/拒绝（预测→权威闭环） ----
+
+        /// <summary>服务器权威确认：接受=载荷即本发最终权威结果（Owner 端纠偏持久表现——弹孔/命中反馈）；
+        /// 拒绝=本发未发生（Owner 端撤销预测表现：弹孔不得留存）。确认按 shotRequestId 去重（消费端）。</summary>
+        [TargetRpc]
+        private void TargetShotConfirmed(FishNet.Connection.NetworkConnection connection, RemoteShotPresentation shot)
+        {
+            OnShotConfirmed?.Invoke(shot, true);
+        }
+
+        /// <summary>服务器拒绝：本发未结算（未回溯未伤害）。Owner 端必须撤销对应预测表现。
+        /// FishNet 织入契约：TargetRpc 首参必须是 NetworkConnection（显式传 Owner 连接）。</summary>
+        [TargetRpc]
+        private void TargetShotRejected(FishNet.Connection.NetworkConnection connection, uint shotRequestId, ShotRejectReason reason)
+        {
+            var rejected = new RemoteShotPresentation { ShotRequestId = shotRequestId, PelletCount = 1 };
+            OnShotConfirmed?.Invoke(rejected, false);
+            Debug.Log($"[FireTrace] confirm reject id={shotRequestId} reason={reason}（已通知 Owner 撤销预测表现）");
+        }
+
+        /// <summary>Owner 端确认事件（TargetRpc 落点；false=拒绝）。表现层（WeaponView）消费：
+        /// 去重/纠偏/撤销——预测暂态允许，确认后不得残留错误落点。</summary>
+        public event System.Action<RemoteShotPresentation, bool> OnShotConfirmed;
 
         // ---- ③ 生命值网络化 ----
 
@@ -598,6 +648,10 @@ namespace Game.Gameplay.Network
         /// <summary>F14（2026-09-19 审计）：生命代际的 uint 视图——输入批次盖章（Owner）与
         /// 批次校验/快照回传（服务器）统一取值口径（ulong→uint 截断在会话寿命内无回绕风险）。</summary>
         internal uint CurrentLifeEpoch => (uint)_lifeGeneration;
+
+        /// <summary>生命代际（表现层可读，S2 预测表现注册表按代际丢弃跨生命残留；
+        /// 语义同 CurrentLifeEpoch，仅暴露口径不同）。</summary>
+        public uint LifeEpochForPresentation => (uint)_lifeGeneration;
 
         /// <summary>F14 测试接缝：无头直驱递增代际（真实路径在 ServerRespawn 内递增，
         /// 但该路径需要完整 NetworkObject/目标组件——EditMode 用接缝直接推进代际时钟）。</summary>
