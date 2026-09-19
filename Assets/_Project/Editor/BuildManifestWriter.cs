@@ -119,6 +119,10 @@ namespace Game.EditorTools
                     fileCount++;
                 }
             }
+            // 2026-09-19 修复：增量 TransformBlock 之后必须 TransformFinalBlock 才能读 Hash——
+            // 否则抛 "Hash must be finalized before the hash value is retrieved"，清单写入失败、
+            // 部署门（构建身份核对/启动闸）整链退化为无法比对（实机 19:0x 构建清单未更新即此因）。
+            merger.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
             var builder = new StringBuilder(merger.HashSize / 4);
             foreach (var b in merger.Hash) builder.Append(b.ToString("x2"));
             return (builder.ToString(), fileCount);
