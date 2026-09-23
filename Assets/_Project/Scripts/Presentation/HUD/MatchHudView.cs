@@ -18,6 +18,9 @@ namespace Game.Presentation.HUD
         private Text _killFeedText;
         private Image _healthFill;
         private TMP_Text _healthText;
+        private Image _healthTrail;
+        private float _displayHealth = 1f;
+        private float _damageTrail = 1f;
 
         // 2026-09-18 实机问题9（主流 FPS 简洁风）：主题令牌同源镜像（Presentation 不引 Game.UI，按值同源）
         private static readonly Color TextPrimary = new Color32(0xF5, 0xF7, 0xFA, 0xFF);
@@ -126,11 +129,15 @@ namespace Game.Presentation.HUD
             if (_healthFill == null || _healthText == null) return;
             int hp = _local != null ? _local.Health : 0;
             // 服务器权威 HP（G3 出口）；满值 100 与 DamageableTarget 默认 maxHealth 对齐（显示用）
-            _healthFill.fillAmount = Mathf.Clamp01(hp / 100f);
+            float fraction = Mathf.Clamp01(hp / 100f);
+            _displayHealth = Mathf.MoveTowards(_displayHealth, fraction, Time.unscaledDeltaTime * 3f);
+            _damageTrail = fraction >= _damageTrail ? fraction : Mathf.MoveTowards(_damageTrail, fraction, Time.unscaledDeltaTime * 0.3f);
+            _healthFill.rectTransform.anchorMax = new Vector2(_displayHealth, 1f);
+            if (_healthTrail != null) _healthTrail.rectTransform.anchorMax = new Vector2(_damageTrail, 1f);
             // 2026-09-18 问题9：阈值变色（>50 主题绿 / 26-50 琥珀 / ≤25 红），数字满血保持主文本色
             var color = hp > 50 ? HpHealthy : hp > 25 ? HpWarn : HpDanger;
             _healthFill.color = color;
-            _healthText.text = hp.ToString();
+            _healthText.text = $"<b>{hp:000}</b><size=18><color=#9AA7B8> / 100</color></size>";
             _healthText.color = hp > 50 ? TextPrimary : color;
         }
 
@@ -179,28 +186,33 @@ namespace Game.Presentation.HUD
 
             // kill feed（比分条下方，右对齐）
             var feed = CreateText("KillFeed", rootRect, 18, new Color(1f, 0.85f, 0.4f), TextAnchor.UpperRight);
-            Stretch(feed.rectTransform, 0.55f, 0.98f, 0.72f, 0.93f);
+            Stretch(feed.rectTransform, 0.50f, 0.83f, 0.72f, 0.91f);
             _killFeedText = feed;
             _killFeedText.text = string.Empty;
 
             // 血量（2026-09-18 实机问题9，主流 FPS 简洁风：左下半透 chip 内大数字+细条+阈值变色；
             // 原"顶中黑底绿条 HP 100"下线——顶部只留比赛状态条）
             // 第三轮：底/左边距抬高一点，避免非 16:9 窗口下贴住屏幕边被切
-            var hpChip = CreateImage("HpChip", rootRect, new Color(0f, 0f, 0f, 0.45f));
-            Stretch(hpChip.rectTransform, 0.03f, 0.27f, 0.045f, 0.12f);
-            var hpText = CreateTmpText("HpNumber", hpChip.transform, "100", 44, TextPrimary,
-                TextAlignmentOptions.MidlineLeft);
-            Stretch(hpText.rectTransform, 0.05f, 0.44f, 0f, 1f);
-            _healthText = hpText;
-            var hpBarBack = CreateImage("HpBarBack", hpChip.transform, new Color(1f, 1f, 1f, 0.14f));
-            Stretch(hpBarBack.rectTransform, 0.48f, 0.94f, 0.40f, 0.60f);
-            var hpFillGo = new GameObject("HpFill", typeof(RectTransform), typeof(Image));
-            hpFillGo.transform.SetParent(hpBarBack.transform, false);
-            _healthFill = hpFillGo.GetComponent<Image>();
-            _healthFill.color = HpHealthy;
-            Stretch((RectTransform)_healthFill.transform, 0f, 1f, 0f, 1f);
-            _healthFill.type = Image.Type.Filled;
-            _healthFill.fillMethod = Image.FillMethod.Horizontal;
+            var hpChip = new GameObject("HealthCluster", typeof(RectTransform));
+            hpChip.transform.SetParent(rootRect, false);
+            Stretch((RectTransform)hpChip.transform, 0.025f, 0.225f, 0.04f, 0.145f);
+            var accent = CreateImage("HealthAccent", hpChip.transform, new Color32(62, 216, 186, 255));
+            Stretch(accent.rectTransform, 0f, 0.012f, 0.12f, 0.9f);
+            var label = CreateTmpText("HealthLabel", hpChip.transform, "+  VITALS", 13, new Color32(163, 205, 200, 255), TextAlignmentOptions.MidlineLeft);
+            Stretch(label.rectTransform, 0.05f, 1f, 0.78f, 1f);
+            _healthText = CreateTmpText("HpNumber", hpChip.transform, "100", 42, TextPrimary, TextAlignmentOptions.MidlineLeft);
+            Stretch(_healthText.rectTransform, 0.05f, 1f, 0.22f, 0.82f);
+            var hpBarBack = CreateImage("HpBarBack", hpChip.transform, new Color(0.04f, 0.09f, 0.1f, 0.7f));
+            Stretch(hpBarBack.rectTransform, 0.05f, 1f, 0.07f, 0.18f);
+            _healthTrail = CreateImage("DamageTrail", hpBarBack.transform, HpWarn);
+            Stretch(_healthTrail.rectTransform, 0f, 1f, 0f, 1f);
+            _healthFill = CreateImage("HpFill", hpBarBack.transform, new Color32(62, 216, 186, 255));
+            Stretch(_healthFill.rectTransform, 0f, 1f, 0f, 1f);
+            for (int i = 1; i < 4; i++)
+            {
+                var tick = CreateImage("HealthSegment" + i, hpBarBack.transform, new Color(0.04f, 0.09f, 0.1f, 0.8f));
+                Stretch(tick.rectTransform, i * 0.25f - 0.004f, i * 0.25f + 0.004f, 0f, 1f);
+            }
         }
 
         private static TMP_Text CreateTmpText(string name, Transform parent, string value, int size,

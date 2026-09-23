@@ -11,6 +11,4 @@ public sealed class ProfileController(ProfileService profiles) : ControllerBase
     [HttpGet]
     public Task<PlayerProfileDto> Get(CancellationToken cancellationToken) => profiles.GetAsync(AuthService.GetUserId(User), cancellationToken);
 
-    [HttpPut("upgrades")]
-    public Task<PlayerProfileDto> Upgrade(UpgradeRequest request, CancellationToken cancellationToken) => profiles.UpgradeAsync(AuthService.GetUserId(User), request, cancellationToken);
 }

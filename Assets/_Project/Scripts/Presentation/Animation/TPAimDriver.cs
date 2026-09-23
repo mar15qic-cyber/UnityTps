@@ -40,11 +40,18 @@ namespace Game.Presentation.Animation
         private Transform _head;
         private UnityEngine.Camera _camera;
         private NetworkCombatAuthority _netAuthority;
+        private PlayerNetworkAdapter _networkAdapter;
+        private Game.Gameplay.Movement.Locomotor _locomotor;
         private float _pitch;
         private float _pitchVelocity;
+        private readonly Quaternion[] _baseRotations = new Quaternion[4];
+        private readonly Quaternion[] _appliedRotations = new Quaternion[4];
+        private readonly bool[] _poseApplied = new bool[4];
 
         private void Awake()
         {
+            _networkAdapter = GetComponentInParent<PlayerNetworkAdapter>();
+            _locomotor = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
             _animator = GetComponentInChildren<Animator>(true);
             if (_animator != null)
             {
@@ -108,10 +115,14 @@ namespace Game.Presentation.Animation
             // 世界空间叠加轴（模型右轴/上轴）
             Vector3 right = transform.root.right;
             Vector3 up = transform.root.up;
-            ApplyAim(_spine, spineWeight, right, up, _pitch, yawDelta);
-            if (_chest != null) ApplyAim(_chest, chestWeight, right, up, _pitch, yawDelta);
-            if (_neck != null) ApplyAim(_neck, neckWeight, right, up, _pitch, yawDelta);
-            if (_head != null) ApplyAim(_head, headWeight, right, up, _pitch, yawDelta);
+            float lean = _networkAdapter != null ? _networkAdapter.VisualLeanAmount
+                : _locomotor != null ? _locomotor.Lean.Amount : 0f;
+            float roll = lean * Game.Gameplay.Player.LeanProfile.MaxBodyRollDegrees;
+            Vector3 forward = transform.root.forward;
+            ApplyAim(_spine, 0, spineWeight, right, up, forward, _pitch, yawDelta, roll * .6f);
+            if (_chest != null) ApplyAim(_chest, 1, chestWeight, right, up, forward, _pitch, yawDelta, roll * .4f);
+            if (_neck != null) ApplyAim(_neck, 2, neckWeight, right, up, forward, _pitch, yawDelta, -lean * 4f);
+            if (_head != null) ApplyAim(_head, 3, headWeight, right, up, forward, _pitch, yawDelta, -lean * 4f);
         }
 
         /// <summary>清空俯仰平滑累计（死亡/复活边界，审计 D2）：复活后从当前瞄准重新收敛，
@@ -120,20 +131,35 @@ namespace Game.Presentation.Animation
         {
             _pitch = 0f;
             _pitchVelocity = 0f;
+            for (int i = 0; i < _poseApplied.Length; i++) _poseApplied[i] = false;
         }
 
         /// <summary>在动画姿态之上叠加份额旋转（世界空间 delta → 该骨骼局部）。</summary>
-        private void ApplyAim(Transform bone, float share, Vector3 right, Vector3 up, float pitch, float yaw)
+        private void ApplyAim(Transform bone, int index, float share, Vector3 right, Vector3 up, Vector3 forward,
+            float pitch, float yaw, float roll)
         {
-            if (share <= 0f) return;
+            // When Animancer has not evaluated a new pose this frame (for example after
+            // a clip ends), remove our own previous delta before applying the new one.
+            // Otherwise a stationary lean accumulates once per rendered frame.
+            if (_poseApplied[index] && Quaternion.Angle(bone.localRotation, _appliedRotations[index]) < .01f)
+                bone.localRotation = _baseRotations[index];
+            _baseRotations[index] = bone.localRotation;
+            if (share <= 0f && Mathf.Abs(roll) <= .001f)
+            {
+                _poseApplied[index] = false;
+                return;
+            }
             // Unity 旋转约定：绕角色右轴正角 = 低头（与 FPMouseLook「抬头为负欧拉 X」一致，
             // 已用 AnimationMode 探针实测：+30° 绕 root.right 使 head.forward.y 下降 0.46）。
             // pitch 以「抬头为正」，故叠加时取负。
             Quaternion delta = Quaternion.AngleAxis(-pitch * share, right)
-                             * Quaternion.AngleAxis(yaw * share, up);
+                             * Quaternion.AngleAxis(yaw * share, up)
+                             * Quaternion.AngleAxis(-roll, forward);
             Quaternion parentWorld = bone.parent != null ? bone.parent.rotation : Quaternion.identity;
             Quaternion worldRot = parentWorld * bone.localRotation;
             bone.localRotation = Quaternion.Inverse(parentWorld) * (delta * worldRot);
+            _appliedRotations[index] = bone.localRotation;
+            _poseApplied[index] = true;
         }
     }
 }

@@ -34,7 +34,7 @@ namespace Game.Gameplay.Tests
             ironsights.transform.SetParent(_root.transform, false);
             new GameObject("Front_Post").transform.SetParent(ironsights.transform, false);
 
-            var stockScope = new GameObject("Scope_01"); // 原生出厂瞄具网格（既有抑制路径）
+            var stockScope = new GameObject("sniper_01_scope"); // 原生狙击镜视觉根（受限命名抑制路径）
             stockScope.transform.SetParent(_root.transform, false);
 
             var socketGo = new GameObject("Attach_Optic");
@@ -149,9 +149,7 @@ namespace Game.Gameplay.Tests
             view.ApplyAttachments(null, "weapon.test", new[] { MakeOptic(OpticAimTier.HighZoom) });
             Assert.That(ironsights.gameObject.activeInHierarchy, Is.False);
 
-            // EditMode 下 Clear 的 Destroy 会打错误日志（运行时行为正确），先行声明豁免
-            UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
-                new System.Text.RegularExpressions.Regex("Destroy may not be called from edit mode"));
+            // Preview swaps must destroy edit-time clones without errors or ghost geometry.
             view.ApplyAttachments(null, "weapon.test", System.Array.Empty<AttachmentAssetEntry>()); // 卸下全部
             Assert.That(ironsights.gameObject.activeInHierarchy, Is.True, "卸下瞄具必须恢复机械瞄具");
             Assert.That(stockScope.gameObject.activeInHierarchy, Is.True, "卸下瞄具必须恢复出厂瞄具");

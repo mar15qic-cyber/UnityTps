@@ -13,7 +13,7 @@ namespace Game.Gameplay.Weapon
     {
         [SerializeField] private PlayerAimState aimState;
         [SerializeField] private Locomotor locomotor;
-        [SerializeField, Min(0.01f)] private float sprintReferenceSpeed = 3.44f;
+        [SerializeField, Min(0.01f)] private float sprintReferenceSpeed = 3.8f;
 
         public WeaponFireContext Context => Build();
 
@@ -29,11 +29,20 @@ namespace Game.Gameplay.Weapon
         {
             float ads = aimState != null ? aimState.Ads01 : 0f;
             float speed = locomotor != null ? locomotor.HorizontalSpeed : 0f;
-            float speed01 = Mathf.Clamp01(speed / sprintReferenceSpeed);
+            // 速度按跑步地速归一化；静步仅承受较小的移动散布，正常跑步承受完整移动散布。
+            // 平方响应让 1.58m/s 静步约为 17%，瞄具是否存在不参与此情境计算。
+            float speed01 = ComputeMovementSpread01(speed, sprintReferenceSpeed);
             bool sprint = locomotor != null && locomotor.State == LocomotionState.Sprint;
             bool grounded = locomotor == null
                 || (locomotor.State != LocomotionState.Jump && locomotor.State != LocomotionState.Air);
             return new WeaponFireContext(ads, speed01, sprint, grounded, false);
+        }
+
+        internal static float ComputeMovementSpread01(float horizontalSpeed, float sprintSpeed)
+        {
+            if (sprintSpeed <= 0.0001f) return 0f;
+            float linear = Mathf.Clamp01(Mathf.Max(0f, horizontalSpeed) / sprintSpeed);
+            return linear * linear;
         }
     }
 }

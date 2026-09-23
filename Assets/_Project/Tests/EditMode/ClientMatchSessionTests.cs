@@ -137,6 +137,16 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void PreviousStopBarrier_BlocksNewConnectionUntilStoppedEventObserved()
+        {
+            Assert.That(ClientMatchSessionCoordinator.CanBeginConnection(false, false), Is.True);
+            Assert.That(ClientMatchSessionCoordinator.CanBeginConnection(true, false), Is.False,
+                "旧连接仍启动时不得连接");
+            Assert.That(ClientMatchSessionCoordinator.CanBeginConnection(false, true), Is.False,
+                "即使 transport 已变为 stopped，也要等旧 Stopped 回调被消费");
+        }
+
+        [Test]
         public void AuthRejected_And_Ended_AreTerminal()
         {
             var core = new ClientMatchSessionCore();

@@ -28,6 +28,8 @@ namespace Game.Presentation.HUD
         private TMP_Text _ammoLine;
         private TMP_Text _weaponNameText;
         private TMP_Text _buildLabel;
+        private Image _weaponIcon;
+        private bool _showingThrowable;
         private static readonly Color TextMuted = new Color32(0x9A, 0xA7, 0xB8, 0xFF);
         private static readonly Color AccentWarning = new Color32(0xFF, 0xA4, 0x1B, 0xFF);
         private static TMP_FontAsset _hudFont;
@@ -48,8 +50,14 @@ namespace Game.Presentation.HUD
         {
             if (controller == null) controller = FindObjectOfType<WeaponController>();
             if (arsenal == null) arsenal = FindObjectOfType<Arsenal>();
+            // HUD 可能由网络场景晚于 AfterSceneLoad 才激活；在真实 HUD Awake 再保证一次，
+            // 避免基础瞄具只剩镜片而没有 OpticAdsView 分划层。
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null && canvas.GetComponent<OpticAdsView>() == null)
+                canvas.gameObject.AddComponent<OpticAdsView>();
             EnsureRuntimeCluster();
             EnsureBuildLabel();
+            if (Application.isPlaying) TacticalMinimapView.TryMount(canvas);
         }
 
         /// <summary>右下弹药簇（2026-09-18 问题9）：武器名（小字 muted）+ 大弹药计数（弹匣大号加粗 /
@@ -62,15 +70,27 @@ namespace Game.Presentation.HUD
             var cluster = new GameObject("WeaponHudCluster", typeof(RectTransform));
             cluster.transform.SetParent(canvas.transform, false);
             var clusterRect = (RectTransform)cluster.transform;
-            Stretch(clusterRect, 0.74f, 0.985f, 0.02f, 0.135f);
+            Stretch(clusterRect, 0.60f, 0.985f, 0.02f, 0.145f);
+
+            var iconBack = new GameObject("WeaponIconBack", typeof(RectTransform), typeof(Image));
+            iconBack.transform.SetParent(cluster.transform, false);
+            Stretch((RectTransform)iconBack.transform, 0f, 0.27f, 0.06f, 0.88f);
+            iconBack.GetComponent<Image>().color = Color.clear;
+            iconBack.GetComponent<Image>().raycastTarget = false;
+            var iconGo = new GameObject("CurrentWeaponIcon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(iconBack.transform, false);
+            _weaponIcon = iconGo.GetComponent<Image>();
+            _weaponIcon.preserveAspect = true;
+            _weaponIcon.raycastTarget = false;
+            Stretch(_weaponIcon.rectTransform, 0.03f, 0.97f, 0.03f, 0.97f);
 
             _weaponNameText = CreateTmpText("WeaponName", cluster.transform, "", 18, TextMuted,
                 TextAlignmentOptions.BottomRight);
-            Stretch(_weaponNameText.rectTransform, 0f, 1f, 0.66f, 1f);
+            Stretch(_weaponNameText.rectTransform, 0.27f, 1f, 0.66f, 1f);
             _ammoLine = CreateTmpText("AmmoLine", cluster.transform, "", 46, Color.white,
                 TextAlignmentOptions.BottomRight);
             // 右边界留 6% 内缩：贴边时 TMP 的最后一字形会被画布边缘切掉（实机 00:55 帧复现）
-            Stretch(_ammoLine.rectTransform, 0f, 0.94f, 0f, 0.70f);
+            Stretch(_ammoLine.rectTransform, 0.27f, 0.94f, 0f, 0.70f);
 
             if (ammoText != null) ammoText.gameObject.SetActive(false);
             if (weaponText != null) weaponText.gameObject.SetActive(false);
@@ -181,12 +201,31 @@ namespace Game.Presentation.HUD
 
         private void Update()
         {
+            var hudCanvas = GetComponentInParent<Canvas>();
+            bool showHud = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Lobby"
+                && !Game.Gameplay.Network.MatchLoadingScreen.Active;
+            if (hudCanvas != null) hudCanvas.enabled = showHud;
+            if (!showHud) return;
+            var throwable = controller != null ? controller.GetComponentInParent<Game.Gameplay.Combat.ThrowableController>() : null;
+            if (throwable != null && throwable.IsEquipped)
+            {
+                _showingThrowable = true;
+                if (_weaponIcon != null) _weaponIcon.enabled = false;
+                if (_weaponNameText != null) _weaponNameText.text = throwable.SelectedType.ToString().ToUpperInvariant();
+                if (_ammoLine != null) _ammoLine.text = $"<b>{throwable.Count(throwable.SelectedType):00}</b><size=20>  松开左键投掷</size>";
+                return;
+            }
+            if (_showingThrowable) { _showingThrowable = false; Refresh(); }
             // 换弹进度（原 OnGUI 的 RELOAD % 行；本地 Runtime 为预测值，进度条属表现）
-            if (controller != null && controller.Runtime != null
-                && controller.Runtime.State == WeaponRuntimeState.Reloading)
-                SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo, true);
-            else if (TryGetAuthoritativeAmmo(out int current, out int reserve))
-                SetAmmo(current, reserve, false); // 在线：服务器权威弹药（Docs/23 P0-3）
+            if (TryGetAuthoritativeAmmo(out int current, out int reserve))
+            {
+                SetAmmo(current, reserve, false); // 在线：服务器权威弹药（同时触发 Owner 重绑）
+                return;
+            }
+
+            if (controller != null && controller.Runtime != null)
+                SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
+                    controller.Runtime.State == WeaponRuntimeState.Reloading);
         }
 
         /// <summary>HUD 弹药数据源判定（纯函数，可测；Docs/23 离线回归修复）：
@@ -250,7 +289,7 @@ namespace Game.Presentation.HUD
 
         private void HandleAmmo(int current, int reserve)
         {
-            // 在线时弹药显示由 Update 轮询服务器权威值驱动；本地事件值仅离线路径消费
+            // 在线时由 Update 轮询权威 SyncVar；预测事件不能覆盖服务器显示。
             if (_netWeaponState != null) return;
             SetAmmo(current, reserve, false);
         }
@@ -264,16 +303,28 @@ namespace Game.Presentation.HUD
             if (weaponText != null && controller.Definition != null)
                 weaponText.text = controller.Definition.DisplayName;
             if (_weaponNameText != null && controller.Definition != null)
-                _weaponNameText.text = controller.Definition.DisplayName;
+                _weaponNameText.text = arsenal != null && arsenal.ActiveIndex >= 0
+                    ? $"{arsenal.ActiveIndex + 1:00}  /  {controller.Definition.DisplayName}"
+                    : controller.Definition.DisplayName;
+            RefreshWeaponIcon(controller.Definition);
             SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
                 controller.Runtime.State == WeaponRuntimeState.Reloading);
             if (hintText != null)
             {
-                // 权威两槽（在线账号配装）：只提示合法槽位切换；十槽调试 Arsenal 保留旧提示
+                // 3 is reserved for throwable selection in both online and debug arsenals.
                 string switchHint = arsenal != null && arsenal.SlotCount <= 2
-                    ? "1/2/Q SWITCH" : "0-9/WHEEL/Q SWITCH";
-                hintText.text = "LMB FIRE    RMB ADS    R RELOAD    WASD MOVE    SHIFT SPRINT    " + switchHint;
+                    ? "1/2 / WHEEL SWITCH" : "WHEEL SWITCH";
+                hintText.text = "LMB FIRE    RMB ADS    R RELOAD    WASD RUN    SHIFT WALK    " + switchHint;
             }
+        }
+
+        private void RefreshWeaponIcon(WeaponDefinition definition)
+        {
+            if (_weaponIcon == null) return;
+            var catalog = Resources.Load<WeaponHudIconCatalog>("UI/WeaponHudIconCatalog");
+            _weaponIcon.sprite = definition != null && catalog != null
+                ? catalog.Get(definition.WeaponId) : null;
+            _weaponIcon.enabled = _weaponIcon.sprite != null;
         }
 
         private void SetAmmo(int current, int reserve, bool reloading)

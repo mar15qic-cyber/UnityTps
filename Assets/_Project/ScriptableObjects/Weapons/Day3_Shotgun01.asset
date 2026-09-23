@@ -23,13 +23,22 @@ MonoBehaviour:
     Fire: {fileID: 7400038, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     ReloadAmmoLeft: {fileID: 0}
     ReloadOutOfAmmo: {fileID: 0}
+    ReloadOpen: {fileID: 7400062, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+    ReloadInsert: {fileID: 7400060, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+    ReloadClose: {fileID: 7400058, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     Draw: {fileID: 7400066, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     Holster: {fileID: 7400044, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     DryFire: {fileID: 0}
+    ThrowGrenade: {fileID: 7400042, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     AimIn: {fileID: 7400018, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     AimOut: {fileID: 7400028, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     AimFire: {fileID: 7400040, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
     AimIdle: {fileID: 7400000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+  builtInOptic:
+    opticId: 
+    aimTier: 0
+    adsFovOverride: 0
+    magnification: 0
   firstPersonAnimationFamily: 0
   rifleHasVerticalGrip: 0
   rifleAnimationFamily: 1
@@ -38,9 +47,13 @@ MonoBehaviour:
     Fire: {fileID: 0}
     ReloadAmmoLeft: {fileID: 0}
     ReloadOutOfAmmo: {fileID: 0}
+    ReloadOpen: {fileID: 0}
+    ReloadInsert: {fileID: 0}
+    ReloadClose: {fileID: 0}
     Draw: {fileID: 0}
     Holster: {fileID: 0}
     DryFire: {fileID: 0}
+    ThrowGrenade: {fileID: 0}
     AimIn: {fileID: 0}
     AimOut: {fileID: 0}
     AimFire: {fileID: 0}
@@ -50,9 +63,13 @@ MonoBehaviour:
     Fire: {fileID: 0}
     ReloadAmmoLeft: {fileID: 0}
     ReloadOutOfAmmo: {fileID: 0}
+    ReloadOpen: {fileID: 0}
+    ReloadInsert: {fileID: 0}
+    ReloadClose: {fileID: 0}
     Draw: {fileID: 0}
     Holster: {fileID: 0}
     DryFire: {fileID: 0}
+    ThrowGrenade: {fileID: 0}
     AimIn: {fileID: 0}
     AimOut: {fileID: 0}
     AimFire: {fileID: 0}
@@ -62,9 +79,13 @@ MonoBehaviour:
     Fire: {fileID: 0}
     ReloadAmmoLeft: {fileID: 0}
     ReloadOutOfAmmo: {fileID: 0}
+    ReloadOpen: {fileID: 0}
+    ReloadInsert: {fileID: 0}
+    ReloadClose: {fileID: 0}
     Draw: {fileID: 0}
     Holster: {fileID: 0}
     DryFire: {fileID: 0}
+    ThrowGrenade: {fileID: 0}
     AimIn: {fileID: 0}
     AimOut: {fileID: 0}
     AimFire: {fileID: 0}
@@ -97,4 +118,4 @@ MonoBehaviour:
     ReloadOutOfAmmo: {fileID: 7400028, guid: 32bded04b17d7944e88a86ecd5ecac18, type: 3}
   drawTime: 0.533
   holsterTime: 0.4
-  audioProfile: {fileID: 11400000, guid: 1d1c9c40a3a8df640913796cac66eaef, type: 2}
+  audioProfile: {fileID: 11400000, guid: 3824fbe827790a140b785f492c0cc079, type: 2}

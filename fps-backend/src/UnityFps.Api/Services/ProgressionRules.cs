@@ -6,7 +6,6 @@ namespace UnityFps.Api.Services;
 public interface IProgressionRules
 {
     int GetXpToNextLevel(int level);
-    int GetUpgradeCost(string statId, int currentLevel);
 
     /// <summary>结算数值校验（旧路径）：kills ≤ 30、duration ≤ 15min；超限抛异常由调用方转 422.</summary>
     (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds);
@@ -36,7 +35,6 @@ public sealed class DemoProgressionRules : IProgressionRules
 
     public int GetXpToNextLevel(int level) => Math.Max(1, level) * 100;
 
-    public int GetUpgradeCost(string statId, int currentLevel) => currentLevel + 1;
 
     public (int Kills, int DurationSeconds) ValidateMatchPayload(int kills, int durationSeconds)
         => ValidateMatchPayload(kills, durationSeconds, matchScoped: false);

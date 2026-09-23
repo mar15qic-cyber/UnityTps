@@ -11,7 +11,7 @@ namespace Game.Gameplay.Tests
     /// </summary>
     public sealed class OpticAimCalibrationTests
     {
-        private const string Optic = "attach.lpw.optic.01";
+        private const string Optic = "attach.lpfp.optic.01";
         private const string WeaponA = "weapon.m4";
         private const string WeaponB = "weapon.ak";
 

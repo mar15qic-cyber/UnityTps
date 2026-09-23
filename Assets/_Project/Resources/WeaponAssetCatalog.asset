@@ -20,12 +20,14 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
+    - Optic
     - Muzzle
     - Magazine
     category: 0
     slotType: 0
     definition: {fileID: 11400000, guid: ec4a9c0361c85394099680e9fda83d32, type: 2}
     previewPrefab: {fileID: 7707036890514972092, guid: 00b5bb45ca5329c4aa7d80498cc8eabc, type: 3}
+    icon: {fileID: 21300000, guid: ba87a4e328090404099407ad3d2b9d73, type: 3}
     stats:
       damage: 26
       roundsPerMinute: 600
@@ -41,12 +43,12 @@ MonoBehaviour:
     - Optic
     - Muzzle
     - Tactical
-    - Underbarrel
     - Magazine
     category: 0
     slotType: 0
     definition: {fileID: 11400000, guid: 799d1740b91c1fc4b9d408815506a442, type: 2}
     previewPrefab: {fileID: 5313730131039769789, guid: d6128c4ed61111a41a3adecbdfecf348, type: 3}
+    icon: {fileID: 21300000, guid: 8f3495baa38793146a8e253033d9cf22, type: 3}
     stats:
       damage: 24
       roundsPerMinute: 640
@@ -67,6 +69,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: 3c44ee751d67bf4428d9b46804337f15, type: 2}
     previewPrefab: {fileID: 8213130621444502490, guid: 95aeb185d6221804885ea0fe87c6aef1, type: 3}
+    icon: {fileID: 21300000, guid: b52ec4d1b2ad9ff4d828154810629aea, type: 3}
     stats:
       damage: 34
       roundsPerMinute: 360
@@ -82,12 +85,12 @@ MonoBehaviour:
     - Optic
     - Muzzle
     - Tactical
-    - Underbarrel
     - Magazine
     category: 0
     slotType: 0
     definition: {fileID: 11400000, guid: 68a9bc08a732c194682aee76f8a2b766, type: 2}
     previewPrefab: {fileID: 6531982378343359995, guid: 1f872d3d9cf52e94599ac62c2fe16092, type: 3}
+    icon: {fileID: 21300000, guid: 005d6755e1298cb4a9276b770d8826e3, type: 3}
     stats:
       damage: 28
       roundsPerMinute: 520
@@ -103,12 +106,12 @@ MonoBehaviour:
     - Optic
     - Muzzle
     - Tactical
-    - Underbarrel
     - Magazine
     category: 3
     slotType: 0
     definition: {fileID: 11400000, guid: b4a33812478f1b04f9251f147dcfde24, type: 2}
     previewPrefab: {fileID: 3924758656610726626, guid: 07cccf1c327b02346b818246b2846d83, type: 3}
+    icon: {fileID: 21300000, guid: 3fe2dce66f3d671469997e1f377a11a5, type: 3}
     stats:
       damage: 18
       roundsPerMinute: 850
@@ -128,6 +131,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 85dca2a47fe4ff149b23be76266290a5, type: 2}
     previewPrefab: {fileID: 3843627004293600021, guid: 3a6d4094df6899645b06ff6e60bf599f, type: 3}
+    icon: {fileID: 21300000, guid: 982fcbd81438e1e48b90d0ec0e88ed82, type: 3}
     stats:
       damage: 20
       roundsPerMinute: 780
@@ -140,6 +144,7 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
+    - Optic
     - Muzzle
     - Tactical
     - Magazine
@@ -147,6 +152,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 50637f508a4a40a40a6df39903194abe, type: 2}
     previewPrefab: {fileID: 5225663059114905009, guid: 5ea1fa58f83609546a3196eaea93f018, type: 3}
+    icon: {fileID: 21300000, guid: d252643253b4c8546bb533cd19df08e5, type: 3}
     stats:
       damage: 60
       roundsPerMinute: 90
@@ -159,12 +165,12 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
-    - Optic
     - Magazine
     category: 4
     slotType: 0
     definition: {fileID: 11400000, guid: 4f0ab5b65ebdbdd44be508830825daf7, type: 2}
     previewPrefab: {fileID: 7670982791927436342, guid: e10276abf7f52ca46b75b5bc8edcd355, type: 3}
+    icon: {fileID: 21300000, guid: ff01e8f72c7c2014bbc4384260766e48, type: 3}
     stats:
       damage: 95
       roundsPerMinute: 45
@@ -177,12 +183,12 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_02.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
-    - Optic
     - Magazine
     category: 4
     slotType: 0
     definition: {fileID: 11400000, guid: d8f07e4f2646e3f4eaac34b0823110f4, type: 2}
     previewPrefab: {fileID: 1030842309789348031, guid: 1194cf96d29f0994f950847170d4b7a8, type: 3}
+    icon: {fileID: 21300000, guid: 726bf534e2c69c84cb8249495cd23881, type: 3}
     stats:
       damage: 110
       roundsPerMinute: 35
@@ -195,12 +201,14 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
+    - Optic
     - Muzzle
     - Magazine
     category: 1
     slotType: 1
     definition: {fileID: 11400000, guid: 2da393a3ba9a51a4db48905e7b5b63f2, type: 2}
     previewPrefab: {fileID: 6573219461991808529, guid: 0ad99d0949cbada418106986c05e6184, type: 3}
+    icon: {fileID: 21300000, guid: 3130a3677b59fc24caa6f912ab14169f, type: 3}
     stats:
       damage: 30
       roundsPerMinute: 300
@@ -213,12 +221,14 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
+    - Optic
     - Muzzle
     - Magazine
     category: 1
     slotType: 1
     definition: {fileID: 11400000, guid: b428da9dfcd54b28bc286feea99ebe98, type: 2}
     previewPrefab: {fileID: 6574231168463378227, guid: f8e40cc80b5d44008763d2130699981a, type: 3}
+    icon: {fileID: 21300000, guid: 773838d9593b05a4b8b7f5a4a4643829, type: 3}
     stats:
       damage: 42
       roundsPerMinute: 300
@@ -231,12 +241,14 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
+    - Optic
     - Muzzle
     - Magazine
     category: 1
     slotType: 1
     definition: {fileID: 11400000, guid: 6586c804f9117984636762d054c307eb, type: 2}
     previewPrefab: {fileID: 6574827882670645563, guid: b13d0bb8e364f80b5d12fbc4f0bedcad, type: 3}
+    icon: {fileID: 21300000, guid: 9656f5bc7ad436e4682374755a42496b, type: 3}
     stats:
       damage: 28
       roundsPerMinute: 400
@@ -258,6 +270,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 0a6ba017d1ae0cd9320317b25e0dad40, type: 2}
     previewPrefab: {fileID: 3922792780923678516, guid: 290daf59b7d1e9d4fe086971adc76959, type: 3}
+    icon: {fileID: 21300000, guid: eff6510d5fe09e44481e65e350c395e8, type: 3}
     stats:
       damage: 18
       roundsPerMinute: 900
@@ -273,12 +286,12 @@ MonoBehaviour:
     - Optic
     - Muzzle
     - Tactical
-    - Underbarrel
     - Magazine
     category: 3
     slotType: 0
     definition: {fileID: 11400000, guid: 08e17c4ea197311cb4f1e005bbf87f22, type: 2}
     previewPrefab: {fileID: 3923451928362332130, guid: 6377c65f81d623c27ad704f97dda7fcf, type: 3}
+    icon: {fileID: 21300000, guid: 8d40cc213452b194ea0a7c8b741dfc15, type: 3}
     stats:
       damage: 19
       roundsPerMinute: 850
@@ -294,12 +307,12 @@ MonoBehaviour:
     - Optic
     - Muzzle
     - Tactical
-    - Underbarrel
     - Magazine
     category: 3
     slotType: 0
     definition: {fileID: 11400000, guid: ac7867edf49705bc79e22309290a5896, type: 2}
     previewPrefab: {fileID: 3923465888299176406, guid: 9669f2946c8e05105b97bd5f7ff4d6d0, type: 3}
+    icon: {fileID: 21300000, guid: d83002eee27bb0a4a97357d020108111, type: 3}
     stats:
       damage: 22
       roundsPerMinute: 750
@@ -312,12 +325,12 @@ MonoBehaviour:
     previewPrefabPath: Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_03.prefab
     supportsVerifiedAttachments: 1
     slotCapabilities:
-    - Optic
     - Magazine
     category: 4
     slotType: 0
     definition: {fileID: 11400000, guid: 7fc93cc973252aae4128221ff38b3acd, type: 2}
     previewPrefab: {fileID: 7669774004639654226, guid: 0317c82a497095fa7d8d8931034732ed, type: 3}
+    icon: {fileID: 21300000, guid: 28e9693665c6d4843b65da02fc2dc6eb, type: 3}
     stats:
       damage: 100
       roundsPerMinute: 45
@@ -336,6 +349,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: ceb141a4588872a4ea277db86b6d3594, type: 2}
     previewPrefab: {fileID: 498352707694977045, guid: e430332a7caa08741bea83f868c5e775, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 23
       roundsPerMinute: 670
@@ -355,6 +369,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: db404be0fe9c92240bc07d9bc72cf813, type: 2}
     previewPrefab: {fileID: 6381590407862986081, guid: c87dfea73a502a140937f6ead0fd3d1a, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 25
       roundsPerMinute: 640
@@ -376,6 +391,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 0f276b78e7a7dab449b46f44be66c25d, type: 2}
     previewPrefab: {fileID: 3996764598284662925, guid: e0d9e744266d9e2459e1c5386601996b, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 27
       roundsPerMinute: 600
@@ -397,6 +413,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 01d2d0bda39d3244dba8c23e456cbba3, type: 2}
     previewPrefab: {fileID: 4252168386065128594, guid: 06044a7207402b44ca8b9dc5737dfe37, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 28
       roundsPerMinute: 570
@@ -415,6 +432,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 1815e53a56e93764f92a3531d0e9ba63, type: 2}
     previewPrefab: {fileID: 822486123468645642, guid: af4001cd96364bf49b9da3aebda96c71, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 30
       roundsPerMinute: 540
@@ -436,6 +454,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: ff624b8b2034cec4591fe4093b9b4853, type: 2}
     previewPrefab: {fileID: 9103437472673183717, guid: ac62f9e086f1187408aa4af0d064e60e, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 32
       roundsPerMinute: 510
@@ -456,6 +475,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: 201f8ac4cdebdc74e8ee44b5d89d1979, type: 2}
     previewPrefab: {fileID: 4650707550135015406, guid: 9bc3defc442db0a4a95eafe053ff8982, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 31
       roundsPerMinute: 400
@@ -474,6 +494,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: e4efb090cabbab24bb0047f6f129e09b, type: 2}
     previewPrefab: {fileID: 3584344841225183330, guid: 0e9ee0ec0ab85304a85383761a2c0303, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 33
       roundsPerMinute: 380
@@ -493,6 +514,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: c08258b6190ee044c9038c95e9354030, type: 2}
     previewPrefab: {fileID: 1423998994233296355, guid: 8be3cc7a263dfda4eb971b708583cb1c, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 35
       roundsPerMinute: 360
@@ -511,6 +533,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: 99f32695072c27140ae4cfd0e0373160, type: 2}
     previewPrefab: {fileID: 6644325396884467453, guid: 9386c79fbe11c4d4b9b8839d9560eba7, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 37
       roundsPerMinute: 340
@@ -528,6 +551,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: 231eeaf4e427934409a3322801a8ad1f, type: 2}
     previewPrefab: {fileID: 5287656148508265833, guid: 67399dd166391ca4e9853a174eb5765d, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 39
       roundsPerMinute: 320
@@ -546,6 +570,7 @@ MonoBehaviour:
     slotType: 1
     definition: {fileID: 11400000, guid: 2e12cb8f4682d264ea7b6f772230e1c2, type: 2}
     previewPrefab: {fileID: 1263040753540722421, guid: f4ffd589575b490439c9be4e1711d6ff, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 41
       roundsPerMinute: 310
@@ -563,6 +588,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 8eaaac6e3bd3a794282e8828d1a4faa5, type: 2}
     previewPrefab: {fileID: 5227809510066723879, guid: 6bc6fa13bd387ec48b7a175e6bc55195, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 54
       roundsPerMinute: 100
@@ -583,6 +609,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 3e2c804d942d2324cad11728c5da4e3e, type: 2}
     previewPrefab: {fileID: 7964661585471096542, guid: 54e1546e45b1abd4a85359018a9f25ed, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 58
       roundsPerMinute: 100
@@ -601,6 +628,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 5f7738999b892614cbae546310779472, type: 2}
     previewPrefab: {fileID: 6264488225395533638, guid: 4c49589969dd5a64f824352425bbc2a2, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 61
       roundsPerMinute: 90
@@ -618,6 +646,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: fa7effbe45bd06a4c8e2cf6105b61f48, type: 2}
     previewPrefab: {fileID: 7800830045993192277, guid: 5d8a307c52c4230408126ced35db68f9, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 65
       roundsPerMinute: 90
@@ -638,6 +667,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: a8fcf9f64a14d0c4fb8a4aacea7ff5f2, type: 2}
     previewPrefab: {fileID: 5159317126409923698, guid: f94c27e264ff736479468c5939a045d2, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 69
       roundsPerMinute: 80
@@ -656,6 +686,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 24e898cf544cabd419539c0dcbfcc77c, type: 2}
     previewPrefab: {fileID: 8744916453307293685, guid: 21dffd2d5249a76458e08d994a595dcb, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 16
       roundsPerMinute: 950
@@ -677,6 +708,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 82339deb034a29243a55d730ebe230d0, type: 2}
     previewPrefab: {fileID: 2698694536436777526, guid: 2097b27ed4fab5744a4b9a1840fc50d3, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 17
       roundsPerMinute: 900
@@ -696,6 +728,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 2556846c08000b4499886ba3b94a351f, type: 2}
     previewPrefab: {fileID: 1576748581593594402, guid: b7b143686e1703c4497f6f26222d512d, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 18
       roundsPerMinute: 850
@@ -715,6 +748,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: acc079f5ac663374ba0476c2028fef75, type: 2}
     previewPrefab: {fileID: 1343866032011768620, guid: 58dc8b17587108646a3893f5a721305a, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 19
       roundsPerMinute: 810
@@ -734,6 +768,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 31493694f26d890419402ff1e04fa3da, type: 2}
     previewPrefab: {fileID: 1593178713958318555, guid: 6280cd9585028874dadc41988b9662d0, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 21
       roundsPerMinute: 760
@@ -755,6 +790,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: aca367a09ed38fc459ffbf528e770131, type: 2}
     previewPrefab: {fileID: 529512485997984772, guid: 9f9b8cdcf4b51b24283afef27d3466e6, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 22
       roundsPerMinute: 720
@@ -773,6 +809,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 2424618570bf1e04693ee4aaea04707b, type: 2}
     previewPrefab: {fileID: 4555917917983865861, guid: 1fbea47fc1c55f243acd30e30d5a9a12, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 86
       roundsPerMinute: 50
@@ -791,6 +828,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 903ccd3bfc0a6194098887e6897ff0ab, type: 2}
     previewPrefab: {fileID: 5532224447213603165, guid: 7d8af3a456d10f44abdc9383cc5eac06, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 91
       roundsPerMinute: 50
@@ -809,6 +847,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: c23d6ac0cba41e84fafe1194c9b3bc1e, type: 2}
     previewPrefab: {fileID: 6128028975687927659, guid: 5528aafd6034a4e40a736897b780e03b, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 97
       roundsPerMinute: 40
@@ -827,6 +866,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 25a11a4c165d0bb429c98b9ed329c193, type: 2}
     previewPrefab: {fileID: 8859113908407395807, guid: dc7ff566d1eb7484bb86517c19fb74f5, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 103
       roundsPerMinute: 40
@@ -844,6 +884,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 0cde99d4a0e68024e89266a6afe6d1a8, type: 2}
     previewPrefab: {fileID: 7404343893731267241, guid: baae970d064969847b6662ad3105e1c9, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 109
       roundsPerMinute: 40
@@ -862,6 +903,7 @@ MonoBehaviour:
     slotType: 0
     definition: {fileID: 11400000, guid: 142764adecd558048906624bcd532e81, type: 2}
     previewPrefab: {fileID: 1193311777020370534, guid: f0c10408435dec64483da955c28bdc58, type: 3}
+    icon: {fileID: 0}
     stats:
       damage: 116
       roundsPerMinute: 40

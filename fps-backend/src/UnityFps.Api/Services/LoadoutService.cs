@@ -58,11 +58,16 @@ public sealed class LoadoutService(AppDbContext db)
             ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.LoadoutVersionConflict, "配装不存在");
         if (loadout.Version != request.ExpectedVersion)
             throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.LoadoutVersionConflict, "配装已在其他位置更新，请刷新后重试");
-        var weaponId = request.WeaponSlot.Equals("Secondary", StringComparison.OrdinalIgnoreCase)
-            ? loadout.SecondaryWeaponId : request.WeaponSlot.Equals("Primary", StringComparison.OrdinalIgnoreCase)
-                ? loadout.PrimaryWeaponId : string.Empty;
+        var secondary = request.WeaponSlot.Equals("Secondary", StringComparison.OrdinalIgnoreCase);
+        var primary = request.WeaponSlot.Equals("Primary", StringComparison.OrdinalIgnoreCase);
+        var equippedWeaponId = secondary ? loadout.SecondaryWeaponId : primary ? loadout.PrimaryWeaponId : string.Empty;
+        var weaponId = string.IsNullOrWhiteSpace(request.WeaponItemId) ? equippedWeaponId : request.WeaponItemId.Trim();
         if (string.IsNullOrEmpty(weaponId))
             throw new ApiException(StatusCodes.Status400BadRequest, ApiErrorCodes.InvalidWeapon, "武器槽位无效");
+        if (!primary && !secondary)
+            throw new ApiException(StatusCodes.Status400BadRequest, ApiErrorCodes.InvalidWeapon, "武器槽位无效");
+        if (!string.Equals(weaponId, equippedWeaponId, StringComparison.Ordinal))
+            await ValidateOwnedSlotAsync(userId, weaponId, secondary ? "Secondary" : "Primary", cancellationToken);
 
         // 矩阵校验：目录存在且启用 → 已拥有 → 兼容矩阵放行（IsImplemented=true）
         var attachmentIds = request.Attachments.Select(x => x.AttachmentItemId).Distinct().ToArray();
@@ -90,6 +95,10 @@ public sealed class LoadoutService(AppDbContext db)
                     $"该配件尚未在此武器上适配：{selection.AttachmentItemId}");
         }
 
+        // Validation above is for the actual previewed gun. Apply the equip switch
+        // and attachment changes together so a successful save cannot target two guns.
+        if (secondary) loadout.SecondaryWeaponId = weaponId;
+        else loadout.PrimaryWeaponId = weaponId;
         loadout.Attachments.RemoveAll(x => x.WeaponSlot.Equals(request.WeaponSlot, StringComparison.OrdinalIgnoreCase));
         foreach (var selection in request.Attachments)
             loadout.Attachments.Add(new PlayerLoadoutAttachment

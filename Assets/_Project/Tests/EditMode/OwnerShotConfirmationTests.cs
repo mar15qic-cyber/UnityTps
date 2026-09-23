@@ -55,6 +55,20 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void ConsumePending_UsesExactRequestId_RejectCannotConsumeAnotherShot()
+        {
+            var registry = new PredictedShotRegistry();
+            var first = registry.Register(41u, new Vector3(1, 0, 5), Vector3.up, true, 1u, null);
+            var second = registry.Register(42u, new Vector3(2, 0, 5), Vector3.up, true, 1u, null);
+
+            Assert.That(registry.ConsumePending(99u, 1u), Is.Null, "未知/拒绝 id 不得 FIFO 吃掉另一发");
+            Assert.That(first.Consumed, Is.False);
+            Assert.That(registry.ConsumePending(42u, 1u), Is.SameAs(second));
+            Assert.That(first.Consumed, Is.False, "后发确认只能消费同 id 的预测表现");
+            Assert.That(registry.ConsumePending(42u, 1u), Is.Null, "同 id 确认不得二次消费");
+        }
+
+        [Test]
         public void Register_TrimsBeyondCapacity_OldestMarkedConsumed()
         {
             var registry = new PredictedShotRegistry();
@@ -70,9 +84,11 @@ namespace Game.Gameplay.Tests
         {
             var registry = new PredictedShotRegistry();
             registry.Register(Vector3.one, Vector3.up, true, 1u, null);
+            Assert.That(registry.IsDuplicateConfirm(1), Is.False);
             registry.Clear();
             Assert.That(registry.PendingCount, Is.EqualTo(0));
             Assert.That(registry.ConsumeOldestPending(1u), Is.Null);
+            Assert.That(registry.IsDuplicateConfirm(1), Is.False, "a reused view/new session can restart shot ids");
         }
 
         // ---------------- RemoteShotPresentation 载荷 ----------------

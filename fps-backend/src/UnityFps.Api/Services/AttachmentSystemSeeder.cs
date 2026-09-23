@@ -6,14 +6,30 @@ namespace UnityFps.Api.Services;
 /// <summary>
 /// 配件系统种子 v2（Docs/21 返工，2026-09-02）：
 /// 1) 目录精简：12 个消音器口径副本实测为 2 形状×6 拷贝 → 3 个分族消音器（紧凑=手枪/SMG、重型=步枪/霰弹、经典=原生武器）；
-/// 2) 兼容矩阵按"武器家族 × 槽位 × 瞄具档位"生成：狙击仅高倍镜、狙击无消音器（M82A1 等大口径制退器）、
-///    手枪仅红点、步枪红点/全息/低倍、战术与下挂按护木挂点；
-/// 3) 旧 12 个消音器目录项 IsActive=false 下架（Docs/15 §9：禁止物理删除，已购历史保留）。
+/// 2) 正式 LPFP 原生枪统一开放四款基础瞄具，Scope_01..04 的稳定 itemId 为
+///    attach.lpfp.optic.01 / attach.rifle.optic / attach.lpfp.optic.03 / attach.lpfp.optic.02；
+///    狙击族仅用内置高倍镜、不开放基础瞄具（2026-09-21 用户拍板，实际放行 13 把）；
+/// 3) LPW 8 款瞄具与旧手枪瞄具已物理下线，兼容矩阵和数据库历史依赖一并清理。
 /// </summary>
 public static class AttachmentSystemSeeder
 {
     private enum WClass { Pistol, Smg, Rifle, Shotgun, Sniper, Classic }   // Classic=无现代导轨的老枪
     private enum OTier { RedDot, Holo, LowZoom, HighZoom }
+
+    private static readonly string[] NativeOpticIds =
+    [
+        "attach.lpfp.optic.01", // Scope_01：低倍 3x
+        "attach.rifle.optic",   // Scope_02：1x
+        "attach.lpfp.optic.03", // Scope_03：低倍 3x
+        "attach.lpfp.optic.02"  // Scope_04：1x
+    ];
+
+    private static readonly string[] RetiredOpticIds =
+    [
+        "attach.lpw.optic.01", "attach.lpw.optic.02", "attach.lpw.optic.03", "attach.lpw.optic.04",
+        "attach.lpw.optic.05", "attach.lpw.optic.06", "attach.lpw.optic.07", "attach.lpw.optic.08",
+        "attach.pistol.optic"
+    ];
 
     /// <summary>45 把枪的家族与槽位能力（16 把 LPFP + 29 把 LPW；2026-09-02 网格实测重判）.</summary>
     private sealed record Gun(string WeaponId, WClass Class, bool Optic, bool Muzzle, bool Tactical, bool Underbarrel);
@@ -21,25 +37,25 @@ public static class AttachmentSystemSeeder
     private static readonly Gun[] Guns =
     [
         // —— 16 把 LPFP 原生 ——
-        new("weapon.m4",             WClass.Rifle,   Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // AKM
-        new("weapon.ak",             WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // M4A1
+        new("weapon.m4",             WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // AKM
+        new("weapon.ak",             WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // M4A1：原厂垂直握把
         new("weapon.service_pistol", WClass.Pistol,  Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // 格洛克17
-        new("weapon.rifle03",        WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // SCAR-L
-        new("weapon.smg01",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // Vector
+        new("weapon.rifle03",        WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // SCAR-L：原厂垂直握把
+        new("weapon.smg01",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // Vector: built-in grip
         new("weapon.smg02",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // P90
-        new("weapon.shotgun01",      WClass.Shotgun, Optic: false, Muzzle: true,  Tactical: true,  Underbarrel: false), // M870
-        new("weapon.sniper01",       WClass.Sniper,  Optic: true,  Muzzle: false, Tactical: false, Underbarrel: false), // AWM
-        new("weapon.sniper02",       WClass.Sniper,  Optic: true,  Muzzle: false, Tactical: false, Underbarrel: false), // M82A1：无消音器（大口径制退器）
-        new("weapon.handgun02",      WClass.Pistol,  Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // M1911
+        new("weapon.shotgun01",      WClass.Shotgun, Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // M870
+        new("weapon.sniper01",       WClass.Sniper,  Optic: false, Muzzle: false, Tactical: false, Underbarrel: false), // AWM：仅内置高倍镜，不开放基础瞄具（2026-09-21 用户拍板）
+        new("weapon.sniper02",       WClass.Sniper,  Optic: false, Muzzle: false, Tactical: false, Underbarrel: false), // M82A1：无消音器（大口径制退器）；瞄具同 sniper01
+        new("weapon.handgun02",      WClass.Pistol,  Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // M1911
         // —— 新增 LPFP 枪械（沿用正式 FP/TP prefab 的已存在挂点；Magazine 为纯数值槽） ——
-        new("weapon.handgun03",      WClass.Pistol,  Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // Handgun 03
-        new("weapon.handgun04",      WClass.Pistol,  Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // Handgun 04
+        new("weapon.handgun03",      WClass.Pistol,  Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // Handgun 03
+        new("weapon.handgun04",      WClass.Pistol,  Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // Handgun 04
         new("weapon.smg03",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // SMG 03
-        new("weapon.smg04",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // SMG 04
-        new("weapon.smg05",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // SMG 05
-        new("weapon.sniper03",       WClass.Sniper,  Optic: true,  Muzzle: false, Tactical: false, Underbarrel: false), // Sniper 03
+        new("weapon.smg04",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false), // P90: integral foregrip
+        new("weapon.smg05",          WClass.Smg,     Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: false),  // SMG 05
+        new("weapon.sniper03",       WClass.Sniper,  Optic: false, Muzzle: false, Tactical: false, Underbarrel: false), // Sniper 03：仅内置高倍镜（2026-09-21 用户拍板）
         // —— 29 把 LPW ——
-        new("weapon.lpw.rifle.01",   WClass.Rifle,   Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // AKM II
+        new("weapon.lpw.rifle.01",   WClass.Rifle,   Optic: false, Muzzle: true,  Tactical: false, Underbarrel: false), // AKM II（LPW 瞄具已下线）
         new("weapon.lpw.rifle.02",   WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: false, Underbarrel: false), // AUG
         new("weapon.lpw.rifle.03",   WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // G36
         new("weapon.lpw.rifle.04",   WClass.Rifle,   Optic: true,  Muzzle: true,  Tactical: true,  Underbarrel: true),  // M16A4
@@ -70,24 +86,15 @@ public static class AttachmentSystemSeeder
         new("weapon.lpw.sniper.06",  WClass.Sniper,  Optic: true,  Muzzle: false, Tactical: false, Underbarrel: false), // VSS：一体消音，无枪口槽
     ];
 
-    /// <summary>16 个具体配件目录项（商城直购；消音器分族）.</summary>
+    /// <summary>正式具体配件目录项（商城直购；消音器分族；瞄具仅 LPFP 四款）.</summary>
     private static readonly (string ItemId, string SlotType, string DisplayName, string Description, string AssetKey, long Price, int Level, OTier? Tier)[] ConcreteCatalog =
     [
         // 枪口（3 分族）
-        ("attach.lpw.muffler.01",  "Muzzle", "紧凑消音器", "紧凑型消音器；适配手枪与冲锋枪", "lpw/muffler/01", 2200, 3, null),
-        ("attach.lpw.muffler.02",  "Muzzle", "重型消音器", "全长重型消音器；适配步枪与霰弹枪", "lpw/muffler/02", 2600, 4, null),
         ("attach.lpfp.muffler.01", "Muzzle", "经典消音器", "经典制式消音器；适配原生武器",   "lpfp/muffler/01", 2000, 1, null),
-        // 瞄具（LPW 8 + LPFP 2；档位与 Unity AttachmentAssetCatalog 同源）
-        ("attach.lpw.optic.01",   "Optic", "紧凑红点镜",     "开放式反射红点；开镜快、无放大", "lpw/optic/01", 2500, 3, OTier.RedDot),
-        ("attach.lpw.optic.02",   "Optic", "全息瞄具 551",   "方形窗口全息瞄具；视野开阔",     "lpw/optic/02", 3000, 4, OTier.Holo),
-        ("attach.lpw.optic.03",   "Optic", "紧凑全息瞄具",   "短镜体全息瞄具",                 "lpw/optic/03", 2800, 4, OTier.Holo),
-        ("attach.lpw.optic.04",   "Optic", "4 倍战术瞄准镜", "4x 固定倍率棱镜镜；中距离压制",  "lpw/optic/04", 4500, 8, OTier.LowZoom),
-        ("attach.lpw.optic.05",   "Optic", "封闭红点镜",     "封闭镜体红点；兼顾机瞄高度",     "lpw/optic/05", 2600, 3, OTier.RedDot),
-        ("attach.lpw.optic.06",   "Optic", "微型红点镜",     "微型红点；最轻量化",             "lpw/optic/06", 2400, 3, OTier.RedDot),
-        ("attach.lpw.optic.07",   "Optic", "高倍狙击镜",     "高倍率远距离狙击镜",             "lpw/optic/07", 7000, 12, OTier.HighZoom),
-        ("attach.lpw.optic.08",   "Optic", "远射狙击镜",     "高倍率远射瞄准镜",               "lpw/optic/08", 6800, 12, OTier.HighZoom),
-        ("attach.lpfp.optic.01",  "Optic", "3 倍战术瞄镜",   "3x 战术棱镜瞄镜",                "lpfp/optic/01", 4000, 6, OTier.LowZoom),
-        ("attach.lpfp.optic.02",  "Optic", "全息瞄具 553",   "方形窗口全息瞄具（增强版）",     "lpfp/optic/02", 3200, 5, OTier.Holo),
+        // 瞄具（四款正式 LPFP 基础瞄具；Scope_02 继续沿用 S1 level 2 的 attach.rifle.optic）
+        ("attach.lpfp.optic.01",  "Optic", "LPFP 低倍瞄具",   "Scope_01；3x 低倍棱镜瞄具",      "lpfp/optic/01", 4000, 6, OTier.LowZoom),
+        ("attach.lpfp.optic.03",  "Optic", "LPFP 低倍瞄具 II", "Scope_03；3x 低倍棱镜瞄具",     "lpfp/optic/03", 4000, 6, OTier.LowZoom),
+        ("attach.lpfp.optic.02",  "Optic", "LPFP 1x 全息瞄具", "Scope_04；1x 全息瞄具",         "lpfp/optic/02", 3200, 5, OTier.Holo),
         // 战术
         ("attach.lpw.tactical.laser", "Tactical", "激光指示器", "下挂激光指示模块；开镜对中提示", "lpw/tactical/laser", 1800, 3, null),
         ("attach.lpw.tactical.light", "Tactical", "战术手电",   "下挂照明模块",                   "lpw/tactical/light", 1500, 2, null),
@@ -95,24 +102,11 @@ public static class AttachmentSystemSeeder
         ("attach.lpw.grip.01", "Underbarrel", "垂直前握把", "下挂垂直握把；提升操控稳定性", "lpw/grip/01", 3000, 6, null),
     ];
 
-    /// <summary>家族 × 瞄具档位放行表.</summary>
-    private static OTier[] AllowedTiers(WClass cls) => cls switch
-    {
-        WClass.Sniper  => [OTier.HighZoom],
-        WClass.Rifle   => [OTier.RedDot, OTier.Holo, OTier.LowZoom],
-        WClass.Smg     => [OTier.RedDot, OTier.Holo],
-        WClass.Pistol  => [OTier.RedDot],
-        WClass.Shotgun => [OTier.RedDot],
-        _              => [],
-    };
-
     /// <summary>家族 × 枪口消音器放行（紧凑=手枪/SMG；重型=步枪/霰弹；经典=仅原生枪）.</summary>
     private static string[] AllowedMuzzles(WClass cls, bool isNative) => cls switch
     {
-        WClass.Pistol  => isNative ? ["attach.lpfp.muffler.01", "attach.lpw.muffler.01"] : ["attach.lpw.muffler.01"],
-        WClass.Smg     => isNative ? ["attach.lpfp.muffler.01", "attach.lpw.muffler.01"] : ["attach.lpw.muffler.01"],
-        WClass.Rifle   => isNative ? ["attach.lpfp.muffler.01", "attach.lpw.muffler.02"] : ["attach.lpw.muffler.02"],
-        WClass.Shotgun => isNative ? ["attach.lpfp.muffler.01", "attach.lpw.muffler.02"] : ["attach.lpw.muffler.02"],
+        WClass.Pistol or WClass.Smg or WClass.Rifle or WClass.Shotgun
+            => isNative ? ["attach.lpfp.muffler.01"] : [],
         _              => [],
     };
 
@@ -120,10 +114,31 @@ public static class AttachmentSystemSeeder
 
     public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
+        await RemoveRetiredOpticsAsync(db, cancellationToken);
         await SeedConcreteCatalogAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
         await SeedCompatMatrixAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
+    }
+
+    /// <summary>清理旧客户端/服务器瞄具的全部外键依赖后物理删除目录项。</summary>
+    private static async Task RemoveRetiredOpticsAsync(AppDbContext db, CancellationToken ct)
+    {
+        var retired = RetiredOpticIds.ToHashSet(StringComparer.Ordinal);
+        var changed = false;
+        var compat = await db.AttachmentCompat.Where(x => retired.Contains(x.AttachmentItemId)).ToListAsync(ct);
+        if (compat.Count > 0) { db.AttachmentCompat.RemoveRange(compat); changed = true; }
+        var loadout = await db.LoadoutAttachments.Where(x => retired.Contains(x.AttachmentItemId)).ToListAsync(ct);
+        if (loadout.Count > 0) { db.LoadoutAttachments.RemoveRange(loadout); changed = true; }
+        var inventory = await db.InventoryItems.Where(x => retired.Contains(x.ItemId)).ToListAsync(ct);
+        if (inventory.Count > 0) { db.InventoryItems.RemoveRange(inventory); changed = true; }
+        var purchases = await db.Purchases.Where(x => retired.Contains(x.ItemId)).ToListAsync(ct);
+        if (purchases.Count > 0) { db.Purchases.RemoveRange(purchases); changed = true; }
+        var catalog = await db.CatalogItems.Where(x => retired.Contains(x.ItemId)).ToListAsync(ct);
+        if (catalog.Count > 0) { db.CatalogItems.RemoveRange(catalog); changed = true; }
+        // 先提交物理删除，再读取/更新目录；否则待删除的旧行可能仍被本轮 seed 查询到，
+        // 并在并发启动或 InMemory 测试中留下“已下架但未清掉”的旧 ID。
+        if (changed) await SaveSectionTolerantAsync(db, ct);
     }
 
     private static async Task SaveSectionTolerantAsync(AppDbContext db, CancellationToken ct)
@@ -185,26 +200,41 @@ public static class AttachmentSystemSeeder
                 current.CalibrationKey = row.CalibrationKey;
             }
         }
+
+        // Compatibility removal must also invalidate selections already stored on old accounts.
+        // Otherwise tickets keep broadcasting a visually duplicated foregrip even though the
+        // catalog and gunsmith no longer offer it (notably Rifle02/M4 and Rifle03/SCAR).
+        var loadouts = await db.Loadouts.Include(x => x.Attachments).ToListAsync(ct);
+        var now = DateTime.UtcNow;
+        foreach (var loadout in loadouts)
+        {
+            var invalid = loadout.Attachments.Where(attachment =>
+            {
+                var weaponId = string.Equals(attachment.WeaponSlot, "Secondary", StringComparison.OrdinalIgnoreCase)
+                    ? loadout.SecondaryWeaponId
+                    : loadout.PrimaryWeaponId;
+                return !rows.ContainsKey((weaponId, attachment.AttachmentItemId));
+            }).ToArray();
+            if (invalid.Length == 0) continue;
+            db.LoadoutAttachments.RemoveRange(invalid);
+            loadout.Version++;
+            loadout.UpdatedAtUtc = now;
+        }
     }
 
     private static IEnumerable<AttachmentCompat> BuildMatrix()
     {
-        var optics = ConcreteCatalog.Where(x => x.SlotType == "Optic").ToArray();
         var tacticals = ConcreteCatalog.Where(x => x.SlotType == "Tactical").Select(x => x.ItemId).ToArray();
         var grips = ConcreteCatalog.Where(x => x.SlotType == "Underbarrel").Select(x => x.ItemId).ToArray();
 
         foreach (var gun in Guns)
         {
             var native = IsNative(gun.WeaponId);
-            var tiers = AllowedTiers(gun.Class);
-
-            if (gun.Optic)
+            if (gun.Optic && native)
             {
-                foreach (var optic in optics.Where(o => o.Tier.HasValue && tiers.Contains(o.Tier.Value)))
-                    yield return Row(gun.WeaponId, optic.ItemId, "Optic");
-                // 通行证通用瞄具按同档位放行（手枪版仅手枪，步枪版仅长枪）
-                if (tiers.Contains(OTier.RedDot))
-                    yield return Row(gun.WeaponId, gun.Class == WClass.Pistol ? "attach.pistol.optic" : "attach.rifle.optic", "Optic");
+                foreach (var opticId in NativeOpticIds)
+                    if (gun.Class != WClass.Pistol || opticId is "attach.lpfp.optic.01" or "attach.lpfp.optic.03")
+                        yield return Row(gun.WeaponId, opticId, "Optic");
             }
 
             if (gun.Muzzle)

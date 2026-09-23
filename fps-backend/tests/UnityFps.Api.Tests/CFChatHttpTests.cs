@@ -20,7 +20,7 @@ public sealed class CFChatHttpTests
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4, mode: mode,
             killTarget: mode == "KillRace" ? 20 : null);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
         return (client, roomCode, hostToken, guestToken);
@@ -28,7 +28,7 @@ public sealed class CFChatHttpTests
 
     private static Task<HttpResponseMessage> TrySendAsync(HttpClient client, string token, string roomCode,
         string body, string channel = "All", string? clientMessageId = null) =>
-        ServerTest.Authorized(client, token).PostAsJsonAsync($"/api/rooms/{roomCode}/chat", new
+        ServerTest.Authorized(client, token).PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/chat", new
         {
             channel,
             body,
@@ -45,7 +45,7 @@ public sealed class CFChatHttpTests
 
     private static async Task<JsonElement> FetchAsync(HttpClient client, string token, string roomCode, ulong after = 0)
     {
-        var response = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{roomCode}/chat?after={after}");
+        var response = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/chat?after={after}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -107,7 +107,7 @@ public sealed class CFChatHttpTests
         Assert.Equal("CHAT_REJECTED", systemProblem.RootElement.GetProperty("code").GetString());
 
         // 游标越界 → 422 CHAT_CURSOR_INVALID
-        var badCursor = await ServerTest.Authorized(client, hostToken).GetAsync($"/api/rooms/{roomCode}/chat?after=99999");
+        var badCursor = await ServerTest.Authorized(client, hostToken).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/chat?after=99999");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, badCursor.StatusCode);
         using var problem = JsonDocument.Parse(await badCursor.Content.ReadAsStringAsync());
         Assert.Equal("CHAT_CURSOR_INVALID", problem.RootElement.GetProperty("code").GetString());
@@ -182,7 +182,7 @@ public sealed class CFChatHttpTests
         var client = isolated.CreateClient();
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         await SendOkAsync(client, hostToken, roomCode, "入房前的历史");
 
@@ -213,7 +213,7 @@ public sealed class CFChatHttpTests
 
         var send = await TrySendAsync(client, hostToken, roomCode, "局内 HTTP 消息");
         Assert.Equal(HttpStatusCode.Conflict, send.StatusCode); // 局内只允许 Owner RPC
-        var fetch = await ServerTest.Authorized(client, hostToken).GetAsync($"/api/rooms/{roomCode}/chat?after=0");
+        var fetch = await ServerTest.Authorized(client, hostToken).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/chat?after=0");
         Assert.Equal(HttpStatusCode.Conflict, fetch.StatusCode);
     }
 }

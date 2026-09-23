@@ -21,6 +21,10 @@ namespace Game.Gameplay.Network
     {
         private WeaponController _controller;
         private WeaponFireContextProvider _fireContext;
+        // Owner 客户端的本地 WeaponController 是射速/弹药预测的唯一事实。网络层只把
+        // 已经成功发生的本地 shot 上行；绝不能把 FireHeld 的每个渲染帧都排进可靠队列，
+        // 否则松开扳机后服务器仍会按冷却节奏消费积压请求，造成 HUD 和换弹守恒失真。
+        private uint _latestEstimatedServerTick;
 
         private void Awake()
         {
@@ -30,38 +34,127 @@ namespace Game.Gameplay.Network
 
         // ---- ① 远端玩家 → 服务器 开火请求 ----
 
-        /// <summary>远端客户端调用（Owner 专属）：把本帧开火意图发服务器验证结算。
-        /// FireHeld 连发时每帧调用；服务器 TryFire 自带冷却/弹药闸。
+        /// <summary>Owner 输入侧每帧提供最新服务器 tick 估算。
+        /// 真正的 RPC 只由 <see cref="HandleOwnerPredictedShot"/> 在本地成功开火后发送。
+        /// 这样自动武器每发恰好一条可靠请求，既保留射击时刻的回溯 tick，也不会积压 FireHeld。
         /// estimatedServerTick：客户端对服务器当前 tick 的估算（Day3 Phase 2），服务器据此在
         /// LagCompensationConfig.MaxRewindMs 窗口内回滚 hitbox 做命中判定；越窗/无历史按服务器权威拒绝补偿。</summary>
         public void SubmitFireRequest(uint estimatedServerTick = 0)
         {
-            // 生命周期安全序列（Docs/23 离线回归修复）：离线/authored player（未生成）不发 RPC，
-            // 也不读 FishNet IsOwner（authored player 所有权缓存未建立，直接读会 NRE）
+            _latestEstimatedServerTick = estimatedServerTick;
+        }
+
+        /// <summary>本地预测已实际消耗一发才上行。Host 的本地开火本身已经是服务器权威，
+        /// 不再回送 RPC；离线/authored 玩家也不会读取未建立的 FishNet 所有权缓存。</summary>
+        private void HandleOwnerPredictedShot(WeaponShot shot)
+        {
             if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
             NetworkObject networkObject = NetworkObject;
-            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
-            {
-                // 审计 2026-09-15 §6：客户端侧只标"提交"，同 id 的服务器日志才标"到达"
-                uint shotRequestId = ++_nextShotRequestId;
-                // 审计 2026-09-16 §6.1：客户端瞄准回声（起点/方向/基础俯仰）与服务器结算同 id 对账，
-                // 用于回答"DS 的瞄准和准星是否一致"（位置/yaw 纠偏不会修 pitch）。
-                Vector3 aimOrigin = _controller != null ? _controller.AimOrigin : transform.position;
-                Vector3 aimDirection = _controller != null ? _controller.AimDirection : transform.forward;
-                Debug.Log($"[FireTrace] submit id={shotRequestId} estTick={estimatedServerTick} conn={networkObject.LocalConnection?.ClientId} match={MatchLifecycle.ClientMatchId}"
-                    + $" aimO={aimOrigin.ToString("F2")} aimD={aimDirection.ToString("F3")}");
-                ServerFireRequest(shotRequestId, estimatedServerTick);
-            }
+            if (!networkObject.IsOwner || networkObject.IsServerInitialized) return;
+
+            uint shotRequestId = ++_nextShotRequestId;
+            // The round has already been consumed by the local controller at this point.
+            // Record the exact identity before presentation/RPC so an ACK can replay only
+            // later local shots.
+            _controller?.RegisterPredictedShotForAmmo(shotRequestId, OwnerAmmoLifeEpoch);
+            // 先把本发的确定 id 与同一份 WeaponShot 快照交给表现层，再发 RPC。不得从
+            // Controller 当前 AimDirection 重读：TryFire 已对后坐状态施加下一发偏移。
+            OnOwnerPredictedShot?.Invoke(shot, shotRequestId);
+            Vector3 aimOrigin = shot.Origin;
+            Vector3 aimDirection = shot.Direction;
+            if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] submit id={shotRequestId} estTick={_latestEstimatedServerTick} conn={networkObject.LocalConnection?.ClientId} match={MatchLifecycle.ClientMatchId}"
+                + $" aimO={aimOrigin.ToString("F2")} aimD={aimDirection.ToString("F3")}");
+            var adapter = GetComponent<PlayerNetworkAdapter>();
+            var request = new TimedFireRequest { ShotId = shotRequestId,
+                InputTick = adapter != null ? adapter.LocalInputTick : 0,
+                LifeEpoch = adapter != null ? adapter.KnownLifeEpoch : 0,
+                DisplayTick = ObserverTimeline.PresentedTick,
+                AimOrigin = shot.Origin, AimDirection = shot.Direction, Ads01 = shot.Ads01 };
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-submit", shotId = request.ShotId,
+                inputTick = request.InputTick, lifeEpoch = request.LifeEpoch, displayTick = request.DisplayTick,
+                connection = (int)OwnerClientId });
+            SubmitAimIntent();
+            ServerFireRequest(request);
         }
 
         private uint _nextShotRequestId;
+        internal int NextPredictedSpreadSeed => ShotAimPolicy.SpreadSeed(_nextShotRequestId + 1,
+            GetComponent<PlayerNetworkAdapter>()?.KnownLifeEpoch ?? 0u);
+        private bool? _sentAimIntent;
+
+        private void SubmitAimIntent()
+        {
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this) || !IsOwnerPlayer || IsServerInitialized) return;
+            var reader = GetComponent<Game.Gameplay.Player.InputReader>();
+            bool wantsAim = reader != null && reader.AimHeld;
+            if (_sentAimIntent == wantsAim) return;
+            _sentAimIntent = wantsAim;
+            ServerAimIntent(wantsAim);
+        }
 
         [ServerRpc(RequireOwnership = true)]
-        private void ServerFireRequest(uint shotRequestId, uint estimatedServerTick)
+        private void ServerAimIntent(bool wantsAim)
+            => GetComponent<Game.Gameplay.Player.PlayerAimState>()?.SetRemoteAimIntent(wantsAim);
+
+        /// <summary>纯客户端 Owner 的一发本地预测与其预留请求 id 的原子关联。表现层必须
+        /// 消费此事件而不是用确认 FIFO 猜测对应关系；事件在 ServerRpc 前触发。</summary>
+        public event System.Action<WeaponShot, uint> OnOwnerPredictedShot;
+
+        private readonly System.Collections.Generic.Queue<(TimedFireRequest request, double arrived)> _timedShots = new();
+        private uint _lastReceivedShotId;
+        private uint _lastExecutedInputTick, _lastExecutedInputLife;
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerFireRequest(TimedFireRequest request)
         {
+            if (request.ShotId == 0 || request.ShotId <= _lastReceivedShotId) return;
+            // Reliable ordered RPC: no legitimate submitted shot can skip an id. This also
+            // prevents choosing a later id just to select a favourable deterministic sample.
+            if (request.ShotId != _lastReceivedShotId + 1)
+            { RejectShot(request.ShotId, ShotRejectReason.InvalidInputOrder); return; }
+            _lastReceivedShotId = request.ShotId;
+            if (_timedShots.Count >= 32)
+            {
+                while (_timedShots.Count > 0) RejectShot(_timedShots.Dequeue().request.ShotId, ShotRejectReason.InputTimeout);
+                RejectShot(request.ShotId, ShotRejectReason.InputTimeout);
+                return;
+            }
+            _timedShots.Enqueue((request, Time.unscaledTimeAsDouble));
+        }
+
+        private void ProcessTimedShots()
+        {
+            var adapter = GetComponent<PlayerNetworkAdapter>();
+            int rate = TimeManager != null ? (int)TimeManager.TickRate : 30;
+            while (_timedShots.Count > 0)
+            {
+                var pending = _timedShots.Peek(); var request = pending.request;
+                Vector3 origin = default, direction = default;
+                bool hasInput = adapter != null && adapter.TryGetServerAim(request.InputTick, request.LifeEpoch, out origin, out direction);
+                var decision = ShotTimingPolicy.Evaluate(request, CurrentLifeEpoch, CurrentServerTick(), rate,
+                    hasInput, adapter != null ? adapter.ServerInputTick : uint.MaxValue, Time.unscaledTimeAsDouble - pending.arrived);
+                if (decision == ShotTimingPolicy.Decision.Wait) break;
+                var rejection = decision == ShotTimingPolicy.Decision.Ready ? ShotRejectReason.None
+                    : decision == ShotTimingPolicy.Decision.StaleLife ? ShotRejectReason.StaleLife
+                    : decision == ShotTimingPolicy.Decision.InvalidTime ? ShotRejectReason.InvalidTime : ShotRejectReason.InputTimeout;
+                if (request.LifeEpoch == _lastExecutedInputLife && request.InputTick < _lastExecutedInputTick)
+                    rejection = ShotRejectReason.InvalidInputOrder;
+                _timedShots.Dequeue();
+                if (request.LifeEpoch == CurrentLifeEpoch && rejection == ShotRejectReason.None)
+                { _lastExecutedInputLife = request.LifeEpoch; _lastExecutedInputTick = request.InputTick; }
+                if (rejection == ShotRejectReason.None && (!ShotAimPolicy.Validate(request, origin, direction)
+                    || _controller == null || !_controller.IsPresentedOriginUnobstructed(origin, request.AimOrigin)))
+                    rejection = ShotRejectReason.InvalidAim;
+                if (rejection != ShotRejectReason.None) RejectShot(request.ShotId, rejection);
+                else ExecuteTimedShot(request, origin, direction);
+            }
+        }
+
+        private void ExecuteTimedShot(TimedFireRequest request, Vector3 origin, Vector3 direction)
+        {
+            uint shotRequestId = request.ShotId;
+            double estimatedServerTick = request.DisplayTick;
             // 服务器权威结算：走完整 TryFire（冷却/弹药/动作槽/散布/Raycast/伤害/事件）。
-            // Day3 Phase 2：命中判定前按客户端估算 tick 有限回滚 hitbox（上限 200ms，越窗裁剪到
-            // 最老可用快照；客户端无权声明命中——回溯只影响射线查询的目标位姿，判定/伤害全在服务器）。
+            // v8: 显示时刻与输入历史已通过 200ms 有界准入；客户端无权声明命中。
             // 审计 2026-09-15 §5.2：射手自身不回溯（以当前权威姿态开火）——否则 AimOrigin/AimDirection
             // 随历史位姿移动，射线与判定基准错位。
             // 审计 2026-09-16 §6.4：廉价准入前置——必被冷却/弹药/动作槽拒绝的请求不再付出回溯代价
@@ -70,39 +163,69 @@ namespace Game.Gameplay.Network
             // 被篡改客户端在死亡窗口内继续提交开火并由服务器结算伤害的路径（此前服务器全链无存活校验）。
             if (_dead.Value)
             {
-                Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
+                if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（射手死亡——服务器拒绝，未回溯）");
-                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.ShooterDead);
+                RejectShot(shotRequestId, ShotRejectReason.ShooterDead);
                 return;
             }
             // Phase 6 重放防护：同一 shotRequestId 只结算一次（正常客户端逐发自增不会命中；
             // 被篡改客户端重放旧 id/复制包在冷却结束后再次伤害的路径在此封堵）。容量 64 环形有界。
             if (IsDuplicateShotRequest(shotRequestId))
             {
-                Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
+                if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（shotId DUP——重放拒绝，未回溯未结算）");
-                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.Duplicate);
+                RejectShot(shotRequestId, ShotRejectReason.Duplicate);
                 return;
             }
             if (_controller == null || !_controller.CanAttemptFire)
             {
-                Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
+                if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌——未回溯）");
-                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.NotReady);
+                RejectShot(shotRequestId, ShotRejectReason.NotReady);
                 return;
             }
             var lagComp = ServerLagCompensation.Instance;
-            uint usedTick = 0u;
+            double usedTick = 0;
             bool rewound = lagComp != null
-                && lagComp.TryBeginRewind(estimatedServerTick, transform.root, out usedTick);
+                && lagComp.TryBeginRewind(estimatedServerTick, transform.root, out usedTick, shotRequestId, (int)OwnerClientId);
             // Phase 2：把实际回溯 tick 随结算上下文下传——命中判定按"射击时刻快照"比对
             // 目标生命代际/无敌态（未回溯 = default 语境，判定跳过代际闸）
+            if (ServerLagCompensation.Enabled && !rewound)
+            {
+                RejectShot(shotRequestId, ShotRejectReason.HistoryUnavailable);
+                return;
+            }
             var rewindContext = new LagCompRewindContext(usedTick, rewound, estimatedServerTick);
             _pendingShotRequestId = shotRequestId;
+            AdvanceLastProcessedShotRequestId(shotRequestId);
             bool accepted;
             try
             {
-                accepted = _controller.TryFire(rewindContext);
+                var fireContext = _fireContext != null ? _fireContext.Context : WeaponFireContext.Default;
+                var adapter = GetComponent<PlayerNetworkAdapter>();
+                if (adapter != null && adapter.TryGetServerFireContext(request.InputTick, request.LifeEpoch, out var historical))
+                    fireContext = historical;
+                // ADS is replicated as intent, and the server advances the transition. A one-tick
+                // tolerance covers render/tick sampling, never a client-supplied spread/damage value.
+                var aimState = GetComponent<Game.Gameplay.Player.PlayerAimState>();
+                float serverAds = aimState != null ? aimState.Ads01 : 0f;
+                float tickSeconds = 1f / Mathf.Max(1, TimeManager != null ? (int)TimeManager.TickRate : 30);
+                float adsTolerance = tickSeconds / Mathf.Max(0.01f, aimState != null ? aimState.AdsTransitionSeconds : .16f);
+                float ads = Mathf.Min(request.Ads01, serverAds + adsTolerance);
+                fireContext = new WeaponFireContext(ads, fireContext.HorizontalSpeed01,
+                    fireContext.IsSprinting, fireContext.IsGrounded, fireContext.IsCrouching);
+                if (adapter == null || !adapter.TryGetServerShotGeometry(request.InputTick, request.LifeEpoch,
+                        out var historicalMuzzle, out var historicalBodyAnchor))
+                {
+                    RejectShot(shotRequestId, ShotRejectReason.HistoryUnavailable);
+                    return;
+                }
+                accepted = _controller.TryFireWithServerSnapshot(request.AimOrigin, request.AimDirection,
+                    fireContext, ShotAimPolicy.SpreadSeed(request.ShotId, request.LifeEpoch), rewindContext,
+                    historicalMuzzle, historicalBodyAnchor);
+                if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-result", shotId = shotRequestId,
+                    inputTick = request.InputTick, displayTick = request.DisplayTick, usedTick = usedTick,
+                    serverTick = CurrentServerTick(), connection = (int)OwnerClientId, reason = accepted ? "accepted" : "not-ready" });
             }
             finally
             {
@@ -111,8 +234,19 @@ namespace Game.Gameplay.Network
             }
             if (!accepted)
             {
-                Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌）");
-                TargetShotRejected(NetworkObject.Owner, shotRequestId, ShotRejectReason.NotReady);
+                if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌）");
+                RejectShot(shotRequestId, ShotRejectReason.NotReady);
+            }
+            else
+            {
+                // OnAmmoChanged already publishes the normal SyncVar update. This direct
+                // owner delivery closes the prediction loop in the same RPC response path.
+                var state = GetComponent<NetworkWeaponState>();
+                if (state != null && NetworkObject != null && NetworkObject.Owner != null)
+                {
+                    var snapshot = state.PublishAuthoritativeAmmoSnapshot(_lastProcessedShotRequestId);
+                    TargetAuthoritativeAmmoSnapshot(NetworkObject.Owner, snapshot);
+                }
             }
         }
 
@@ -123,11 +257,33 @@ namespace Game.Gameplay.Network
             ShooterDead = 1,
             Duplicate = 2,
             NotReady = 3,
+            StaleLife = 4, InvalidTime = 5, InputTimeout = 6, HistoryUnavailable = 7, InvalidInputOrder = 8, InvalidAim = 9,
         }
 
         /// <summary>本请求的开火 id（ServerFireRequest → HandleServerShot 同调用栈内消费；
         /// 服务器单线程，跨请求复用安全。0=非请求路径（Host 本地开火））。</summary>
         private uint _pendingShotRequestId;
+        private uint _lastProcessedShotRequestId;
+        // _lifeGeneration is server-only for lag compensation. Owner prediction learns its
+        // replicated counterpart from atomic ammo snapshots, so post-respawn requests carry
+        // the same epoch as the server instead of being discarded as life zero.
+        private uint _ownerAmmoLifeEpoch;
+        internal uint LastProcessedShotRequestId => _lastProcessedShotRequestId;
+        /// <summary>The inclusive ACK value carried by every authoritative ammo snapshot.</summary>
+        internal uint SnapshotAcknowledgementForTests => _lastProcessedShotRequestId;
+        internal uint OwnerAmmoLifeEpoch => _ownerAmmoLifeEpoch;
+        internal void ObserveOwnerAmmoLifeEpoch(uint epoch)
+        {
+            if (epoch >= _ownerAmmoLifeEpoch) _ownerAmmoLifeEpoch = epoch;
+        }
+        private void AdvanceLastProcessedShotRequestId(uint shotRequestId)
+        {
+            // Session ids do not wrap. A duplicate/old packet must not make an ACK regress.
+            if (shotRequestId > _lastProcessedShotRequestId)
+                _lastProcessedShotRequestId = shotRequestId;
+        }
+        internal void RecordProcessedShotForTests(uint shotRequestId)
+            => AdvanceLastProcessedShotRequestId(shotRequestId);
 
         // ---- Phase 6：shotRequestId 重放去重（每实例环形窗口，内存有界） ----
 
@@ -230,6 +386,10 @@ namespace Game.Gameplay.Network
 
         public override void OnStartServer()
         {
+            _timedShots.Clear(); _lastReceivedShotId = 0; _lastExecutedInputTick = _lastExecutedInputLife = 0;
+            _seenShotRequestIds.Clear(); _seenShotRequestIdOrder.Clear();
+            _lastProcessedShotRequestId = 0;
+            ServerLagCompensation.AfterCapture += ProcessTimedShots;
             if (MatchLifecycle.Phase == MatchPhase.Countdown || MatchLifecycle.Phase == MatchPhase.InProgress)
                 _matchJoinedRealtime = Time.realtimeSinceStartup; // I3：补入者参与时长从入场起算
             if (_controller != null)
@@ -245,6 +405,8 @@ namespace Game.Gameplay.Network
 
         public override void OnStopServer()
         {
+            ServerLagCompensation.AfterCapture -= ProcessTimedShots;
+            _timedShots.Clear();
             // 重生调度清理（Phase 1）：对象停止（退出/断线/池化）即作废未到期的重生排队；
             // 复用生成时 _dead SyncVar 随新局同步，Update 的 TryConsumeRespawnDue 仅服务器分支运行。
             if (NetworkObject != null && NetworkObject.IsServerInitialized)
@@ -268,6 +430,8 @@ namespace Game.Gameplay.Network
         /// </summary>
         public override void OnStopNetwork()
         {
+            _sentAimIntent = null;
+            GetComponent<Game.Gameplay.Player.PlayerAimState>()?.ClearRemoteAimIntent();
             if (_deathVisualActive) ResetDeathVisual();
             _deathPoseWriters.Clear();
             _tpModelCached = null;
@@ -277,6 +441,7 @@ namespace Game.Gameplay.Network
 
         private void OnDestroy()
         {
+            ServerLagCompensation.AfterCapture -= ProcessTimedShots;
             if (_controller == null) return;
             if (NetworkObject != null && NetworkObject.IsServerInitialized)
             {
@@ -291,6 +456,9 @@ namespace Game.Gameplay.Network
             // 远端无从正确复现弹着；新载荷含逐弹丸终点（RemoteShotPresentation.FromShot）。
             // 纯客户端 Owner 额外定向确认（Host/服务器本地权威无预测分叉，跳过）。
             var presentation = RemoteShotPresentation.FromShot(shot, _pendingShotRequestId);
+            presentation.WeaponId = _controller != null && _controller.Definition != null
+                ? _controller.Definition.WeaponId : string.Empty;
+            presentation.IsSuppressed = _controller != null && _controller.IsSuppressed;
             ObserversShot(presentation);
             bool ownerIsRemote = NetworkObject != null && NetworkObject.Owner != null
                 && !NetworkObject.Owner.IsLocalClient;
@@ -301,7 +469,10 @@ namespace Game.Gameplay.Network
             // 并给出最终碰撞体/层/所属 NetworkObject——`target=null` 不再是无法解释的终态。
             var target = shot.Result.Target;
             var evidence = _controller != null ? _controller.LastFireEvidence : default;
-            Debug.Log($"[FireTrace] resolve id={_pendingShotRequestId} hit={shot.Result.Hit} damaged={shot.Result.Damaged}" +
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-hit", shotId = _pendingShotRequestId,
+                connection = (int)OwnerClientId, serverTick = CurrentServerTick(),
+                reason = shot.Result.Damaged ? "damaged" : shot.Result.Hit ? "blocked-or-protected" : evidence.MissReason });
+            if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] resolve id={_pendingShotRequestId} hit={shot.Result.Hit} damaged={shot.Result.Damaged}" +
                       $" target={(target != null ? target.name : "null")} hpAfter={(target != null ? target.CurrentHealth : -1)}" +
                       $" selfSkipped={shot.Result.SelfHitsSkipped} point={shot.Result.Point.ToString("F2")} conn={OwnerClientId}" +
                       $" miss={((string.IsNullOrEmpty(evidence.MissReason) ? "OK" : evidence.MissReason))}" +
@@ -344,12 +515,37 @@ namespace Game.Gameplay.Network
 
         /// <summary>服务器拒绝：本发未结算（未回溯未伤害）。Owner 端必须撤销对应预测表现。
         /// FishNet 织入契约：TargetRpc 首参必须是 NetworkConnection（显式传 Owner 连接）。</summary>
+        private void RejectShot(uint shotRequestId, ShotRejectReason reason)
+        {
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-reject", shotId = shotRequestId,
+                connection = (int)OwnerClientId, serverTick = CurrentServerTick(), reason = reason.ToString() });
+            AdvanceLastProcessedShotRequestId(shotRequestId);
+            var state = GetComponent<NetworkWeaponState>();
+            AuthoritativeAmmoSnapshot snapshot = state != null
+                ? state.PublishAuthoritativeAmmoSnapshot(_lastProcessedShotRequestId)
+                : default;
+            TargetShotRejected(NetworkObject.Owner, shotRequestId, reason, snapshot);
+        }
+
         [TargetRpc]
-        private void TargetShotRejected(FishNet.Connection.NetworkConnection connection, uint shotRequestId, ShotRejectReason reason)
+        private void TargetShotRejected(FishNet.Connection.NetworkConnection connection, uint shotRequestId, ShotRejectReason reason,
+            AuthoritativeAmmoSnapshot snapshot)
         {
             var rejected = new RemoteShotPresentation { ShotRequestId = shotRequestId, PelletCount = 1 };
             OnShotConfirmed?.Invoke(rejected, false);
-            Debug.Log($"[FireTrace] confirm reject id={shotRequestId} reason={reason}（已通知 Owner 撤销预测表现）");
+            // Rejects do not mutate server ammo, so they need this immediate atomic snapshot
+            // instead of waiting for an unrelated SyncVar change.
+            ObserveOwnerAmmoLifeEpoch(snapshot.LifeEpoch);
+            _controller?.ApplyAuthoritativeAmmoSnapshot(snapshot);
+            if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] confirm reject id={shotRequestId} reason={reason}（已通知 Owner 撤销预测表现）");
+        }
+
+        [TargetRpc]
+        private void TargetAuthoritativeAmmoSnapshot(FishNet.Connection.NetworkConnection connection,
+            AuthoritativeAmmoSnapshot snapshot)
+        {
+            ObserveOwnerAmmoLifeEpoch(snapshot.LifeEpoch);
+            _controller?.ApplyAuthoritativeAmmoSnapshot(snapshot);
         }
 
         /// <summary>Owner 端确认事件（TargetRpc 落点；false=拒绝）。表现层（WeaponView）消费：
@@ -359,6 +555,7 @@ namespace Game.Gameplay.Network
         // ---- ③ 生命值网络化 ----
 
         private readonly SyncVar<int> _health = new();
+        private readonly SyncVar<uint> _deathStartedTick = new();
         private readonly SyncVar<bool> _dead = new();
         private DamageableTarget _target;
 
@@ -413,6 +610,7 @@ namespace Game.Gameplay.Network
 
         private void Update()
         {
+            SubmitAimIntent();
             // 服务器采集生命值（Player 上挂 DamageableTarget 后生效）
             if (NetworkObject != null && NetworkObject.IsServerInitialized)
             {
@@ -461,6 +659,7 @@ namespace Game.Gameplay.Network
         private void HandleServerDied()
         {
             if (NetworkObject == null || !NetworkObject.IsServerInitialized) return;
+            _deathStartedTick.Value = CurrentServerTick();
             _dead.Value = true; // 死亡表现保留（受击/倒地/禁碰）——authored 目标同样保留世界表现
             // 击杀归因（Docs/23 P1-3）：查登记表得击杀者 → killer kills+1、自己 deaths+1 → 广播 Kill
             var killer = MatchLifecycle.ConsumeKillerOf(_target);
@@ -572,6 +771,7 @@ namespace Game.Gameplay.Network
             var weaponControllers = GetComponentsInChildren<WeaponController>(true);
             for (int i = 0; i < weaponControllers.Length; i++)
                 weaponControllers[i].ServerResetAmmoToLoadoutDefault();
+            GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerResetInventory();
             // F13（2026-09-19 审计）：服务器权威侧同步重种后坐随机流（与 Owner 同键：
             // weaponId+ownerClientId+新生命代际）——两端 stream 起点一致
             GetComponent<PlayerNetworkAdapter>()?.ApplyDeterministicRecoilSeeds();
@@ -687,6 +887,11 @@ namespace Game.Gameplay.Network
 
         public override void OnStartClient()
         {
+            base.OnStartClient();
+            _nextShotRequestId = 0;
+            _sentAimIntent = null;
+            if (_controller != null)
+                _controller.OnShotFired += HandleOwnerPredictedShot;
             if (IsOwnerPlayer) // 生命周期安全判定（authored player 防护，同 IsOwnerPlayer 注释）
             {
                 // Phase A：本地 Owner 生成 → 挂载游戏菜单（MenuMountPolicy 幂等闸；远端玩家不生成菜单）
@@ -708,6 +913,14 @@ namespace Game.Gameplay.Network
             _aimPitch.OnChange += HandleAimPitchChanged;
         }
 
+        public override void OnStopClient()
+        {
+            if (_controller != null)
+                _controller.OnShotFired -= HandleOwnerPredictedShot;
+            _aimPitch.OnChange -= HandleAimPitchChanged;
+            base.OnStopClient();
+        }
+
         /// <summary>服务器侧：反射读 WeaponController.aimPivot 当前俯仰写入 SyncVar
         /// （反射惯例 + try-null 兜底，防域重载字段漂移）。</summary>
         private void TrySyncAimPitch()
@@ -727,7 +940,9 @@ namespace Game.Gameplay.Network
 
         private void HandleAimPitchChanged(float prev, float next, bool asServer)
         {
-            if (asServer) return;
+            // Owner 的 FPMouseLook 是本地基础俯仰唯一写者。若把滞后 SyncVar 回灌 Owner，
+            // WeaponController.Update 取射击方向与 LateUpdate 画面会落在不同俯仰帧。
+            if (asServer || IsOwnerPlayer) return;
             var pivot = ResolveAimPivot();
             if (pivot != null) pivot.localRotation = Quaternion.Euler(next, 0f, 0f);
         }
@@ -773,6 +988,73 @@ namespace Game.Gameplay.Network
 
         /// <summary>所属队伍（"None"/"Red"/"Blue"；服务器写、全端读）。</summary>
         public string TeamId => string.IsNullOrEmpty(_team.Value) ? MatchRules.TeamNone : _team.Value;
+
+        // A radar sighting is accepted only after the server checks the observer's team,
+        // current view direction and unobstructed line of sight. No client position is trusted.
+        public static event Action<int, Vector3> OnTeamRadarSpot;
+        private readonly Dictionary<int, float> _radarReportTimes = new();
+        private readonly Dictionary<int, float> _radarAcceptTimes = new();
+
+        public void ReportRadarSighting(NetworkCombatAuthority enemy)
+        {
+            if (enemy == null || !IsOwnerPlayer || TeamId == MatchRules.TeamNone
+                || !FishNetLifecycleGuard.CanSubmitRpc(this)) return;
+            var enemyObject = enemy.NetworkObject;
+            if (enemyObject == null || !enemyObject.IsSpawned) return;
+            int id = enemyObject.ObjectId;
+            float now = Time.unscaledTime;
+            if (_radarReportTimes.TryGetValue(id, out float last) && now - last < 0.2f) return;
+            _radarReportTimes[id] = now;
+            ServerReportRadarSighting(id);
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerReportRadarSighting(int enemyObjectId)
+        {
+            if (NetworkObject == null || !NetworkObject.IsServerInitialized || IsDead
+                || !MatchLifecycle.IsTeamMatch()
+                || (TeamId != MatchRules.TeamRed && TeamId != MatchRules.TeamBlue)
+                || !MatchLifecycle.IsEligibleNetworkPlayer(this)) return;
+            float now = Time.unscaledTime;
+            if (_radarAcceptTimes.TryGetValue(enemyObjectId, out float last) && now - last < 0.15f) return;
+            _radarAcceptTimes[enemyObjectId] = now;
+
+            NetworkCombatAuthority enemy = null;
+            var players = FindObjectsByType<NetworkCombatAuthority>(FindObjectsSortMode.None);
+            foreach (var player in players)
+                if (player != null && player.NetworkObject != null
+                    && player.NetworkObject.ObjectId == enemyObjectId) { enemy = player; break; }
+            if (enemy == null || enemy == this || enemy.IsDead || enemy.TeamId == TeamId
+                || !MatchLifecycle.IsEligibleNetworkPlayer(enemy)) return;
+
+            Vector3 origin = transform.position + Vector3.up * 1.55f;
+            Vector3 target = enemy.transform.position + Vector3.up * 1.2f;
+            Vector3 delta = target - origin;
+            float distance = delta.magnitude;
+            if (distance < 0.1f || distance > 85f || Vector3.Angle(AimDirectionWorld, delta) > 55f) return;
+            foreach (var hit in Physics.RaycastAll(origin, delta / distance, distance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                var hitPlayer = hit.collider.GetComponentInParent<NetworkCombatAuthority>();
+                if (hitPlayer == this || hitPlayer == enemy) continue;
+                return;
+            }
+
+            foreach (var teammate in players)
+            {
+                if (teammate == null || teammate.TeamId != TeamId
+                    || !MatchLifecycle.IsEligibleNetworkPlayer(teammate)) continue;
+                var teammateObject = teammate.NetworkObject;
+                if (teammateObject?.Owner == null) continue;
+                if (teammateObject.Owner.IsLocalClient)
+                    OnTeamRadarSpot?.Invoke(enemyObjectId, enemy.transform.position);
+                else
+                    teammate.TargetRadarSpot(teammateObject.Owner, enemyObjectId, enemy.transform.position);
+            }
+        }
+
+        [TargetRpc]
+        private void TargetRadarSpot(FishNet.Connection.NetworkConnection connection, int enemyObjectId, Vector3 position)
+            => OnTeamRadarSpot?.Invoke(enemyObjectId, position);
 
         // ---- EditMode 测试接缝（InternalsVisibleTo；归因顺序回归直驱 SyncVar） ----
         internal void SetTeamForTests(string team) => _team.Value = team;
@@ -1078,7 +1360,10 @@ namespace Game.Gameplay.Network
             // prefab 里 AnimancerComponent `_ActionOnDisable=3`（Reset）会 Graph.Stop + Rebind，
             // OnEnable 只 UnpauseGraph，于是复活后图里没有任何状态在播（重生陷地的直接机制）。
             CollectTpPoseLifecycle(tpModel);
-            InvokeTpLifecycle(lifecycle => lifecycle.FreezePoseForDeath());
+            var nowTick = CurrentServerTick();
+            var elapsed = _deathStartedTick.Value > 0 && nowTick >= _deathStartedTick.Value
+                ? (nowTick - _deathStartedTick.Value) / (float)ServerTickRate() : 0f;
+            InvokeTpLifecycle(lifecycle => lifecycle.PlayDeathPose(elapsed));
             // 其余骨骼写者（TPAim / 双手 IK 等）仍逐个停用并记录原始 enable 状态（审计 D2 契约）；
             // Animancer/Animator 例外——它们的冻结由上面的图暂停承担，停用会触发 Rebind。
             _deathPoseWriters.Clear();
@@ -1086,16 +1371,16 @@ namespace Game.Gameplay.Network
             {
                 if (behaviour == null || behaviour == this) continue;
                 if (!IsPoseWriter(behaviour)) continue;
-                if (IsGraphFrozenWriter(behaviour)) continue;
+                if (IsGraphFrozenWriter(behaviour) || behaviour is Game.Gameplay.Animation.IThirdPersonPoseLifecycle) continue;
                 _deathPoseWriters.Add((behaviour, behaviour.enabled));
                 behaviour.enabled = false;
             }
-            tpModel.localRotation = Quaternion.Euler(85f, 0f, 0f);
+            _deathGroundSettled = false;
             // 2026-09-15 审计 §3：倒地支点在模型原点，前倾后包围盒下沿会穿入地面（实机"下半身埋地"）。
             // 贴地修正只作用于本视觉节点——不动模拟根、不硬编码地图高度、不抬高活人模型。
             _deathLastRootPosition = transform.position;
             _nextDeathRealignTime = Time.unscaledTime + DeathRealignIntervalSeconds;
-            AlignDeathPoseToGround(tpModel);
+            if (_deathTpLifecycle.Count == 0) AlignDeathPoseToGround(tpModel);
             Debug.Log($"[DeathVisual] 倒地表现 applied poseWriters={_deathPoseWriters.Count} "
                 + $"tpFrozen={_deathTpLifecycle.Count} grounded={_tpModelSavedPosition} "
                 + $"lifted={tpModel.localPosition.y - _tpModelSavedPosition.y:F3}", this);
@@ -1268,11 +1553,16 @@ namespace Game.Gameplay.Network
         /// 观察者先看到倒地广播、根随后才被 NetworkTransform 插值到位，尸体世界位姿会跟着根滑动。
         /// 节流 + 只在根确实移动过时重算（有界上下修正，收敛后 delta→0 不再动）。
         /// </summary>
+        private bool _deathGroundSettled;
         private void MaintainDeathPoseOnMovingGround()
         {
+            foreach (var component in _deathTpLifecycle)
+                if (component is Game.Gameplay.Animation.IThirdPersonPoseLifecycle life && !life.DeathPoseComplete) return;
+
             if (Time.unscaledTime < _nextDeathRealignTime) return;
             _nextDeathRealignTime = Time.unscaledTime + DeathRealignIntervalSeconds;
-            if (Vector3.Distance(transform.position, _deathLastRootPosition) < DeathRealignMinRootMove) return;
+            if (_deathGroundSettled && Vector3.Distance(transform.position, _deathLastRootPosition) < DeathRealignMinRootMove) return;
+            _deathGroundSettled = true;
             _deathLastRootPosition = transform.position;
             var tpModel = _tpModelCached;
             if (tpModel == null) return;

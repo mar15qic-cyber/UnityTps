@@ -35,7 +35,8 @@ public static class MapCatalog
         MapId: "map_04", DisplayName: "Training Yard", SceneName: "Map_TrainingYard",
         Modes: [GameModes.Tdm, GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
 
-    public static readonly IReadOnlyList<MapCatalogDto> All = [Arena, Stackyard, Depot55, Ridgeline, TrainingYard];
+    private static readonly IReadOnlyList<MapCatalogDto> Builtin = [Arena, Stackyard, Depot55, Ridgeline, TrainingYard];
+    public static IReadOnlyList<MapCatalogDto> All => PublishedMapCatalog.Read(Builtin);
 
     public static MapCatalogDto? Find(string? mapId) =>
         All.FirstOrDefault(x => string.Equals(x.MapId, mapId?.Trim(), StringComparison.OrdinalIgnoreCase));

@@ -25,8 +25,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2844691509066532196}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.000111098976, y: -0.09692845, z: 0.23759419}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalPosition: {x: 0.017708795, y: 0.024, z: 0.21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 3
+  geometryVerified: 1
 --- !u!1 &3315058721155893455
 GameObject:
   m_ObjectHideFlags: 0
@@ -71,7 +72,7 @@ Transform:
   m_GameObject: {fileID: 3315058721155893455}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.00006159929, y: 0.10807579, z: 0.038618144}
+  m_LocalPosition: {x: 0, y: 0.064679645, z: -0.067}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -90,6 +91,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 0
+  geometryVerified: 1
 --- !u!1 &4359632217841405497
 GameObject:
   m_ObjectHideFlags: 0
@@ -114,13 +116,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4359632217841405497}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0003250279, y: -0.05445572, z: 0.193077}
+  m_LocalRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
+  m_LocalPosition: {x: 0.0002, y: -0.0633, z: 0.1445}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6531982378343332315}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 283.678, y: 332.535, z: 228.299}
 --- !u!1 &4496152827529653755
 GameObject:
   m_ObjectHideFlags: 0
@@ -178,7 +180,7 @@ Transform:
   m_GameObject: {fileID: 6463531591427048555}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.0000615698, y: 0.01901709, z: 0.43115196}
+  m_LocalPosition: {x: 0.00006158184, y: 0.019017205, z: 0.44315195}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -197,51 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 1
---- !u!1 &7108314351232234444
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2246197073126435797}
-  - component: {fileID: 225690331446579154}
-  m_Layer: 0
-  m_Name: Attach_Underbarrel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2246197073126435797
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7108314351232234444}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.000111098976, y: -0.09692845, z: 0.17759418}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6531982378343332315}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &225690331446579154
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7108314351232234444}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  slot: 4
+  geometryVerified: 1
 --- !u!1001 &6531982378343457627
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -312,9 +270,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1754329877770245552}
-    - targetCorrespondingSourceObject: {fileID: 400000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2246197073126435797}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
 --- !u!4 &6531982378343332315 stripped

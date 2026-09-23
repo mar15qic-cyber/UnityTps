@@ -3,6 +3,7 @@ using System.Linq;
 using Game.Core;
 using Game.Gameplay.Weapon;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Game.Gameplay.Tests
 {
@@ -120,6 +121,19 @@ namespace Game.Gameplay.Tests
             Assert.That(r.MagazineSize, Is.EqualTo(30f).Within(1e-5f));
             Assert.That(r.SpreadScale, Is.EqualTo(1f).Within(1e-5f));
             Assert.That(r.VerticalRecoilDeg, Is.EqualTo(1.1f).Within(1e-5f));
+        }
+
+        [Test]
+        public void ShippedOptics_DoNotSecretlyChangeBallisticSpread()
+        {
+            var catalog = Resources.Load<AttachmentAssetCatalog>("AttachmentAssetCatalog");
+            Assert.That(catalog, Is.Not.Null, "运行时配件目录必须可加载");
+
+            var optics = catalog.Entries.Where(entry => entry != null && entry.slot == AttachmentSlotType.Optic).ToArray();
+            Assert.That(optics, Is.Not.Empty, "目录必须包含基础瞄具");
+            foreach (var optic in optics)
+                Assert.That(optic.modifiers.Any(modifier => modifier.stat == WeaponStatId.Spread), Is.False,
+                    $"瞄具 {optic.itemId} 不得暗改弹道散布；有镜/无镜必须共享同一准确度规则");
         }
     }
 }

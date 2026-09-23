@@ -170,7 +170,7 @@ namespace Game.Gameplay.Tests
             comp.Capture(10); // 历史位姿：z=5
             hitboxGo.transform.position = new Vector3(0f, 1f, 30f);
             Physics.SyncTransforms();
-            comp.Capture(20); // 当前位姿：z=30
+            comp.Capture(16); // 当前位姿：z=30；10→16 @30Hz 正好 200ms
 
             Assert.That(comp.TryBeginRewind(10), Is.True, "窗口内历史可回滚");
             try

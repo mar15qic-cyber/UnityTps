@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.8483692">
+  <test-suite type="TestSuite" id="1021" name="UnityFps" fullname="UnityFps" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.848369" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1012" name="Game.Gameplay.PlayModeTests.dll" fullname="E:/UnityProject/UnityFpsLowPoly/Library/ScriptAssemblies/Game.Gameplay.PlayModeTests.dll" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.828676" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="25440" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1013" name="Game" fullname="Game" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.818163" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1014" name="Gameplay" fullname="Game.Gameplay" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.798500" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1015" name="PlayModeTests" fullname="Game.Gameplay.PlayModeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.784905" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1003" name="TpDeathPlaybackTests" fullname="Game.Gameplay.PlayModeTests.TpDeathPlaybackTests" classname="Game.Gameplay.PlayModeTests.TpDeathPlaybackTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.761944" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1004" name="DeathAdvancesBonesHoldsLastFrameAndCanReplayAfterRespawn" fullname="Game.Gameplay.PlayModeTests.TpDeathPlaybackTests.DeathAdvancesBonesHoldsLastFrameAndCanReplayAfterRespawn" methodname="DeathAdvancesBonesHoldsLastFrameAndCanReplayAfterRespawn" classname="Game.Gameplay.PlayModeTests.TpDeathPlaybackTests" runstate="Runnable" seed="920995611" result="Passed" start-time="2026-09-22 19:04:22Z" end-time="2026-09-22 19:04:26Z" duration="3.737990" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/陈琪/AppData/LocalLow/DefaultCompany/UnityFps\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

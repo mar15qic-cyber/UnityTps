@@ -51,6 +51,7 @@ namespace Game.Gameplay.Network
     public readonly struct LagCompRewindContext
     {
         public readonly uint UsedTick;
+        public readonly double UsedTime;
         public readonly bool Rewound;
         /// <summary>客户端请求 tick（Phase 6 诊断：与 UsedTick 不同 = 发生了越窗裁剪）。</summary>
         public readonly uint RequestedTick;
@@ -58,9 +59,16 @@ namespace Game.Gameplay.Network
         /// <summary>是否发生裁剪（used != requested；仅 Rewound 时有意义）。</summary>
         public bool WasClamped => Rewound && UsedTick != RequestedTick;
 
+        public LagCompRewindContext(double usedTime, bool rewound, double requestedTime)
+        {
+            UsedTime = usedTime; UsedTick = (uint)usedTime;
+            Rewound = rewound; RequestedTick = (uint)requestedTime;
+        }
+
         public LagCompRewindContext(uint usedTick, bool rewound, uint requestedTick = 0)
         {
             UsedTick = usedTick;
+            UsedTime = usedTick;
             Rewound = rewound;
             RequestedTick = requestedTick;
         }
@@ -82,13 +90,24 @@ namespace Game.Gameplay.Network
     {
         /// <summary>功能开关（默认开启；实机异常时可整体关闭）。</summary>
         public static bool Enabled { get; set; } = true;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetRuntime()
+        {
+            Enabled = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-disableLagCompensation") < 0;
+            AfterCapture = null;
+        }
 
         public static ServerLagCompensation Instance { get; private set; }
 
         private TimeManager _timeManager;
+        private double _tickStarted;
+        private void BeginTickTiming() => _tickStarted = Time.realtimeSinceStartupAsDouble;
         private readonly List<PlayerHistory> _players = new();
         private readonly List<SavedPose> _savedPoses = new();
+        private readonly List<Collider> _unavailableColliders = new();
         private bool _rewindActive;
+        public static event System.Action AfterCapture;
+        private readonly Dictionary<Transform, Entry> _activeEntries = new();
         // 审计 2026-09-15 §5.2：两遍回溯的临时参与集（玩家+其目标 tick 快照）与保存去重集
         private readonly List<(PlayerHistory player, Entry entry)> _rewindScratch = new();
         private readonly HashSet<Transform> _savedTransforms = new();
@@ -103,6 +122,8 @@ namespace Game.Gameplay.Network
             public NetworkCombatAuthority Authority;
             public readonly List<Entry> Entries = new();
             public readonly Stack<Entry> Recycle = new();
+            public Vector3[] InterpolatedPositions;
+            public Quaternion[] InterpolatedRotations;
         }
 
         private readonly struct Entry
@@ -143,14 +164,15 @@ namespace Game.Gameplay.Network
         {
             Instance = this;
             _timeManager = InstanceFinder.TimeManager;
-            if (_timeManager != null) _timeManager.OnTick += CaptureCurrentTick;
+            if (_timeManager != null) { _timeManager.OnPostTick += CaptureCurrentTick; _timeManager.OnPreTick += BeginTickTiming; }
         }
 
         private void OnDestroy()
         {
             if (_timeManager != null)
             {
-                _timeManager.OnTick -= CaptureCurrentTick;
+                _timeManager.OnPostTick -= CaptureCurrentTick;
+                _timeManager.OnPreTick -= BeginTickTiming;
                 _timeManager = null;
             }
             if (Instance == this) Instance = null;
@@ -161,7 +183,12 @@ namespace Game.Gameplay.Network
             var nm = InstanceFinder.NetworkManager;
             if (nm == null || !nm.IsServerStarted) return;
             uint tick = _timeManager != null ? _timeManager.Tick : 0;
+            foreach (var player in _players)
+                if (player.Root != null) player.Root.GetComponent<PlayerNetworkAdapter>()?.PinTpModelToRootForServer();
             Capture(tick);
+            AfterCapture?.Invoke();
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "server-tick-total", serverTick = tick,
+                frameMs = (Time.realtimeSinceStartupAsDouble - _tickStarted) * 1000 });
         }
 
         /// <summary>注册一个联网玩家（服务器侧；PlayerNetworkAdapter.OnStartServer 调用，幂等）。
@@ -255,14 +282,22 @@ namespace Game.Gameplay.Network
         /// CombatResolver，供命中判定按射击时刻快照比对生命代际/无敌状态。</summary>
         public bool TryBeginRewind(uint targetTick, Transform excludeRoot, out uint usedTick)
         {
-            usedTick = 0;
-            if (!Enabled || _rewindActive || _players.Count == 0) return false;
-            long oldest = OldestAvailableTick();
-            if (oldest <= 0) return false;
-            uint clamped = LagCompensationPolicy.ClampTargetTick(targetTick, oldest, CurrentTick());
-            if (clamped == 0) return false;
-            usedTick = clamped;
+            bool result = TryBeginRewind((double)targetTick, excludeRoot, out double used);
+            usedTick = (uint)used;
+            return result;
+        }
 
+        public bool TryBeginRewind(double targetTick, Transform excludeRoot, out double usedTick, uint shotId = 0, int shooterConnection = -1)
+        {
+            usedTick = 0;
+            int rate = _timeManager != null ? (int)_timeManager.TickRate : 30;
+            if (!Enabled || _rewindActive || _players.Count == 0
+                || !ShotTimingPolicy.ValidDisplayTick(targetTick, CurrentTick(), rate)) return false;
+            double clamped = targetTick;
+            long oldest = OldestAvailableTick();
+            usedTick = clamped;
+            _activeEntries.Clear();
+            _unavailableColliders.Clear();
             _savedPoses.Clear();
             _rewindScratch.Clear();
             for (int p = 0; p < _players.Count; p++)
@@ -270,10 +305,21 @@ namespace Game.Gameplay.Network
                 var player = _players[p];
                 if (player.Root == null) continue;
                 if (excludeRoot != null && player.Root == excludeRoot) continue;
-                Entry? entry = ResolveEntry(player, clamped);
-                if (!entry.HasValue) continue;
+                Entry? entry = ResolveInterpolatedEntry(player, clamped);
+                if (!entry.HasValue)
+                {
+                    foreach (var collider in player.Colliders)
+                        if (collider != null && collider.enabled && !_unavailableColliders.Contains(collider)) _unavailableColliders.Add(collider);
+                    continue;
+                }
                 _rewindScratch.Add((player, entry.Value));
+                _activeEntries[player.Root] = entry.Value;
+                if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "rewind-target", usedTick = clamped,
+                    serverTick = (uint)CurrentTick(), shotId = shotId, connection = shooterConnection,
+                    targetConnection = (int)(player.Authority != null ? player.Authority.OwnerClientId : -1) });
             }
+
+            // Empty participant set is valid (shooting at static geometry / excluded shooter only).
 
             // PASS 1：全量保存回滚前位姿（去重——同 Transform 多碰撞体只保存一次）
             _savedTransforms.Clear();
@@ -295,6 +341,10 @@ namespace Game.Gameplay.Network
             if (trimmed || _rewindCount == 1 || _rewindCount % 30 == 0)
                 Debug.Log($"[Day3][LagComp] rewind req={targetTick} used={clamped} oldest={oldest} current={CurrentTick()} trimmed={trimmed} count={_rewindCount} players={_rewindScratch.Count} poses={_savedPoses.Count}");
 
+            _rewindActive = true;
+            try
+            {
+            foreach (var collider in _unavailableColliders) collider.enabled = false;
             // PASS 2：统一回写历史位姿（CharacterController 直接写 transform 仅用于查询期判定）
             for (int i = 0; i < _rewindScratch.Count; i++)
             {
@@ -308,8 +358,9 @@ namespace Game.Gameplay.Network
                 }
             }
             Physics.SyncTransforms();
-            _rewindActive = true;
             return true;
+            }
+            catch { EndRewind(); throw; }
         }
 
         /// <summary>恢复全部 hitbox 到回滚前位姿（判定后立即调用；幂等）。</summary>
@@ -324,6 +375,8 @@ namespace Game.Gameplay.Network
                 saved.Transform.SetPositionAndRotation(saved.Position, saved.Rotation);
             }
             _savedPoses.Clear();
+            foreach (var collider in _unavailableColliders) if (collider != null) collider.enabled = true;
+            _unavailableColliders.Clear();
             Physics.SyncTransforms();
         }
 
@@ -343,7 +396,9 @@ namespace Game.Gameplay.Network
             {
                 var player = _players[p];
                 if (player.Root != targetRoot) continue;
-                Entry? entry = ResolveEntry(player, rewindTick);
+                Entry? entry = _rewindActive
+                    ? (_activeEntries.TryGetValue(targetRoot, out var active) ? active : (Entry?)null)
+                    : ResolveEntry(player, rewindTick);
                 if (!entry.HasValue) return false;
                 lifeGeneration = entry.Value.LifeGeneration;
                 invincible = entry.Value.Invincible;
@@ -386,6 +441,29 @@ namespace Game.Gameplay.Network
         }
 
         /// <summary>取该玩家 ≤ 目标 tick 的最近快照（缺口容忍，等价于按最老可用裁剪）。</summary>
+        private static Entry? ResolveInterpolatedEntry(PlayerHistory player, double tick)
+        {
+            for (int i = player.Entries.Count - 1; i >= 0; i--)
+            {
+                var a = player.Entries[i];
+                if (a.Tick > tick) continue;
+                if (System.Math.Abs(a.Tick - tick) < 1e-6) return a;
+                if (i + 1 >= player.Entries.Count) return null;
+                var b = player.Entries[i + 1];
+                if (a.LifeGeneration != b.LifeGeneration) return null;
+                float t = (float)((tick - a.Tick) / (b.Tick - a.Tick));
+                var positions = player.InterpolatedPositions ??= new Vector3[a.Positions.Length];
+                var rotations = player.InterpolatedRotations ??= new Quaternion[a.Rotations.Length];
+                for (int c = 0; c < positions.Length; c++)
+                {
+                    positions[c] = Vector3.Lerp(a.Positions[c], b.Positions[c], t);
+                    rotations[c] = Quaternion.Slerp(a.Rotations[c], b.Rotations[c], t);
+                }
+                return new Entry((uint)tick, positions, rotations, a.LifeGeneration, a.Invincible || b.Invincible);
+            }
+            return null;
+        }
+
         private static Entry? ResolveEntry(PlayerHistory player, uint targetTick)
         {
             for (int i = player.Entries.Count - 1; i >= 0; i--)

@@ -1,0 +1,187 @@
+{
+  "result": {
+    "success": true,
+    "message": "Test job status retrieved.",
+    "error": null,
+    "data": {
+      "job_id": "85fa2330a3cc4272874ad49bec5f86cd",
+      "status": "succeeded",
+      "mode": "EditMode",
+      "started_unix_ms": 1790094808695,
+      "finished_unix_ms": 1790094817020,
+      "last_update_unix_ms": 1790094817020,
+      "progress": {
+        "completed": 16,
+        "total": 16,
+        "current_test_full_name": null,
+        "current_test_started_unix_ms": 1790094816797,
+        "last_finished_test_full_name": "Game.Gameplay.Tests.TacticalLobbyAssetTests.RoomMaterialsHavePackagedShaderDependencies",
+        "last_finished_unix_ms": 1790094816802,
+        "stuck_suspected": false,
+        "editor_is_focused": false,
+        "blocked_reason": null,
+        "failures_so_far": [],
+        "failures_capped": false
+      },
+      "error": null,
+      "result": {
+        "mode": "EditMode",
+        "summary": {
+          "total": 16,
+          "passed": 16,
+          "failed": 0,
+          "skipped": 0,
+          "durationSeconds": 3.258817,
+          "resultState": "Passed"
+        },
+        "results": [
+          {
+            "name": "AddFriendModalBlocksUnderlyingUiAndClosesOnNavigation",
+            "fullName": "Game.Gameplay.Tests.LobbyFriendsPageTests.AddFriendModalBlocksUnderlyingUiAndClosesOnNavigation",
+            "state": "Passed",
+            "durationSeconds": 0.3121098,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "FriendListDoesNotTruncateAfterFirstFewRows",
+            "fullName": "Game.Gameplay.Tests.LobbyFriendsPageTests.FriendListDoesNotTruncateAfterFirstFewRows",
+            "state": "Passed",
+            "durationSeconds": 0.2508245,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "SocialRefreshPreservesLobbyCharacterAndSupportsScrolling",
+            "fullName": "Game.Gameplay.Tests.LobbyFriendsPageTests.SocialRefreshPreservesLobbyCharacterAndSupportsScrolling",
+            "state": "Passed",
+            "durationSeconds": 0.0355839,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LoadingPage_HasProgressBarAndLogo",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.LoadingPage_HasProgressBarAndLogo",
+            "state": "Passed",
+            "durationSeconds": 0.0047913,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LobbyHome_Authenticated_BuildsCharacterAndSingleOnlineEntry",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.LobbyHome_Authenticated_BuildsCharacterAndSingleOnlineEntry",
+            "state": "Passed",
+            "durationSeconds": 0.0117759,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "LobbyHome_Unauthenticated_RedirectsToLogin",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.LobbyHome_Unauthenticated_RedirectsToLogin",
+            "state": "Passed",
+            "durationSeconds": 0.0049125,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "NavigationHidden_ExpandsBodyToFullScreen",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.NavigationHidden_ExpandsBodyToFullScreen",
+            "state": "Passed",
+            "durationSeconds": 0.0134886,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "NavSelection_FollowsCurrentPage",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.NavSelection_FollowsCurrentPage",
+            "state": "Passed",
+            "durationSeconds": 0.0086608,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "Shell_BuildsTopBarWithSixTabsAndStatus",
+            "fullName": "Game.Gameplay.Tests.LobbyShellPageTests.Shell_BuildsTopBarWithSixTabsAndStatus",
+            "state": "Passed",
+            "durationSeconds": 0.0080377,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "EveryProductionWeaponHasPackagedIconAndThirdPersonModel",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.EveryProductionWeaponHasPackagedIconAndThirdPersonModel",
+            "state": "Passed",
+            "durationSeconds": 1.8434551,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "MissingMaterialDisposesPartialStageWithoutLeavingWhiteImage_AndCanRetry",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.MissingMaterialDisposesPartialStageWithoutLeavingWhiteImage_AndCanRetry",
+            "state": "Passed",
+            "durationSeconds": 0.0237576,
+            "message": null,
+            "stackTrace": null,
+            "output": "[LobbyCharacterPreview] System.InvalidOperationException: Missing or unsupported lobby room material: Unlit\r\n  at Game.UI.LobbyCharacterPreview.Box (System.String name, UnityEngine.Vector3 position, UnityEngine.Vector3 scale, UnityEngine.Color color, System.Boolean unlit) [0x0007e] in E:\\UnityProject\\UnityFpsLowPoly\\Assets\\_Project\\Scripts\\UI\\LobbyCharacterPreview.cs:178 \r\n  at Game.UI.LobbyCharacterPreview.BuildRoom () [0x000e8] in E:\\UnityProject\\UnityFpsLowPoly\\Assets\\_Project\\Scripts\\UI\\LobbyCharacterPreview.cs:164 \r\n  at Game.UI.LobbyCharacterPreview.InitializeCore (System.Boolean renderEditorPreview) [0x00182] in E:\\UnityProject\\UnityFpsLowPoly\\Assets\\_Project\\Scripts\\UI\\LobbyCharacterPreview.cs:82 \r\n  at Game.UI.LobbyCharacterPreview.InitializeWithMaterials (System.Boolean renderEditorPreview, UnityEngine.Material lit, UnityEngine.Material unlit) [0x00034] in E:\\UnityProject\\UnityFpsLowPoly\\Assets\\_Project\\Scripts\\UI\\LobbyCharacterPreview.cs:45 \r\n"
+          },
+          {
+            "name": "PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.m4\")",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.m4\")",
+            "state": "Passed",
+            "durationSeconds": 0.0204637,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.smg01\")",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.smg01\")",
+            "state": "Passed",
+            "durationSeconds": 0.0030131,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.shotgun01\")",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.shotgun01\")",
+            "state": "Passed",
+            "durationSeconds": 0.0025972,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.sniper01\")",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.PreviewPreservesMountPoseAndReleasesItsStage(\"weapon.sniper01\")",
+            "state": "Passed",
+            "durationSeconds": 0.0025129,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          },
+          {
+            "name": "RoomMaterialsHavePackagedShaderDependencies",
+            "fullName": "Game.Gameplay.Tests.TacticalLobbyAssetTests.RoomMaterialsHavePackagedShaderDependencies",
+            "state": "Passed",
+            "durationSeconds": 0.0044101,
+            "message": null,
+            "stackTrace": null,
+            "output": ""
+          }
+        ]
+      }
+    },
+    "hint": null
+  }
+}

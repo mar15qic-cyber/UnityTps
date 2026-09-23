@@ -23,12 +23,52 @@ namespace Game.EditorTools
     public static class AttachmentSocketBuilder
     {
         private static readonly string[] ModelSlots = { "Optic", "Muzzle", "Tactical", "Underbarrel" };
+        // Native rifle iron-sight meshes contain both the rear sight and the front post.
+        // Averaging the combined mesh puts an optic half-way down the handguard.  Mount
+        // the optic 50 mm in front of the rear-sight cluster instead: this keeps the body
+        // on the receiver while leaving room behind it for the shooter's eye.
+        private const float NativeRifleOpticForwardInset = 0.05f;
+        private static readonly (string id, string fp, string tp)[] NativeRifleOpticPrefabs =
+        {
+            ("weapon.m4", "Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab", "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab"),
+            ("weapon.ak", "Assets/_Project/Prefabs/Weapons/FP_Rifle02_View.prefab", "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab"),
+            ("weapon.rifle03", "Assets/_Project/Prefabs/Weapons/FP_Rifle03_View.prefab", "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab")
+        };
 
         [MenuItem("Tools/Attachments/Build Sockets (45 Weapons)")]
         public static void BuildAll() => BuildCore(nativeOnly: false);
 
         [MenuItem("Tools/Attachments/Build Sockets (Native 16 Only)")]
         public static void BuildNativeOnly() => BuildCore(nativeOnly: true);
+
+        [MenuItem("Tools/Attachments/Repair Native Rifle Optic Longitudinal Anchors")]
+        public static void RepairNativeRifleOpticLongitudinalAnchors()
+        {
+            var report = new StringBuilder();
+            var repaired = 0;
+            foreach (var spec in NativeRifleOpticPrefabs)
+            {
+                var fpMoved = RepairOpticLongitudinalAnchor(spec.fp, out var fpBefore, out var fpAfter);
+                var fpBeforeY = 0f;
+                var fpRailTop = float.NaN;
+                var fpSeated = fpMoved && OpticSocketRailContactCalibrator.TryAdjust(
+                    spec.fp, true, out fpBeforeY, out fpRailTop);
+                if (fpSeated) repaired++;
+                report.AppendLine($"FP {spec.id}: forward {fpBefore:F4} -> {fpAfter:F4}; "
+                    + $"seatY {fpBeforeY:F4} + {fpRailTop:F4}");
+
+                var tpMoved = RepairOpticLongitudinalAnchor(spec.tp, out var tpBefore, out var tpAfter);
+                var tpBeforeY = 0f;
+                var tpRailTop = float.NaN;
+                var tpSeated = tpMoved && OpticSocketRailContactCalibrator.TryAdjust(
+                    spec.tp, false, out tpBeforeY, out tpRailTop);
+                if (tpSeated) repaired++;
+                report.AppendLine($"TP {spec.id}: forward {tpBefore:F4} -> {tpAfter:F4}; "
+                    + $"seatY {tpBeforeY:F4} + {tpRailTop:F4}");
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SocketBuilder] Native rifle optic longitudinal repair: {repaired}/6\n{report}");
+        }
 
         private static void BuildCore(bool nativeOnly)
         {
@@ -59,6 +99,12 @@ namespace Game.EditorTools
                 }
                 else
                 {
+                    if (NativeAttachmentMountRepair.Registrations.ContainsKey(itemId))
+                    {
+                        NativeAttachmentMountRepair.Repair(itemId, definition);
+                        fpDone++; tpDone++;
+                        continue;
+                    }
                     var tpPoses = DeriveNativeTpPoses(AssetDatabase.GetAssetPath(definition.ThirdPersonViewPrefab), slots, report, itemId);
                     if (tpPoses == null) { skipped++; continue; }
                     if (WriteSockets(AssetDatabase.GetAssetPath(definition.ThirdPersonViewPrefab), null, tpPoses, itemId, report)) tpDone++;
@@ -116,7 +162,13 @@ namespace Game.EditorTools
             "weapon.shotgun01" => "shotgun.01",
             "weapon.sniper01" => "sniper.01",
             "weapon.sniper02" => "sniper.02",
+            "weapon.sniper03" => "sniper.03",
             "weapon.handgun02" => "handgun.02",
+            "weapon.handgun03" => "handgun.03",
+            "weapon.handgun04" => "handgun.04",
+            "weapon.smg03" => "smg.03",
+            "weapon.smg04" => "smg.04",
+            "weapon.smg05" => "smg.05",
             _ => itemId
         };
 
@@ -194,6 +246,103 @@ namespace Game.EditorTools
             if (lastBin.HasValue) return (lastBin.Value, lastBinPts);
             var top = scanFromTop ? list.OrderByDescending(height).First() : list.OrderBy(height).First();
             return (height(top), list.Where(p => Mathf.Abs(height(p) - height(top)) <= 0.003f).ToArray());
+        }
+
+        private static bool IsNativeRifle(string itemId)
+            => itemId == "weapon.m4" || itemId == "weapon.ak" || itemId == "weapon.rifle03";
+
+        /// <summary>
+        /// Splits the combined rear/front iron-sight mesh at its largest longitudinal gap.
+        /// Native rifles have two well-separated vertex islands (measured gap 0.35-0.39 m);
+        /// the lower-forward-coordinate island is the receiver/rear sight.  Returns the
+        /// desired optic origin 50 mm in front of that island's centroid.
+        /// </summary>
+        private static bool TryGetRearSightOpticForward(
+            IEnumerable<Vector3> ironPoints, Vector3 forward, out float opticForward)
+        {
+            opticForward = 0f;
+            var samples = ironPoints.Select(p => Vector3.Dot(p, forward)).OrderBy(v => v).ToArray();
+            if (samples.Length < 8) return false;
+
+            var split = -1;
+            var largestGap = 0f;
+            // Ignore tiny edge fragments; both sight islands must contain real geometry.
+            for (var i = 3; i < samples.Length - 4; i++)
+            {
+                var gap = samples[i + 1] - samples[i];
+                if (gap <= largestGap) continue;
+                largestGap = gap;
+                split = i;
+            }
+            if (split < 0 || largestGap < 0.04f) return false;
+
+            var rearSum = 0f;
+            for (var i = 0; i <= split; i++) rearSum += samples[i];
+            opticForward = rearSum / (split + 1) + NativeRifleOpticForwardInset;
+            return true;
+        }
+
+        /// <summary>Repairs only the optic socket's longitudinal coordinate. Height,
+        /// cross-axis alignment, rotation and every other attachment socket stay untouched.</summary>
+        private static bool RepairOpticLongitudinalAnchor(string prefabPath,
+            out float beforeForward, out float afterForward)
+        {
+            beforeForward = 0f;
+            afterForward = 0f;
+            var contents = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                var socket = contents.GetComponentsInChildren<AttachmentSocket>(true)
+                    .FirstOrDefault(s => s.Slot == AttachmentSlotType.Optic);
+                if (socket == null)
+                {
+                    Debug.LogError("[SocketBuilder] Missing optic socket: " + prefabPath);
+                    return false;
+                }
+
+                var parent = socket.transform.parent;
+                if (socket.GeometryVerified) return true;
+                var points = new List<Vector3>();
+                foreach (var renderer in contents.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (renderer == null || !renderer.name.ToLowerInvariant().Contains("iron")) continue;
+                    Mesh mesh = null;
+                    var ownsMesh = false;
+                    if (renderer is SkinnedMeshRenderer smr)
+                    {
+                        if (smr.sharedMesh == null) continue;
+                        mesh = new Mesh();
+                        smr.BakeMesh(mesh, true);
+                        ownsMesh = true;
+                    }
+                    else
+                    {
+                        var filter = renderer.GetComponent<MeshFilter>();
+                        if (filter == null || filter.sharedMesh == null) continue;
+                        mesh = filter.sharedMesh;
+                    }
+
+                    foreach (var vertex in mesh.vertices)
+                        points.Add(parent.InverseTransformPoint(renderer.transform.TransformPoint(vertex)));
+                    if (ownsMesh) Object.DestroyImmediate(mesh);
+                }
+
+                var forward = (socket.transform.localRotation * Vector3.left).normalized;
+                beforeForward = Vector3.Dot(socket.transform.localPosition, forward);
+                if (!TryGetRearSightOpticForward(points, forward, out afterForward))
+                {
+                    Debug.LogError("[SocketBuilder] Cannot split rear/front iron sights: " + prefabPath);
+                    return false;
+                }
+
+                socket.transform.localPosition += forward * (afterForward - beforeForward);
+                PrefabUtility.SaveAsPrefabAsset(contents, prefabPath);
+                return true;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
         }
 
         // ==================== LPW 推导（wrapper 局部系：-X 前向） ====================
@@ -309,6 +458,9 @@ namespace Game.EditorTools
                 var fromTop = !railRef.name.ToLowerInvariant().Contains("scope");   // iron 顶向下找照门座底；scope 底向上找镜环底
                 var (deckY, deckPts) = DetectRailDeck(pts, p => p.y, p => p.z, p => p.x, fromTop);
                 railPos = new Vector3(deckPts.Average(p => p.x), deckY, deckPts.Average(p => p.z));
+                if (IsNativeRifle(itemId) && fromTop
+                    && TryGetRearSightOpticForward(pts, forward, out var opticForward))
+                    railPos += forward * (opticForward - Vector3.Dot(railPos, forward));
             }
             else
             {
@@ -396,6 +548,9 @@ namespace Game.EditorTools
                     var (deckY, deckPts) = DetectRailDeck(railRefPts, U, F, p => Vector3.Dot(p, cross), scopePts.Count == 0);
                     var c = Average(deckPts);
                     railPos = c + up * (deckY - U(c));   // 质心投影回甲板高度
+                    if (IsNativeRifle(itemId) && scopePts.Count == 0
+                        && TryGetRearSightOpticForward(ironPts, fwd, out var opticForward))
+                        railPos += fwd * (opticForward - F(railPos));
                 }
                 else
                 {
@@ -479,11 +634,13 @@ namespace Game.EditorTools
                 var parent = string.IsNullOrEmpty(parentPath) ? root : root.Find(parentPath);
                 if (parent == null) { report.AppendLine($"ERR {itemId}: 挂载父节点未找到 {parentPath} @ {prefabPath}"); return false; }
 
-                for (int i = parent.childCount - 1; i >= 0; i--)
-                {
-                    var child = parent.GetChild(i);
-                    if (child.name.StartsWith("Attach_")) Object.DestroyImmediate(child.gameObject);
-                }
+                // Remove every generated socket in the prefab before writing the canonical
+                // parent. Older runs could leave a socket under a stale wrapper/hand bone;
+                // deleting only direct children made duplicate Attach_Optic nodes survive.
+                foreach (var socket in root.GetComponentsInChildren<Transform>(true)
+                    .Where(t => t != root && t.name.StartsWith("Attach_"))
+                    .ToArray())
+                    Object.DestroyImmediate(socket.gameObject);
 
                 foreach (var pose in poses)
                 {

@@ -1,0 +1,205 @@
+{
+  "status": "未执行公网测试",
+  "cases": [
+    {
+      "map": "Arena",
+      "networkProfile": "原生公网",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Arena",
+      "networkProfile": "RTT80",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Arena",
+      "networkProfile": "RTT150",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Arena",
+      "networkProfile": "RTT250压力",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Arena",
+      "networkProfile": "断流恢复",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Stackyard",
+      "networkProfile": "原生公网",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Stackyard",
+      "networkProfile": "RTT80",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Stackyard",
+      "networkProfile": "RTT150",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Stackyard",
+      "networkProfile": "RTT250压力",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Stackyard",
+      "networkProfile": "断流恢复",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Depot55",
+      "networkProfile": "原生公网",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Depot55",
+      "networkProfile": "RTT80",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Depot55",
+      "networkProfile": "RTT150",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Depot55",
+      "networkProfile": "RTT250压力",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Depot55",
+      "networkProfile": "断流恢复",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Ridgeline",
+      "networkProfile": "原生公网",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Ridgeline",
+      "networkProfile": "RTT80",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Ridgeline",
+      "networkProfile": "RTT150",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Ridgeline",
+      "networkProfile": "RTT250压力",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "Ridgeline",
+      "networkProfile": "断流恢复",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "TrainingYard",
+      "networkProfile": "原生公网",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "TrainingYard",
+      "networkProfile": "RTT80",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "TrainingYard",
+      "networkProfile": "RTT150",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "TrainingYard",
+      "networkProfile": "RTT250压力",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    },
+    {
+      "map": "TrainingYard",
+      "networkProfile": "断流恢复",
+      "access": "未验证",
+      "experience": "未验证",
+      "lagCompensation": "未验证",
+      "evidence": []
+    }
+  ]
+}

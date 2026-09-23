@@ -28,7 +28,7 @@ namespace Game.UI
             public string Error;
         }
 
-        public static string HotFilesRootBase => Path.Combine(Application.persistentDataPath, "HotFiles");
+        public static string HotFilesRootBase => Path.Combine(Application.persistentDataPath, "HotFiles", Game.Core.ClientReleaseEnvironment.Current?.environmentId ?? "local");
 
         /// <summary>命令行覆盖（-hotupdateUrl=...；off=禁用）。返回 null = 未指定。</summary>
         public static string ResolveUrlOverride()
@@ -47,7 +47,9 @@ namespace Game.UI
             var result = new Result();
             try
             {
-                if (string.IsNullOrEmpty(urlOverride)) urlOverride = ResolveUrlOverride();
+                var release = Game.Core.ClientReleaseEnvironment.Current;
+                if (release?.inviteOnly == true) urlOverride = release.hotUpdateBaseUrl;
+                else if (string.IsNullOrEmpty(urlOverride)) urlOverride = ResolveUrlOverride();
                 if (string.Equals(urlOverride, "off", StringComparison.OrdinalIgnoreCase))
                 {
                     result.Kind = "disabled";
@@ -58,7 +60,7 @@ namespace Game.UI
                     result.Kind = "skipped-editor"; // 编辑器快速迭代：直接用内置脚本
                     return Finish(result);
                 }
-                var baseUrl = (string.IsNullOrEmpty(urlOverride) ? DefaultBaseUrl : urlOverride).TrimEnd('/');
+                var baseUrl = (string.IsNullOrEmpty(urlOverride) ? (release?.hotUpdateBaseUrl ?? DefaultBaseUrl) : urlOverride).TrimEnd('/');
 
                 // 1) 远端清单（不可达 → 回退已装/内置，不阻塞进大厅）
                 // F04（2026-09-19 审计）：所有失败出口必须恢复已安装根目录——新进程
@@ -80,6 +82,12 @@ namespace Game.UI
                 }
                 // F18：清单结构整体校验（版本严格单段纯数字/路径消毒/size/hash/重复路径）——
                 // 校验失败视同坏 manifest，整包拒绝，不做任何下载。
+                if (release?.inviteOnly == true && remote.releaseId != release.releaseId)
+                {
+                    result.Kind = "release-mismatch";
+                    result.Error = "Client and hot-update release identities differ";
+                    return Finish(result);
+                }
                 var manifestInvalid = HotUpdateInstaller.ValidateManifest(remote);
                 if (manifestInvalid != null)
                 {

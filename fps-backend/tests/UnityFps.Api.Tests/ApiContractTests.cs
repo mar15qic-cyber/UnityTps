@@ -61,7 +61,8 @@ public sealed class ApiContractTests : IClassFixture<ApiFactory>
         var root = passJson.RootElement;
         Assert.Equal("S1", root.GetProperty("seasonId").GetString());
         Assert.Equal(1, root.GetProperty("level").GetInt32());
-        Assert.Equal(15, root.GetProperty("rewards").GetArrayLength());
+        // S1 level 8 的旧手枪瞄具奖励已下线，奖励轨保留等级空洞。
+        Assert.Equal(14, root.GetProperty("rewards").GetArrayLength());
         Assert.Equal(10, root.GetProperty("achievements").GetArrayLength());
         Assert.Equal("Coins", root.GetProperty("rewards")[0].GetProperty("rewardType").GetString());
         Assert.Equal(200, root.GetProperty("rewards")[0].GetProperty("coinsAmount").GetInt32());
@@ -75,7 +76,7 @@ public sealed class ApiContractTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task MatchSettlementRoundTripAwardsThreeCurrencies()
+    public async Task RetiredClientRewardAndUpgradeEndpointsCannotMutateProfile()
     {
         var username = "settle_" + Guid.NewGuid().ToString("N")[..8];
         await client.PostAsJsonAsync("/api/auth/register", new { username, password = "Password123!" });
@@ -83,25 +84,20 @@ public sealed class ApiContractTests : IClassFixture<ApiFactory>
         using var loginJson = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginJson.RootElement.GetProperty("token").GetString());
 
-        var payload = new { clientMatchId = "contract-settle-0001", kills = 20, deaths = 5, durationSeconds = 400, isWin = true };
-        var first = await client.PostAsJsonAsync("/api/matches", payload);
-        Assert.True(first.IsSuccessStatusCode, await first.Content.ReadAsStringAsync());
-        using var firstJson = JsonDocument.Parse(await first.Content.ReadAsStringAsync());
-        var firstRoot = firstJson.RootElement;
-        Assert.Equal(700, firstRoot.GetProperty("xpEarned").GetInt32());
-        Assert.Equal(350, firstRoot.GetProperty("coinsEarned").GetInt32());
-        Assert.Equal(1000, firstRoot.GetProperty("passXpEarned").GetInt32());
-        Assert.Equal(3, firstRoot.GetProperty("passLevel").GetInt32());
-        Assert.False(firstRoot.GetProperty("replayed").GetBoolean());
+        var before = await client.GetStringAsync("/api/profile");
+        var payload = new { clientMatchId = "retired-0001", kills = 20, deaths = 5, durationSeconds = 400, isWin = true };
+        for (var i = 0; i < 2; i++)
+        {
+            var response = await client.PostAsJsonAsync("/api/matches", payload);
+            Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
+        }
+        Assert.Equal(before, await client.GetStringAsync("/api/profile"));
+        var upgrade = await client.PutAsJsonAsync("/api/profile/upgrades", new { upDamage = 1 });
+        Assert.False(upgrade.IsSuccessStatusCode);
+        using var profile = JsonDocument.Parse(before);
+        Assert.False(profile.RootElement.TryGetProperty("skillPoints", out _));
+        Assert.False(profile.RootElement.TryGetProperty("upgrades", out _));
 
-        var replay = await client.PostAsJsonAsync("/api/matches", payload);
-        Assert.True(replay.IsSuccessStatusCode);
-        using var replayJson = JsonDocument.Parse(await replay.Content.ReadAsStringAsync());
-        Assert.True(replayJson.RootElement.GetProperty("replayed").GetBoolean());
-
-        var overload = await client.PostAsJsonAsync("/api/matches",
-            new { clientMatchId = "contract-settle-0002", kills = 99, deaths = 0, durationSeconds = 100, isWin = false });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, overload.StatusCode);
     }
 }
 

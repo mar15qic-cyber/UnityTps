@@ -24,6 +24,7 @@ namespace Game.Gameplay.Network
 
         /// <summary>客户端应用协议代际（GameProtocolIdentity.ProtocolId；空 = 旧客户端）。</summary>
         public string ProtocolId;
+        public string MapContentHash;
     }
 
     /// <summary>服务器 → 客户端：认证结果。失败携带冻结错误码（TICKET_INVALID/TICKET_EXPIRED/TICKET_REPLAYED/TICKET_INSTANCE_MISMATCH 或本地 backend-timeout）。

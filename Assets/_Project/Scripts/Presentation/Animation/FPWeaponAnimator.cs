@@ -1,6 +1,7 @@
 using System;
 using Animancer;
 using Game.Gameplay.Action;
+using Game.Gameplay.Combat;
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
 using UnityEngine;
@@ -52,6 +53,12 @@ namespace Game.Presentation.Animation
         public int ProceduralFireCount { get; private set; }
 
         private AnimancerComponent _animancer;
+        private ThrowableController _throwables;
+        private AnimancerState _throwState;
+        private GameObject _heldThrowable;
+        private float _throwStartedAt;
+        private bool _throwPlaying;
+        private readonly System.Collections.Generic.List<Renderer> _throwHidden = new();
         private WeaponAnimationSet _clips;
         private bool _clipsReady;
         private bool _playedBeforeStart;
@@ -62,6 +69,8 @@ namespace Game.Presentation.Animation
         private float _aimOutTimer;    // 收镜 clip 适配窗剩余（完成判定）
         private float _aimFireTimer;   // ADS 开火 clip 剩余时长
         private AnimancerState _reloadState;
+        private float _segmentedReloadStartedAt;
+        private bool _segmentedReload;
         private AnimancerState _drawState;
         private AnimancerState _holsterState;
         private float _drawIdleBlendRemaining;
@@ -76,7 +85,9 @@ namespace Game.Presentation.Animation
         public bool HasReloadAnimationClock => _reloadState != null;
         public float CurrentReloadNormalizedTime => _reloadState == null
             ? 0f
-            : Mathf.Clamp01(_reloadState.NormalizedTime);
+            : _segmentedReload
+                ? Mathf.Clamp01((Time.time - _segmentedReloadStartedAt) / Mathf.Max(.01f, controller.Stat.ReloadTime))
+                : Mathf.Clamp01(_reloadState.NormalizedTime);
 
         /// <summary>
         /// True while a draw/holster state or its explicit draw-to-idle fade is
@@ -94,6 +105,7 @@ namespace Game.Presentation.Animation
             _animancer.Animator.applyRootMotion = false;
             _animancer.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             if (controller == null) controller = GetComponentInParent<WeaponController>();
+            if (_throwables == null) _throwables = GetComponentInParent<ThrowableController>();
             if (aimState == null) aimState = GetComponentInParent<PlayerAimState>();
             if (actionSystem == null) actionSystem = GetComponentInParent<ActionSystem>();
             if (input == null) input = GetComponentInParent<InputReader>();
@@ -105,6 +117,7 @@ namespace Game.Presentation.Animation
         private void OnEnable()
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
+            if (_throwables == null) _throwables = GetComponentInParent<ThrowableController>();
             if (aimState == null) aimState = GetComponentInParent<PlayerAimState>();
             if (actionSystem == null) actionSystem = GetComponentInParent<ActionSystem>();
             if (input == null) input = GetComponentInParent<InputReader>();
@@ -125,6 +138,7 @@ namespace Game.Presentation.Animation
             controller.OnReloadStarted += HandleReloadStarted;
             controller.OnReloadCompleted += HandleReloadCompleted;
             controller.OnReloadInterrupted += HandleReloadInterrupted;
+            if (_throwables != null) { _throwables.OnLocalThrowStarted += HandleThrowStarted; _throwables.OnSelectionChanged += HandleThrowableSelection; }
         }
 
         private void Start()
@@ -138,6 +152,7 @@ namespace Game.Presentation.Animation
 
         private void OnDisable()
         {
+            CurrentActionVersion++;
             if (controller != null)
             {
                 controller.OnShotFired -= HandleShot;
@@ -146,6 +161,8 @@ namespace Game.Presentation.Animation
                 controller.OnReloadCompleted -= HandleReloadCompleted;
                 controller.OnReloadInterrupted -= HandleReloadInterrupted;
             }
+            if (_throwables != null) { _throwables.OnLocalThrowStarted -= HandleThrowStarted; _throwables.OnSelectionChanged -= HandleThrowableSelection; }
+            ClearThrowablePresentation();
             _reloadState = null;
             _drawState = null;
             _holsterState = null;
@@ -159,6 +176,14 @@ namespace Game.Presentation.Animation
         private void Update()
         {
             if (controller == null) return;
+            if (_throwables != null && (_throwables.IsEquipped || _throwPlaying))
+            {
+                if (_throwPlaying && _heldThrowable != null && Time.time - _throwStartedAt >= _throwables.ReleaseDelaySeconds)
+                    _heldThrowable.SetActive(false);
+                if (!_throwables.IsEquipped && !_throwables.IsThrowing) HandleThrowableSelection();
+                _shotFiredThisFrame = _dryFiredThisFrame = _holsterRequestedThisFrame = false;
+                return;
+            }
             float dt = Time.deltaTime;
             if (_aimOutTimer > 0f) _aimOutTimer = Mathf.Max(0f, _aimOutTimer - dt);
             if (_aimFireTimer > 0f) _aimFireTimer = Mathf.Max(0f, _aimFireTimer - dt);
@@ -358,6 +383,17 @@ namespace Game.Presentation.Animation
             _aimFsm.ResetToHip(); // 换弹接管主轨道，aim 状态归零
             bool empty = controller.Runtime.CurrentAmmo == 0;
             AnimationClip clip = empty ? _clips.ReloadOutOfAmmo : _clips.ReloadAmmoLeft;
+            _segmentedReload = false;
+            if (_clips.ReloadOpen != null && _clips.ReloadInsert != null && _clips.ReloadClose != null)
+            {
+                _segmentedReload = true;
+                _segmentedReloadStartedAt = Time.time;
+                int shells = Mathf.Max(1, Mathf.Min(controller.Runtime.MagazineSize - controller.Runtime.CurrentAmmo,
+                    controller.Runtime.ReserveAmmo));
+                float length = _clips.ReloadOpen.length + shells * _clips.ReloadInsert.length + _clips.ReloadClose.length;
+                PlayReloadStage(0, shells, length / Mathf.Max(.01f, controller.Stat.ReloadTime), ++CurrentActionVersion);
+                return;
+            }
             if (clip == null)
             {
                 // 分段换弹枪（Shotgun01/Sniper01 无整段 reload clip）：aim 姿态滞留防护——
@@ -390,6 +426,21 @@ namespace Game.Presentation.Animation
                 events.Add(profile.MagIn.NormalizedTime, () => RaiseStage(WeaponAnimEventType.MagIn, version));
             if (profile.BoltRack.Clip != null && profile.BoltRack.NormalizedTime > 0f)
                 events.Add(profile.BoltRack.NormalizedTime, () => RaiseStage(WeaponAnimEventType.BoltRack, version));
+        }
+
+        private void PlayReloadStage(int stage, int shells, float speed, int version)
+        {
+            if (version != CurrentActionVersion || controller == null || controller.Runtime == null) return;
+            var clip = stage == 0 ? _clips.ReloadOpen : stage <= shells ? _clips.ReloadInsert : _clips.ReloadClose;
+            _reloadState = _animancer.Play(clip, .04f, FadeMode.FromStart);
+            _reloadState.Time = 0f;
+            _reloadState.Speed = speed;
+            if (stage == 0) RaiseStage(WeaponAnimEventType.MagOut, version);
+            else if (stage <= shells) RaiseStage(WeaponAnimEventType.MagIn, version);
+            else RaiseStage(WeaponAnimEventType.BoltRack, version);
+            _reloadState.Events(this).OnEnd = stage <= shells
+                ? () => PlayReloadStage(stage + 1, shells, speed, version)
+                : null;
         }
 
         private void RaiseStage(WeaponAnimEventType type, int version)
@@ -495,6 +546,88 @@ namespace Game.Presentation.Animation
             _aimFsm.SetHasAimClips(_clips.HasAimClips);
             _proceduralAdsFire = RoutesToProceduralAdsFire(poseProfile);
             _aimFsm.SetProceduralAdsFire(_proceduralAdsFire);
+        }
+
+        private void HandleThrowableSelection()
+        {
+            ClearThrowablePresentation();
+            _aimFsm.ResetToHip();
+            if (_throwables == null || !_throwables.IsEquipped) { PlayIdle(); return; }
+            if (!_clipsReady) LoadClips();
+            StopArmFeedback(0f);
+            if (_clips.ThrowGrenade == null) return;
+            _throwState = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
+            _throwState.Time = _clips.ThrowGrenade.length * 0.35f;
+            _throwState.Speed = 0f;
+            var hand = transform.Find("Armature/arm_L/lower_arm_L/hand_L");
+            if (hand != null && _throwables.SelectedDefinition != null)
+            {
+                _heldThrowable = Instantiate(_throwables.SelectedDefinition.ModelPrefab, hand, false);
+                _heldThrowable.name = "HeldThrowable";
+                _heldThrowable.transform.localPosition = HeldThrowablePosition(_heldThrowable);
+                foreach (var t in _heldThrowable.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = gameObject.layer;
+                foreach (var c in _heldThrowable.GetComponentsInChildren<Collider>()) c.enabled = false;
+            }
+            foreach (var r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (!r.enabled || r.name == "arms" || _heldThrowable != null && r.transform.IsChildOf(_heldThrowable.transform)) continue;
+                r.enabled = false; _throwHidden.Add(r);
+            }
+        }
+
+        internal static Vector3 HeldThrowablePosition(GameObject model)
+        {
+            // hand_L is the wrist, not the palm centre. Seat the body between
+            // the curled fingers and thumb, outside the palm's negative-X face.
+            var bounds = new Bounds(Vector3.zero, Vector3.zero);
+            bool haveBounds = false;
+            foreach (var mesh in model.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mesh.sharedMesh == null) continue;
+                var b = mesh.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1,
+                        (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = model.transform.InverseTransformPoint(mesh.transform.TransformPoint(corner));
+                    if (!haveBounds) { bounds = new Bounds(p, Vector3.zero); haveBounds = true; }
+                    else bounds.Encapsulate(p);
+                }
+            }
+            return new Vector3(-bounds.extents.x - .006f, .082f, .013f) - bounds.center;
+        }
+
+        private void ClearThrowablePresentation()
+        {
+            _throwPlaying = false; _throwState = null;
+            if (_heldThrowable != null) { _heldThrowable.SetActive(false); Destroy(_heldThrowable); _heldThrowable = null; }
+            foreach (var r in _throwHidden) if (r != null) r.enabled = true;
+            _throwHidden.Clear();
+        }
+
+        private void HandleThrowStarted(ThrowableType _)
+        {
+            if (!_clipsReady) LoadClips();
+            if (_clips.ThrowGrenade == null)
+            {
+                Debug.LogError($"[FPWeaponAnimator] grenade_throw clip missing for {controller?.Definition?.name}", this);
+                return;
+            }
+            _throwPlaying = true;
+            _throwStartedAt = Time.time;
+            _aimFsm.ResetToHip();
+            StopArmFeedback(actionFadeSeconds);
+            var state = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
+            if (_throwables.ThrowActionSeconds <= 0f)
+            {
+                Debug.LogError("[FPWeaponAnimator] throw action duration missing", this);
+                return;
+            }
+            // Selection already raised the grenade to this pose. Replaying the wind-up
+            // from frame zero makes a click pull the hand back before it can release.
+            state.Time = _clips.ThrowGrenade.length * .35f;
+            state.Speed = _clips.ThrowGrenade.length * .65f / _throwables.ThrowActionSeconds;
+            state.Events(this).OnEnd = () => { if (_throwables != null) _throwables.Unequip(); HandleThrowableSelection(); };
         }
 
         /// <summary>

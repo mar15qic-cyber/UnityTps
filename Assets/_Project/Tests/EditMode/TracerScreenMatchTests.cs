@@ -1,4 +1,5 @@
 using Game.Presentation.Camera;
+using Game.Presentation.Weapon;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -103,7 +104,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void MuzzleStart_ProjectsInsideOverlayView_DepthConsistent()
         {
-            // 起点连续性：曳光近段起点=冻结枪口（FP 层内直接渲染），其 FP 视口位置
+            // 起点连续性：曳光近段起点=绘制帧的可见枪口（FP 层内直接渲染），其 FP 视口位置
             // 与枪口世界位的 FP 投影一致（同相机渲染，天然连续——旧实现把起点交给
             // 世界相机渲染才产生平行错位）。
             var (world, fp) = MakeRigPair();
@@ -114,6 +115,52 @@ namespace Game.Gameplay.Tests
             Assert.That(fpViewport.y, Is.InRange(0f, 1f));
             float depth = Vector3.Dot(muzzleWorld - fp.Position, fp.Forward);
             Assert.That(depth, Is.EqualTo(fpViewport.z).Within(1e-3f));
+        }
+
+        [Test]
+        public void VisualTracerStart_ResamplesCurrentMuzzleAfterJumpMotion()
+        {
+            var muzzleObject = new GameObject("TestMuzzle");
+            try
+            {
+                var shotFrameFallback = new Vector3(0f, 1f, 0f);
+                muzzleObject.transform.position = shotFrameFallback + new Vector3(0.4f, 0.9f, 0.7f);
+
+                Vector3 resolved = WeaponView.ResolveVisualTracerStart(muzzleObject.transform, shotFrameFallback);
+                Assert.That(resolved, Is.EqualTo(muzzleObject.transform.position),
+                    "服务器确认到达后必须从当前可见枪口绘制，不能从跳跃前缓存位置发射");
+
+                muzzleObject.transform.position += new Vector3(0.2f, 0.3f, 0.5f);
+                resolved = WeaponView.ResolveVisualTracerStart(muzzleObject.transform, shotFrameFallback);
+                Assert.That(resolved, Is.EqualTo(muzzleObject.transform.position),
+                    "LateUpdate 中的后续位姿也必须被重新采样");
+            }
+            finally
+            {
+                Object.DestroyImmediate(muzzleObject);
+            }
+        }
+
+        [Test]
+        public void VisualTracerDirection_StillConvergesOnAuthoritativeEndpoint()
+        {
+            var currentMuzzle = new Vector3(1f, 2f, 3f);
+            var authoritativeEnd = new Vector3(4f, 7f, 20f);
+            Vector3 direction = WeaponView.ResolveVisualTracerDirection(currentMuzzle, authoritativeEnd);
+            Assert.That(Vector3.Angle(direction, authoritativeEnd - currentMuzzle), Is.LessThan(0.001f));
+        }
+
+        [Test]
+        public void AimRayProjection_UsesWeaponAxisRatherThanAssumingScreenCenter()
+        {
+            var (_, fp) = MakeRigPair();
+            // CameraPivot 与 FP overlay 相机存在实际位置差；开火轴稍向上时，HUD 若硬编码
+            // 中心将与 WeaponController.AimDirection 分叉。分划必须消费同一条轴。
+            Vector3 origin = fp.Position - fp.Forward * 0.299f - fp.Up * 0.082f;
+            Vector3 direction = (fp.Forward + fp.Up * 0.05f).normalized;
+            Assert.That(fp.TryProjectAimRay(origin, direction, 100f, out Vector3 viewport), Is.True);
+            Assert.That(viewport.y, Is.GreaterThan(0.5f), "向上的真实射击轴必须投到中心上方");
+            Assert.That(viewport.z, Is.GreaterThan(0f));
         }
     }
 }

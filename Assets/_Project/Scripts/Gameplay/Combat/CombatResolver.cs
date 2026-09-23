@@ -340,6 +340,15 @@ namespace Game.Gameplay.Combat
         /// 几何射线（不含伤害）：遍历全部命中（RaycastNonAlloc），跳过 ignoreRoot 下所有碰撞体与
         /// 显式移动阻挡体，取最近有效命中；无命中时 Point = origin + dir*maxRange（远点），绝不返回自身命中点。
         /// </summary>
+        internal bool IsAimOriginUnobstructed(Vector3 authoritativeOrigin, Vector3 displayedOrigin,
+            int layerMask, Transform ignoreRoot)
+        {
+            Vector3 delta = displayedOrigin - authoritativeOrigin;
+            return delta.sqrMagnitude < 0.000001f
+                || !ResolveGeometry(authoritativeOrigin, delta.normalized, delta.magnitude,
+                    layerMask, ignoreRoot).Hit;
+        }
+
         private GeometryHit ResolveGeometry(
             Vector3 origin, Vector3 direction, float maxRange, int layerMask, Transform ignoreRoot)
         {
@@ -501,7 +510,10 @@ namespace Game.Gameplay.Combat
             if (lagComp == null) return true;
             var targetRoot = target.transform.root;
             if (!lagComp.TryGetRewindContext(targetRoot, rewindContext.UsedTick, out ulong snapshotGeneration, out bool snapshotInvincible))
-                return true;
+            {
+                gateReason = MissTargetStale;
+                return targetRoot.GetComponent<NetworkCombatAuthority>() == null;
+            }
             ulong currentGeneration = 0;
             var targetAuthority = targetRoot.GetComponent<NetworkCombatAuthority>();
             if (targetAuthority != null) currentGeneration = targetAuthority.LifeGeneration;

@@ -36,9 +36,10 @@ namespace Game.Gameplay.Tests
     {
         /// <summary>躯干/头部胶囊的序列化参数（与 PlayerNetworkAdapter F11 轮字段一致：
         /// 躯干上延 1.50 与头部 1.40..1.80 形成 0.10m 有限重叠带）。</summary>
-        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.75f, 0.333f);
+        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.525f, 0.333f);
         private const float TorsoRadius = 0.26f;
-        private const float TorsoHeight = 1.50f;
+        private const float TorsoHeight = 1.05f;
+        private static readonly Vector3 UpperCenter = new Vector3(0f, 1f, 0.333f);
         private static readonly Vector3 HeadCenter = new Vector3(0f, 1.60f, 0.333f);
         private const float HeadRadius = 0.15f;
         private const float HeadHeight = 0.40f;
@@ -76,9 +77,13 @@ namespace Game.Gameplay.Tests
 
             var hitbox = model.transform.Find("BodyHitbox");
             Assert.That(hitbox, Is.Not.Null, "BodyHitbox 必须被创建");
-            var capsules = hitbox.GetComponents<CapsuleCollider>();
-            Assert.That(capsules.Length, Is.GreaterThanOrEqualTo(2), "复合受击体应含躯干+头部双胶囊");
-            return (adapter, hitbox, capsules[0], capsules[1], model.transform);
+            var lower = hitbox.GetComponent<CapsuleCollider>();
+            var upper = hitbox.Find("UpperHitbox")?.GetComponent<CapsuleCollider>();
+            var head = hitbox.Find("HeadHitbox")?.GetComponent<CapsuleCollider>();
+            Assert.That(lower, Is.Not.Null, "下身胶囊必须固定在 BodyHitbox");
+            Assert.That(upper, Is.Not.Null, "上身胶囊必须位于独立节点");
+            Assert.That(head, Is.Not.Null, "头部胶囊必须位于独立节点");
+            return (adapter, hitbox, lower, head, model.transform);
         }
 
         private static void InvokeEnsureBodyHitbox(PlayerNetworkAdapter adapter)
@@ -97,11 +102,15 @@ namespace Game.Gameplay.Tests
         {
             // EditMode 下 collider.bounds 依赖物理世界懒同步——用 TransformPoint 纯数学断言
             var torsoBottom = hitbox.TransformPoint(torso.center - Vector3.up * (torso.height * 0.5f)).y;
-            var headTop = hitbox.TransformPoint(head.center + Vector3.up * (head.height * 0.5f)).y;
-            var torsoTop = hitbox.TransformPoint(torso.center + Vector3.up * (torso.height * 0.5f)).y;
-            var headBottom = hitbox.TransformPoint(head.center - Vector3.up * (head.height * 0.5f)).y;
+            var upper = hitbox.Find("UpperHitbox").GetComponent<CapsuleCollider>();
+            var headTop = head.transform.TransformPoint(head.center + Vector3.up * (head.height * 0.5f)).y;
+            var torsoTop = upper.transform.TransformPoint(upper.center + Vector3.up * (upper.height * 0.5f)).y;
+            var headBottom = head.transform.TransformPoint(head.center - Vector3.up * (head.height * 0.5f)).y;
             Assert.That(torsoBottom, Is.EqualTo(rootPos.y).Within(0.01f), "躯干下端=脚底（腿部覆盖）");
             Assert.That(headTop, Is.EqualTo(rootPos.y + 1.8f).Within(0.01f), "头上端=头顶");
+            Assert.That(hitbox.TransformPoint(torso.center + Vector3.up * (torso.height * .5f)).y,
+                Is.GreaterThanOrEqualTo(upper.transform.TransformPoint(upper.center - Vector3.up * (upper.height * .5f)).y),
+                "下身与上身不得有纵向缺口");
             Assert.That(torsoTop, Is.GreaterThanOrEqualTo(headBottom - 0.01f), "躯干与头部在肩颈处无缝重叠（不漏判）");
         }
 
@@ -112,7 +121,7 @@ namespace Game.Gameplay.Tests
             var (_, hitbox, torso, head, _) = Build(rootPos, new Vector3(0f, 0f, 0.341f), 0f, Vector3.one);
 
             var torsoWorld = hitbox.TransformPoint(torso.center);
-            var headWorld = hitbox.TransformPoint(head.center);
+            var headWorld = head.transform.TransformPoint(head.center);
             Assert.That(Vector3.Distance(torsoWorld, ExpectedWorldCenter(rootPos, 0f, TorsoCenter)), Is.LessThan(0.01f),
                 "躯干中心应落在根∘(0,0.70,0.333)");
             Assert.That(Vector3.Distance(headWorld, ExpectedWorldCenter(rootPos, 0f, HeadCenter)), Is.LessThan(0.01f),
@@ -136,7 +145,7 @@ namespace Game.Gameplay.Tests
 
                 Assert.That(Vector3.Distance(hitbox.TransformPoint(torso.center),
                     ExpectedWorldCenter(rootPos, yaw, TorsoCenter)), Is.LessThan(0.01f), $"yaw={yaw}：躯干中心随身体朝向旋转");
-                Assert.That(Vector3.Distance(hitbox.TransformPoint(head.center),
+                Assert.That(Vector3.Distance(head.transform.TransformPoint(head.center),
                     ExpectedWorldCenter(rootPos, yaw, HeadCenter)), Is.LessThan(0.01f), $"yaw={yaw}：头部中心随身体朝向旋转");
                 AssertVerticalContract(hitbox, torso, head, rootPos);
             }
@@ -155,7 +164,7 @@ namespace Game.Gameplay.Tests
 
             Assert.That(Vector3.Distance(hitbox.TransformPoint(torso.center), rootPos + yawRot * TorsoCenter),
                 Is.LessThan(0.01f), "作者位姿下躯干中心=根∘(R_base·center)（代理随基准朝向旋转）");
-            Assert.That(Vector3.Distance(hitbox.TransformPoint(head.center), rootPos + yawRot * HeadCenter),
+            Assert.That(Vector3.Distance(head.transform.TransformPoint(head.center), rootPos + yawRot * HeadCenter),
                 Is.LessThan(0.01f), "作者位姿下头部中心=根∘(R_base·center)（代理随基准朝向旋转）");
         }
 
@@ -244,7 +253,7 @@ namespace Game.Gameplay.Tests
                 "重入不得改变钉扎（第四轮契约：模型系常量，与当帧姿态无关）");
             // 模型系中心 = 钉扎（节点原点=根在模型系的表达）+ 胶囊中心（节点系）：
             var torsoInModel = model.InverseTransformPoint(hitbox.TransformPoint(torso.center));
-            var headInModel = model.InverseTransformPoint(hitbox.TransformPoint(head.center));
+            var headInModel = model.InverseTransformPoint(head.transform.TransformPoint(head.center));
             Assert.That(Vector3.Distance(torsoInModel, pinBefore + TorsoCenter), Is.LessThan(0.01f),
                 "躯干中心随身体走（模型系=钉扎+参数中心，不回退根锚定）");
             Assert.That(Vector3.Distance(headInModel, pinBefore + HeadCenter), Is.LessThan(0.01f),
@@ -282,16 +291,20 @@ namespace Game.Gameplay.Tests
             var rootPos = new Vector3(2f, 0f, -4f);
             var (adapter, hitbox, torso, head, _) = Build(rootPos, new Vector3(0f, 0f, 0.341f), 0f, Vector3.one);
 
-            Object.DestroyImmediate(head); // 模拟旧构建对象：只剩单胶囊
+            Object.DestroyImmediate(head); // 模拟池化对象缺失头部碰撞体
             InvokeEnsureBodyHitbox(adapter);
 
-            var capsules = hitbox.GetComponents<CapsuleCollider>();
-            Assert.That(capsules.Length, Is.EqualTo(2), "重入必须补齐躯干+头部双胶囊");
-            Assert.That(capsules[0].radius, Is.EqualTo(TorsoRadius).Within(1e-4f), "躯干半径按当前参数重配");
-            Assert.That(capsules[0].center, Is.EqualTo(TorsoCenter).Within(0.001f), "躯干中心按当前参数重配");
-            Assert.That(capsules[1].radius, Is.EqualTo(HeadRadius).Within(1e-4f), "头部半径按当前参数重配");
-            Assert.That(capsules[1].center, Is.EqualTo(HeadCenter).Within(0.001f), "头部中心按当前参数重配");
-            Assert.That(capsules[0].isTrigger && capsules[1].isTrigger, Is.True, "双胶囊均为 trigger（受击/阻挡分离）");
+            var lower = hitbox.GetComponent<CapsuleCollider>();
+            var upper = hitbox.Find("UpperHitbox").GetComponent<CapsuleCollider>();
+            var restoredHead = hitbox.Find("HeadHitbox").GetComponent<CapsuleCollider>();
+            Assert.That(lower.radius, Is.EqualTo(TorsoRadius).Within(1e-4f));
+            Assert.That(lower.center, Is.EqualTo(TorsoCenter).Within(0.001f));
+            Assert.That(lower.height, Is.EqualTo(TorsoHeight).Within(1e-4f));
+            Assert.That(upper.center, Is.EqualTo(UpperCenter).Within(0.001f));
+            Assert.That(upper.radius, Is.EqualTo(TorsoRadius).Within(1e-4f));
+            Assert.That(restoredHead.radius, Is.EqualTo(HeadRadius).Within(1e-4f));
+            Assert.That(restoredHead.center, Is.EqualTo(HeadCenter).Within(0.001f));
+            Assert.That(lower.isTrigger && upper.isTrigger && restoredHead.isTrigger, Is.True);
         }
 
         [Test]
@@ -322,6 +335,36 @@ namespace Game.Gameplay.Tests
             // ③ 头旁空气反例保持：y=1.60（头部圆柱区）偏轴 0.20m 仍 MISS（躯干上延没有波及头侧）
             var besideHead = rootPos + new Vector3(10f, 1.60f, TorsoCenter.z + 0.20f);
             Assert.That(HitSurface(besideHead, Vector3.left), Is.False, "头旁 0.20m 空气不得命中（F11 不得以扩大全身换接缝）");
+        }
+
+        [Test]
+        public void Lean_ShiftsExposedHeadAndUpperBody_ButKeepsLowerBodyFixed()
+        {
+            var (adapter, hitbox, lower, head, _) = Build(Vector3.zero,
+                new Vector3(0f, 0f, .341f), 0f, Vector3.one);
+            var upper = hitbox.Find("UpperHitbox").GetComponent<CapsuleCollider>();
+            var lowerBefore = lower.transform.TransformPoint(lower.center);
+            var upperBefore = upper.transform.TransformPoint(upper.center);
+            var headBefore = head.transform.TransformPoint(head.center);
+            var refresh = typeof(PlayerNetworkAdapter).GetMethod("RefreshLeanHitboxes",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(refresh, Is.Not.Null);
+
+            refresh.Invoke(adapter, new object[] { 1f });
+            Physics.SyncTransforms();
+            Assert.That(Vector3.Distance(lower.transform.TransformPoint(lower.center), lowerBefore), Is.LessThan(1e-4f));
+            Assert.That(upper.transform.TransformPoint(upper.center).x - upperBefore.x,
+                Is.EqualTo(.1125f).Within(.001f));
+            Assert.That(head.transform.TransformPoint(head.center).x - headBefore.x,
+                Is.EqualTo(.25f).Within(.001f));
+
+            // At head height, the old location is air and the exposed location is hittable.
+            Assert.That(HitSurface(new Vector3(0f, 1.65f, -2f), Vector3.forward), Is.False);
+            Assert.That(HitSurface(new Vector3(.25f, 1.65f, -2f), Vector3.forward), Is.True);
+
+            refresh.Invoke(adapter, new object[] { 0f });
+            Physics.SyncTransforms();
+            Assert.That(Vector3.Distance(head.transform.TransformPoint(head.center), headBefore), Is.LessThan(1e-4f));
         }
 
         /// <summary>与 CombatResolver 同口径的受击查询（受击体是 trigger，必须显式 Collide）。</summary>

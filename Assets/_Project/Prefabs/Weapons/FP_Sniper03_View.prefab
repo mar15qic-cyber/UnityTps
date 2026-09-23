@@ -118,12 +118,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6235084699770860263}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: -0.001072613, y: 0.2738966, z: 0.10473905}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.20244154, y: 0.67750764, z: -0.20244187, w: 0.6775088}
+  m_LocalPosition: {x: -0.001071994, y: 0.2278117, z: -0.18148027}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 0.9999999}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2925572873735534688}
+  m_Father: {fileID: 2925572873735534652}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4103424978254434613
 MonoBehaviour:
@@ -380,15 +380,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400012, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2388870766294426008}
-    - targetCorrespondingSourceObject: {fileID: 400012, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4103536771799422210}
     - targetCorrespondingSourceObject: {fileID: 400080, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8882209764369626616}
     - targetCorrespondingSourceObject: {fileID: 400080, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5947311538018872244}
+    - targetCorrespondingSourceObject: {fileID: 400080, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4103536771799422210}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}
       insertIndex: -1
@@ -478,6 +478,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  nearSegmentLength: 1.2
   maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
@@ -488,6 +489,7 @@ MonoBehaviour:
   sightReference: {fileID: 2388870766294426008}
   alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
+  reconcileThresholdMeters: 0.35
 --- !u!4 &2925572873735534652 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400080, guid: b01e82e982d29ed4391dc0bb216ca678, type: 3}

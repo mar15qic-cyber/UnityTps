@@ -479,6 +479,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  nearSegmentLength: 1.2
   maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
@@ -489,3 +490,4 @@ MonoBehaviour:
   sightReference: {fileID: 8652912913179961545}
   alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
+  reconcileThresholdMeters: 0.35

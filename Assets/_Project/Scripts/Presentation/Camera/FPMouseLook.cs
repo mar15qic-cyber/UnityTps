@@ -29,6 +29,7 @@ namespace Game.Presentation.Camera
         private void LateUpdate()
         {
             if (_input == null) return;
+            if (Game.Gameplay.Network.MatchLifecycle.InputFrozen) return;
             // LookDelta.y>0 表示鼠标向上，语义为“基础 Pitch 向上”。后坐债务先消费
             // 反向输入，只有剩余输入才修改基础俯仰，避免停火恢复把已压住的视角再弹下去。
             float pitchUpDelta = _input.LookDelta.y * pitchSensitivity;

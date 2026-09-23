@@ -40,6 +40,19 @@ public sealed class AccountSession
     }
 
     /// <summary>
+    /// 配件保存接口只返回版本与配件数组；必须把它合并回当前会话，否则下一次更换武器仍会
+    /// 携带旧 expectedVersion，后端会误判为“配装已被其他窗口修改”。武器槽位保持不变。
+    /// </summary>
+    public void ApplyLoadoutAttachments(LoadoutAttachmentsDto update)
+    {
+        if (update == null) throw new ArgumentNullException(nameof(update));
+        if (Loadout == null) Loadout = new LoadoutDto();
+        Loadout.version = update.version;
+        Loadout.attachments = update.attachments ?? Array.Empty<LoadoutAttachmentDto>();
+        Changed?.Invoke();
+    }
+
+    /// <summary>
     /// 连接/房间会话代际（Docs/27 §11 CF 修订）：**仅在战斗连接启动时递增**——
     /// 即上层把 start ack / InMatch 重连的 connection 写入 NetworkLaunchContext、即将加载 Arena 时
     /// （AdvanceConnectionGeneration）。等待房间的创建/加入/详情轮询不递增；退房 ClearRoom 不递增。
@@ -70,13 +83,14 @@ public sealed class AccountSession
     public void RefreshRoomSnapshot(RoomSnapshotDto snapshot)
     {
         if (snapshot?.room == null) return;
-        if (Room == null || !string.Equals(Room.RoomCode, snapshot.room.roomCode, StringComparison.Ordinal))
+        if (Room == null || !string.Equals(Room.RoomId, snapshot.room.roomId.ToString(), StringComparison.Ordinal))
         {
             ApplyRoomSnapshot(snapshot);
             return;
         }
         var state = BuildRoomState(snapshot.room, snapshot.you);
         // 原地写回：保持 Room 对象引用稳定（观测方按引用缓存不被打断）
+        Room.RoomCode = state.RoomCode;
         Room.HostUsername = state.HostUsername;
         Room.MemberCount = state.MemberCount;
         Room.MaxPlayers = state.MaxPlayers;
@@ -141,6 +155,7 @@ public sealed class AccountSession
     {
         return new RoomSessionState
         {
+            RoomId = room.roomId.ToString(),
             RoomCode = room.roomCode,
             HostUsername = room.leaderUsername,
             MemberCount = room.joinedPlayers,
@@ -190,6 +205,7 @@ public static class GameModes
 /// <summary>房间会话快照（CF 等待房间）：退出事务的 leave 依据、等待房间页展示与返房判定数据。</summary>
 public sealed class RoomSessionState
 {
+    public string RoomId { get; set; }
     public string RoomCode { get; set; }
     public string HostUsername { get; set; }
     public int MemberCount { get; set; }

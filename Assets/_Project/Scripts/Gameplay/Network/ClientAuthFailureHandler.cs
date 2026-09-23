@@ -90,6 +90,8 @@ namespace Game.Gameplay.Network
         {
             if (args.ConnectionState != LocalConnectionState.Stopped)
                 return;
+            if (MatchExitState.VoluntaryLeaveRequested || MatchExitState.SettlementNavigationPending)
+                return;
             // Day2 补缺：两张尝试卡都传入——连接从未建立（未 Started/未发票据）也走通用降级
             bool connectionAttempted = _authenticator != null && _authenticator.ClientConnectionAttempted;
             bool authAttempted = _authenticator != null && _authenticator.ClientAuthAttempted;

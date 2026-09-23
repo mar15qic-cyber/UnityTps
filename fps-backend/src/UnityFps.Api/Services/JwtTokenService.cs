@@ -15,7 +15,7 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
 {
     public (string Token, DateTime ExpiresAtUtc) Create(UserAccount user)
     {
-        var key = configuration["Jwt:SigningKey"] ?? Environment.GetEnvironmentVariable("Jwt__SigningKey") ?? "development-only-signing-key-change-me-please-32-bytes";
+        var key = PublicTestSecurity.SigningKey(configuration);
         var issuer = configuration["Jwt:Issuer"] ?? "UnityFps.Api";
         var audience = configuration["Jwt:Audience"] ?? "UnityFps.Client";
         var hours = configuration.GetValue("Jwt:ExpiryHours", 12);

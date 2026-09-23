@@ -36,7 +36,7 @@ public sealed class CFReviewF1FixTests
         var sessions = new List<(long UserId, long SessionId)>();
         foreach (var token in new[] { hostToken, guestToken })
         {
-            using var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{roomCode}");
+            using var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
             detail.EnsureSuccessStatusCode();
             using var detailJson = JsonDocument.Parse(await detail.Content.ReadAsStringAsync());
             var ticket = detailJson.RootElement.GetProperty("connection").GetProperty("joinTicket").GetString()!;
@@ -90,7 +90,7 @@ public sealed class CFReviewF1FixTests
     private static async Task AckAsync(Fixture f, string token)
     {
         var response = await ServerTest.Authorized(f.Client, token)
-            .PostAsJsonAsync($"/api/rooms/{f.RoomCode}/return", new { matchId = f.MatchId });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(f.RoomCode)}/return", new { matchId = f.MatchId });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -121,7 +121,7 @@ public sealed class CFReviewF1FixTests
 
         await ServerTest.ReadyAsync(f.Client, f.GuestToken, f.RoomCode);
         var secondStart = await ServerTest.Authorized(f.Client, f.HostToken)
-            .PostAsync($"/api/rooms/{f.RoomCode}/start", null);
+            .PostAsync($"/api/rooms/{ServerTest.PublicRoomId(f.RoomCode)}/start", null);
         Assert.Equal(HttpStatusCode.OK, secondStart.StatusCode);
     }
 
@@ -199,6 +199,100 @@ public sealed class CFReviewF1FixTests
         Assert.Equal(InstanceState.Ready, body.RootElement.GetProperty("instanceState").GetString());
         var afterRetry = await ReadStateAsync(f);
         Assert.Equal(InstanceState.Draining, afterRetry.Instance.State);
+        Assert.Equal(HttpStatusCode.NoContent, (await RearmAsync(f)).StatusCode);
+    }
+
+    [Fact]
+    public async Task HttpLeaveBeforeDisconnect_RecyclesOnlyInstanceAcrossTenMatches()
+    {
+        using var factory = ServerApiFactory.WithConfig(new Dictionary<string, string?>());
+        using var client = factory.CreateClient();
+        var instance = await ServerTest.RegisterInstanceAsync(client);
+        string instanceId = instance.GetProperty("instanceId").GetString()!;
+        for (int round = 0; round < 10; round++)
+        {
+            var (roomCode, hostToken, guestToken, start) = await ServerTest.CreateStartedRoomAsync(client);
+            var sessions = new List<(long UserId, long SessionId)>();
+            foreach (string token in new[] { hostToken, guestToken })
+            {
+                var detail = await ServerTest.Authorized(client, token).GetFromJsonAsync<JsonElement>($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
+                var consumed = await ServerTest.ConsumeTicketAsync(client, instanceId,
+                    detail.GetProperty("connection").GetProperty("joinTicket").GetString()!);
+                sessions.Add((consumed.GetProperty("userId").GetInt64(), consumed.GetProperty("sessionId").GetInt64()));
+            }
+            var f = new Fixture(factory, client, instanceId, roomCode, hostToken, guestToken,
+                start.GetProperty("matchId").GetString()!, sessions);
+            using var heartbeat = await ServerTest.SendWithKeyAsync(client, HttpMethod.Post,
+                $"/api/server-instances/{instanceId}/heartbeat", ServerTest.ServerKey,
+                new { state = InstanceState.InMatch, roomCode, currentPlayers = 2 });
+            Assert.Equal(HttpStatusCode.NoContent, heartbeat.StatusCode);
+            foreach (string token in new[] { hostToken, guestToken })
+                Assert.Equal(HttpStatusCode.NoContent,
+                    (await ServerTest.Authorized(client, token).PostAsync("/api/rooms/leave", null)).StatusCode);
+            // HTTP intent alone must not put the still-connected server back in the pool.
+            Assert.Equal(InstanceState.InMatch, (await ReadStateAsync(f)).Instance.State);
+            foreach (var session in sessions)
+            {
+                using var disconnected = await DisconnectAsync(f, session);
+                Assert.Equal(HttpStatusCode.OK, disconnected.StatusCode);
+                var data = await disconnected.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(InstanceState.Ready, data.GetProperty("instanceState").GetString());
+            }
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                Assert.False(await db.GameRooms.AnyAsync(x => x.RoomCode == roomCode));
+                Assert.Equal(InstanceState.Draining, (await db.ServerInstances.SingleAsync(x => x.InstanceId == instanceId)).State);
+            }
+            Assert.Equal(HttpStatusCode.NoContent, (await RearmAsync(f)).StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task StrandedEmptyRoomRequiresZeroTransportOccupancyBeforeCleanup()
+    {
+        var f = await StartFixtureAsync();
+        Assert.Equal(HttpStatusCode.NoContent, (await ServerTest.SendWithKeyAsync(f.Client, HttpMethod.Post,
+            $"/api/server-instances/{f.InstanceId}/heartbeat", ServerTest.ServerKey,
+            new { state = InstanceState.InMatch, roomCode = f.RoomCode, currentPlayers = 2 })).StatusCode);
+        foreach (var token in new[] { f.HostToken, f.GuestToken })
+            Assert.Equal(HttpStatusCode.NoContent, (await ServerTest.Authorized(f.Client, token).PostAsync("/api/rooms/leave", null)).StatusCode);
+        _ = await f.Client.GetAsync("/api/rooms");
+        Assert.Equal(InstanceState.InMatch, (await ReadStateAsync(f)).Instance.State);
+        Assert.Equal(HttpStatusCode.NoContent, (await ServerTest.SendWithKeyAsync(f.Client, HttpMethod.Post,
+            $"/api/server-instances/{f.InstanceId}/heartbeat", ServerTest.ServerKey,
+            new { state = InstanceState.InMatch, roomCode = f.RoomCode, currentPlayers = 0 })).StatusCode);
+        _ = await f.Client.GetAsync("/api/rooms");
+        using var scope = f.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.GameRooms.AnyAsync(x => x.RoomCode == f.RoomCode));
+        Assert.Equal(InstanceState.Draining, (await db.ServerInstances.SingleAsync(x => x.InstanceId == f.InstanceId)).State);
+        Assert.Equal(HttpStatusCode.NoContent, (await RearmAsync(f)).StatusCode);
+    }
+
+    [Fact]
+    public async Task LegacyEmptyWaitingRoomDisappearsAndItsLeaseRequiresRearm()
+    {
+        var f = await StartFixtureAsync();
+        using (var scope = f.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var room = await db.GameRooms.Include(x => x.Members).Include(x => x.ServerInstance)
+                .SingleAsync(x => x.RoomCode == f.RoomCode);
+            db.GameRoomMembers.RemoveRange(room.Members);
+            room.Members.Clear();
+            room.Status = RoomStatus.Waiting;
+            room.ServerInstance!.CurrentPlayers = 0;
+            await db.SaveChangesAsync();
+        }
+        var listed = await f.Client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
+        Assert.Empty(listed!);
+        using (var scope = f.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.False(await db.GameRooms.AnyAsync(x => x.RoomCode == f.RoomCode));
+            Assert.Equal(InstanceState.Draining, (await db.ServerInstances.SingleAsync(x => x.InstanceId == f.InstanceId)).State);
+        }
         Assert.Equal(HttpStatusCode.NoContent, (await RearmAsync(f)).StatusCode);
     }
 

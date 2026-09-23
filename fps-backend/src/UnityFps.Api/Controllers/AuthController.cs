@@ -11,7 +11,7 @@ public sealed class AuthController(AuthService auth) : ControllerBase
     public async Task<ActionResult<AuthSessionDto>> Register(RegisterRequest request, CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created, await auth.RegisterAsync(request, cancellationToken));
 
-    [HttpPost("login")]
+    [HttpPost("login"), Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("login")]
     public async Task<ActionResult<AuthSessionDto>> Login(LoginRequest request, CancellationToken cancellationToken) =>
         Ok(await auth.LoginAsync(request, cancellationToken));
 }

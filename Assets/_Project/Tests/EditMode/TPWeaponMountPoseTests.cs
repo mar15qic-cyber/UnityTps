@@ -7,7 +7,8 @@ namespace Game.Gameplay.Tests
     /// <summary>
     /// 2026-09-18 实机问题7（TP 手枪竖直朝天）回归锁：TP 武器挂载语义=枪身结构统一 +Z 枪口
     /// 局部约定，朝向完全由 prefab 根局部位姿决定（TPWeaponMeshSwapper 不覆盖根变换）。
-    /// 手枪根位姿必须与步枪参考值（实机验证正确的 AssaultRifle_01）逐分量一致。
+    /// 2026-09-21 修订：手枪根位姿改为 @handgun idle 实测标定值（步枪参考只对步枪动画集成立，
+    /// 手枪 stance 手骨系下会悬浮拳头前上方——见 TPGripIkTests 与同日复盘），本测试改锁新值。
     /// </summary>
     public sealed class TPWeaponMountPoseTests
     {
@@ -41,17 +42,21 @@ namespace Game.Gameplay.Tests
             AssertSameRotation(rot, RefRot, "步枪参考旋转");
         }
 
-        [TestCase("TP_Weapon_Handgun_01")]
-        [TestCase("TP_Weapon_Handgun_02")]
-        [TestCase("TP_Weapon_Handgun_03")]
-        [TestCase("TP_Weapon_Handgun_04")]
-        public void HandgunRootPose_MatchesRifleReference(string prefabName)
+        // 2026-09-21 @handgun idle 实测标定（与 TPGripIkTests 同源；任一侧漂移都说明
+        // 根姿态被外部工具回写——2026-09-21 C1 阶段曾发生覆盖事故）。
+        private static readonly Quaternion HandgunRot = Quaternion.Euler(283.1f, 62.8f, 123.1f);
+
+        [TestCase("TP_Weapon_Handgun_01", 0.0130f, 0.0398f, 0.0455f)]
+        [TestCase("TP_Weapon_Handgun_02", 0.0097f, 0.0280f, 0.0366f)]
+        [TestCase("TP_Weapon_Handgun_03", 0.0115f, 0.0338f, 0.0422f)]
+        [TestCase("TP_Weapon_Handgun_04", 0.0123f, 0.0292f, 0.0576f)]
+        public void HandgunRootPose_UsesHandgunCalibratedPose(string prefabName, float px, float py, float pz)
         {
             var (pos, rot) = ReadRootPose(prefabName);
-            AssertSameRotation(rot, RefRot,
-                $"{prefabName} 根旋转必须与步枪参考一致（实机问题7：手枪竖直朝天的根因是根旋转烘焙错误）");
-            Assert.That(Vector3.Distance(pos, RefPos), Is.LessThan(1e-3f),
-                $"{prefabName} 根位置必须与步枪参考一致（同一右手骨握持约定）");
+            Assert.That(Quaternion.Angle(rot, HandgunRot), Is.LessThan(0.2f),
+                $"{prefabName} 根旋转偏离 @handgun 实测标定值（回退即复现手枪歪斜）");
+            Assert.That(Vector3.Distance(pos, new Vector3(px, py, pz)), Is.LessThan(1.5e-3f),
+                $"{prefabName} 根位置偏离 @handgun 标定值（握把不再落在拳头内）");
         }
 
         /// <summary>结构前提：全 TP 武器 prefab 的 Muzzle 标记必须在枪身局部 +Z 半球

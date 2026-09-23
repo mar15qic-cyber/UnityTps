@@ -34,8 +34,18 @@ namespace Game.Gameplay.Network
         /// v6 = MovementCommand 新增 LifeEpoch（输入生命代际盖章）+ AuthoritativeMovementState
         ///      新增 LifeEpoch（服务器代际回传）——F14（2026-09-19 审计）：旧生命在途输入批次
         ///      在复活后到达时必须被服务器按代际拒收，不得作为新生命输入消费。
+        /// v7 = NetworkWeaponState 弹药 SyncVar 合并（_currentAmmo/_reserveAmmo 两个 int →
+        ///      单个 SyncVar&lt;AuthoritativeAmmoSnapshot&gt;）+ NetworkCombatAuthority
+        ///      TargetShotRejected 增参（携带弹药快照）与新增 TargetAuthoritativeAmmoSnapshot
+        ///      快路径（2026-09-20 弹药/音频批次）——SyncVar 形状与 RPC 签名双重变更。
         /// </summary>
-        public const string ProtocolId = "fps-net-v6";
+        // v8: timestamped observer poses and input/life/display-correlated fire requests.
+        // v9: bounded per-shot camera ray/ADS snapshot and ADS intent replication.
+        // v10: replicated death start tick for synchronized full-body death presentation.
+        // v11: team radar sighting ServerRpc and team-only TargetRpc.
+        // v12: movement command/snapshot lean state and observer lean pose.
+        // v14: per-pellet surface normals and character flags for authoritative impact correction.
+        public const string ProtocolId = "fps-net-v14";
 
         /// <summary>协议不匹配的冻结错误码（DS 拒绝广播 + 后端入房筛选共用字面值）。</summary>
         public const string ProtocolMismatchCode = "PROTOCOL_MISMATCH";
@@ -75,5 +85,7 @@ namespace Game.Gameplay.Network
         public string gamePlayDllSha256;
         public string gameUiDllSha256;
         public string gameAccountDllSha256;
+        public string inputDigest;
+        public int inputFileCount;
     }
 }

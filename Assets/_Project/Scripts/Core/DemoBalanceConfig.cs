@@ -43,15 +43,8 @@ namespace Game.Core
             return false;
         }
 
-        public int GetFinalDamage(string weaponId, int upDamageLv)
-        {
-            var baseDamage = GetWeaponStat(weaponId).Damage;
-            return Mathf.Max(1, Mathf.RoundToInt(baseDamage * (1f + Mathf.Max(0, upDamageLv) * 0.1f)));
-        }
-
+        public int GetFinalDamage(string weaponId) => Mathf.Max(1, GetWeaponStat(weaponId).Damage);
         public int GetXpForLevel(int level) => Mathf.Max(0, level) * 100;
-
-        public int GetUpgradeCost(string statId, int currentLv) => 100 + Mathf.Max(0, currentLv) * 50;
 
         private void OnValidate() => _lookup = null;
 

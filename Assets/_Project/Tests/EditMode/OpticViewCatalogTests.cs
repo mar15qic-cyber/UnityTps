@@ -36,19 +36,26 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void PassOpticAliasesHaveVisibleModelsAndStableIds()
+        public void LpfpOpticsHaveVisibleModelsAndStableIds()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<AttachmentAssetCatalog>(
                 "Assets/_Project/Resources/AttachmentAssetCatalog.asset");
             Assert.NotNull(catalog, "配件目录缺失");
-            var rifle = catalog.Find("attach.rifle.optic");
-            var pistol = catalog.Find("attach.pistol.optic");
-            Assert.NotNull(rifle);
-            Assert.NotNull(pistol);
-            Assert.IsTrue(rifle.HasModel, "步枪通行证瞄具必须有模型");
-            Assert.IsTrue(pistol.HasModel, "手枪通行证瞄具必须有模型");
-            Assert.AreEqual(OpticAimTier.Holo, rifle.aimTier);
-            Assert.AreEqual(OpticAimTier.RedDot, pistol.aimTier);
+            var expected = new[]
+            {
+                (Id: "attach.lpfp.optic.01", Tier: OpticAimTier.LowZoom),
+                (Id: "attach.rifle.optic", Tier: OpticAimTier.Holo),
+                (Id: "attach.lpfp.optic.03", Tier: OpticAimTier.LowZoom),
+                (Id: "attach.lpfp.optic.02", Tier: OpticAimTier.Holo),
+            };
+            foreach (var spec in expected)
+            {
+                var optic = catalog.Find(spec.Id);
+                Assert.NotNull(optic, spec.Id);
+                Assert.IsTrue(optic.HasModel, spec.Id + " 必须有模型");
+                Assert.AreEqual(spec.Tier, optic.aimTier, spec.Id);
+            }
+            Assert.IsNull(catalog.Find("attach.pistol.optic"), "退役手枪瞄具不得存在于客户端目录");
         }
 
         [Test]

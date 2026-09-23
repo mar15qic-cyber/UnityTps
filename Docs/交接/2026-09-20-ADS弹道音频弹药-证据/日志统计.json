@@ -1,0 +1,26 @@
+[
+  {
+    "path": "Tools/Client/Logs/client-20260920_002210-b10f01.log",
+    "submits": 3812,
+    "max_per_tick": 27,
+    "resolve": 0,
+    "owner_reject_confirm": 3697,
+    "server_reject": 0
+  },
+  {
+    "path": "Tools/Client/Logs/client-20260920_002137-766fac.log",
+    "submits": 6069,
+    "max_per_tick": 23,
+    "resolve": 0,
+    "owner_reject_confirm": 5894,
+    "server_reject": 0
+  },
+  {
+    "path": "Tools/Server/Logs/20260920_002149/server.log",
+    "submits": 0,
+    "max_per_tick": 0,
+    "resolve": 290,
+    "owner_reject_confirm": 0,
+    "server_reject": 9591
+  }
+]

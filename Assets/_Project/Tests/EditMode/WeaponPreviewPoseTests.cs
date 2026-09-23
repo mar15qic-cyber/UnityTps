@@ -7,8 +7,8 @@ using Game.UI;
 namespace Game.Gameplay.Tests
 {
     /// <summary>
-    /// Locks the Docs/20 weapon-preview pose contract: model initializes to a level side-on view
-    /// (barrel horizontal, no inherited TP prefab root tilt), with drag-to-orbit preserved.
+    /// Locks the weapon-preview pose contract: the orbit rig owns framing while the instantiated
+    /// TP prefab keeps the exact authored hand-mounted pose used by Arena.
     /// </summary>
     public sealed class WeaponPreviewPoseTests
     {
@@ -47,29 +47,24 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Initialize_ZeroesPrefabRootTilt()
+        public void Initialize_PreservesAuthoredTpRootPose()
         {
-            // Use any real TP prefab (they carry non-zero root rotations that previously leaked in).
+            // Handgun and rifle stances use different right-hand spaces; zeroing this transform
+            // made the repository preview disagree with the exact same prefab in Arena.
             var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab");
+                "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab");
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.transform.eulerAngles.magnitude, Is.GreaterThan(10f),
-                "fixture prefab should carry a non-trivial root rotation to prove we zero it");
+            var expectedPosition = prefab.transform.localPosition;
+            var expectedRotation = prefab.transform.localRotation;
+            var expectedScale = prefab.transform.localScale;
 
             var controller = CreateController();
             controller.Initialize(prefab);
 
-            var modelRoot = GetField<GameObject>(controller, "modelRoot");
-            Assert.That(modelRoot, Is.Not.Null);
-            var instance = modelRoot.transform.GetChild(0);
-            Assert.That(instance, Is.Not.Null);
-            var euler = instance.localEulerAngles;
-            // Every axis should be ~0 after the fix (allow 360 wrap).
-            foreach (var angle in new[] { euler.x, euler.y, euler.z })
-            {
-                var wrapped = angle > 180f ? 360f - angle : angle;
-                Assert.That(wrapped, Is.LessThan(0.5f), $"instance local rotation should be identity, got {euler}");
-            }
+            var instance = GetField<GameObject>(controller, "modelInstance").transform;
+            Assert.That(Vector3.Distance(instance.localPosition, expectedPosition), Is.LessThan(0.00001f));
+            Assert.That(Quaternion.Angle(instance.localRotation, expectedRotation), Is.LessThan(0.01f));
+            Assert.That(Vector3.Distance(instance.localScale, expectedScale), Is.LessThan(0.00001f));
         }
 
         [Test]
@@ -81,8 +76,7 @@ namespace Game.Gameplay.Tests
             var controller = CreateController();
             controller.Initialize(prefab);
 
-            var modelRoot = GetField<GameObject>(controller, "modelRoot");
-            var instance = modelRoot.transform.GetChild(0);
+            var instance = GetField<GameObject>(controller, "modelInstance").transform;
             // After framing, the model's world bounds center should sit at the origin (stage space).
             var renderers = instance.GetComponentsInChildren<Renderer>(true);
             var bounds = renderers[0].bounds;
@@ -94,7 +88,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Drag_ChangesYawPitch_ButStaysClamped()
+        public void Drag_ChangesYawPitch_AndAllowsFullVerticalOrbit()
         {
             var controller = CreateController();
             var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -110,14 +104,15 @@ namespace Game.Gameplay.Tests
 
             var dragData = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
             {
-                position = new Vector2(100f, 40f)
+                position = new Vector2(100f, 1000f)
             };
             controller.OnDrag(dragData);
 
             var yaw1 = GetField<float>(controller, "yaw");
             var pitch1 = GetField<float>(controller, "pitch");
             Assert.That(yaw1, Is.Not.EqualTo(yaw0), "drag should change yaw");
-            Assert.That(pitch1, Is.InRange(-55f, 55f), "pitch stays clamped");
+            Assert.That(pitch1, Is.GreaterThan(55f), "vertical drag must pass the former +55 degree stop");
+            Assert.That(pitch1, Is.LessThan(360f), "orbit angles stay normalized");
         }
     }
 }

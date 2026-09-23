@@ -30,7 +30,7 @@ namespace Game.UI
                 Key = KeyBackgroundLogin,
                 EditorPath = "Assets/_Project/Art/UI/Backgrounds/LoginBackground.png",
                 ResourcesPath = "UI/Backgrounds/LoginBackground",
-                FallbackTop = UITheme.Hex("#3A4A5F"),
+                FallbackTop = UITheme.Hex("#203135"),
                 FallbackBottom = UITheme.BackgroundDeep,
             },
             new()
@@ -38,7 +38,7 @@ namespace Game.UI
                 Key = KeyBackgroundLobby,
                 EditorPath = "Assets/_Project/Art/UI/Backgrounds/LobbyBackground.png",
                 ResourcesPath = "UI/Backgrounds/LobbyBackground",
-                FallbackTop = UITheme.Hex("#2E3D52"),
+                FallbackTop = UITheme.Hex("#1B2528"),
                 FallbackBottom = UITheme.BackgroundDeep,
             },
             new()
@@ -65,7 +65,7 @@ namespace Game.UI
         public static Sprite Get(string key)
         {
             if (resolved.TryGetValue(key, out var cached) && cached != null) return cached;
-            var sprite = LoadRealSprite(key);
+            var sprite = key == KeyLogo ? LoadRealSprite(key) : null;
             if (sprite == null)
             {
                 var entry = Find(key);

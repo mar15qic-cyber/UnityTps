@@ -5,9 +5,8 @@ namespace UnityFps.Api.Services;
 
 public static class Mapping
 {
-    public static PlayerProfileDto ToDto(this PlayerProfile profile, string username, long coins, IProgressionRules rules) =>
-        new(username, profile.Level, profile.Xp, rules.GetXpToNextLevel(profile.Level), profile.SkillPoints, coins,
-            new UpgradeLevelsDto(profile.UpDamage, profile.UpAmmoCap, profile.UpMaxHealth));
+    public static PlayerProfileDto ToDto(this PlayerProfile profile, UserAccount user, long coins, IProgressionRules rules) =>
+        new(user.Username, user.IdentityTag, profile.Level, profile.Xp, rules.GetXpToNextLevel(profile.Level), coins);
 
     public static LoadoutDto ToDto(this PlayerLoadout loadout) =>
         new(loadout.PrimaryWeaponId, loadout.SecondaryWeaponId, loadout.ThrowableId, loadout.Version,

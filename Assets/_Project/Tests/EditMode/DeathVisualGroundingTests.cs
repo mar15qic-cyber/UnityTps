@@ -98,7 +98,7 @@ namespace Game.Gameplay.Tests
 
             InvokeDeath();
 
-            Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(85f).Within(0.1f), "保持前倾 85° 倒地姿态");
+            Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(0f).Within(0.1f), "死亡动画不得旋转整个 TP 根节点");
             Assert.That(_tpModel.localPosition.y, Is.GreaterThan(0f), "贴地修正必须抬升姿态（脚为支点前倾会埋地）");
             Assert.That(PoseBottom(_tpModel), Is.GreaterThanOrEqualTo(-0.001f),
                 "倒地姿态包围盒下沿不得穿入地面（实机'下半身埋地'）");
@@ -191,7 +191,7 @@ namespace Game.Gameplay.Tests
             {
                 InvokeDeath();
                 Assert.That(PoseBottom(_tpModel), Is.GreaterThanOrEqualTo(-0.001f), $"第 {round} 轮倒地不埋地");
-                Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(85f).Within(0.1f));
+                Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(0f).Within(0.1f));
 
                 InvokeRespawn();
                 Assert.That(_tpModel.localPosition, Is.EqualTo(beforePosition), $"第 {round} 轮位置还原");
@@ -262,7 +262,7 @@ namespace Game.Gameplay.Tests
 
             Assert.DoesNotThrow(() => InvokeDeath(), "探测不到地面时必须安全降级");
             Assert.That(_tpModel.localPosition, Is.EqualTo(savedLocal), "无地面依据时不做抬升");
-            Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(85f).Within(0.1f), "倒地姿态仍保留");
+            Assert.That(_tpModel.localRotation.eulerAngles.x, Is.EqualTo(0f).Within(0.1f), "无地面时仍保留作者根旋转");
         }
     }
 }

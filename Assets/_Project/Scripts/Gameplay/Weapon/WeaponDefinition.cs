@@ -45,9 +45,13 @@ namespace Game.Gameplay.Weapon
         public AnimationClip Fire;
         public AnimationClip ReloadAmmoLeft;
         public AnimationClip ReloadOutOfAmmo;
+        public AnimationClip ReloadOpen;
+        public AnimationClip ReloadInsert;
+        public AnimationClip ReloadClose;
         public AnimationClip Draw;
         public AnimationClip Holster;
         public AnimationClip DryFire;
+        public AnimationClip ThrowGrenade;
 
         [Tooltip("开镜过渡（一次性）；与 AimOut 双全才启用动画 ADS 轨道")]
         public AnimationClip AimIn;
@@ -138,8 +142,20 @@ namespace Game.Gameplay.Weapon
         public WeaponFireMode FireMode => fireMode;
         public GameObject FirstPersonViewPrefab => firstPersonViewPrefab;
         public GameObject ThirdPersonViewPrefab => thirdPersonViewPrefab;
-        public bool RifleHasVerticalGrip => firstPersonAnimationFamily == FirstPersonAnimationFamily.Rifle02
-            || firstPersonAnimationFamily == FirstPersonAnimationFamily.Rifle03;
+        /// <summary>
+        /// Whether this rifle model has a non-removable factory vertical grip.
+        /// Use the resolved family so pre-migration definitions whose serialized
+        /// family is still Native keep the same answer as their runtime animations.
+        /// </summary>
+        public bool RifleHasVerticalGrip
+        {
+            get
+            {
+                var family = ResolveFirstPersonAnimationFamily();
+                return family == FirstPersonAnimationFamily.Rifle02
+                    || family == FirstPersonAnimationFamily.Rifle03;
+            }
+        }
         public FirstPersonAnimationFamily FirstPersonAnimationFamily => ResolveFirstPersonAnimationFamily();
         public WeaponAnimationSet FirstPersonAnimations => ResolveFirstPersonAnimations();
         public BuiltInOpticDefinition BuiltInOptic => builtInOptic;

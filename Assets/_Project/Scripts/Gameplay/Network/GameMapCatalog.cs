@@ -21,6 +21,15 @@ namespace Game.Gameplay.Network
             ("map_04", "Map_TrainingYard"),
         };
 
+        public static bool IsGameplayScene(string sceneName)
+        {
+            if (!string.IsNullOrEmpty(sceneName) && sceneName == Environment.GetEnvironmentVariable("FPS_MAP_SCENE")) return true;
+            foreach (var map in Maps)
+                if (string.Equals(map.SceneName, sceneName, StringComparison.Ordinal)) return true;
+            var launch = NetworkLaunchContext.PeekClientLaunch();
+            return (launch != null && launch.SceneName == sceneName) || (!string.IsNullOrEmpty(NetworkLaunchContext.CurrentGameplayScene) && NetworkLaunchContext.CurrentGameplayScene == sceneName);
+        }
+
         public static bool TryGetSceneName(string mapId, out string sceneName)
         {
             sceneName = null;
@@ -38,6 +47,12 @@ namespace Game.Gameplay.Network
 
         /// <summary>解析失败回退 arena 场景（调用方日志应携带原始 mapId 便于排障）。</summary>
         public static string ResolveSceneName(string mapId)
-            => TryGetSceneName(mapId, out var sceneName) ? sceneName : Maps[0].SceneName;
+        {
+            if (TryGetSceneName(mapId, out var sceneName)) return sceneName;
+            var dynamicMap = Environment.GetEnvironmentVariable("FPS_MAP_ID");
+            var dynamicScene = Environment.GetEnvironmentVariable("FPS_MAP_SCENE");
+            if (mapId == dynamicMap && System.Text.RegularExpressions.Regex.IsMatch(dynamicScene ?? "", "^[a-zA-Z0-9_]{1,80}$")) return dynamicScene;
+            throw new InvalidOperationException("UNKNOWN_MAP: " + mapId);
+        }
     }
 }

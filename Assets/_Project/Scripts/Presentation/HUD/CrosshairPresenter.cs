@@ -112,10 +112,7 @@ namespace Game.Presentation.HUD
             Model.LastSpreadDegrees = spread;
 
             // 物理映射：视口半高 px / tan(vFOV/2) = 每弧度像素；×tan(spread)
-            float pxPerRad = (Screen.height * 0.5f) / Mathf.Tan(_mainCam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-            float targetGap = Mathf.Clamp(
-                Mathf.Tan(spread * Mathf.Deg2Rad) * pxPerRad * config.GapScale,
-                config.MinGap, config.MaxGap);
+            float targetGap = CalculateGap(spread, _mainCam.fieldOfView, Screen.height, config);
 
             Model.TargetGap = targetGap;
             // 扩张即时、收拢平滑：开火与跳跃不会被同一条低速 SmoothDamp 掩盖。
@@ -131,6 +128,15 @@ namespace Game.Presentation.HUD
 
             if (Model.HitMarkerRemaining > 0f)
                 Model.HitMarkerRemaining -= Time.deltaTime;
+        }
+
+        internal static float CalculateGap(float spread, float fov, float height, CrosshairConfig style)
+        {
+            float physical = Mathf.Tan(spread * Mathf.Deg2Rad) * height * .5f
+                / Mathf.Tan(fov * .5f * Mathf.Deg2Rad);
+            if (style == null) return physical;
+            // Styling may enlarge the cone, never under-report it (including MaxGap clipping).
+            return Mathf.Max(physical, Mathf.Clamp(physical * style.GapScale, style.MinGap, style.MaxGap));
         }
     }
 }

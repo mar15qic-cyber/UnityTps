@@ -22,7 +22,7 @@ public sealed class RoomSameRoomRejoinTests
         var instanceId = (await ServerTest.RegisterInstanceAsync(client, null, "10.1.0.5")).GetProperty("instanceId").GetString()!;
         var (hostToken, hostName) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         // 房主同房重进（Waiting）：零变化（人数/房主/成员行不动）
         await ServerTest.JoinRoomAsync(client, hostToken, roomCode);
@@ -57,7 +57,7 @@ public sealed class RoomSameRoomRejoinTests
         await ServerTest.RegisterInstanceAsync(client, null, "10.1.0.5");
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
@@ -81,7 +81,7 @@ public sealed class RoomSameRoomRejoinTests
         await ServerTest.RegisterInstanceAsync(client, null, "10.1.0.5");
         var (hostToken, hostName) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, guestName) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);   // JoinedAtUtc T1
@@ -107,14 +107,14 @@ public sealed class RoomSameRoomRejoinTests
 
         var (host1Token, _) = await ServerTest.RegisterUserAsync(client);
         var roomASnapshot = await ServerTest.CreateRoomAsync(client, host1Token);
-        var roomA = roomASnapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomA = ServerTest.HostRoomCode(roomASnapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomA);
 
         var (host2Token, _) = await ServerTest.RegisterUserAsync(client);
         var roomBSnapshot = await ServerTest.CreateRoomAsync(client, host2Token);
-        var roomB = roomBSnapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomB = ServerTest.HostRoomCode(roomBSnapshot.GetProperty("room"));
 
         // 跨房切换：旧房清理（减员），新房正常加入（实例租用唯一性由 ConcurrentStartLeasesDistinctInstances 覆盖）
         await ServerTest.JoinRoomAsync(client, guestToken, roomB);
@@ -131,15 +131,15 @@ public sealed class RoomSameRoomRejoinTests
         await ServerTest.RegisterInstanceAsync(client, null, "10.1.0.5");
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
         var joinedBefore = (await GetRoomAsync(client, roomCode)).GetProperty("joinedPlayers").GetInt32();
 
         // 已是成员的并发重进：无成员行插入 → 双 200 且人数零变化
-        var rejoinA = ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{roomCode}/join", null);
-        var rejoinB = ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{roomCode}/join", null);
+        var rejoinA = ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", null);
+        var rejoinB = ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", null);
         var rejoins = await Task.WhenAll(rejoinA, rejoinB);
         Assert.All(rejoins, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
         Assert.Equal(joinedBefore, (await GetRoomAsync(client, roomCode)).GetProperty("joinedPlayers").GetInt32());
@@ -151,6 +151,6 @@ public sealed class RoomSameRoomRejoinTests
     private static async Task<JsonElement> GetRoomAsync(HttpClient client, string roomCode)
     {
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        return list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode);
+        return list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
     }
 }

@@ -1,0 +1,6 @@
+{
+  "artifact": "Builds/PublicTestApi/UnityFps.Api.exe",
+  "sha256": "07e7240e784e43415b9cb85e493f3b6b25759f1baf02382c091c7584118a4e11",
+  "settings": "sanitized; cloud secrets required",
+  "deployment": "not-deployed"
+}

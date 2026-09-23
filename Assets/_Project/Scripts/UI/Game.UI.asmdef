@@ -9,7 +9,9 @@
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "UnityEngine.UI",
-        "XLua.Runtime"
+        "XLua.Runtime",
+        "Game.Presentation",
+        "Kybernetik.Animancer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

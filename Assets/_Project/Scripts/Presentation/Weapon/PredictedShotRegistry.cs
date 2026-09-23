@@ -6,11 +6,15 @@ namespace Game.Presentation.Weapon
     public sealed class PredictedShotEntry
     {
         public long LocalIndex;
+        public uint ShotRequestId;
         public Vector3 PredictedPoint;
         public Vector3 PredictedNormal;
         public bool Hit;
+        public bool CharacterHit;
         public uint Epoch;
         public GameObject Decal;
+        public GameObject[] PelletDecals;
+        public bool[] PelletCharacters;
         public bool Consumed;
     }
 
@@ -32,10 +36,17 @@ namespace Game.Presentation.Weapon
         /// <summary>登记一发本地预测（HandleShot 时调用；decal=本发持久表现载体，可为 null）。</summary>
         public PredictedShotEntry Register(Vector3 predictedPoint, Vector3 predictedNormal, bool hit,
             uint epoch, GameObject decal)
+            => Register(0u, predictedPoint, predictedNormal, hit, epoch, decal);
+
+        /// <summary>登记带网络请求 id 的本地预测。纯客户端 Owner 必须由
+        /// NetworkCombatAuthority.OnOwnerPredictedShot 调用，确认不能再猜 FIFO。</summary>
+        public PredictedShotEntry Register(uint shotRequestId, Vector3 predictedPoint, Vector3 predictedNormal, bool hit,
+            uint epoch, GameObject decal)
         {
             var entry = new PredictedShotEntry
             {
                 LocalIndex = ++_sequence,
+                ShotRequestId = shotRequestId,
                 PredictedPoint = predictedPoint,
                 PredictedNormal = predictedNormal,
                 Hit = hit,
@@ -75,6 +86,20 @@ namespace Game.Presentation.Weapon
             return null;
         }
 
+        /// <summary>按同一网络请求 id 消费。本地拒发/重复包/中间丢包不能误消费另一发的弹孔。</summary>
+        public PredictedShotEntry ConsumePending(uint shotRequestId, uint currentEpoch)
+        {
+            if (shotRequestId == 0u) return null;
+            for (int i = 0; i < _entries.Count; i++)
+            {
+                var entry = _entries[i];
+                if (entry.Consumed || entry.ShotRequestId != shotRequestId) continue;
+                entry.Consumed = true;
+                return entry.Epoch == currentEpoch ? entry : null;
+            }
+            return null;
+        }
+
         /// <summary>确认去重：首见登记并返回 false；同 id 再次到达返回 true（不得二次消费/纠偏）。</summary>
         public bool IsDuplicateConfirm(ulong shotRequestId)
         {
@@ -94,6 +119,10 @@ namespace Game.Presentation.Weapon
         }
 
         /// <summary>清空（生命边界/视图禁用）；不销毁 decal——调用方自行决定其生命周期。</summary>
-        public void Clear() => _entries.Clear();
+        public void Clear()
+        {
+            _entries.Clear();
+            _consumedConfirmIds.Clear();
+        }
     }
 }

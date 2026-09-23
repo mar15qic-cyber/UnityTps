@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Game.Gameplay.Weapon;
 using NUnit.Framework;
 using UnityEngine;
@@ -25,16 +27,23 @@ namespace Game.Gameplay.Tests
             Assert.That(catalog.Calibration, Is.Not.Null, "目录未引用 AttachmentCalibration");
 
             int opticCount = 0;
+            var opticIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var entry in catalog.Entries)
             {
                 if (entry == null || entry.slot != AttachmentSlotType.Optic || entry.aimTier == OpticAimTier.None)
                     continue;
                 opticCount++;
+                opticIds.Add(entry.itemId);
                 bool found = catalog.Calibration.TryGetOpticEyePoint("weapon.ak", entry.itemId, out var eye);
                 Assert.That(found, Is.True, $"瞄具 {entry.itemId} 缺缺省眼点行（opticAimRows 空键失效行回归？）");
                 Assert.That(eye.x, Is.GreaterThan(0f), $"瞄具 {entry.itemId} 眼距非法（挂点 -X 前向 → 眼点 +x）");
             }
-            Assert.That(opticCount, Is.GreaterThanOrEqualTo(11), "目录瞄具数量异常（应 ≥ 11 款）");
+            Assert.That(opticCount, Is.EqualTo(4), "正式客户端目录固定为四款 LPFP optic");
+            Assert.That(opticIds, Is.EquivalentTo(new[]
+            {
+                "attach.lpfp.optic.01", "attach.rifle.optic",
+                "attach.lpfp.optic.03", "attach.lpfp.optic.02"
+            }), "四镜身份映射必须与 AttachmentCalibration/OpticViewCatalog 一致");
         }
 
         [Test]

@@ -4,15 +4,22 @@ using UnityFps.Api.Features;
 
 public sealed class UserAccount
 {
+    public bool Disabled { get; set; }
     public long Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string NormalizedUsername { get; set; } = string.Empty;
+    /// <summary>好友查找编码（用户名#编码 的 # 后缀，注册时随机生成 4 位数字含前导零，不可修改）。
+    /// 用户名全局唯一 ⇒ 「名字+编码」组合唯一；编码本身不要求全局唯一。</summary>
+    public string IdentityTag { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? LastLoginAtUtc { get; set; }
     /// <summary>单活会话版本（2026-09-17 实测缺口）：每次登录 +1 并写入 JWT `tv` 声明；
     /// 认证中间件比对声明与库值，旧客户端 token 立即失效（同账号多端登录=后者顶替前者）。</summary>
     public long TokenVersion { get; set; }
+    /// <summary>最近一次活跃时间（好友在线状态锚点）：GET /api/friends 与房间心跳等热点端点节流刷新；
+    /// 在场判定：房间成员资格（房间中/对局中）优先于该时间（120s 内=在线）。</summary>
+    public DateTime? LastSeenUtc { get; set; }
     public PlayerProfile? Profile { get; set; }
     public PlayerLoadout? Loadout { get; set; }
     public PlayerWallet? Wallet { get; set; }
@@ -27,10 +34,6 @@ public sealed class PlayerProfile
     public long UserId { get; set; }
     public int Level { get; set; } = 1;
     public int Xp { get; set; }
-    public int SkillPoints { get; set; }
-    public int UpDamage { get; set; }
-    public int UpAmmoCap { get; set; }
-    public int UpMaxHealth { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public UserAccount User { get; set; } = null!;
 }
@@ -444,4 +447,23 @@ public sealed class PlayerAchievement
     public int Progress { get; set; }
     public DateTime? UnlockedAtUtc { get; set; }
     public int GrantedPassXp { get; set; }
+}
+
+// ===== 好友系统（2026-09-20 需求2：用户名#编码 查找 + 请求-同意制 + 在线状态）=====
+
+/// <summary>待处理好友申请（一方一行）。accept 后删除本行并建双向 Friendship；拒绝/撤销直接删除。</summary>
+public sealed class FriendRequest
+{
+    public long Id { get; set; }
+    public long FromUserId { get; set; }
+    public long ToUserId { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+}
+
+/// <summary>好友关系（对称存两行：查列表各查各的行；删除删两行）。复合主键 (UserId, FriendId)。</summary>
+public sealed class Friendship
+{
+    public long UserId { get; set; }
+    public long FriendId { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
 }

@@ -55,6 +55,32 @@ namespace Game.Gameplay.Tests
             => new AttachmentAssetEntry { itemId = WeaponAttachmentView.LaserItemId, slot = AttachmentSlotType.Tactical, prefab = null };
 
         [Test]
+        public void VerifiedGunLocalSockets_DoNotConjugateThroughUnrelatedViewRoots()
+        {
+            var delta = new Vector3(.01f, .02f, .03f);
+            _calibration.Set("weapon.test", "attach.test", delta, new Vector3(4, 5, 6), Quaternion.Euler(0, 90, 0));
+            var a = BuildWeapon("TP", Quaternion.Euler(0, 90, 0));
+            var b = BuildWeapon("FP", Quaternion.Euler(-33, 90, 0));
+            try
+            {
+                foreach (var view in new[] { a.view, b.view })
+                {
+                    var socket = view.GetComponentInChildren<AttachmentSocket>();
+                    var so = new UnityEditor.SerializedObject(socket);
+                    so.FindProperty("geometryVerified").boolValue = true;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    var entry = new AttachmentAssetEntry { itemId = "attach.test", slot = AttachmentSlotType.Tactical,
+                        prefab = _prefab, mountOffset = new Vector3(.05f, 0, 0) };
+                    view.ApplyAttachments(_catalog, "weapon.test", new[] { entry }, false);
+                    var mounted = view.FindSpawned(entry.itemId);
+                    Assert.That(Vector3.Distance(mounted.localPosition, entry.mountOffset + delta), Is.LessThan(.00001f));
+                    Assert.That(Quaternion.Angle(mounted.localRotation, Quaternion.Euler(4, 5, 6)), Is.LessThan(.001f));
+                }
+            }
+            finally { Object.DestroyImmediate(a.view.gameObject); Object.DestroyImmediate(b.view.gameObject); }
+        }
+
+        [Test]
         public void Calibration_FromAuthorFrame_LandsAtSameViewSpaceOffset_OnDifferentSocketFrame()
         {
             var rotA = Quaternion.Euler(0f, 90f, 0f);            // 预览/TP 型挂点（实测 Y90）

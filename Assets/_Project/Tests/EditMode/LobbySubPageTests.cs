@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
@@ -44,7 +45,7 @@ namespace Game.Gameplay.Tests
             {
                 token = "t",
                 expiresAtUtc = DateTime.UtcNow.AddHours(1).ToString("o"),
-                profile = new PlayerProfileDto { username = "Tester", level = 1, xp = 0, xpToNextLevel = 100, skillPoints = 0, coins = 500, upgrades = new UpgradeLevelsDto { upDamage = 2 } },
+                profile = new PlayerProfileDto { username = "Tester", level = 1, xp = 0, xpToNextLevel = 100, coins = 500 },
             });
             SetField(presenter, "session", session);
             catalogAsset = WeaponAssetCatalog.CreateRuntime();
@@ -101,19 +102,15 @@ namespace Game.Gameplay.Tests
 
             Invoke(presenter, "RenderCatalog", true);
             var body = GetField<Transform>(presenter, "body");
-            var ownedCard = body.Find("ShopPage/WeaponCard_weapon.m4");
-            var lockedCard = body.Find("ShopPage/WeaponCard_weapon.ak");
+            var ownedCard = body.Find("ShopPage/WeaponGrid/Viewport/Content/WeaponRow/WeaponCard_weapon.m4");
+            var lockedCard = body.Find("ShopPage/WeaponGrid/Viewport/Content/WeaponRow/WeaponCard_weapon.ak");
             Assert.That(ownedCard, Is.Not.Null);
             Assert.That(lockedCard, Is.Not.Null);
             Assert.That(AllTexts(ownedCard), Has.Member("已拥有"));
-            Assert.That(AllTexts(lockedCard), Has.Member("等级 99 解锁"));
-
-            // Locked card: buy button (on Face child of Buy_*) present but disabled.
-            var buyFace = lockedCard.Find("Buy_weapon.ak/Face");
-            Assert.That(buyFace, Is.Not.Null, "Buy button face should exist");
-            var buy = buyFace.GetComponent<Button>();
-            Assert.That(buy, Is.Not.Null);
-            Assert.That(buy.interactable, Is.False);
+            lockedCard.GetComponent<Button>().onClick.Invoke();
+            var detail = body.Find("ShopPage/SelectionDetails");
+            Assert.That(AllTexts(detail), Has.Member("等级 99 解锁"));
+            Assert.That(detail.GetComponentsInChildren<Button>()[1].interactable, Is.False);
 
             // Filter pills exist for all five categories.
             var texts = AllTexts(body.Find("ShopPage"));
@@ -122,17 +119,12 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Upgrades_PlusButton_RefreshesPendingValue()
+        public void RetiredPagesCannotBeNavigatedByName()
         {
-            var presenter = CreatePresenter();
-            Invoke(presenter, "RenderUpgrades");
-            var body = GetField<Transform>(presenter, "body");
-            var row = body.Find("UpgradesPage/Upgrade_伤害");
-            Assert.That(row, Is.Not.Null);
-            var plusFace = row.Find("Plus/Face");
-            Assert.That(plusFace, Is.Not.Null, "upgrade + button face should exist");
-            plusFace.GetComponent<Button>().onClick.Invoke();
-            Assert.That(AllTexts(row), Has.Member("伤害  3/5"));
+            Assert.That(Enum.GetNames(typeof(LobbyPage)), Does.Not.Contain("Upgrades"));
+            Assert.That(Enum.GetNames(typeof(LobbyPage)), Does.Not.Contain("Mission"));
+            Assert.That((int)LobbyPage.Settings, Is.EqualTo(10));
+            Assert.That(typeof(IApiClient).GetMethod("UpdateUpgradesAsync"), Is.Null);
         }
 
         [Test]
@@ -163,6 +155,8 @@ namespace Game.Gameplay.Tests
             Assert.That(gfxTexts, Has.Member("分辨率"));
             Assert.That(gfxTexts, Has.Member("帧率上限"));
             Assert.That(gfxTexts, Has.Some.StartsWith("开镜方式："));
+            Assert.That(gfxTexts, Has.Some.StartsWith("镜片准星："));
+            Assert.That(gfxTexts, Has.Some.StartsWith("准星颜色："));
             // 应用 / 取消（回滚）操作行（Phase B 语义）
             var pageTexts = AllTexts(page);
             Assert.That(pageTexts, Has.Member("应用并保存"));
@@ -171,17 +165,9 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Mission_BuildsCardAndCtas()
+        public void OfflineLaunchMethodIsRetired()
         {
-            var presenter = CreatePresenter();
-            Invoke(presenter, "RenderMission");
-            var body = GetField<Transform>(presenter, "body");
-            var page = body.Find("MissionPage");
-            Assert.That(page, Is.Not.Null);
-            Assert.That(page.Find("MapCard"), Is.Not.Null);
-            var texts = AllTexts(page);
-            Assert.That(texts, Has.Member("开始本地任务"));
-            Assert.That(texts, Has.Member("返回大厅"));
+            Assert.That(typeof(LobbyPresenter).GetMethod("StartGameplayAsync", BindingFlags.NonPublic | BindingFlags.Instance), Is.Null);
         }
 
         // ---------- 2026-09-16 需求1：仓库 CF 风（左列类型标签 + 大网格 + 仅已拥有） ----------
@@ -214,17 +200,20 @@ namespace Game.Gameplay.Tests
             var page = body.Find("ArmoryPage");
             Assert.That(page, Is.Not.Null);
 
-            Assert.That(page.Find("WeaponCard_weapon.m4"), Is.Not.Null, "初始枪 M4 必须在仓库可见");
-            Assert.That(page.Find("WeaponCard_weapon.service_pistol"), Is.Not.Null, "初始枪 Service Pistol 必须在仓库可见");
-            Assert.That(page.Find("WeaponCard_weapon.smg01"), Is.Not.Null);
-            Assert.That(page.Find("WeaponCard_weapon.ak"), Is.Null, "未拥有武器不出现在仓库");
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.m4"), Is.Not.Null, "初始枪 M4 必须在仓库可见");
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.service_pistol"), Is.Not.Null, "初始枪 Service Pistol 必须在仓库可见");
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.smg01"), Is.Not.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.ak"), Is.Null, "未拥有武器不出现在仓库");
 
             foreach (var key in new[] { "All", "Rifle", "Smg", "Sniper", "Shotgun", "Pistol" })
-                Assert.That(page.Find("ArmoryTab_" + key), Is.Not.Null, $"缺少类型标签 {key}");
+                Assert.That(page.Find("Category_" + key), Is.Not.Null, $"缺少类型标签 {key}");
 
-            var card = page.Find("WeaponCard_weapon.m4");
-            Assert.That(card.Find("Gunsmith_weapon.m4/Face"), Is.Not.Null, "卡片应提供配件改装入口");
-            Assert.That(card.Find("Details_weapon.m4/Face"), Is.Not.Null, "卡片应保留详情入口");
+            var card = FindDescendant(page, "WeaponCard_weapon.m4");
+            Assert.That(card.Find("WeaponIcon"), Is.Not.Null);
+            var detail = page.Find("SelectionDetails");
+            Assert.That(detail.GetComponentsInChildren<Button>().Any(b => b.name == "EquipSelectedWeapon"), Is.True);
+            Assert.That(AllTexts(detail), Does.Contain("检视武器"));
+            Assert.That(AllTexts(detail), Does.Contain("改装配件"));
         }
 
         [Test]
@@ -233,7 +222,7 @@ namespace Game.Gameplay.Tests
             var presenter = CreateArmoryPresenter();
             Invoke(presenter, "RenderArmoryPage");
             var body = GetField<Transform>(presenter, "body");
-            var pistolTab = body.Find("ArmoryPage/ArmoryTab_Pistol")?.GetComponent<Button>();
+            var pistolTab = body.Find("ArmoryPage/Category_Pistol")?.GetComponent<Button>();
             Assert.That(pistolTab, Is.Not.Null);
             pistolTab.onClick.Invoke();
 
@@ -242,9 +231,9 @@ namespace Game.Gameplay.Tests
             foreach (Transform child in body)
                 if (child.name == "ArmoryPage") page = child;
             Assert.That(page, Is.Not.Null);
-            Assert.That(page.Find("WeaponCard_weapon.service_pistol"), Is.Not.Null);
-            Assert.That(page.Find("WeaponCard_weapon.m4"), Is.Null);
-            Assert.That(page.Find("WeaponCard_weapon.smg01"), Is.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.service_pistol"), Is.Not.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.m4"), Is.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.smg01"), Is.Null);
         }
 
         [Test]
@@ -256,10 +245,12 @@ namespace Game.Gameplay.Tests
             Invoke(presenter, "RenderArmoryPage");
             var body = GetField<Transform>(presenter, "body");
             var page = body.Find("ArmoryPage");
-            Assert.That(page.Find("WeaponCard_weapon.m4/EquippedBadge"), Is.Not.Null);
-            Assert.That(page.Find("WeaponCard_weapon.service_pistol/EquippedBadge"), Is.Not.Null);
-            Assert.That(page.Find("WeaponCard_weapon.smg01/EquippedBadge"), Is.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.m4")?.GetComponentsInChildren<TMP_Text>().FirstOrDefault(x => x.text == "已装备"), Is.Not.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.service_pistol")?.GetComponentsInChildren<TMP_Text>().FirstOrDefault(x => x.text == "已装备"), Is.Not.Null);
+            Assert.That(FindDescendant(page, "WeaponCard_weapon.smg01")?.GetComponentsInChildren<TMP_Text>().FirstOrDefault(x => x.text == "已装备"), Is.Null);
         }
+
+        private static Transform FindDescendant(Transform parent, string name) => parent.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == name);
 
         private static T GetField<T>(object target, string name)
         {

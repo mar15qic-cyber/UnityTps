@@ -34,7 +34,8 @@ namespace Game.Gameplay.Menu
         public static int ResumeGraceFrames => _resumeGraceFrames;
 
         /// <summary>游戏输入是否被禁止（任一原因命中即为 true）。</summary>
-        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _chatFocused || _resumeGraceFrames > 0;
+        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _chatFocused || _resumeGraceFrames > 0
+            || Game.Gameplay.Network.MatchLoadingScreen.Active;
 
         /// <summary>菜单开合（GameplayMenuController 调用；开=屏蔽输入+解锁光标由控制器做）。</summary>
         public static void SetMenuOpen(bool open)
@@ -78,6 +79,7 @@ namespace Game.Gameplay.Menu
             _menuOpen = false;
             _hardLocked = false;
             _dead = false;
+            _chatFocused = false;
             _resumeGraceFrames = 0;
         }
     }

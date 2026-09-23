@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -42,7 +43,27 @@ namespace Game.Gameplay.Weapon
             return lower.Contains("iron_sight") || lower.Contains("ironsight");
         }
 
+        /// <summary>原生狙击枪 01-03 的出厂镜视觉根。只接受正式 prefab 的精确命名，
+        /// 避免把共享枪体 renderer 或挂点上配件内部的任意 scope 子网格一并隐藏。</summary>
+        public static bool IsStockScopeName(string childName)
+        {
+            if (string.IsNullOrEmpty(childName)) return false;
+            switch (childName.ToLowerInvariant())
+            {
+                case "sniper_01_scope":
+                case "sniper_02_scope":
+                case "sniper_03_scope":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private void Awake() => CacheSockets();
+
+        public static bool IsOptionalDemoAccessory(string name)
+            => name == "scope_01" || name == "scope_02" || name == "scope_03"
+                || name == "scope_04" || name == "silencer";
 
         /// <summary>按槽位取挂点 Transform（瞄具眼点反查等校准路径用；无挂点=null）。</summary>
         public Transform GetSocketTransform(AttachmentSlotType slot)
@@ -60,18 +81,44 @@ namespace Game.Gameplay.Weapon
             return null;
         }
 
-        /// <summary>查枪模自带的出厂镜体（P4 实体镜内置瞄具路径；与 ApplyAttachments 的
-        /// scope 抑制匹配器同源——名称含 scope 且不在配件子树内）。返回首个带渲染器的命中。</summary>
+        /// <summary>共享的实体镜光轴/孔径：从实际配件局部几何转换到挂点系，
+        /// 同时供 ADS 构图与镜片绘制使用，不受枪身动画或世界 AABB 影响。</summary>
+        public bool TryGetPhysicalScopeAim(string itemId, out OpticAimData aim)
+        {
+            aim = default;
+            var entry = AttachmentAssetCatalog.LoadOrDefault().Find(itemId);
+            var geometry = FindSpawned(itemId);
+            var socket = GetSocketTransform(AttachmentSlotType.Optic);
+            if (entry == null || geometry == null || socket == null
+                || !float.IsFinite(entry.scopeApertureRadius) || entry.scopeApertureRadius <= 0f) return false;
+            Matrix4x4 local = socket.worldToLocalMatrix * geometry.localToWorldMatrix;
+            Vector3 center = local.MultiplyPoint3x4(entry.scopeApertureCenter);
+            Vector3 axis = local.MultiplyVector(Vector3.forward).normalized;
+            float radius = Mathf.Min(local.MultiplyVector(Vector3.up * entry.scopeApertureRadius).magnitude,
+                local.MultiplyVector(Vector3.right * entry.scopeApertureRadius).magnitude);
+            if (!float.IsFinite(center.sqrMagnitude) || !float.IsFinite(radius)
+                || radius <= 0f || axis.sqrMagnitude < .5f) return false;
+            aim = new OpticAimData
+            {
+                WindowCenterLocal = center,
+                WindowHalfWidthMeters = radius,
+                WindowHalfHeightMeters = radius,
+                EyePointLocal = center - axis * .05f,
+                AxisFrontPointLocal = center + axis * .05f,
+                HasWindow = true,
+                HasAxisFront = true,
+                TargetViewportHeight = .18f
+            };
+            return true;
+        }
+
+        /// <summary>查原生狙击枪 01-03 的出厂镜体（P4 实体镜内置瞄具路径）。
+        /// 仅查视图根的直接子节点，避免把共享枪体或配件内部的 scope 子网格当成出厂镜。</summary>
         public Transform FindStockScope()
         {
-            var children = GetComponentsInChildren<Transform>(true);
-            foreach (var child in children)
+            foreach (Transform child in transform)
             {
-                if (child == null || child == transform || child.parent == null) continue;
-                if (IsUnderSpawned(child)) continue;
-                var name = child.name;
-                if (!name.ToLowerInvariant().Contains("scope")) continue;
-                if (name.StartsWith("Att_") || name.StartsWith("Attach_")) continue;
+                if (child == null || !IsStockScopeName(child.name)) continue;
                 if (child.GetComponentInChildren<Renderer>(true) != null) return child;
             }
             return null;
@@ -86,6 +133,11 @@ namespace Game.Gameplay.Weapon
             bool laserBeamEnabled = true)
         {
             Clear();
+            // Optional demo accessories are not loadout equipment (HKP30/P90).
+            foreach (var child in transform.GetComponentsInChildren<Transform>(true))
+                if (child.name == "knife 1" || child.name == "knife" || IsOptionalDemoAccessory(child.name)
+                    || (child.name == "rails" && GetComponentsInChildren<AttachmentSocket>(true).Any(s => s.GeometryVerified)))
+                    child.gameObject.SetActive(false);
             if (attachments == null) return;
             if (_sockets == null || _sockets.Length == 0) CacheSockets();
             if (_sockets == null || _sockets.Length == 0) return;
@@ -94,7 +146,7 @@ namespace Game.Gameplay.Weapon
             var hasOptic = false;
             foreach (var entry in attachments)
             {
-                if (entry == null) continue;
+                if (!AttachmentCompatibilityPolicy.IsAllowed(weaponItemId, entry)) continue;
                 if (entry.slot == AttachmentSlotType.Optic) hasOptic = true;
                 if (!entry.HasModel) continue;
                 var socket = FindSocket(entry.slot);
@@ -113,7 +165,10 @@ namespace Game.Gameplay.Weapon
                     // 帧取值用缓存的静止帧（2026-09-07 切枪配件错位修复）：换枪回来的视图实例
                     // 以收枪冻结姿态重新激活且本方法先于 PlayDraw 执行，实时测量会把收枪姿态
                     // 共轭进校准 delta——改用 Awake/首次缓存时的 prefab 授权姿态，换算与动画解耦。
-                    if (authorFrame != default)
+                    // Verified sockets already share a gun-relative basis. View roots do
+                    // NOT: FP root includes arm presentation, TP root is the rigid gun.
+                    // Conjugating through those unrelated roots recreates cross-view drift.
+                    if (!socket.GeometryVerified && authorFrame != default)
                     {
                         var currentFrame = _socketRestFrames.TryGetValue(entry.slot, out var restFrame)
                             ? restFrame
@@ -130,6 +185,8 @@ namespace Game.Gameplay.Weapon
                     go.transform.localRotation *= Quaternion.Euler(eulerOffset);
                 }
                 _spawned.Add(go);
+                if (Application.isPlaying && !Application.isBatchMode && entry.itemId == "attach.lpw.tactical.light")
+                    go.AddComponent<TacticalFlashlight>().Setup(laserBeamEnabled);
                 if (laserBeamEnabled && entry.itemId == LaserItemId)
                 {
                     var beam = go.AddComponent<LaserSightBeam>();
@@ -137,10 +194,16 @@ namespace Game.Gameplay.Weapon
                 }
             }
 
-            // 出厂子件抑制（装任意瞄具触发）：①原生狙击枪自带 scope 网格（既有行为）；
+            // 出厂子件抑制（装任意瞄具触发）：①原生狙击枪 01-03 的出厂镜视觉根；
             // ②LPFP 机械瞄具（*_Iron_Sights，用户需求：机瞄柱遮挡瞄具视野）。
-            // 卸下/换装即经 Clear 恢复原状。注意跳过挂点上实例化的配件子树——配件模型内部
-            // 可能也有含 scope/iron 命名的部件（如 Scope_02 镜体），绝不能误隐藏配件本体。
+            // 卸下/换装即经 Clear 恢复原状。出厂镜只认视图根直接子节点的精确名称；
+            // 挂点上实例化的配件子树继续跳过，绝不能误隐藏配件本体或共享枪体 renderer。
+            foreach (var socket in _sockets)
+            {
+                if (socket == null || socket.Slot != AttachmentSlotType.Optic) continue;
+                var adapter = socket.transform.Find("OpticMountAdapter");
+                if (adapter != null) adapter.gameObject.SetActive(hasOptic);
+            }
             if (hasOptic)
             {
                 foreach (var child in transform.GetComponentsInChildren<Transform>(true))
@@ -148,9 +211,8 @@ namespace Game.Gameplay.Weapon
                     if (child.parent == null || child == transform) continue;
                     if (IsUnderSpawned(child)) continue;
                     var name = child.name;
-                    var suppressScope = name.ToLowerInvariant().Contains("scope")
-                        && !name.StartsWith("Att_") && !name.StartsWith("Attach_");
-                    var suppressIronsights = IsStockIronSightsName(name);
+                    var suppressScope = child.parent == transform && IsStockScopeName(name);
+                    var suppressIronsights = weaponItemId != "weapon.m4" && IsStockIronSightsName(name);
                     if ((!suppressScope && !suppressIronsights) || !child.gameObject.activeSelf) continue;
                     _suppressedStock.Add((child.gameObject, true));
                     child.gameObject.SetActive(false);
@@ -169,8 +231,22 @@ namespace Game.Gameplay.Weapon
         public void Clear()
         {
             foreach (var go in _spawned)
-                if (go != null) Destroy(go);
+                if (go != null)
+                {
+                    // Deactivate immediately so repeated swaps in one frame cannot show
+                    // two models; preview/calibration also runs outside Play Mode.
+                    go.SetActive(false);
+                    if (Application.isPlaying) Destroy(go);
+                    else DestroyImmediate(go);
+                }
             _spawned.Clear();
+            if (_sockets != null)
+                foreach (var socket in _sockets)
+                {
+                    if (socket == null || socket.Slot != AttachmentSlotType.Optic) continue;
+                    var adapter = socket.transform.Find("OpticMountAdapter");
+                    if (adapter != null) adapter.gameObject.SetActive(false);
+                }
             foreach (var (go, wasActive) in _suppressedStock)
                 if (go != null) go.SetActive(wasActive);
             _suppressedStock.Clear();
@@ -202,13 +278,27 @@ namespace Game.Gameplay.Weapon
     public static class WeaponAttachmentStore
     {
         private const string PrefKeyPrefix = "Game.Loadout.Attachments.";
+        private static readonly HashSet<string> RetiredAttachmentIds = new(StringComparer.Ordinal)
+        {
+            "attach.lpw.optic.01", "attach.lpw.optic.02", "attach.lpw.optic.03", "attach.lpw.optic.04",
+            "attach.lpw.optic.05", "attach.lpw.optic.06", "attach.lpw.optic.07", "attach.lpw.optic.08",
+            "attach.pistol.optic", "attach.lpw.muffler.01", "attach.lpw.muffler.02"
+        };
         public static readonly string[] AllSlots = { "Optic", "Muzzle", "Magazine", "Tactical", "Underbarrel" };
+
+        /// <summary>阶段 A 下线的旧瞄具 ID；本地持久化遇到它们必须静默清掉。</summary>
+        public static bool IsRetiredAttachmentId(string itemId)
+            => !string.IsNullOrWhiteSpace(itemId) && RetiredAttachmentIds.Contains(itemId);
 
         public static void Save(string weaponItemId, IReadOnlyDictionary<string, string> slotToItemId)
         {
             if (string.IsNullOrWhiteSpace(weaponItemId)) return;
             foreach (var slot in AllSlots)
-                PlayerPrefs.SetString(PrefKeyPrefix + weaponItemId + "." + slot, slotToItemId != null && slotToItemId.TryGetValue(slot, out var id) ? id : string.Empty);
+            {
+                var id = slotToItemId != null && slotToItemId.TryGetValue(slot, out var value) ? value : string.Empty;
+                PlayerPrefs.SetString(PrefKeyPrefix + weaponItemId + "." + slot,
+                    IsRetiredAttachmentId(id) ? string.Empty : id);
+            }
             PlayerPrefs.Save();
         }
 
@@ -218,9 +308,17 @@ namespace Game.Gameplay.Weapon
             if (string.IsNullOrWhiteSpace(weaponItemId)) return;
             foreach (var slot in AllSlots)
             {
-                var id = PlayerPrefs.GetString(PrefKeyPrefix + weaponItemId + "." + slot, string.Empty);
+                var key = PrefKeyPrefix + weaponItemId + "." + slot;
+                var id = PlayerPrefs.GetString(key, string.Empty);
+                if (IsRetiredAttachmentId(id))
+                {
+                    PlayerPrefs.DeleteKey(key);
+                    continue;
+                }
                 if (!string.IsNullOrWhiteSpace(id)) slotToItemId[slot] = id;
             }
+            // Persist the cleanup so the removed ID cannot reappear in a later scene load.
+            PlayerPrefs.Save();
         }
     }
 
@@ -236,7 +334,9 @@ namespace Game.Gameplay.Weapon
         public static void Save(string weaponItemId, IReadOnlyDictionary<string, string> slotToItemId)
         {
             if (string.IsNullOrWhiteSpace(weaponItemId)) return;
-            var entries = slotToItemId.Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+            var entries = (slotToItemId ?? new Dictionary<string, string>())
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value)
+                    && !WeaponAttachmentStore.IsRetiredAttachmentId(kv.Value))
                 .Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"");
             PlayerPrefs.SetString(KeyPrefix + weaponItemId, "{" + string.Join(",", entries) + "}");
             PlayerPrefs.Save();
@@ -248,6 +348,7 @@ namespace Game.Gameplay.Weapon
             if (string.IsNullOrWhiteSpace(weaponItemId)) return false;
             var json = PlayerPrefs.GetString(KeyPrefix + weaponItemId, string.Empty);
             if (string.IsNullOrEmpty(json)) return false;
+            var repaired = false;
             // 轻量解析（固定结构 {"Slot":"itemId",...}）
             foreach (var pair in json.Trim('{', '}').Split(','))
             {
@@ -255,7 +356,17 @@ namespace Game.Gameplay.Weapon
                 if (kv.Length != 2) continue;
                 var slot = kv[0].Trim('"');
                 var id = kv[1].Trim('"');
+                if (WeaponAttachmentStore.IsRetiredAttachmentId(id))
+                {
+                    repaired = true;
+                    continue;
+                }
                 if (!string.IsNullOrEmpty(slot) && !string.IsNullOrEmpty(id)) slotToItemId[slot] = id;
+            }
+            if (repaired)
+            {
+                if (slotToItemId.Count == 0) Clear(weaponItemId);
+                else Save(weaponItemId, slotToItemId);
             }
             return slotToItemId.Count > 0;
         }

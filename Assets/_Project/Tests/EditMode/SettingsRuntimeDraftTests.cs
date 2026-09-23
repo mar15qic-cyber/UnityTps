@@ -28,7 +28,11 @@ namespace Game.Gameplay.Tests
             PlayerPrefs.DeleteKey(SettingsModel.ResolutionKey);
             PlayerPrefs.DeleteKey(SettingsModel.FullscreenKey);
             PlayerPrefs.DeleteKey(SettingsModel.FrameCapKey);
+            PlayerPrefs.DeleteKey(SettingsModel.OpticReticleStyleKey);
+            PlayerPrefs.DeleteKey(SettingsModel.OpticReticleColorKey);
             PlayerPrefs.DeleteKey(AdsInputMode.PrefsKey);
+            PlayerPrefs.DeleteKey(LeanInputMode.PrefsKey);
+            LeanInputMode.CancelPreview();
             foreach (var b in SettingsKeyMap.Bindings) PlayerPrefs.DeleteKey(b.prefsKey);
             SettingsKeyMap.InvalidateCache();
             AudioBus.MusicVolume = 1f;
@@ -91,6 +95,26 @@ namespace Game.Gameplay.Tests
         // ---- SettingsDraft：捕获 / 应用 / 回滚 / 默认 ----
 
         [Test]
+        public void LeanMode_PreviewCancelsWithoutPersisting_ApplySaves()
+        {
+            LeanInputMode.Toggle = false;
+            var draft = SettingsDraft.CaptureFromCurrent();
+            draft.LeanToggleMode = true;
+            draft.PreviewAllLive();
+            Assert.That(LeanInputMode.Toggle, Is.True);
+            Assert.That(PlayerPrefs.GetInt(LeanInputMode.PrefsKey), Is.Zero);
+
+            draft.RestoreLive();
+            Assert.That(LeanInputMode.Toggle, Is.False);
+            Assert.That(PlayerPrefs.GetInt(LeanInputMode.PrefsKey), Is.Zero);
+
+            draft.LeanToggleMode = true;
+            draft.ApplyAndPersist();
+            Assert.That(LeanInputMode.Toggle, Is.True);
+            Assert.That(PlayerPrefs.GetInt(LeanInputMode.PrefsKey), Is.EqualTo(1));
+        }
+
+        [Test]
         public void Draft_ApplyPersistsAndReloadKeepsValues()
         {
             var draft = SettingsDraft.CreateDefaults();
@@ -98,6 +122,8 @@ namespace Game.Gameplay.Tests
             draft.SfxVolume = 0.6f;
             draft.Sensitivity = 2.2f;
             draft.FrameCap = 144;
+            draft.ReticleStyle = OpticReticleStyle.CircleDot;
+            draft.ReticleColor = OpticReticleColor.Green;
             draft.PreviewKey(SettingsKeyMap.Action.Reload, Key.F);
             draft.ApplyAndPersist();
 
@@ -105,6 +131,8 @@ namespace Game.Gameplay.Tests
             Assert.That(PlayerPrefs.GetFloat(SettingsModel.SfxVolumeKey), Is.EqualTo(0.6f).Within(0.0001f));
             Assert.That(PlayerPrefs.GetFloat(SettingsModel.SensitivityKey), Is.EqualTo(2.2f).Within(0.0001f));
             Assert.That(PlayerPrefs.GetInt(SettingsModel.FrameCapKey), Is.EqualTo(144));
+            Assert.That(SettingsModel.ReticleStyle, Is.EqualTo(OpticReticleStyle.CircleDot));
+            Assert.That(SettingsModel.ReticleColor, Is.EqualTo(OpticReticleColor.Red));
             Assert.That(SettingsKeyMap.IsCustomized(SettingsKeyMap.Action.Reload), Is.True, "应用后键位必须持久化");
 
             // 模拟重启：清缓存重读 → 持久值仍生效
@@ -113,6 +141,8 @@ namespace Game.Gameplay.Tests
             SettingsRuntime.ReloadFromPersistedAndApply();
             Assert.That(SettingsRuntime.Sensitivity, Is.EqualTo(2.2f).Within(0.0001f));
             Assert.That(SettingsRuntime.MasterVolume, Is.EqualTo(0.4f).Within(0.0001f));
+            Assert.That(SettingsRuntime.ReticleStyle, Is.EqualTo(OpticReticleStyle.CircleDot));
+            Assert.That(SettingsRuntime.ReticleColor, Is.EqualTo(OpticReticleColor.Red));
         }
 
         [Test]
@@ -121,6 +151,8 @@ namespace Game.Gameplay.Tests
             // 捕获点（用户当前持久值 → 实时层，模拟启动装载）
             SettingsModel.MasterVolume = 0.8f;
             SettingsModel.Sensitivity = 1.7f;
+            SettingsModel.ReticleStyle = OpticReticleStyle.CircleDot;
+            SettingsModel.ReticleColor = OpticReticleColor.White;
             SettingsRuntime.ReloadFromPersistedAndApply();
             SettingsKeyMap.Set(SettingsKeyMap.Action.Jump, Key.Space, persist: false); // 锚定基线（仅缓存，无持久键）
             var draft = SettingsDraft.CaptureFromCurrent();
@@ -130,15 +162,20 @@ namespace Game.Gameplay.Tests
             draft.Sensitivity = 3f;
             SettingsRuntime.SetLive(SensitivityTarget.Master, 0.1f);
             SettingsRuntime.SetLive(SensitivityTarget.Sensitivity, 3f);
+            SettingsRuntime.SetReticleLive(OpticReticleStyle.Chevron, OpticReticleColor.Cyan);
             draft.PreviewKey(SettingsKeyMap.Action.Jump, Key.C);
 
             Assert.That(SettingsRuntime.MasterVolume, Is.EqualTo(0.1f).Within(0.0001f));
             Assert.That(SettingsKeyMap.Get(SettingsKeyMap.Action.Jump), Is.EqualTo(Key.C));
+            Assert.That(SettingsRuntime.ReticleStyle, Is.EqualTo(OpticReticleStyle.Chevron));
+            Assert.That(SettingsRuntime.ReticleColor, Is.EqualTo(OpticReticleColor.Blue));
 
             // 取消 → 全部回滚到捕获点；PlayerPrefs 未被预览污染
             draft.RestoreLive();
             Assert.That(SettingsRuntime.MasterVolume, Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(SettingsRuntime.Sensitivity, Is.EqualTo(1.7f).Within(0.0001f));
+            Assert.That(SettingsRuntime.ReticleStyle, Is.EqualTo(OpticReticleStyle.CircleDot));
+            Assert.That(SettingsRuntime.ReticleColor, Is.EqualTo(OpticReticleColor.Red));
             Assert.That(SettingsKeyMap.Get(SettingsKeyMap.Action.Jump), Is.EqualTo(Key.Space));
             Assert.That(PlayerPrefs.HasKey(SettingsKeyMap.Find(SettingsKeyMap.Action.Jump).prefsKey), Is.False,
                 "取消后不得残留预览键位");

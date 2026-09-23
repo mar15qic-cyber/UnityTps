@@ -91,5 +91,36 @@ namespace Game.Gameplay.Weapon
             ReloadRemaining = 0f;
             CooldownRemaining = 0f;
         }
+
+        /// <summary>Network reconciliation changes ammunition without treating an ordinary
+        /// acknowledgement as a weapon switch. In particular it preserves cooldown and a
+        /// locally valid reload; a changed Ready snapshot completes that reload.</summary>
+        internal void ReconcileAuthoritativeAmmo(int currentAmmo, int reserveAmmo,
+            WeaponRuntimeState authoritativeState, float authoritativeReloadRemaining)
+        {
+            bool changed = CurrentAmmo != Math.Clamp(currentAmmo, 0, MagazineSize)
+                || ReserveAmmo != Math.Max(0, reserveAmmo);
+            CurrentAmmo = Math.Clamp(currentAmmo, 0, MagazineSize);
+            ReserveAmmo = Math.Max(0, reserveAmmo);
+
+            if (authoritativeState == WeaponRuntimeState.Reloading)
+            {
+                State = WeaponRuntimeState.Reloading;
+                ReloadRemaining = Math.Max(0f, authoritativeReloadRemaining);
+            }
+            else if (State == WeaponRuntimeState.Reloading && changed)
+            {
+                // A changed Ready snapshot is the authoritative reload completion (for
+                // example 0/30 -> 30/0). An unchanged fire ACK must not cancel reload.
+                State = WeaponRuntimeState.Ready;
+                ReloadRemaining = 0f;
+            }
+        }
+
+        internal void ApplyPredictedAmmoDebt(int rounds)
+        {
+            if (rounds <= 0) return;
+            CurrentAmmo = Math.Max(0, CurrentAmmo - rounds);
+        }
     }
 }

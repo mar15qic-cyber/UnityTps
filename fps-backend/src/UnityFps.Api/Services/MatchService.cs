@@ -16,49 +16,9 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
     /// <summary>成就→通行证升级再触发成就的收敛上限（防死循环，Docs/17 风险 #1）.</summary>
     private const int ConvergenceMaxRounds = 3;
 
-    /// <summary>
-    /// 玩家提交入口（复审 R02）：与服务器结算内部入口（SubmitAsync）分离。
-    /// TDM 对局由 DS 权威上报结算，玩家只能查询结果——带 matchId 的 TDM 自报、以及
-    /// 对局进行中不带 matchId 的旧路径降级绕过，一律 409 拒绝；KillRace 兼容路径保留
-    /// （成员带 matchId 自报 + 无房间玩家的旧 30 杀路径不变）。
-    /// </summary>
-    public async Task<MatchResultDto> SubmitForPlayerAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
-    {
-        if (request.MatchId is not null)
-        {
-            var room = await db.GameRooms.AsNoTracking()
-                .SingleOrDefaultAsync(
-                    x => x.CurrentMatchId == request.MatchId || x.LastMatchId == request.MatchId, cancellationToken);
-            // A04（V0）：房间比赛发奖责任统一归 DS（幂等键 ds-{matchId}-{userId}，即稳定的
-            // (matchId,userId) 口径），TDM 与 KillRace 一致——玩家带 matchId 自报一律 409
-            // （客户端改为查询 /api/rooms/{code}/matches/{matchId}）；旧非房间路径（无 matchId
-            // 的 30 杀兼容）明确隔离保留，双入口不再可能对同一局各结算一次。
-            if (room is not null)
-                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
-                    "该对局由服务器权威结算，玩家仅可查询结果");
-            // room 为空 → 交由 SubmitAsync 的绑定校验按跨局伪造拒绝
-        }
-        else
-        {
-            // 无 matchId 的旧路径只对"不在任何对局中"的玩家开放，封死对局内降级绕过
-            // 2026-09-17 修复（既有缺陷，R02 守卫上线起真库即 500）：RoomStatus.Normalize 是 C# 方法，
-            // 关系提供方（MySQL）无法翻译谓词 → InvalidOperationException；InMemory 测试测不出。
-            // 改为先取本人所在房间状态再内存归一（与 RoomService 全部既有用法同风格；
-            // 本人房间数极少，无性能问题）。
-            var memberStatuses = await db.GameRooms.AsNoTracking()
-                .Where(r => r.Members.Any(m => m.UserId == userId))
-                .Select(r => r.Status)
-                .ToListAsync(cancellationToken);
-            var inLiveMatch = memberStatuses.Any(s =>
-                RoomStatus.Normalize(s) == RoomStatus.Starting
-                || RoomStatus.Normalize(s) == RoomStatus.InMatch
-                || RoomStatus.Normalize(s) == RoomStatus.Returning);
-            if (inLiveMatch)
-                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict,
-                    "当前对局须携带比赛标识结算，拒绝无标识上报");
-        }
-        return await SubmitAsync(userId, request, cancellationToken);
-    }
+    /// <summary>旧玩家自报奖励入口已退役。保留明确的 410 响应，不修改账号或战绩。</summary>
+    public Task<MatchResultDto> SubmitForPlayerAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
+        => throw new ApiException(StatusCodes.Status410Gone, "PLAYER_SETTLEMENT_RETIRED", "对局奖励仅由服务器结算，请查询房间结果");
 
     public Task<MatchResultDto> SubmitAsync(long userId, MatchSubmissionRequest request, CancellationToken cancellationToken)
         => SubmitCoreAsync(userId, request, cancellationToken, validateRoomBinding: true);
@@ -163,7 +123,6 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         {
             profile.Xp -= rules.GetXpToNextLevel(profile.Level);
             profile.Level++;
-            profile.SkillPoints++;
             levelUps++;
         }
         profile.UpdatedAtUtc = DateTime.UtcNow;
@@ -228,7 +187,7 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         });
 
         return BuildResult(xpEarned, levelUps, wallet.Coins, coinsEarned, passXpEarned, pass,
-            passLevelUps, newAttachments, unlockedAchievements, replayed: false, profile, user.Username);
+            passLevelUps, newAttachments, unlockedAchievements, replayed: false, profile, user);
     }
 
     /// <summary>扫发通行证奖励：配件写库存（仅目录存在且未拥有），金币写钱包 + PassReward 流水。</summary>
@@ -348,19 +307,19 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         var pass = await db.PlayerPasses.AsNoTracking()
             .SingleOrDefaultAsync(x => x.UserId == userId && x.SeasonId == PassSeeder.SeasonId, ct);
         return BuildResult(existing.XpEarned, 0, user.Wallet?.Coins ?? 0, existing.CoinsEarned,
-            existing.PassXpEarned, pass, [], [], [], replayed: true, user.Profile!, user.Username);
+            existing.PassXpEarned, pass, [], [], [], replayed: true, user.Profile!, user);
     }
 
     private MatchResultDto BuildResult(int xpEarned, int levelUps, long coins, int coinsEarned,
         int passXpEarned, PlayerPass? pass, List<PassLevelUpDto> passLevelUps, List<string> newAttachments,
-        List<UnlockedAchievementDto> unlockedAchievements, bool replayed, PlayerProfile profile, string username)
+        List<UnlockedAchievementDto> unlockedAchievements, bool replayed, PlayerProfile profile, UserAccount user)
     {
         var passLevel = pass?.PassLevel ?? 1;
         return new MatchResultDto(
             xpEarned, levelUps, coins, coinsEarned, passXpEarned,
             passLevel, pass?.PassXp ?? 0, rules.GetPassXpToNextLevel(passLevel),
             [.. passLevelUps], [.. newAttachments], [.. unlockedAchievements], replayed,
-            profile.ToDto(username, coins, rules));
+            profile.ToDto(user, coins, rules));
     }
 
     private sealed record MatchStats(

@@ -67,6 +67,19 @@ namespace Game.Presentation.Camera
             return Position + direction * (depthAlongForward / along);
         }
 
+        /// <summary>把实际射击轴投到当前显示相机的视口。射击原点与 FP 相机可有少量偏移，
+        /// 因此取足够远的轴上点而不是假定准星永远等于 (0.5,0.5)。HUD 分划、命中点和
+        /// WeaponController 的 AimDirection 由此共享同一个瞄准语义。</summary>
+        public bool TryProjectAimRay(Vector3 origin, Vector3 direction, float distance, out Vector3 viewport)
+        {
+            viewport = default;
+            if (!IsFinite(origin) || !IsFinite(direction) || !float.IsFinite(distance)
+                || direction.sqrMagnitude < 1e-8f || distance <= 0f)
+                return false;
+            viewport = ProjectToViewport(origin + direction.normalized * distance);
+            return viewport.z > 0f && IsFinite(viewport);
+        }
+
         /// <summary>跨相机屏幕匹配：求 overlay 系中的一个世界点，它经 overlay 相机投影后
         /// 落在与 sourceWorldPoint 经 source 相机投影相同的视口位置上（深度沿 overlay 前向，
         /// 夹在 [minDepth, maxDepth]）。曳光/分划跨 FOV 收敛的基础原语。</summary>
@@ -117,6 +130,22 @@ namespace Game.Presentation.Camera
     /// </summary>
     public static class OpticAimGeometry
     {
+        /// <summary>Final screen-plane constraint after animation/recoil. Preserve camera depth,
+        /// hence authored arm coverage, and never move the gameplay camera or shot ray.</summary>
+        public static Vector3 CenterWindowOnAimRay(Vector3 windowWorld, in CameraProjection camera)
+        {
+            float depth = Vector3.Dot(windowWorld - camera.Position, camera.Forward);
+            if (!float.IsFinite(depth) || depth <= camera.NearClip) return Vector3.zero;
+            Vector3 delta = camera.Position + camera.Forward * depth - windowWorld;
+            return float.IsFinite(delta.x) && float.IsFinite(delta.y) && float.IsFinite(delta.z)
+                ? delta : Vector3.zero;
+        }
+
+        /// <summary>完整旋转解的授权门。历史校准表只有眼点时会为兼容性提供默认 -X
+        /// 方向，但该默认值不是测量值，绝不能驱动满 ADS 的整枪旋转。</summary>
+        public static bool CanUseFullAxisSolve(in OpticAimData data)
+            => data.HasAxisFront && IsFinite(data.AxisDirectionLocal) && data.AxisDirectionLocal.sqrMagnitude > 0.5f;
+
         /// <summary>
         /// 光轴姿态解（纯数学，EditMode 可测）：把 (光轴, up) 帧对齐到父系 (前向 +Z, 上 +Y)。
         /// 返回枪根应有的父系局部旋转。固定点性质：应用后 axisRoot→+Z、upRoot→+Y，
@@ -133,6 +162,30 @@ namespace Game.Presentation.Camera
         /// （FP 相机在父系的位置）——眼距/构图由校准数据直接决定（ADS 审计 A1 的 z 修复）。</summary>
         public static Vector3 SolveAimLocalPosition(Quaternion localRotation, Vector3 eyeRoot, Vector3 camParent)
             => camParent - localRotation * eyeRoot;
+
+        /// <summary>无实测光轴时的安全构图降级：保持作者旋转，以实际镜窗中心和半高反求
+        /// 眼距，使镜窗投影高度占指定 viewport 比例且中心在相机视轴。不能拿历史 eyePoint
+        /// 直接贴相机，否则会把眼睛推进镜体并在满 ADS 近裁剪掉整个窗口。</summary>
+        public static Vector3 SolveWindowFramingLocalPosition(Vector3 windowCenterRoot, Vector3 camParent,
+            float windowHalfHeightMeters, float verticalFovDegrees, float targetViewportHeight)
+            => SolveWindowFramingLocalPosition(Quaternion.identity, windowCenterRoot, camParent,
+                windowHalfHeightMeters, verticalFovDegrees, targetViewportHeight);
+
+        /// <summary>完整光轴解的镜窗构图平移解（纯数学）：窗口中心和窗口尺寸都在
+        /// root 未旋转局部系，故必须先应用同一个 localRotation，再把旋转后的中心放到
+        /// 相机前方的目标深度。若直接复用无旋转版本，完整轴解会只把眼点贴到相机，
+        /// 忽略 targetViewportHeight，镜窗会被推到近裁剪面并越界。</summary>
+        public static Vector3 SolveWindowFramingLocalPosition(Quaternion localRotation,
+            Vector3 windowCenterRoot, Vector3 camParent, float windowHalfHeightMeters,
+            float verticalFovDegrees, float targetViewportHeight)
+        {
+            float tanHalf = Mathf.Tan(Mathf.Max(0.1f, verticalFovDegrees) * 0.5f * Mathf.Deg2Rad);
+            float safeFraction = Mathf.Clamp(targetViewportHeight, 0.01f, 0.95f);
+            float safeHalfHeight = Mathf.Max(0.001f, windowHalfHeightMeters);
+            float depth = safeHalfHeight / Mathf.Max(0.0001f, safeFraction * tanHalf);
+            Vector3 rotatedWindowCenter = localRotation * windowCenterRoot;
+            return camParent + Vector3.forward * depth - rotatedWindowCenter;
+        }
 
         /// <summary>解析挂点局部系光轴数据。无校准行返回 false（调用方诚实降级）；
         /// 有校准行但未标定镜窗时用配件包围盒近似（WindowIsApproximate=true）。</summary>

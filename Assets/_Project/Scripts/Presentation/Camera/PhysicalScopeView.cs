@@ -9,7 +9,7 @@ namespace Game.Presentation.Camera
     /// <summary>
     /// P4 实体镜（CF 计划 I4b/I4c）：变焦瞄具的"真实镜体"第一人称表现——
     /// 镜体 = 项目瞄具模型本体（ADS 姿态保持可见，不再全屏 overlay 藏枪）；
-    /// 镜片 = 项目派生（OpticLensMath：挂点系包围盒 + 眼点校准推导的后镜圈圆盘），
+    /// 镜片 = 配件局部有效孔径（未标定的内置镜仍使用 OpticLensMath 回退），
     /// 镜内 = 独立 RT 相机（与世界相机同位姿的子节点）按独立倍率渲染
     /// （AdsFovMath.ScopeFov：scopeFov = 2·atan(tan(worldFov/2)/mag)，worldFov 取镜片在
     /// 眼点处取代的世界视场 2·θL——穿透放大率恒等于 mag）；分划 = 镜片前程序化贴片。
@@ -18,13 +18,14 @@ namespace Game.Presentation.Camera
     /// 资源纪律（计划 I4b）：换枪/换瞄具/失活/销毁 → 镜片贴片、RT、RT 相机全量回收。
     /// 本组件只做表现；命中/散布/灵敏度数值权威仍在 Gameplay（PlayerAimState）。
     /// </summary>
+    [DefaultExecutionOrder(25)] // FPWeaponMotion(20) finalizes the displayed aperture first.
     public sealed class PhysicalScopeView : MonoBehaviour
     {
         private const float ShowStartAds = 0.35f;   // 低于此开镜进度不启用 RT 相机
         private const float MidZoomRtSize = 512;    // 低倍（2-4x）RT 基准边长
         private const float HighZoomRtSize = 1024;  // 高倍（6x+）RT 基准边长
         private const float DefaultEyeRelief = 0.05f;      // 无眼点校准行的推导出瞳距离（米）
-        private const float ReticleForwardOffset = 0.0008f; // 分划盘相对镜片盘向眼侧偏移（米）
+        private const float ReticleForwardOffset = 0.00005f; // 同一孔径内仅避让镜片深度
         private static readonly Color LensTint = new(0.86f, 0.93f, 1f, 1f); // 淡蓝镀膜（镜内蓝片遮挡）
 
         private FPWeaponRig _rig;
@@ -32,6 +33,7 @@ namespace Game.Presentation.Camera
         private PlayerAimState _aimState;
 
         private UnityEngine.Camera _worldCamera;
+        private UnityEngine.Camera _viewCamera;
         private UnityEngine.Camera _scopeCamera;
         private RenderTexture _rt;
         private GameObject _lensNode;
@@ -45,6 +47,13 @@ namespace Game.Presentation.Camera
 
         /// <summary>当前由实体镜接管的瞄具 itemId（null = 未接管）。OpticAdsView 据此让位。</summary>
         public static string HandlingOpticId { get; private set; }
+
+        /// <summary>HUD queries its own weapon rig, never a global optic ID that another
+        /// player's view can overwrite in the same frame.</summary>
+        public bool HandlesOptic(string opticId) => !string.IsNullOrEmpty(opticId)
+            && _lensNode != null && _reticleNode != null
+            && _lensNode.activeInHierarchy && _reticleNode.activeInHierarchy
+            && string.Equals(_handledOpticId, opticId, System.StringComparison.Ordinal);
 
         /// <summary>挂载入口（幂等）：与 FPWeaponRig 同对象（Presentation 程序集内零资产改动）。
         /// Dedicated Server 构建（无表现）不挂载。</summary>
@@ -94,7 +103,10 @@ namespace Game.Presentation.Camera
             }
 
             string lensKey = _rig.ActiveView.GetInstanceID() + "|" + optic.ItemId + "|" + (int)optic.Tier;
-            if (_builtLensKey != lensKey)
+            // Reapplying the same loadout replaces the optic hierarchy without changing
+            // its item ID or the cached view. Its destroyed glass must be rebuilt too.
+            if (_builtLensKey != lensKey || _lensNode == null || _reticleNode == null
+                || !_lensNode.activeInHierarchy || !_reticleNode.activeInHierarchy)
             {
                 ReleaseScopeAssets();
                 if (!TryBuildLens(_rig.ActiveView, optic))
@@ -128,15 +140,28 @@ namespace Game.Presentation.Camera
                 return;
             }
 
-            UpdateLensFov(world, optic.Magnification);
             SetLensImageVisible(true);
             _scopeCamera.enabled = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (_scopeCamera != null && _scopeCamera.enabled && _worldCamera != null && _controller != null)
+                UpdateLensFov(_worldCamera, _controller.CurrentOpticAim.Magnification);
         }
 
         /// <summary>世界相机解析：剔除 FirstPersonView 层的启用相机（URP Base），
         /// 跳过 RT 相机（含本组件旧实例）与 overlay 武器相机。同帧位姿基准。</summary>
         private UnityEngine.Camera ResolveWorldCamera()
         {
+            // Camera.allCameras also contains StaticUiCamera and other auxiliary views.
+            // The player's tagged world camera is authoritative, regardless of creation order.
+            UnityEngine.Camera primary = UnityEngine.Camera.main;
+            if (primary != null && primary.isActiveAndEnabled && primary.targetTexture == null)
+            {
+                _worldCamera = primary;
+                return primary;
+            }
             if (_worldCamera != null && _worldCamera.isActiveAndEnabled) return _worldCamera;
             _worldCamera = null;
             int fpLayer = LayerMask.NameToLayer("FirstPersonView");
@@ -169,11 +194,22 @@ namespace Game.Presentation.Camera
             if (geometry == null) geometry = attachments.FindStockScope();
             if (geometry == null) return false;
 
+            if (attachments.TryGetPhysicalScopeAim(optic.ItemId, out var aperture))
+            {
+                // Render in the optic's own frame: mount corrections, roll and animation
+                // affect the glass and reticle together. A circular mesh clips both to the aperture.
+                var entry = AttachmentAssetCatalog.LoadOrDefault().Find(optic.ItemId);
+                BuildLensNodes(geometry, entry.scopeApertureCenter, entry.scopeApertureRadius,
+                    optic.Tier, Quaternion.LookRotation(Vector3.back, Vector3.up));
+                _lensRadius = aperture.WindowHalfHeightMeters;
+                return _lensNode != null && _reticleNode != null;
+            }
+
             Bounds local = ComputeSocketSpaceBounds(geometry, socket);
             if (!TryResolveEyeLocal(optic, local, out Vector3 eyeLocal)) return false;
             if (!OpticLensMath.TryDeriveLensFrame(local, eyeLocal, out Vector3 lensPos, out float radius)) return false;
 
-            BuildLensNodes(socket, lensPos, radius, optic.Tier);
+            BuildLensNodes(socket, lensPos, radius, optic.Tier, Quaternion.LookRotation(Vector3.right, Vector3.up));
             _lensRadius = radius;
             return _lensNode != null && _reticleNode != null;
         }
@@ -223,7 +259,7 @@ namespace Game.Presentation.Camera
         }
 
         private void BuildLensNodes(Transform socket, Vector3 lensPosLocal, float radius,
-            OpticAimTier tier)
+            OpticAimTier tier, Quaternion orientation)
         {
             int layer = socket.gameObject.layer;
             Mesh disc = GetDiscMesh();
@@ -234,15 +270,16 @@ namespace Game.Presentation.Camera
             // R4 审计修复：单位圆盘按推导半径整体缩放——镜片/分划几何尺寸与 OpticLensMath 的
             // 厘米级半径一致（旧实现未缩放，实际盘面恒为单位圆）
             _lensNode = CreateDiscNode("PhysicalScopeLens", socket, lensPosLocal, layer, disc,
-                _lensMaterial, radius);
+                _lensMaterial, radius, orientation);
             _reticleNode = CreateDiscNode("PhysicalScopeReticle", socket,
-                lensPosLocal + new Vector3(ReticleForwardOffset, 0f, 0f), layer, disc,
-                _reticleMaterial, radius);
+                lensPosLocal + orientation * Vector3.forward
+                    * (tier == OpticAimTier.LowZoom ? ReticleForwardOffset : .0008f), layer, disc,
+                _reticleMaterial, radius, orientation);
             SetLensImageVisible(false); // RT 首帧渲染前镜片不显示（避免黑盘闪现）
         }
 
         private static GameObject CreateDiscNode(string nodeName, Transform parent, Vector3 localPos,
-            int layer, Mesh mesh, Material material, float radius)
+            int layer, Mesh mesh, Material material, float radius, Quaternion orientation)
         {
             if (material == null) return null;
             var go = new GameObject(nodeName);
@@ -250,7 +287,7 @@ namespace Game.Presentation.Camera
             go.transform.localPosition = localPos;
             go.transform.localScale = Vector3.one * Mathf.Max(0.001f, radius); // 单位圆盘 → 实际半径
             // 节点 +Z（盘面法线）指向眼侧（挂点 +X）；+Y 对齐挂点上向，分划/纹理方向随世界竖直。
-            go.transform.localRotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
+            go.transform.localRotation = orientation;
             go.layer = layer;
             var filter = go.AddComponent<MeshFilter>();
             filter.sharedMesh = mesh;
@@ -275,13 +312,24 @@ namespace Game.Presentation.Camera
 
         private static Material CreateReticleMaterial(OpticAimTier tier)
         {
-            Shader shader = Shader.Find("Sprites/Default")
-                            ?? Shader.Find("Universal Render Pipeline/Unlit");
+            // The reticle is the aperture's final transparent layer. Mesh depth from
+            // the animated scope housing can otherwise hide it during recoil/ADS.
+            Shader shader = Shader.Find("Game/UI/NativeSniperScope");
             if (shader == null) return null;
+            if (tier == OpticAimTier.HighZoom)
+            {
+                var native = Game.Gameplay.Settings.NativeScopeReticleCatalog.Load();
+                if (native == null || native.SniperTexture == null) return null;
+                var original = new Material(shader) { name = "LPFP Native Sniper Reticle" };
+                original.mainTexture = native.SniperTexture;
+                original.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
+                return original;
+            }
             Texture2D reticle = ScopeReticleTexture.Get(tier);
             if (reticle == null) return null;
             Material mat = new Material(shader) { name = "PhysicalScopeReticle", color = Color.white };
             mat.mainTexture = reticle;
+            mat.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
             return mat;
         }
 
@@ -357,13 +405,33 @@ namespace Game.Presentation.Camera
             if (_lensMaterial != null) _lensMaterial.SetTexture("_BaseMap", _rt);
         }
 
-        /// <summary>镜内 FOV = 2·atan(tan(θL)/mag)：θL = 镜片半视角（项目派生几何实时测量，
-        /// 距眼随 ADS 姿态收敛）——穿透放大率恒等于 mag（计划公式的镜片口径形态）。
-        /// R4：方形 RT → aspect 恒 1（两轴等比，与屏幕宽高比无关）。</summary>
+        /// <summary>用 FP 相机下的镜片屏占比求 RT 视场。世界相机与 FP 相机的位置/FOV
+        /// 可以不同，不能用世界相机到枪模的距离代替显示尺寸。方形 RT 保持两轴等比。</summary>
         private void UpdateLensFov(UnityEngine.Camera world, float magnification)
         {
             if (_lensNode == null || _scopeCamera == null || _rt == null) return;
             Transform lens = _lensNode.transform;
+            if (_viewCamera == null && _controller != null)
+            {
+                int fpBit = LayerBit("FirstPersonView");
+                foreach (var candidate in _controller.GetComponentsInChildren<UnityEngine.Camera>(true))
+                    if (candidate.targetTexture == null && (candidate.cullingMask & fpBit) != 0)
+                    { _viewCamera = candidate; break; }
+            }
+            if (_viewCamera != null)
+            {
+                Vector3 top = _viewCamera.WorldToViewportPoint(lens.TransformPoint(Vector3.up));
+                Vector3 bottom = _viewCamera.WorldToViewportPoint(lens.TransformPoint(Vector3.down));
+                float diameter = Mathf.Abs(top.y - bottom.y);
+                float tanHalf = diameter * Mathf.Tan(world.fieldOfView * .5f * Mathf.Deg2Rad)
+                    / Mathf.Max(1f, magnification);
+                if (top.z > 0f && bottom.z > 0f && float.IsFinite(tanHalf) && tanHalf > 0f)
+                {
+                    _scopeCamera.fieldOfView = Mathf.Clamp(2f * Mathf.Atan(tanHalf) * Mathf.Rad2Deg, .1f, 55f);
+                    _scopeCamera.aspect = 1f;
+                    return;
+                }
+            }
             Vector3 toCamera = world.transform.position - lens.position;
             float eyeDistance = Vector3.Dot(toCamera, lens.forward); // 沿盘面法线（眼侧）的垂直距眼
             _lensHalfAngleDeg = OpticLensMath.LensHalfAngleDegrees(eyeDistance, _lensRadius);
@@ -382,13 +450,13 @@ namespace Game.Presentation.Camera
         /// 分划材质（R4 审计修复：旧实现未保存未销毁——泄漏）与静态接管标记。</summary>
         private void ReleaseScopeAssets()
         {
-            if (_lensNode != null) Destroy(_lensNode);
-            if (_reticleNode != null) Destroy(_reticleNode);
+            if (_lensNode != null) ReleaseObject(_lensNode);
+            if (_reticleNode != null) ReleaseObject(_reticleNode);
             _lensNode = null;
             _reticleNode = null;
-            if (_lensMaterial != null) Destroy(_lensMaterial);
+            if (_lensMaterial != null) ReleaseObject(_lensMaterial);
             _lensMaterial = null;
-            if (_reticleMaterial != null) Destroy(_reticleMaterial); // 分划贴图为静态缓存，不销毁
+            if (_reticleMaterial != null) ReleaseObject(_reticleMaterial); // 分划贴图为静态缓存，不销毁
             _reticleMaterial = null;
             ReleaseRenderTarget();
             DestroyScopeCamera();
@@ -404,21 +472,27 @@ namespace Game.Presentation.Camera
         {
             if (_rt == null) return;
             _rt.Release();
-            Destroy(_rt);
+            ReleaseObject(_rt);
             _rt = null;
         }
 
         private void DestroyScopeCamera()
         {
             if (_scopeCamera == null) return;
-            Destroy(_scopeCamera.gameObject);
+            ReleaseObject(_scopeCamera.gameObject);
             _scopeCamera = null;
         }
 
         // ---------------------------------------------------------------- 几何与分划生成
+        private static void ReleaseObject(Object target)
+        {
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
+        }
 
-        /// <summary>镜片圆盘网格（共享静态）：法线 +Z、UV=0.5+0.5·单位圆方向；
-        /// 三角序 center→next→current（+Z 正面朝眼侧）。</summary>
+        /// <summary>镜片圆盘网格（共享静态）：法线 +Z；从眼侧看 +Z 正面时屏幕右是局部 -X，
+        /// 因此 U 反向，避免镜内世界与非对称分划左右镜像。
+        /// 三角法线与顶点法线一致指向 +Z，正面朝眼侧。</summary>
         private static Mesh _discMesh;
         private static Mesh GetDiscMesh()
         {
@@ -435,7 +509,7 @@ namespace Game.Presentation.Camera
                 float angle = i * Mathf.PI * 2f / segments;
                 Vector2 dir = new(Mathf.Cos(angle), Mathf.Sin(angle));
                 vertices[i + 1] = new Vector3(dir.x, dir.y, 0f);
-                uvs[i + 1] = new Vector2(0.5f + 0.5f * dir.x, 0.5f + 0.5f * dir.y);
+                uvs[i + 1] = new Vector2(0.5f - 0.5f * dir.x, 0.5f + 0.5f * dir.y);
                 normals[i + 1] = Vector3.forward;
             }
             var triangles = new int[segments * 3];
@@ -444,8 +518,8 @@ namespace Game.Presentation.Camera
                 int current = 1 + i;
                 int next = 1 + (i + 1) % segments;
                 triangles[i * 3] = 0;
-                triangles[i * 3 + 1] = next;
-                triangles[i * 3 + 2] = current;
+                triangles[i * 3 + 1] = current;
+                triangles[i * 3 + 2] = next;
             }
             _discMesh = new Mesh { name = "PhysicalScopeDisc" };
             _discMesh.vertices = vertices;
@@ -481,8 +555,9 @@ namespace Game.Presentation.Camera
             float c = size * 0.5f;
             float gap = size * 0.012f;
             float postLen = size * 0.30f;
-            float thick = size * 0.007f;
-            float thinWidth = size * 0.0022f;
+            // Preserve readable coverage even on the smallest formal aperture (P90).
+            float thick = size * 0.022f;
+            float thinWidth = size * 0.012f;
             // 三粗柱（左右下）+ 细十字 + V 字 chevron + 中心亮点
             DrawLine(pixels, size, new Vector2(0f, c), new Vector2(c - gap - postLen, c), thick, post);
             DrawLine(pixels, size, new Vector2(size, c), new Vector2(c + gap + postLen, c), thick, post);
@@ -490,7 +565,7 @@ namespace Game.Presentation.Camera
             DrawLine(pixels, size, new Vector2(c - gap - postLen, c), new Vector2(c - gap, c), thinWidth, thin);
             DrawLine(pixels, size, new Vector2(c + gap + postLen, c), new Vector2(c + gap, c), thinWidth, thin);
             DrawLine(pixels, size, new Vector2(c, c - gap - postLen), new Vector2(c, c - gap), thinWidth, thin);
-            DrawChevron(pixels, size, new Vector2(c, c + gap), size * 0.020f, size * 0.004f, lit);
+            DrawChevron(pixels, size, new Vector2(c, c), size * 0.030f, size * 0.010f, lit);
             for (int i = 1; i <= 4; i++)
             {
                 float x = size * 0.040f * i;
@@ -543,14 +618,16 @@ namespace Game.Presentation.Camera
 
         private static Texture2D Bake(Color32[] pixels, int size)
         {
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false, true)
+            // The physical aperture can be only tens of pixels wide. Mips preserve
+            // coverage of fine markings instead of dropping lines between bilinear samples.
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true, true)
             {
                 wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear,
+                filterMode = FilterMode.Trilinear,
                 name = "PhysicalScopeReticle",
             };
             texture.SetPixels32(pixels);
-            texture.Apply(false, true);
+            texture.Apply(true, true);
             return texture;
         }
 

@@ -499,6 +499,9 @@ namespace Game.Gameplay.Network
                     : _networkManager.TransportManager.Transport.GetType().Name;
                 return false;
             }
+            var bind = System.Environment.GetEnvironmentVariable("FPS_SERVER_BIND");
+            if (!string.IsNullOrEmpty(bind))
+                tugboat.SetServerBindAddress(bind, FishNet.Transporting.IPAddressType.IPv4);
             tugboat.SetPort(port);
             transportName = nameof(Tugboat);
             return true;

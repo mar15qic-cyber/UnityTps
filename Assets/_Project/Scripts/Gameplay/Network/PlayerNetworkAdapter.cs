@@ -40,6 +40,12 @@ namespace Game.Gameplay.Network
         private NetworkCombatAuthority _combatAuthority;
         private WeaponController _weaponController;
         private bool _initialized;
+        private bool _leanResetSent;
+        private uint _leanResetTick;
+        private uint _leanResetEpoch;
+        private float _remoteLeanAmount;
+        public float VisualLeanAmount => NetworkObject != null && IsClientInitialized && !IsOwner && !IsServerInitialized
+            ? _remoteLeanAmount : _locomotor != null ? _locomotor.Lean.Amount : 0f;
 
         // ---- Day3 Phase 1：预测/校正状态 ----
         private readonly PredictionBuffer _buffer = new(MovementPredictionConfig.ClientHistoryCapacity);
@@ -253,8 +259,7 @@ namespace Game.Gameplay.Network
                 hitboxGo.transform.SetParent(model, false);
                 hitboxTransform = hitboxGo.transform;
                 hitboxGo.layer = gameObject.layer; // 与玩家根节点同层（hitMask 可命中）
-                hitboxGo.AddComponent<CapsuleCollider>(); // [0] 躯干
-                hitboxGo.AddComponent<CapsuleCollider>(); // [1] 头部
+                hitboxGo.AddComponent<CapsuleCollider>(); // 下身，固定在权威根
             }
 
             // 2026-09-10 审计 §3：受击判定与移动阻挡分离。实体胶囊与根 CharacterController 胶囊
@@ -264,11 +269,19 @@ namespace Game.Gameplay.Network
             // 第五轮：双胶囊**每次调用都按序列化参数重配**——池化复用对象可能是旧单胶囊（只有
             // [0]），在此补齐 [1] 并整体重配；旧形状/旧字段值一律被当前参数覆盖（幂等自愈）。
             var hitboxColliders = hitboxTransform.GetComponents<CapsuleCollider>();
-            if (hitboxColliders.Length < 2)
-                hitboxTransform.gameObject.AddComponent<CapsuleCollider>();
-            hitboxColliders = hitboxTransform.GetComponents<CapsuleCollider>();
-            ConfigureHitboxCapsule(hitboxColliders[0], torsoHitboxCenter, torsoHitboxRadius, torsoHitboxHeight);
-            ConfigureHitboxCapsule(hitboxColliders[1], headHitboxCenter, headHitboxRadius, headHitboxHeight);
+            if (hitboxColliders.Length == 0)
+                hitboxColliders = new[] { hitboxTransform.gameObject.AddComponent<CapsuleCollider>() };
+            // Pooled pre-lean objects may carry a second head collider on this node. Keep it
+            // disabled; the separately movable child is the only active head damage surface.
+            for (int i = 1; i < hitboxColliders.Length; i++) hitboxColliders[i].enabled = false;
+            ConfigureHitboxCapsule(hitboxColliders[0], new Vector3(0f, .525f, torsoHitboxCenter.z),
+                torsoHitboxRadius, 1.05f);
+            var upper = EnsureLeanHitboxChild(hitboxTransform, "UpperHitbox");
+            var head = EnsureLeanHitboxChild(hitboxTransform, "HeadHitbox");
+            ConfigureHitboxCapsule(upper.GetComponent<CapsuleCollider>(),
+                new Vector3(0f, 1f, torsoHitboxCenter.z), torsoHitboxRadius, 1f);
+            ConfigureHitboxCapsule(head.GetComponent<CapsuleCollider>(), headHitboxCenter,
+                headHitboxRadius, headHitboxHeight);
             // Day4 残余审计 P0-1（纵向契约，第五轮双胶囊表述）：躯干下端=脚底（y=0）、头上端=头顶
             // （y=1.80）、两胶囊在 y=1.40 无缝重叠（颈/肩不漏判）——纵向半身高不再由单一 center 表达，
             // 由 torso/head 两组参数直接给出；BodyHitboxAlignmentTests 的纵向断言锁这条。
@@ -302,7 +315,34 @@ namespace Game.Gameplay.Network
             // 只挡移动。运行时装配，零 prefab 改动（与上面的 hitbox 同源）。
             Game.Gameplay.Combat.HitVolumeTag.Assign(
                 hitboxTransform.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(upper.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(head.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
+            RefreshLeanHitboxes(_locomotor != null ? _locomotor.Lean.Amount : 0f);
             EnsureMovementBlockerRoles();
+        }
+
+        private Transform EnsureLeanHitboxChild(Transform parent, string name)
+        {
+            var child = parent.Find(name);
+            if (child == null)
+            {
+                var go = new GameObject(name);
+                go.layer = gameObject.layer;
+                child = go.transform;
+                child.SetParent(parent, false);
+            }
+            if (child.GetComponent<CapsuleCollider>() == null) child.gameObject.AddComponent<CapsuleCollider>();
+            return child;
+        }
+
+        private void RefreshLeanHitboxes(float amount)
+        {
+            var parent = transform.Find("TP_Model/BodyHitbox");
+            if (parent == null) return;
+            var upper = parent.Find("UpperHitbox");
+            var head = parent.Find("HeadHitbox");
+            if (upper != null) upper.localPosition = Vector3.right * (amount * LeanProfile.EyeSideMeters * .45f);
+            if (head != null) head.localPosition = Vector3.right * (amount * LeanProfile.EyeSideMeters);
         }
 
         /// <summary>受击体节点在模型系的常量钉扎（2026-09-19 第四/五轮）：把节点原点钉到
@@ -347,6 +387,8 @@ namespace Game.Gameplay.Network
 
         public override void OnStartClient()
         {
+            if (IsOwner) ObserverTimeline.Reset();
+            _timestampedPoses.Reset();
             bool isOwner = IsOwner;
             // Locomotor must not keep its serialized OfflineLocal Update path once networked.
             // Host is server-authoritative even though it is also the local owner.
@@ -435,6 +477,10 @@ namespace Game.Gameplay.Network
         private void ResetOwnerPredictionState()
         {
             _ownerWasDead = false;
+            // 生成/接管前 Update 可能已经看到 IsOwner，但 CameraPivot 尚未启用；该窗口内的
+            // look 绝不能越过新的预测基线（本地 FPMouseLook 未消费，DS 会错误积分）。
+            _pendingYaw = 0f;
+            _pendingPitch = 0f;
             _buffer.Clear();
             _serverQueue.Clear();
             _localTick = 0;
@@ -501,6 +547,7 @@ namespace Game.Gameplay.Network
 
         public override void OnStartServer()
         {
+            _serverAimHistory.Clear(); _serverAimOrder.Clear();
             // 2026-09-17 实机修复（远端 TP 抬头/低头瞬回）：纯 Dedicated 上 OnStartClient 不会回调，
             // 远端玩家的 CameraPivot(FPMouseLook) 一直激活——FPMouseLook._pitch 恒 0，每帧 LateUpdate
             // 把 ApplyRemotePitch 写入的权威俯仰清零，_aimPitch 只在消费输入的瞬间闪现
@@ -664,24 +711,45 @@ namespace Game.Gameplay.Network
             if (IsOwner)
             {
                 bool frozen = LocalMovementFrozen;
+                // OnStartNetwork 已令本组件进入 Update，但 CameraPivot/FPMouseLook 要到
+                // OnStartClient 的 Owner 分支才启用。不要把这段生成窗口（尤其是锁定光标的
+                // 首个大 mouse delta）积进网络命令：FPMouseLook 当时没有消费它，服务器却会
+                // 永久把它积分为基础俯仰。localOnlyRoot 为空的自定义/离线结构沿用既有输入路径。
+                bool lookConsumerReady = CanCaptureOwnerLook(localOnlyRoot);
                 if (frozen)
                 {
+                    if (_locomotor != null) _locomotor.Lean.Clear();
+                    _input?.ResetLean();
+                    if (!_leanResetSent && !IsServerInitialized && FishNetLifecycleGuard.CanSubmitRpc(this))
+                    {
+                        _leanResetSent = true;
+                        ServerResetLean(_localTick, _serverLifeEpoch);
+                    }
                     // 冻结（死亡/倒计时/菜单）：不采输入；look 累积清零防解冻暴冲
                     _pendingYaw = 0f;
                     _pendingPitch = 0f;
                 }
-                else if (_input != null)
+                else if (_input != null && lookConsumerReady)
                 {
+                    _leanResetSent = false;
                     // 鼠标 look 增量逐帧累积，生成命令时整段消费（tick 驱动下不丢不重）
                     float lookYaw = _input.LookDelta.x * 0.1f;
-                    _pendingYaw += lookYaw;
-                    _pendingPitch += _input.LookDelta.y * 0.1f;
+                    Vector2 accumulatedLook = AccumulateOwnerLook(localOnlyRoot,
+                        new Vector2(_pendingYaw, _pendingPitch), _input.LookDelta);
+                    _pendingYaw = accumulatedLook.x;
+                    _pendingPitch = accumulatedLook.y;
                     // C1（2026-09-16 审计）：渲染视角 yaw 逐帧消费**同一份**输入（权威身体仍等 tick 提交）。
                     // 只在累积点加一次，tick 提交时按"已提交输入"扣减——不重复消费、不回写碰撞根。
                     // 2026-09-16 实机修复：累积**不得**钳制（旧实现钳在累积端 → 饱和一次就留下永不衰减的
                     // 粘滞残差，见 AccumulateViewYawLead 注释）。钳制只在写视觉节点时做。
                     if (!IsServerInitialized && MovementPredictionConfig.ViewYawInterpolationEnabled)
                         _viewYawDegrees = AccumulateViewYawLead(_viewYawDegrees, lookYaw);
+                }
+                else if (!lookConsumerReady)
+                {
+                    // 不能把未由 FPMouseLook 写入本地基础视角的历史输入带过激活边界。
+                    _pendingYaw = 0f;
+                    _pendingPitch = 0f;
                 }
 
                 if (!IsServerInitialized)
@@ -720,6 +788,31 @@ namespace Game.Gameplay.Network
             }
         }
 
+        /// <summary>
+        /// Owner 的网络 look 只有在本地唯一消费者 FPMouseLook 所在树已激活时才可采样。
+        /// 生成/接管窗口的鼠标 delta 不能事后补发：该帧没有写入本地基础视角，若让 DS 消费会
+        /// 产生永久的基础俯仰基线差。internal 供 EditMode 锁定首帧边界。
+        /// </summary>
+        internal static bool CanCaptureOwnerLook(GameObject localRoot)
+            => localRoot == null || localRoot.activeInHierarchy;
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerResetLean(uint lastInputTick, uint lifeEpoch)
+        {
+            if (_combatAuthority != null && lifeEpoch != _combatAuthority.CurrentLifeEpoch) return;
+            if (_leanResetEpoch != lifeEpoch || lastInputTick > _leanResetTick)
+            {
+                _leanResetEpoch = lifeEpoch;
+                _leanResetTick = lastInputTick;
+            }
+            _locomotor?.Lean.Clear();
+            RefreshLeanHitboxes(0f);
+        }
+
+        /// <summary>同一边界下累计网络 look；未就绪时显式归零，禁止污染第一个有效命令。</summary>
+        internal static Vector2 AccumulateOwnerLook(GameObject localRoot, Vector2 pending, Vector2 lookDelta)
+            => CanCaptureOwnerLook(localRoot) ? pending + lookDelta * 0.1f : Vector2.zero;
+
         /// <summary>测试接缝（2026-09-16 审计 C1/C2 定向用例）：&lt;0 用 Time.deltaTime；
         /// ≥0 时按指定秒数推进预测累积器（EditMode 下无法控制 Time.deltaTime）。
         /// 产品路径不设置它。</summary>
@@ -742,6 +835,7 @@ namespace Game.Gameplay.Network
                     jump,
                     _pendingYaw, _pendingPitch, tick,
                     _serverLifeEpoch); // F14：上行输入以最新权威生命代际盖章
+                cmd.LeanIntent = _input != null ? _input.LeanIntent : (sbyte)0;
                 if (jump && _input != null) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -839,6 +933,7 @@ namespace Game.Gameplay.Network
         /// 会在服务器按 RPM 连续结算而本地只表现一发 → 发次/弹药/后坐两端分叉）。</summary>
         private void HandleOwnerCombatRequests()
         {
+            if (_input != null && _input.WeaponInputBlocked) return;
             if (_weaponController == null) _weaponController = GetComponentInParent<WeaponController>();
             if (_combatAuthority == null) _combatAuthority = GetComponent<NetworkCombatAuthority>();
             if (_combatAuthority != null && _input != null)
@@ -911,6 +1006,7 @@ namespace Game.Gameplay.Network
         private void ServerTick()
         {
             if (_locomotor == null) return;
+            double tickStarted = Time.realtimeSinceStartupAsDouble;
             bool ownerTick = IsOwner;
 
             // Host 调试（Owner 在服务器本地）：从同一输入累积量采样命令入队——与远端玩家完全同一条权威管线
@@ -920,6 +1016,7 @@ namespace Game.Gameplay.Network
                 var hostCmd = new MovementCommand(
                     _input.Move, _input.Sprint, hostJump, _pendingYaw, _pendingPitch, ++_hostSourceTick,
                     _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u); // F14：Host 本地即权威，直接读当前代际
+                hostCmd.LeanIntent = _input.LeanIntent;
                 if (hostJump) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -933,6 +1030,13 @@ namespace Game.Gameplay.Network
             if (!ownerTick && owner != null && owner.IsValid)
                 TargetAuthoritativeState(owner, BuildAuthoritativeState());
 
+            ObserversTimestampedPose(new ObserverPose { ServerTick = TimeManager.Tick,
+                LifeEpoch = _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u,
+                Position = transform.position, Rotation = transform.rotation,
+                LeanAmount = _locomotor != null ? _locomotor.Lean.Amount : 0f });
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "server-tick", serverTick = TimeManager.Tick,
+                frameMs = (Time.realtimeSinceStartupAsDouble - tickStarted) * 1000, queueDepth = _serverQueue.Count,
+                connection = (int)(_combatAuthority != null ? _combatAuthority.OwnerClientId : -1) });
             EmitMovementDiagnostics("server");
         }
 
@@ -944,6 +1048,8 @@ namespace Game.Gameplay.Network
         {
             if (MovementFrozen)
             {
+                _locomotor?.Lean.Clear();
+                RefreshLeanHitboxes(0f);
                 // 死亡/倒计时冻结：丢弃待处理输入（防解冻后爆发重放），权威快照照发（客户端对位）
                 _serverQueue.Clear();
                 return;
@@ -980,8 +1086,16 @@ namespace Game.Gameplay.Network
             }
             for (int i = 0; i < count; i++)
             {
+                if (_serverBatch[i].LifeEpoch == _leanResetEpoch && _serverBatch[i].Tick <= _leanResetTick)
+                {
+                    var command = _serverBatch[i];
+                    command.LeanIntent = 0;
+                    _serverBatch[i] = command;
+                }
                 _locomotor.Simulate(_serverBatch[i], _fixedDelta);
+                RefreshLeanHitboxes(_locomotor.Lean.Amount);
                 if (applyRemotePitch) ApplyRemotePitch(_serverBatch[i].PitchDelta);
+                RememberServerAim(_serverBatch[i]);
                 CaptureServerStepEvidence(_serverBatch[i], null);
             }
         }
@@ -1061,6 +1175,7 @@ namespace Game.Gameplay.Network
         private void ApplyOwnerAuthoritativeState(AuthoritativeMovementState state)
         {
             _lastServerTick = state.ServerTick;
+            ObserverTimeline.Observe(state.ServerTick, NetworkObject != null && TimeManager != null ? (int)TimeManager.TickRate : 30, Time.unscaledTimeAsDouble);
             _lastIdleStepsAtSnapshot = state.IdleStepsAtSnapshot;
             // F14：学习服务器当前生命代际——新基线（重生）快照先于本地感知到达时，
             // 后续上行即携带新代际；旧代际在途批次由服务器拒收清队。
@@ -1164,9 +1279,18 @@ namespace Game.Gameplay.Network
             Vector3 inFlight = _correctionLedger.ConsumeInFlightAfter(state.LastClientTick);
             var decision = Reconciler.Decide(state.Snapshot, predictedAtAck, inFlight,
                 out var correction, out var corrected);
+            if (Mathf.Abs(state.Snapshot.LeanAmount - predictedAtAck.LeanAmount) > .08f
+                || state.Snapshot.LeanIntent != predictedAtAck.LeanIntent)
+            {
+                HardSnapTo(state, MovementRebaseKind.Divergence, corrected.magnitude);
+                return;
+            }
             // G3（审计 2026-09-17）：err 双口径留证——err=corrected（真实残余误差）、errRaw=raw。
             _diag.LastErrorMeters = corrected.magnitude;
             _diag.LastRawErrorMeters = correction.magnitude;
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "reconcile", error = corrected.magnitude,
+                rawError = correction.magnitude, inputTick = state.LastClientTick, serverTick = state.ServerTick,
+                connection = (int)(_combatAuthority != null ? _combatAuthority.OwnerClientId : -1) });
             if (decision.Action == ReconcileAction.Snap)
             {
                 // Day3 验收证据：硬校正应为罕见事件（风暴=持续拉回/双模拟的信号）
@@ -1232,6 +1356,9 @@ namespace Game.Gameplay.Network
 
             _snapCount++;
             _diag.NoteRebase(kind, errorMeters);
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "rebase", reason = kind.ToString(),
+                connection = (int)(_combatAuthority != null ? _combatAuthority.OwnerClientId : -1),
+                error = errorMeters, inputTick = state.LastClientTick, serverTick = state.ServerTick });
             Debug.Log($"[Day3][Reconcile] REBASE {kind} ack={state.LastClientTick} serverTick={state.ServerTick} totalRebases={_snapCount} idleSteps={state.IdleStepsAtSnapshot}");
 
             // M3 取证：重基写者（渲染位置在本帧末尾补记；SnapTo 在重放结束后写入最终根）
@@ -1634,6 +1761,12 @@ namespace Game.Gameplay.Network
         {
             if (Time.unscaledTime < _nextDiagTime) return;
             _nextDiagTime = Time.unscaledTime + MovementPredictionConfig.DiagnosticsIntervalSeconds;
+            if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "movement-" + role,
+                connection = (int)(_combatAuthority != null ? _combatAuthority.OwnerClientId : -1),
+                serverTick = NetworkObject != null && TimeManager != null ? TimeManager.Tick : 0, inputTick = _lastAckedClientTick,
+                rtt = NetworkObject != null && TimeManager != null ? TimeManager.RoundTripTime : 0, queueDepth = _serverQueue.Count,
+                frameMs = Time.unscaledDeltaTime * 1000, error = _diag.LastErrorMeters, rawError = _diag.LastRawErrorMeters,
+                renderTick = ObserverTimeline.RenderTick, bufferMs = ObserverTimeline.DelaySeconds * 1000 });
             _diag.NoteServerTotals(_serverQueue.ReceivedTotal, _serverQueue.ConsumedTotal);
             _diag.ServerSkippedTicks = _serverQueue.SkippedTicks;
             if (!_diag.HasData) return;
@@ -1708,6 +1841,58 @@ namespace Game.Gameplay.Network
         public float TestRemoteVisualTime { get; set; } = -1f;
 
         private readonly RemoteVisualInterpolationBuffer _remoteVisualBuffer = new();
+        private readonly TimestampedPoseBuffer _timestampedPoses = new();
+        private readonly Dictionary<uint, (uint epoch, uint serverTick, Vector3 origin, Vector3 direction,
+            Vector3 muzzle, Vector3 bodyAnchor, WeaponFireContext context)> _serverAimHistory = new();
+        private readonly Queue<uint> _serverAimOrder = new();
+        private uint _serverAimEpoch;
+        public uint LocalInputTick => _localTick;
+        public uint ServerInputTick => _serverQueue.LastProcessedTick;
+        public uint KnownLifeEpoch => _serverLifeEpoch;
+        internal bool TryGetServerAim(uint tick, uint epoch, out Vector3 origin, out Vector3 direction)
+        {
+            origin = direction = default;
+            if (!_serverAimHistory.TryGetValue(tick, out var pose) || pose.epoch != epoch) return false;
+            if (NetworkObject != null && TimeManager != null
+                && !ShotTimingPolicy.ValidDisplayTick(pose.serverTick, TimeManager.Tick, (int)TimeManager.TickRate)) return false;
+            origin = pose.origin; direction = pose.direction; return true;
+        }
+        internal bool TryGetServerShotGeometry(uint tick, uint epoch, out Vector3 muzzle, out Vector3 bodyAnchor)
+        {
+            muzzle = bodyAnchor = default;
+            if (!_serverAimHistory.TryGetValue(tick, out var pose) || pose.epoch != epoch) return false;
+            muzzle = pose.muzzle;
+            bodyAnchor = pose.bodyAnchor;
+            return true;
+        }
+        private void RememberServerAim(MovementCommand command)
+        {
+            if (command.LifeEpoch != _serverAimEpoch) { _serverAimEpoch = command.LifeEpoch; _serverAimOrder.Clear(); _serverAimHistory.Clear(); }
+            var weapon = GetComponent<WeaponController>();
+            if (weapon == null) return;
+            if (!_serverAimHistory.ContainsKey(command.Tick)) _serverAimOrder.Enqueue(command.Tick);
+            var provider = GetComponent<WeaponFireContextProvider>();
+            float lean = _locomotor != null ? _locomotor.Lean.Amount : 0f;
+            _serverAimHistory[command.Tick] = (command.LifeEpoch, TimeManager != null ? TimeManager.Tick : 0,
+                weapon.AimOrigin, weapon.AimDirection,
+                LeanProfile.Muzzle(transform.position, transform.rotation, lean),
+                LeanProfile.BodyAnchor(transform.position, transform.rotation, lean),
+                provider != null ? provider.Context : WeaponFireContext.Default);
+            while (_serverAimOrder.Count > 128) _serverAimHistory.Remove(_serverAimOrder.Dequeue());
+        }
+        internal bool TryGetServerFireContext(uint tick, uint epoch, out WeaponFireContext context)
+        {
+            context = WeaponFireContext.Default;
+            if (!_serverAimHistory.TryGetValue(tick, out var pose) || pose.epoch != epoch) return false;
+            context = pose.context;
+            return true;
+        }
+        [ObserversRpc(ExcludeOwner = true)]
+        private void ObserversTimestampedPose(ObserverPose pose, FishNet.Transporting.Channel channel = FishNet.Transporting.Channel.Unreliable)
+        {
+            if (IsServerInitialized || !_timestampedPoses.Push(pose)) return;
+            ObserverTimeline.Observe(pose.ServerTick, TimeManager != null ? (int)TimeManager.TickRate : 30, Time.unscaledTimeAsDouble);
+        }
 
         /// <summary>
         /// 远端视觉平滑（方案A 表现层，2026-09-17 缓冲插值版）：根在最新权威位姿上以到达节奏
@@ -1727,6 +1912,20 @@ namespace Game.Gameplay.Network
                 return;
             }
 
+            if (NetworkObject != null && IsClientInitialized && !IsServerInitialized)
+            {
+                if (_timestampedPoses.Evaluate(ObserverTimeline.SampleForRendering(), out var pose))
+                {
+                    _remoteLeanAmount = pose.LeanAmount;
+                    RefreshLeanHitboxes(_remoteLeanAmount);
+                    _remoteVisualWorldPosition = pose.Position + pose.Rotation * _tpModelBaseLocalPosition;
+                    _remoteVisualWorldRotation = pose.Rotation * _tpModelBaseLocalRotation;
+                    var visual = transform.Find(VisualModelNode);
+                    if (visual != null) visual.SetPositionAndRotation(_remoteVisualWorldPosition, _remoteVisualWorldRotation);
+                    _remoteVisualValid = true;
+                }
+                return;
+            }
             float now = TestRemoteVisualTime >= 0f ? TestRemoteVisualTime : Time.time;
             // 追随目标 = 根位姿 ∘ 作者局部基准（保持 TP_Model 的 authored 偏移/朝向）
             Vector3 targetPosition = transform.TransformPoint(_tpModelBaseLocalPosition);

@@ -740,6 +740,7 @@ namespace Game.Gameplay.Network
                 // P0-A 认证前协议握手：新服务器据此拒绝旧客户端（旧服务器读不到该字段，
                 // 认证阶段即流错位断开——绝不带协议差异进对局）
                 ProtocolId = GameProtocolIdentity.ProtocolId,
+                MapContentHash = MapContentIdentity.ClientHash,
             };
             _consumed = true;
             // 明文在消息构建完成后立即清除：此后会话内不存在可再次发送的旧票据

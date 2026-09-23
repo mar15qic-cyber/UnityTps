@@ -27,9 +27,36 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<PlayerPassRewardGrant> PassRewardGrants => Set<PlayerPassRewardGrant>();
     public DbSet<AchievementDefinition> AchievementDefinitions => Set<AchievementDefinition>();
     public DbSet<PlayerAchievement> PlayerAchievements => Set<PlayerAchievement>();
+    public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
+    public DbSet<Friendship> Friendships => Set<Friendship>();
+
+    internal static void ConfigureSocial(ModelBuilder model)
+    {
+        model.Entity<DirectMessage>(e => {
+            e.ToTable("DirectMessage"); e.HasKey(x => x.Id);
+            e.Property(x => x.ClientMessageId).HasMaxLength(36).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(400).IsRequired();
+            e.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+            e.HasIndex(x => new { x.SenderId, x.ClientMessageId }).IsUnique();
+            e.HasIndex(x => new { x.RecipientId, x.SenderId, x.Id });
+        });
+        model.Entity<DirectMessageRead>(e => {
+            e.ToTable("DirectMessageRead"); e.HasKey(x => new { x.UserId, x.PeerId });
+            e.Property(x => x.LastReadId).IsConcurrencyToken();
+        });
+        model.Entity<RoomInvitation>(e => {
+            e.ToTable("RoomInvitation"); e.HasKey(x => x.Id);
+            e.Property(x => x.State).HasMaxLength(16).IsRequired();
+            e.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+            e.Property(x => x.ExpiresAtUtc).HasColumnType("datetime(6)");
+            e.HasIndex(x => new { x.RoomId, x.SenderId, x.RecipientId }).IsUnique();
+            e.HasIndex(x => new { x.RecipientId, x.State, x.ExpiresAtUtc });
+        });
+    }
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        ConfigureSocial(model);
         model.Entity<UserAccount>(entity =>
         {
             entity.ToTable("UserAccount");
@@ -37,6 +64,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.Username).HasMaxLength(32).IsRequired();
             entity.Property(x => x.NormalizedUsername).HasMaxLength(32).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(100).IsRequired();
+            // 好友查找编码（用户名#编码）：用户名全局唯一 ⇒ 组合唯一；编码本身不要求全局唯一
+            entity.Property(x => x.IdentityTag).HasMaxLength(8).IsRequired().HasDefaultValue("");
+            entity.HasIndex(x => new { x.NormalizedUsername, x.IdentityTag }).IsUnique();
+            entity.Property(x => x.LastSeenUtc).HasColumnType("datetime(6)");
             entity.HasIndex(x => x.NormalizedUsername).IsUnique();
             entity.HasOne(x => x.Profile).WithOne(x => x.User).HasForeignKey<PlayerProfile>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Loadout).WithOne(x => x.User).HasForeignKey<PlayerLoadout>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -291,6 +322,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasKey(x => new { x.UserId, x.AchievementId });
             entity.Property(x => x.AchievementId).HasMaxLength(64).IsRequired();
             entity.Property(x => x.UnlockedAtUtc).HasColumnType("datetime(6)");
+        });
+
+        // ===== 好友系统（2026-09-20 需求2）=====
+
+        model.Entity<FriendRequest>(entity =>
+        {
+            entity.ToTable("FriendRequest");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+            entity.HasIndex(x => new { x.FromUserId, x.ToUserId }).IsUnique(); // 同方向重复申请兜底
+            entity.HasIndex(x => x.ToUserId); // 收件箱查询
+        });
+        model.Entity<Friendship>(entity =>
+        {
+            entity.ToTable("Friendship");
+            entity.HasKey(x => new { x.UserId, x.FriendId }); // 对称两行
+            entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime(6)");
+            entity.HasIndex(x => x.FriendId); // 反向存在性检查
         });
     }
 }

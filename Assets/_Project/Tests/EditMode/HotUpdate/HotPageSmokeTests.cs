@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -109,7 +109,8 @@ namespace Game.Gameplay.Tests
 
                 var bar = presenterGo.transform.Find("LobbyCanvas/ShellTopBar");
                 Assert.IsNotNull(bar, "BuildShell 应建顶栏");
-                Assert.IsNotNull(bar.Find("NavHot_test_hot"), "注册表中的热页应生成顶栏页签");
+                Assert.IsNull(bar.Find("NavHot_test_hot"), "额外注册页不应挤占四项产品主导航");
+                Assert.IsNotNull(bar.Find("NavHot_career"), "战绩热页应保留主导航入口");
 
                 // 未认证：NavigateHot 应改道登录页
                 presenter.NavigateHot("test_hot");
@@ -175,7 +176,7 @@ namespace Game.Gameplay.Tests
             Assert.IsTrue(texts.Any(t => t.Contains("作战战绩")), "应有标题");
             Assert.IsTrue(texts.Any(t => t.Contains("总场次 3") && t.Contains("66.7%")), "应有汇总卡：" + string.Join("|", texts));
             Assert.IsTrue(texts.Any(t => t.Contains("失败")), "负局行存在");
-            Assert.IsTrue(texts.Any(t => t.Contains("胜利") && t.Contains("20 / 5")), "胜局行存在");
+            Assert.IsTrue(texts.Any(t => t.Contains("胜利")) && texts.Any(t => t.Contains("20 / 5")), "胜局行存在");
             Assert.IsTrue(texts.Any(t => t.Contains("第 1 / 1 页")), "应有分页信息");
             Assert.IsTrue(names.Any(n => n == "Btn_CareerPrev") && names.Any(n => n == "Btn_CareerNext"), "应有分页按钮");
         }
@@ -229,7 +230,7 @@ namespace Game.Gameplay.Tests
             {
                 token = "test-token",
                 expiresAtUtc = DateTime.UtcNow.AddHours(1).ToString("o"),
-                profile = new PlayerProfileDto { username = "Tester", level = 3, xp = 40, xpToNextLevel = 100, skillPoints = 2, coins = 12345 },
+                profile = new PlayerProfileDto { username = "Tester", level = 3, xp = 40, xpToNextLevel = 100, coins = 12345 },
             });
         }
     }

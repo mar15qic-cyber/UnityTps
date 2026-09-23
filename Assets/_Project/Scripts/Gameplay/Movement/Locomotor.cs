@@ -38,6 +38,7 @@ namespace Game.Gameplay.Movement
         [SerializeField, Range(0.01f, 1f)] private float yawSensitivity = 0.1f;
         public LocomotionState State { get; private set; } = LocomotionState.Idle;
         public float HorizontalSpeed => _horizontalVelocity.magnitude;
+        public PlayerLeanState Lean { get; } = new();
         public Vector2 MoveInput => _lastCommand.Move;
         public float GaitPhase => _gaitPhase;
         public MovementSimulationMode SimulationMode => simulationMode;
@@ -85,7 +86,7 @@ namespace Game.Gameplay.Movement
         public Func<float> PitchProvider { get; set; }
 
         private const float DefaultWalkSpeed = 1.58f;
-        private const float DefaultSprintSpeed = 3.44f;
+        private const float DefaultSprintSpeed = 3.8f;
 
         private void Awake()
         {
@@ -122,6 +123,8 @@ namespace Game.Gameplay.Movement
                 _input.LookDelta.x * yawSensitivity,
                 ++_offlineTick);
 
+            command.LeanIntent = _input.LeanIntent;
+
             Simulate(command, Time.deltaTime);
             if (_jumpConsumedThisStep) _input.ConsumeJump();
         }
@@ -147,6 +150,10 @@ namespace Game.Gameplay.Movement
             bool groundedFromSnapshot = _hasGroundedOverride;
             bool groundedBeforeMove = _hasGroundedOverride ? _groundedOverride : _cc.isGrounded;
             _hasGroundedOverride = false;
+            Lean.Step(command.LeanIntent, groundedBeforeMove, command.Jump, deltaTime,
+                transform.position, transform.rotation, transform, true);
+            if (Lean.Intent != 0 || Mathf.Abs(Lean.Amount) > .001f)
+                _lastCommand.Sprint = false;
             if (groundedBeforeMove)
             {
                 _coyoteTimer = coyoteTime;
@@ -166,8 +173,8 @@ namespace Game.Gameplay.Movement
             }
 
             Vector3 horizontalDelta = groundedBeforeMove
-                ? SimulateGround(command, deltaTime)
-                : SimulateAir(command, deltaTime);
+                ? SimulateGround(_lastCommand, deltaTime)
+                : SimulateAir(_lastCommand, deltaTime);
 
             _verticalVelocity += gravity * deltaTime;
             CollisionFlags collisionFlags = _cc.Move(horizontalDelta + Vector3.up * (_verticalVelocity * deltaTime));
@@ -224,6 +231,8 @@ namespace Game.Gameplay.Movement
                     ? _weaponController.RecoilCompensationDebt
                     : Vector2.zero,
                 Pitch = PitchProvider != null ? PitchProvider() : 0f,
+                LeanAmount = Lean.Amount,
+                LeanIntent = Lean.Intent,
             };
         }
 
@@ -240,6 +249,7 @@ namespace Game.Gameplay.Movement
             // 必须由快照显式给一次（只用一步，后续步回到实际接触）。
             _hasGroundedOverride = true;
             _groundedOverride = snapshot.Grounded;
+            Lean.Restore(snapshot.LeanAmount, snapshot.LeanIntent);
 
             LastRestoreDebug = new LocomotorRestoreDebug
             {
@@ -300,7 +310,7 @@ namespace Game.Gameplay.Movement
                 return Vector3.zero;
             }
 
-            _sprintIntent = command.Sprint && move.y > 0.5f;
+            _sprintIntent = command.Sprint;
             RootMotionGait gait = _sprintIntent ? RootMotionGait.Sprint : RootMotionGait.Walk;
             float canonicalSpeed = gait == RootMotionGait.Sprint
                 ? rootMotionProfile != null ? rootMotionProfile.SprintSpeed : DefaultSprintSpeed

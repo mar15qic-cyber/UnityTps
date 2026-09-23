@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f426648a03e0478881beb2c46e1bc22f, type: 3}
+  m_Name: WeaponHudIconCatalog
+  m_EditorClassIdentifier:
+  icons:
+  - {fileID: 21300000, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300002, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300004, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300006, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300008, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300010, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300012, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300014, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300016, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300018, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300020, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300022, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300024, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300026, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300028, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300030, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300032, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}
+  - {fileID: 21300034, guid: dccc05b8d01dde54f88f9910329187c2, type: 3}

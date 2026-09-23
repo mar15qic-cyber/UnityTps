@@ -13,62 +13,6 @@ MonoBehaviour:
   m_Name: OpticViewCatalog
   m_EditorClassIdentifier: 
   profiles:
-  - opticId: attach.lpw.optic.01
-    mode: 0
-    reticleSprite: {fileID: 21300000, guid: 9daa2f506afbb7a4492cbe71b214a865, type: 3}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 34
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.02
-    mode: 0
-    reticleSprite: {fileID: 21300000, guid: db1134c6350004c4bb8aa4f70d1957f1, type: 3}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 34
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.03
-    mode: 0
-    reticleSprite: {fileID: 0}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 34
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.04
-    mode: 1
-    reticleSprite: {fileID: 0}
-    reticleColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
-    reticleSize: 48
-    apertureRadius: 0.42
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.05
-    mode: 0
-    reticleSprite: {fileID: 21300000, guid: 9daa2f506afbb7a4492cbe71b214a865, type: 3}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 34
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.06
-    mode: 0
-    reticleSprite: {fileID: 21300000, guid: 9daa2f506afbb7a4492cbe71b214a865, type: 3}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 30
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.07
-    mode: 1
-    reticleSprite: {fileID: 0}
-    reticleColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
-    reticleSize: 54
-    apertureRadius: 0.40
-    vignetteAlpha: 0.98
-  - opticId: attach.lpw.optic.08
-    mode: 1
-    reticleSprite: {fileID: 0}
-    reticleColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
-    reticleSize: 54
-    apertureRadius: 0.40
-    vignetteAlpha: 0.98
   - opticId: attach.lpfp.optic.01
     mode: 1
     reticleSprite: {fileID: 0}
@@ -83,18 +27,18 @@ MonoBehaviour:
     reticleSize: 34
     apertureRadius: 0.43
     vignetteAlpha: 0.98
+  - opticId: attach.lpfp.optic.03
+    mode: 1
+    reticleSprite: {fileID: 0}
+    reticleColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
+    reticleSize: 48
+    apertureRadius: 0.42
+    vignetteAlpha: 0.98
   - opticId: attach.rifle.optic
     mode: 0
     reticleSprite: {fileID: 21300000, guid: db1134c6350004c4bb8aa4f70d1957f1, type: 3}
     reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
     reticleSize: 34
-    apertureRadius: 0.43
-    vignetteAlpha: 0.98
-  - opticId: attach.pistol.optic
-    mode: 0
-    reticleSprite: {fileID: 21300000, guid: 9daa2f506afbb7a4492cbe71b214a865, type: 3}
-    reticleColor: {r: 1, g: 0.18, b: 0.08, a: 1}
-    reticleSize: 30
     apertureRadius: 0.43
     vignetteAlpha: 0.98
   - opticId: builtin.weapon.sniper01

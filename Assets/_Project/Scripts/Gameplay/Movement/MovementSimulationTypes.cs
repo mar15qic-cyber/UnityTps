@@ -26,6 +26,7 @@ namespace Game.Gameplay.Movement
         /// 生命代际盖章；服务器逐批校验——旧代际批次（死亡前在途、冻结门开后才到达）拒收
         /// 并清队，不得作为新生命输入消费。协议 v5→v6（wire 字段新增）。</summary>
         public uint LifeEpoch;
+        public sbyte LeanIntent;
 
         /// <summary>兼容构造器（Locomotor 离线路径等既有调用点零改动）：PitchDelta 默认 0。</summary>
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, uint tick)
@@ -40,6 +41,7 @@ namespace Game.Gameplay.Movement
             PitchDelta = pitchDelta;
             Tick = tick;
             LifeEpoch = 0u;
+            LeanIntent = 0;
         }
 
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, float pitchDelta, uint tick, uint lifeEpoch)
@@ -51,6 +53,7 @@ namespace Game.Gameplay.Movement
             PitchDelta = pitchDelta;
             Tick = tick;
             LifeEpoch = lifeEpoch;
+            LeanIntent = 0;
         }
     }
 
@@ -88,5 +91,7 @@ namespace Game.Gameplay.Movement
         /// 纳入快照后服务器权威俯仰可随状态下发对账（重生/重基时也有明确基线）。
         /// </summary>
         public float Pitch;
+        public float LeanAmount;
+        public sbyte LeanIntent;
     }
 }

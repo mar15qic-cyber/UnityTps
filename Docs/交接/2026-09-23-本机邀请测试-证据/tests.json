@@ -1,0 +1,22 @@
+{
+  "backend": {
+    "passed": 225,
+    "skipped": 1,
+    "failed": 0
+  },
+  "compensation": "未验证",
+  "externalAccess": "未验证",
+  "unityContentAndAuth": {
+    "passed": 55,
+    "job": "074700fdcf59459fa78c86eadb229fb4",
+    "failed": 0
+  },
+  "experience": "未验证",
+  "note": "Unity batches overlap; do not add counts. Tests are EditMode, not external play tests.",
+  "privateTools": "configuration checks and PowerShell parsing passed",
+  "unityNetwork": {
+    "passed": 93,
+    "job": "554344db5d9841958f5aedc1d183a067",
+    "failed": 0
+  }
+}

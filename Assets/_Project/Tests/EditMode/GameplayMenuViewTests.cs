@@ -1,6 +1,7 @@
 using Game.Gameplay.Menu;
 using Game.UI.Menu;
 using NUnit.Framework;
+using System.Linq;
 using UnityEngine;
 
 namespace Game.Gameplay.Tests
@@ -87,6 +88,9 @@ namespace Game.Gameplay.Tests
             Assert.That(view.gameObject.activeSelf, Is.True);
             Assert.That(view.transform.Find("SettingsHost").gameObject.activeSelf, Is.True, "设置页应显示");
             Assert.That(view.transform.Find("PauseHome").gameObject.activeSelf, Is.False, "暂停主页应隐藏");
+            var settingsNodes = view.transform.Find("SettingsHost").GetComponentsInChildren<Transform>(true);
+            Assert.That(settingsNodes.Any(node => node.name == "ReticleStyle"), Is.True, "局内设置必须提供镜片准星样式");
+            Assert.That(settingsNodes.Any(node => node.name == "ReticleColor"), Is.True, "局内设置必须提供镜片准星颜色");
         }
 
         [Test]

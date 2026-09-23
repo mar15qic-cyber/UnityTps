@@ -6,10 +6,19 @@ using UnityFps.Api.Features;
 
 namespace UnityFps.Api.Services;
 
-public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgressionRules rules)
+public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgressionRules rules, IConfiguration? configuration = null)
 {
     public async Task<AuthSessionDto> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
+        if (configuration?.GetValue<bool>("Access:InviteOnly") == true)
+            throw new ApiException(403, "INVITE_ONLY", "仅限受邀测试账号，请联系测试组织者");
+        return await CreateInvitedAsync(request, cancellationToken);
+    }
+
+    public async Task<AuthSessionDto> CreateInvitedAsync(RegisterRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Password.Length < 8 || System.Text.Encoding.UTF8.GetByteCount(request.Password) > 72)
+            throw new ApiException(400, ApiErrorCodes.ValidationFailed, "密码需至少 8 个字符且不超过 72 UTF-8 字节");
         var username = request.Username.Trim();
         ValidateUsername(username);
         var normalized = Normalize(username);
@@ -18,7 +27,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
 
         // EnableRetryOnFailure 与显式事务不兼容（InvalidOperationException）——注册本身是
         // 单次 SaveChanges 原子操作，事务包裹无必要；唯一约束冲突由 catch 转业务 409。
-        var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow, TokenVersion = 1 };
+        var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow, TokenVersion = 1, IdentityTag = GenerateIdentityTag() };
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
         user.Wallet = new PlayerWallet { User = user, Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
@@ -40,7 +49,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
             var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet)
                 .Include(x => x.Loadout!).ThenInclude(x => x.Attachments)
                 .SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, token);
-            if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            if (user is null || user.Disabled || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "用户名或密码错误");
 
             if (!db.Database.IsRelational())
@@ -78,7 +87,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         var loadout = user.Loadout ?? throw new InvalidOperationException("Loadout missing");
         var token = jwt.Create(user);
         var coins = user.Wallet?.Coins ?? 0;
-        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user.Username, coins, rules), loadout.ToDto(), coins);
+        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user, coins, rules), loadout.ToDto(), coins);
     }
 
     public static long GetUserId(System.Security.Claims.ClaimsPrincipal principal) =>
@@ -86,6 +95,11 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
             ? id : throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "登录状态无效");
 
     public static string Normalize(string username) => username.ToUpperInvariant();
+
+    /// <summary>好友查找编码：4 位数字含前导零（如 0042）。用户名全局唯一 ⇒ 名字+编码组合唯一，
+    /// 编码本身不要求全局唯一，注册时无需冲突重试。</summary>
+    private static string GenerateIdentityTag() => Random.Shared.Next(0, 10000).ToString("D4");
+
     private static void ValidateUsername(string username)
     {
         if (username.Length is < 3 or > 32 || username.Any(char.IsWhiteSpace))

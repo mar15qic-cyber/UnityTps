@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": {
+      "result": "Succeeded",
+      "errors": 0,
+      "warningCount": 179,
+      "packedAssets": [
+        "Assets/_Project/Resources/UI/LobbyRoomLit.mat",
+        "Assets/_Project/Resources/UI/LobbyRoomUnlit.mat",
+        "Packages/com.unity.render-pipelines.universal/Shaders/Unlit.shader",
+        "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader"
+      ],
+      "warningExamples": [
+        "Assets\\FishNet\\Runtime\\Plugins\\GameKit\\Dependencies\\Utilities\\Types\\ObjectPooling\\Demo\\Scripts\\Projectile.cs(35,28): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\FishNet\\Runtime\\Plugins\\GameKit\\Dependencies\\Utilities\\Types\\ObjectPooling\\Demo\\Scripts\\Projectile.cs(35,28): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\XLua\\Examples\\ExampleGenConfig.cs(46,24): warning CS0618: 'WWW' is obsolete: 'Use UnityWebRequest, a fully featured replacement which is more efficient and has additional features'",
+        "Assets\\XLua\\Examples\\14_HotfixAsyncAwait\\HotfixAsyncAwaitTest.cs(231,17): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.",
+        "Assets\\XLua\\Examples\\14_HotfixAsyncAwait\\HotfixAsyncAwaitTest.cs(244,17): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.",
+        "Assets\\XLua\\Examples\\06_Coroutine\\Coroutine_Runner.cs(24,24): warning CS0618: 'WWW' is obsolete: 'Use UnityWebRequest, a fully featured replacement which is more efficient and has additional features'",
+        "Assets\\XLua\\Examples\\08_Hotfix\\StatefullTest.cs(41,49): warning CS0067: The event 'StatefullTest.AEvent' is never used",
+        "Assets\\FishNet\\Runtime\\Managing\\Observing\\ObserverManager.LevelOfDetail.cs(202,13): warning CS0162: Unreachable code detected"
+      ],
+      "scene": "Assets/_Project/Scenes/Arena.unity",
+      "dirty": false
+    },
+    "compiler": "codedom"
+  }
+}

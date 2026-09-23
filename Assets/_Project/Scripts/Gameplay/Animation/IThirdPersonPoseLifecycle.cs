@@ -16,6 +16,8 @@ namespace Game.Gameplay.Animation
     {
         /// <summary>死亡：冻结骨骼写者。实现方不得依赖 GameObject/组件停用副作用（会触发 Rebind）。</summary>
         void FreezePoseForDeath();
+        void PlayDeathPose(float elapsedSeconds);
+        bool DeathPoseComplete { get; }
 
         /// <summary>复活：解冻并强制重播当前有效 locomotion，就地求值一帧（幂等，禁止每帧调用）。</summary>
         void RecoverPoseAfterRespawn();

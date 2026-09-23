@@ -18,6 +18,8 @@ namespace Game.Gameplay.Tests
             PlayerPrefs.DeleteKey(SettingsModel.ResolutionKey);
             PlayerPrefs.DeleteKey(SettingsModel.FullscreenKey);
             PlayerPrefs.DeleteKey(SettingsModel.FrameCapKey);
+            PlayerPrefs.DeleteKey(SettingsModel.OpticReticleStyleKey);
+            PlayerPrefs.DeleteKey(SettingsModel.OpticReticleColorKey);
             PlayerPrefs.DeleteKey(AdsInputMode.PrefsKey);
             foreach (var b in SettingsKeyMap.Bindings) PlayerPrefs.DeleteKey(b.prefsKey);
             SettingsKeyMap.InvalidateCache();
@@ -112,6 +114,24 @@ namespace Game.Gameplay.Tests
             Assert.That(AdsInputMode.Toggle, Is.False, "Reset 应回到默认长按");
         }
 
+        [Test]
+        public void OpticReticlePreference_RoundTripsAndClampsInvalidValues()
+        {
+            Assert.That(SettingsModel.ReticleStyle, Is.EqualTo(OpticReticleStyle.Dot));
+            Assert.That(SettingsModel.ReticleColor, Is.EqualTo(OpticReticleColor.Red));
+
+            SettingsModel.ReticleStyle = OpticReticleStyle.Chevron;
+            SettingsModel.ReticleColor = OpticReticleColor.Cyan;
+            Assert.That(SettingsModel.ReticleStyle, Is.EqualTo(OpticReticleStyle.Chevron));
+            Assert.That(SettingsModel.ReticleColor, Is.EqualTo(OpticReticleColor.Blue));
+            Assert.That(SettingsModel.ResolveReticleColor(OpticReticleColor.Cyan).b, Is.EqualTo(1f).Within(0.0001f));
+
+            PlayerPrefs.SetInt(SettingsModel.OpticReticleStyleKey, 99);
+            PlayerPrefs.SetInt(SettingsModel.OpticReticleColorKey, -9);
+            Assert.That(SettingsModel.ReticleStyle, Is.EqualTo(OpticReticleStyle.Dot));
+            Assert.That(SettingsModel.ReticleColor, Is.EqualTo(OpticReticleColor.Red));
+        }
+
         // ---- 键位映射 ----
 
         [Test]
@@ -151,8 +171,8 @@ namespace Game.Gameplay.Tests
         public void KeyMap_BindingsCoverMoveSprintJumpReloadAndSlots()
         {
             Assert.That(SettingsKeyMap.Bindings.Length, Is.GreaterThanOrEqualTo(10));
-            foreach (SettingsKeyMap.Action action in System.Enum.GetValues(typeof(SettingsKeyMap.Action)))
-                Assert.That(SettingsKeyMap.Find(action), Is.Not.Null, $"binding for {action} missing");
+            foreach (var binding in SettingsKeyMap.Bindings)
+                Assert.That(SettingsKeyMap.Find(binding.action), Is.Not.Null);
         }
     }
 }

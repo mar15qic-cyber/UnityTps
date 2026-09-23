@@ -10,6 +10,26 @@ public sealed class AppRoot : MonoBehaviour
     public static AppRoot Instance { get; private set; }
     public IApiClient ApiClient { get; private set; }
     public AccountSession Session { get; private set; }
+    public bool SessionExpiredPending { get; private set; }
+    public void AcknowledgeSessionExpired() => SessionExpiredPending = false;
+
+    private void RejectSession(string rejectedToken)
+    {
+        if (Session == null || Session.Token != rejectedToken || SessionExpiredPending) return;
+        SessionExpiredPending = true;
+        // Invalidate pending battle/settlement continuations before disconnect callbacks run.
+        Session.AdvanceConnectionGeneration();
+        ApiClient.ClearToken();
+        Session.Clear();
+        Game.Gameplay.Network.MatchExitState.DisconnectHandled = true;
+        var network = FishNet.InstanceFinder.NetworkManager;
+        if (network != null && network.IsClientStarted) network.ClientManager.StopConnection();
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        Game.Gameplay.Menu.GameplayMenuController.ReturnToLobbyLocally();
+        var lobby = FindFirstObjectByType<LobbyPresenter>();
+        if (lobby != null) lobby.ShowSessionExpired();
+    }
 
     [SerializeField] private ApiClientConfig apiConfig;
 
@@ -45,6 +65,7 @@ public sealed class AppRoot : MonoBehaviour
                 }
                 Session = new AccountSession();
                 ApiClient = new ApiClient(apiConfig);
+                ((ApiClient)ApiClient).SessionRejected += RejectSession;
                 // P0-A/P1 部署证据：客户端启动即打印协议代际 + 部署清单 + PID（双客户端唯一 -logFile
                 // 由启动器分配——本行是"哪份二进制在跑"的进程内证据）
                 var manifest = Game.Gameplay.Network.GameProtocolIdentity.TryReadDeployedManifest();
@@ -59,12 +80,14 @@ public sealed class AppRoot : MonoBehaviour
                 //（早于 Lobby 场景的 LobbyPresenter.Initialize）；引导失败不阻断大厅（日志可见）。
                 // DS 无 AppRoot → 服务器上不会初始化 Lua（红线：DS 不加载热更脚本）。
                 gameObject.AddComponent<HotUpdateRuntime>();
+                gameObject.AddComponent<SocialSession>();
             }
 
             private void OnDestroy()
             {
                 if (Instance != this) return;
                 SettingsDraft.Persisted -= OnSettingsPersisted;
+                if (ApiClient is ApiClient client) client.SessionRejected -= RejectSession;
                 (ApiClient as System.IDisposable)?.Dispose();
                 Instance = null;
             }

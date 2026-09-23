@@ -4,10 +4,10 @@ namespace Game.Account
 {
 [Serializable] public sealed class RegisterRequest { public string username; public string password; }
 [Serializable] public sealed class LoginRequest { public string username; public string password; }
-[Serializable] public sealed class UpgradeLevelsDto { public int upDamage; public int upAmmoCap; public int upMaxHealth; }
 [Serializable] public sealed class PlayerProfileDto
 {
-    public string username; public int level; public int xp; public int xpToNextLevel; public int skillPoints; public long coins; public UpgradeLevelsDto upgrades;
+    // identityTag=好友查找编码（用户名#编码 的 # 后缀，注册自动生成 4 位，2026-09-20 需求2）
+    public string username; public string identityTag; public int level; public int xp; public int xpToNextLevel; public long coins;
 }
 [Serializable] public sealed class LoadoutAttachmentDto { public string weaponSlot; public string attachmentSlot; public string attachmentItemId; }
 [Serializable] public sealed class LoadoutDto
@@ -15,10 +15,9 @@ namespace Game.Account
     public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public long version; public LoadoutAttachmentDto[] attachments;
 }
 [Serializable] public sealed class AuthSessionDto { public string token; public string expiresAtUtc; public PlayerProfileDto profile; public LoadoutDto loadout; public long coins; }
-[Serializable] public sealed class UpgradeRequest { public int upDamage; public int upAmmoCap; public int upMaxHealth; }
 [Serializable] public sealed class LoadoutRequest { public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public long expectedVersion; }
 [Serializable] public sealed class AttachmentSelectionRequest { public string attachmentSlot; public string attachmentItemId; }
-[Serializable] public sealed class LoadoutAttachmentsRequest { public long expectedVersion; public string weaponSlot; public AttachmentSelectionRequest[] attachments; }
+[Serializable] public sealed class LoadoutAttachmentsRequest { public long expectedVersion; public string weaponSlot; public string weaponItemId; public AttachmentSelectionRequest[] attachments; }
 [Serializable] public sealed class CatalogItemDto
 {
     public string itemId; public string itemType; public string slotType; public string displayName; public string description; public string assetKey;
@@ -42,7 +41,6 @@ namespace Game.Account
 // Docs/23 P2（G5）契约对齐（以后端 Contracts.cs L77-94 为准，字段名逐字小驼峰）：
 // 请求去掉旧 score（后端无此字段），新增服务器权威 durationSeconds/isWin
 // C3（Docs/27 §7.2）：matchId=房间比赛身份（KillRace 兼容提交必带；TDM 自报被后端拒绝）、teamId=对账辅助
-[Serializable] public sealed class MatchSubmissionRequest { public string clientMatchId; public int kills; public int deaths; public int durationSeconds; public bool isWin; public string matchId; public string teamId; }
 [Serializable] public sealed class PassLevelUpDto { public int level; public string rewardType; public string itemId; public int coinsAmount; }
 [Serializable] public sealed class UnlockedAchievementDto { public string achievementId; public string displayName; public int passXpReward; }
 [Serializable] public sealed class MatchResultDto
@@ -76,6 +74,20 @@ namespace Game.Account
     public string body; public string sentAtUtc; public string clientMessageId;
 }
 [Serializable] public sealed class RoomChatFeedDto { public ulong cursor; public RoomChatMessageDto[] messages; }
+
+// ---- 好友系统（2026-09-20 需求2：用户名#编码 查找 + 请求-同意制 + 在线状态；字段名逐字小驼峰对齐后端）----
+[Serializable] public sealed class FriendSendRequest { public string query; }
+/// <summary>在线状态字面值（对齐后端 FriendPresence）：InMatch/InRoom 优先于 Online（120s 窗口）/Offline。</summary>
+public static class FriendPresence
+{
+    public const string Offline = "Offline";
+    public const string Online = "Online";
+    public const string InRoom = "InRoom";
+    public const string InMatch = "InMatch";
+}
+[Serializable] public sealed class FriendEntryDto { public long userId; public string username; public string identityTag; public string presence; }
+[Serializable] public sealed class FriendRequestEntryDto { public long requestId; public long userId; public string username; public string identityTag; public System.DateTime createdAtUtc; }
+[Serializable] public sealed class FriendListDto { public FriendEntryDto[] friends; public FriendRequestEntryDto[] incoming; public FriendRequestEntryDto[] outgoing; }
 }
 // ---- 房间契约（Docs/27 v1.2 CF 等待房间：字段名逐字小驼峰） ----
 // CreateRoomRequest：全部字段逐字段白名单校验（后端）；创建/加入只进 Waiting，不再返回票据
@@ -89,7 +101,7 @@ namespace Game.Account
 }
 [Serializable] public sealed class GameRoomDto
 {
-    public string roomCode; public string leaderUsername;
+    public long roomId; public string roomCode; public string leaderUsername;
     public int joinedPlayers; public int maxPlayers; public string status;
     public DateTime createdAtUtc;
     // Docs/27 v1.2 只读扩展（Q03 等待房间页展示/轮询判定）
@@ -134,6 +146,7 @@ namespace Game.Account
 {
     public string mapId; public string displayName; public string sceneName;
     public string[] modes; public int maxCapacity; public string[] spawnGroups;
+    public string contentVersion; public string contentHash; public string availability;
 }
 [Serializable] public sealed class RoomMatchResultPlayerViewDto
 {
@@ -146,3 +159,5 @@ namespace Game.Account
     public string matchId; public string status; public string winnerTeam;
     public int durationSeconds; public RoomMatchResultPlayerViewDto[] players;
 }
+
+[System.Serializable] public sealed class JoinRoomByCodeRequest { public string roomCode; public string teamId; public string clientProtocolId; }

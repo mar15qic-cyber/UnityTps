@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +11,7 @@ using UnityFps.Api.Data;
 using UnityFps.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+PrivatePlayerBoundary.Configure(builder);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
@@ -60,11 +63,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysql => mysql.EnableRetryOnFailure());
 });
 
-var jwtKey = builder.Configuration["Jwt:SigningKey"] ?? Environment.GetEnvironmentVariable("Jwt__SigningKey");
-if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    jwtKey = "development-only-signing-key-change-me-please-32-bytes";
-}
+var jwtKey = PublicTestSecurity.SigningKey(builder.Configuration);
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "UnityFps.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "UnityFps.Client";
@@ -100,7 +99,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var tokenVersion = long.TryParse(principal!.FindFirst("tv")?.Value, out var tv) ? tv : 0L;
                 var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
                 var current = await db.Users.AsNoTracking()
-                    .Where(u => u.Id == userId)
+                    .Where(u => u.Id == userId && !u.Disabled)
                     .Select(u => (long?)u.TokenVersion)
                     .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
                 if (current is null || current.Value != tokenVersion)
@@ -120,6 +119,8 @@ builder.Services.AddScoped<MatchService>();
 builder.Services.AddSingleton<RoomChatService>();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<ServerInstanceService>();
+builder.Services.AddScoped<FriendsService>();
+builder.Services.AddScoped<SocialService>();
 builder.Services.Configure<ServerInstanceOptions>(builder.Configuration.GetSection("ServerInstances"));
 builder.Services.AddScoped<PassService>();
 builder.Services.AddEndpointsApiExplorer();
@@ -140,7 +141,43 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        context.User.Identity?.IsAuthenticated == true
+            ? RateLimitPartition.GetFixedWindowLimiter(context.User.FindFirst("sub")?.Value ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 1200, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
+            : RateLimitPartition.GetNoLimiter("anonymous"));
+});
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Add(System.Net.IPAddress.Loopback);
+    options.ForwardLimit = 1;
+});
 var app = builder.Build();
+PrivatePlayerBoundary.Use(app);
+app.UseForwardedHeaders();
+app.Use(async (context, next) =>
+{
+    var pauseFile = app.Configuration["Access:AdmissionsPauseFile"];
+    var path = context.Request.Path.Value ?? "";
+    bool admission = context.Request.Method == "POST" && (path == "/api/rooms"
+        || path.StartsWith("/api/rooms/") && (path.EndsWith("/join") || path.EndsWith("/start")));
+    if (admission && !string.IsNullOrEmpty(pauseFile) && File.Exists(pauseFile))
+    {
+        context.Response.StatusCode = 503;
+        await context.Response.WriteAsJsonAsync(new { code = "ADMISSIONS_PAUSED", detail = "测试服务器正在维护，请稍后再试" });
+        return;
+    }
+    await next();
+});
+PublicTestSecurity.Validate(app.Configuration, app.Environment.IsDevelopment());
 // ApiExceptionMiddleware 自带完整异常翻译（ApiException→业务码；其他→500 兜底），
 // 不再叠 UseExceptionHandler——.NET8 无参重载会吞异常写 generic 500，
 // 导致 ApiController 内抛出的业务异常（404/409）被错误降级（JoinUnknown 房间案）。
@@ -164,16 +201,29 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // 健康检查：Unity 端 Boot 依赖此端点探活（无鉴权），返回数据库提供方标识供大厅状态栏展示。
-app.MapGet("/health", (AppDbContext db) => Results.Ok(new
+app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
 {
-    status = "ok",
-    database = db.Database.IsRelational() ? "mysql" : "inmemory"
-}));
+    bool connected;
+    try { connected = await db.Database.CanConnectAsync(ct); }
+    catch { connected = false; }
+    return Results.Json(new { status = connected ? "ok" : "unavailable",
+        database = db.Database.IsRelational() ? "mysql" : "inmemory" }, statusCode: connected ? 200 : 503);
+});
 
+app.MapGet("/api/test-status", async (ServerInstanceService servers, IConfiguration config, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(config["PrivateTest:Address"])) return Results.NotFound();
+    var pool = await servers.GetPoolDiagnosticsAsync(2, ct);
+    var maps = pool.Instances.Select(x => new { x.MapId, x.State, x.CurrentPlayers, x.Fresh });
+    return Results.Ok(new { releaseId = Environment.GetEnvironmentVariable("FPS_RELEASE_ID"),
+        ready = pool.Instances.Any(x => x.Fresh && x.State == "Ready"), maps });
+});
 app.MapControllers();
 
 if (!string.IsNullOrWhiteSpace(configuredConnectionString) || allowInMemoryFallback)
@@ -188,6 +238,11 @@ if (!string.IsNullOrWhiteSpace(configuredConnectionString) || allowInMemoryFallb
     await AttachmentSystemSeeder.SeedAsync(db);
 }
 
+if (!string.IsNullOrEmpty(app.Configuration["InviteAdmin:Action"]))
+{
+    await InviteAccountCommand.ExecuteAsync(app.Services, app.Configuration);
+    return;
+}
 app.Run();
 
 public partial class Program { }

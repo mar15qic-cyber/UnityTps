@@ -40,7 +40,7 @@ public sealed class CFWaitingRoomTests
 
     private static async Task<JsonElement> GetDetailAsync(HttpClient client, string token, string roomCode)
     {
-        var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{roomCode}");
+        var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
         return await detail.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -48,7 +48,7 @@ public sealed class CFWaitingRoomTests
     private static async Task<JsonElement> GetRoomAsync(HttpClient client, string roomCode)
     {
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        return list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode);
+        return list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
     }
 
     private static long GetUserIdFromToken(string token)
@@ -83,8 +83,8 @@ public sealed class CFWaitingRoomTests
         var (roomA, hostA) = await ServerTest.CreateStartedRoomPendingAsync(client);
         var (roomB, hostB) = await ServerTest.CreateStartedRoomPendingAsync(client);
         var starts = await Task.WhenAll(
-            ServerTest.Authorized(isolated.CreateClient(), hostA).PostAsync($"/api/rooms/{roomA}/start", null),
-            ServerTest.Authorized(isolated.CreateClient(), hostB).PostAsync($"/api/rooms/{roomB}/start", null));
+            ServerTest.Authorized(isolated.CreateClient(), hostA).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomA)}/start", null),
+            ServerTest.Authorized(isolated.CreateClient(), hostB).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomB)}/start", null));
         Assert.Equal(HttpStatusCode.OK, starts[0].StatusCode);
         Assert.Equal(HttpStatusCode.OK, starts[1].StatusCode);
         var startA = await starts[0].Content.ReadFromJsonAsync<JsonElement>();
@@ -103,9 +103,9 @@ public sealed class CFWaitingRoomTests
         // 本提供方可能观察到两个并发开始各自成局（Docs/28 §D：InMemory 不证明事务/竞态）→ 真实库验证 VERIFY_PENDING。
         var (roomD, hostD) = await ServerTest.CreateStartedRoomPendingAsync(client);
         var triples = await Task.WhenAll(
-            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{roomD}/start", null),
-            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{roomD}/start", null),
-            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{roomD}/start", null));
+            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomD)}/start", null),
+            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomD)}/start", null),
+            ServerTest.Authorized(isolated.CreateClient(), hostD).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomD)}/start", null));
         Assert.All(triples, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
         var generations = new HashSet<int>();
         foreach (var r in triples)
@@ -124,13 +124,13 @@ public sealed class CFWaitingRoomTests
         var client = isolated.CreateClient();
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
         await ServerTest.ReadyAsync(client, guestToken, roomCode);
 
         // 无 DS → 409；房间保持 Waiting、客人准备保留（Docs/26 §2.2：允许重试）
-        var failed = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{roomCode}/start", null);
+        var failed = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/start", null);
         Assert.Equal(HttpStatusCode.Conflict, failed.StatusCode);
         var detail = await GetDetailAsync(client, hostToken, roomCode);
         Assert.Equal("Waiting", detail.GetProperty("room").GetProperty("status").GetString());
@@ -155,7 +155,7 @@ public sealed class CFWaitingRoomTests
 
         // 新成员 Starting 拒绝（Docs/26 §2.2：启动名单冻结）
         var (thirdToken, _) = await ServerTest.RegisterUserAsync(client);
-        var rejected = await ServerTest.Authorized(client, thirdToken).PostAsync($"/api/rooms/{roomCode}/join", null);
+        var rejected = await ServerTest.Authorized(client, thirdToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", null);
         Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
         using var problem = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
         Assert.Equal("ROOM_STARTING", problem.RootElement.GetProperty("code").GetString());
@@ -197,7 +197,7 @@ public sealed class CFWaitingRoomTests
         var client = isolated.CreateClient();
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, guestName) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
         var guestId = GetUserIdFromToken(guestToken);
@@ -213,7 +213,7 @@ public sealed class CFWaitingRoomTests
         await RewindMemberSeenClockAsync(isolated, roomCode, TimeSpan.FromSeconds(120), onlyUserId: hostId);
         await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == roomCode);
+        Assert.DoesNotContain(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
         _ = guestName;
     }
 
@@ -224,7 +224,7 @@ public sealed class CFWaitingRoomTests
         var client = isolated.CreateClient();
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, guestName) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
 
@@ -244,7 +244,7 @@ public sealed class CFWaitingRoomTests
         var client = isolated.CreateClient();
         var (tokenA, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, tokenA, maxPlayers: 4); // 每队上限 2
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (tokenB, _) = await ServerTest.RegisterUserAsync(client);
         var joinB = await ServerTest.JoinRoomAsync(client, tokenB, roomCode);   // 自动：红1蓝0 → 蓝
         Assert.Equal("Blue", joinB.GetProperty("you").GetProperty("teamId").GetString());
@@ -254,7 +254,7 @@ public sealed class CFWaitingRoomTests
         // 红队已满（2/1）：D 指定红队 → TEAM_FULL
         var (tokenD, _) = await ServerTest.RegisterUserAsync(client);
         var toFullRed = await ServerTest.Authorized(client, tokenD)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { teamId = "Red" });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { teamId = "Red" });
         Assert.Equal(HttpStatusCode.Conflict, toFullRed.StatusCode);
         using var fullProblem = JsonDocument.Parse(await toFullRed.Content.ReadAsStringAsync());
         Assert.Equal("TEAM_FULL", fullProblem.RootElement.GetProperty("code").GetString());
@@ -262,16 +262,16 @@ public sealed class CFWaitingRoomTests
         // 换队清准备：C（红）准备后换蓝队（蓝 1<2）→ 成功且 isReady=false
         await ServerTest.ReadyAsync(client, tokenC, roomCode);
         var switched = await ServerTest.Authorized(client, tokenC)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/team", new { teamId = "Blue" });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/team", new { teamId = "Blue" });
         Assert.Equal(HttpStatusCode.OK, switched.StatusCode);
         var switchedBody = await switched.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(switchedBody.GetProperty("you").GetProperty("isReady").GetBoolean());
 
         // KillRace 不允许选边（合规规则：killTarget 20 ∈ {10,20,30}）
         var ffaSnapshot = await ServerTest.CreateRoomAsync(client, tokenA, mode: "KillRace", killTarget: 20);
-        var ffaCode = ffaSnapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var ffaCode = ServerTest.HostRoomCode(ffaSnapshot.GetProperty("room"));
         var ffaTeam = await ServerTest.Authorized(client, tokenA)
-            .PostAsJsonAsync($"/api/rooms/{ffaCode}/team", new { teamId = "Red" });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(ffaCode)}/team", new { teamId = "Red" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, ffaTeam.StatusCode);
     }
 
@@ -282,13 +282,13 @@ public sealed class CFWaitingRoomTests
         var client = isolated.CreateClient();
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
 
         // 非 leader → 403 NOT_LEADER
         var forbidden = await ServerTest.Authorized(client, guestToken).PostAsJsonAsync(
-            $"/api/rooms/{roomCode}/settings", new { killTarget = 50 });
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/settings", new { killTarget = 50 });
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
         using var forbiddenProblem = JsonDocument.Parse(await forbidden.Content.ReadAsStringAsync());
         Assert.Equal("NOT_LEADER", forbiddenProblem.RootElement.GetProperty("code").GetString());
@@ -303,7 +303,7 @@ public sealed class CFWaitingRoomTests
                  })
         {
             var rejected = await ServerTest.Authorized(client, hostToken).PostAsJsonAsync(
-                $"/api/rooms/{roomCode}/settings", bad);
+                $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/settings", bad);
             Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
             using var problem = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
             Assert.Equal(expectedCode, problem.RootElement.GetProperty("code").GetString());
@@ -314,7 +314,7 @@ public sealed class CFWaitingRoomTests
         // 合法变更：准备变更也递增版本（复审 R06 可见变更递增）→ ready +1、settings +1、全员清准备
         await ServerTest.ReadyAsync(client, guestToken, roomCode);
         var updated = await ServerTest.Authorized(client, hostToken).PostAsJsonAsync(
-            $"/api/rooms/{roomCode}/settings", new { killTarget = 50, timeLimitMinutes = 5 });
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/settings", new { killTarget = 50, timeLimitMinutes = 5 });
         Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
         var body = await updated.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(50, body.GetProperty("room").GetProperty("killTarget").GetInt32());
@@ -335,12 +335,12 @@ public sealed class CFWaitingRoomTests
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4,
             mode: mode, killTarget: mode == "KillRace" ? 20 : 50);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode);
 
         if (guestReady) await ServerTest.ReadyAsync(client, guestToken, roomCode);
-        var denied = await ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{roomCode}/start", null);
+        var denied = await ServerTest.Authorized(client, guestToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/start", null);
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         var started = await ServerTest.StartRoomAsync(client, hostToken, roomCode);
         var roster = started.GetProperty("roster");
@@ -467,7 +467,7 @@ public sealed class CFWaitingRoomTests
         // 补人 2：指定满队 → TEAM_FULL
         var (token4, _) = await ServerTest.RegisterUserAsync(client);
         var toFullRed = await ServerTest.Authorized(client, token4)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { teamId = "Red" });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { teamId = "Red" });
         Assert.Equal(HttpStatusCode.Conflict, toFullRed.StatusCode);
         using (var problem = JsonDocument.Parse(await toFullRed.Content.ReadAsStringAsync()))
             Assert.Equal("TEAM_FULL", problem.RootElement.GetProperty("code").GetString());
@@ -478,7 +478,7 @@ public sealed class CFWaitingRoomTests
 
         // 双方均满 → ROOM_FULL
         var (token5, _) = await ServerTest.RegisterUserAsync(client);
-        var join5 = await ServerTest.Authorized(client, token5).PostAsync($"/api/rooms/{roomCode}/join", null);
+        var join5 = await ServerTest.Authorized(client, token5).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", null);
         Assert.Equal(HttpStatusCode.Conflict, join5.StatusCode);
         using (var problem = JsonDocument.Parse(await join5.Content.ReadAsStringAsync()))
             Assert.Equal("ROOM_FULL", problem.RootElement.GetProperty("code").GetString());

@@ -197,7 +197,7 @@ namespace Game.UI
                         Debug.LogError("[IT_AUTOPILOT] FAIL join without room code");
                         yield break;
                     }
-                    InvokeAsync(_presenter, "StartOnlineRoomAsync", options.RoomCode);
+                    InvokeAsync(_presenter, "StartOnlineRoomAsync", options.RoomCode, true);
                     Debug.Log($"[IT_AUTOPILOT] join requested room={options.RoomCode}");
                 }
 
@@ -215,8 +215,8 @@ namespace Game.UI
                     {
                         try
                         {
-                            System.IO.File.WriteAllText(roomCodeFile, waitingCode);
-                            Debug.Log($"[IT_AUTOPILOT] room code written: {waitingCode}");
+                            System.IO.File.WriteAllText(roomCodeFile, _session.Room.RoomCode);
+                            Debug.Log($"[IT_AUTOPILOT] room code written by host");
                         }
                         catch (Exception exception)
                         {
@@ -298,13 +298,9 @@ namespace Game.UI
                 return scene.name.Contains("Arena");
             }
 
-            private static void InvokeAsync(object target, string method, object argument)
+            private static void InvokeAsync(object target, string method, params object[] arguments)
             {
-                var m = target.GetType().GetMethod(method,
-                    BindingFlags.NonPublic | BindingFlags.Instance,
-                    null, new[] { argument.GetType() }, null)
-                    ?? target.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
-                m?.Invoke(target, new[] { argument });
+                target.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(target, arguments);
             }
 
             private static void InvokeVoid(object target, string method)

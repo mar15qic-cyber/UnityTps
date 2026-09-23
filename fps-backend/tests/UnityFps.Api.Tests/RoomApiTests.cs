@@ -34,7 +34,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var snapshot = await create.Content.ReadFromJsonAsync<JsonElement>();
         var room = snapshot.GetProperty("room");
-        var code = room.GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(room);
         Assert.Matches("^[A-HJ-NP-Z2-9]{6}$", code); // 无 I/O/0/1
         Assert.Equal(username, room.GetProperty("leaderUsername").GetString());
         Assert.Equal(4, room.GetProperty("maxPlayers").GetInt32());
@@ -62,7 +62,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
 
         // 直连地址以服务器实例注册上报为准：开局连接信息的地址来自实例
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         await ServerTest.JoinRoomAsync(client, guestToken, code);
         await ServerTest.ReadyAsync(client, guestToken, code);
         var start = await ServerTest.StartRoomAsync(client, token, code);
@@ -76,12 +76,13 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (token, username) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, token);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var list = await client.GetAsync("/api/rooms");
         Assert.Equal(HttpStatusCode.OK, list.StatusCode);
         var raw = await list.Content.ReadAsStringAsync();
-        Assert.Contains(code, raw);
+        Assert.DoesNotContain(code, raw);
+        Assert.DoesNotContain("roomCode", raw);
         Assert.Contains(username, raw);
         Assert.DoesNotContain("joinTicket", raw);   // 列表绝不序列化票据
         Assert.DoesNotContain("ticketHash", raw);
@@ -96,7 +97,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         var joined = await ServerTest.JoinRoomAsync(client, guestToken, code);
@@ -110,7 +111,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
     {
         var client = NewClient();
         var (token, _) = await ServerTest.RegisterUserAsync(client);
-        var join = await ServerTest.Authorized(client, token).PostAsync("/api/rooms/ZZZZZZ/join", null);
+        var join = await ServerTest.Authorized(client, token).PostAsync("/api/rooms/9223372036854775807/join", null);
         Assert.Equal(HttpStatusCode.NotFound, join.StatusCode);
     }
 
@@ -122,7 +123,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (leaderToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, leaderToken, maxPlayers: 8);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (firstGuestToken, firstGuestName) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, firstGuestToken, code);
@@ -133,7 +134,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
 
         var list = await ServerTest.Authorized(client, leaderToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = Assert.Single(list!, r => r.GetProperty("roomCode").GetString() == code);
+        var room = Assert.Single(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(code));
         Assert.Equal(2, room.GetProperty("joinedPlayers").GetInt32());       // 房间仍在，人数 2
         Assert.Equal("Waiting", room.GetProperty("status").GetString());
         Assert.Equal(firstGuestName, room.GetProperty("leaderUsername").GetString()); // 最早加入者接任
@@ -146,13 +147,13 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client); // 唯一实例
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var leave = await ServerTest.Authorized(client, hostToken).PostAsync("/api/rooms/leave", null);
         Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
 
         var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == code);
+        Assert.DoesNotContain(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(code));
 
         // 实例可复用：第二个用户不注册新实例也能开局租到同一实例（否则唯一实例被占用会 409）
         var (secondToken, _) = await ServerTest.RegisterUserAsync(client);
@@ -170,13 +171,13 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         var (token, _) = await ServerTest.RegisterUserAsync(client);
         // CF：创建不再要求实例存在（Waiting 不连 DS）
         var snapshot = await ServerTest.CreateRoomAsync(client, token);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, code);
         await ServerTest.ReadyAsync(client, guestToken, code);
 
         // 开局才需要实例：无可用 DS → 409 NO_SERVER_AVAILABLE
-        var start = await ServerTest.Authorized(client, token).PostAsync($"/api/rooms/{code}/start", null);
+        var start = await ServerTest.Authorized(client, token).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(code)}/start", null);
         Assert.Equal(HttpStatusCode.Conflict, start.StatusCode);
         using var problem = JsonDocument.Parse(await start.Content.ReadAsStringAsync());
         Assert.Equal("NO_SERVER_AVAILABLE", problem.RootElement.GetProperty("code").GetString());
@@ -189,7 +190,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, code);
@@ -198,7 +199,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         Assert.Equal(HttpStatusCode.NoContent, leave.StatusCode);
 
         var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = Assert.Single(list!, r => r.GetProperty("roomCode").GetString() == code);
+        var room = Assert.Single(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(code));
         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
         Assert.Equal("Waiting", room.GetProperty("status").GetString());
     }
@@ -210,7 +211,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, code);
@@ -221,7 +222,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         Assert.Equal(HttpStatusCode.NoContent, replay.StatusCode); // 重复离开=幂等成功
 
         var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == code);
+        var room = list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(code));
         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 重放不得二次减员
     }
 
@@ -232,7 +233,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 8);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var guests = new List<HttpClient>();
         for (var i = 0; i < 3; i++)
@@ -240,14 +241,14 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
             var (t, _) = await ServerTest.RegisterUserAsync(client);
             // 每个身份独立 client（共享 client 会互相覆盖 Authorization 头，并发时三发同 token）
             guests.Add(ServerTest.Authorized(factory.CreateClient(), t));
-            await guests[^1].PostAsync($"/api/rooms/{code}/join", null);
+            await guests[^1].PostAsync($"/api/rooms/{ServerTest.PublicRoomId(code)}/join", null);
         }
 
         var leaves = await Task.WhenAll(guests.Select(g => g.PostAsync("/api/rooms/leave", null)));
         Assert.All(leaves, l => Assert.Equal(HttpStatusCode.NoContent, l.StatusCode));
 
         var list = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == code);
+        var room = list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(code));
         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32()); // 并发退出后 Members.Count 为真相
     }
 
@@ -258,12 +259,12 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         await ServerTest.RegisterInstanceAsync(client);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, maxPlayers: 4);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         var guest = ServerTest.Authorized(client, guestToken);
-        var first = await guest.PostAsync($"/api/rooms/{code}/join", null);
-        var replay = await guest.PostAsync($"/api/rooms/{code}/join", null);
+        var first = await guest.PostAsync($"/api/rooms/{ServerTest.PublicRoomId(code)}/join", null);
+        var replay = await guest.PostAsync($"/api/rooms/{ServerTest.PublicRoomId(code)}/join", null);
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode); // 重复加入（重入）=幂等返回当前房间
 
@@ -279,12 +280,12 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
         var client = NewClient();
         var (token, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, token);
-        var code = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var code = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         var beat = await ServerTest.Authorized(client, token).PostAsync("/api/rooms/heartbeat", null);
         Assert.Equal(HttpStatusCode.NoContent, beat.StatusCode);
 
-        var detail = await ServerTest.Authorized(client, token).GetFromJsonAsync<JsonElement>($"/api/rooms/{code}");
+        var detail = await ServerTest.Authorized(client, token).GetFromJsonAsync<JsonElement>($"/api/rooms/{ServerTest.PublicRoomId(code)}");
         Assert.Equal(1, detail.GetProperty("members").GetArrayLength());
     }
 
@@ -345,7 +346,7 @@ public sealed class RoomApiTests : IClassFixture<ServerApiFactory>
 
         var list = await ServerTest.Authorized(factory.CreateClient(),
             (await ServerTest.RegisterUserAsync(client)).Token).GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == "LEGAC1");
+        Assert.DoesNotContain(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId("LEGAC1"));
 
         // 懒清理兜底：无实例绑定的空状态行必须被删除，不得残留为僵尸数据
         using (var scope = factory.Services.CreateScope())

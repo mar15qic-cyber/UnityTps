@@ -1,26 +1,31 @@
 using Game.Gameplay.Network;
 using Game.Gameplay.Weapon;
+using Game.Presentation.Animation;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Presentation.Weapon
 {
     /// <summary>
     /// 观察者远端弹道表现（ADS 审计 S2，2026-09-19）：消费 NetworkCombatAuthority.OnRemoteShotGlobal，
-    /// 为"非本地玩家"的每一发权威结果补 Default 层世界弹道（起点=AimOrigin、终点=权威最终点，
-    /// 霰弹逐弹丸）。Owner 本地弹道由 WeaponView 的 FP/世界段承担（按 shooter.IsOwnerPlayer 过滤，
+    /// 为"非本地玩家"的每一发权威结果补 Default 层世界弹道（起点=当前 TP 枪口、终点=权威最终点，
+    /// 霰弹逐弹丸）。Owner 本地弹道由 WeaponView 承担（按 shooter.IsOwnerPlayer 过滤，
     /// 不双画）。旧实现 ObserversShot 只传 4 标量且 OnRemoteShot 零订阅者——远端玩家开火没有任何
     /// 弹道表现；本组件补齐该缺口，且远端看到的弹着=服务器权威结果（非各自本地预测）。
     /// 离线/无广播时零行为。DS 无头端生成的是不可见 LineRenderer，无渲染成本。
     /// </summary>
+    [DefaultExecutionOrder(40)]
     public sealed class RemoteShotFxView : MonoBehaviour
     {
-        private const int PoolSize = 8;
+        private const int PoolSize = 64;
         private const float TracerLifeSeconds = 0.08f;
 
         private readonly LineRenderer[] _lines = new LineRenderer[PoolSize];
         private readonly float[] _timers = new float[PoolSize];
         private Material _material;
         private int _cursor;
+        private readonly Transform[] _muzzles = new Transform[PoolSize];
+        private readonly List<(NetworkCombatAuthority shooter, RemoteShotPresentation shot)> _pending = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Mount()
@@ -40,6 +45,9 @@ namespace Game.Presentation.Weapon
         private void OnDisable()
         {
             NetworkCombatAuthority.OnRemoteShotGlobal -= HandleRemoteShot;
+            _pending.Clear();
+            for (int i = 0; i < PoolSize; i++)
+            { _timers[i] = 0f; _muzzles[i] = null; if (_lines[i] != null) _lines[i].enabled = false; }
         }
 
         private void OnDestroy()
@@ -61,23 +69,46 @@ namespace Game.Presentation.Weapon
         {
             // Owner 本地已有 FP 表现（WeaponView）；远端替身/其它玩家才补世界弹道
             if (shooter != null && shooter.IsOwnerPlayer) return;
+            if (shooter != null) _pending.Add((shooter, shot));
+        }
+
+        private void LateUpdate()
+        {
+            foreach (var pending in _pending)
+            {
+                if (pending.shooter == null || pending.shooter.IsOwnerPlayer) continue;
+                var swapper = pending.shooter.GetComponentInChildren<TPWeaponMeshSwapper>(true);
+                var muzzle = swapper != null ? swapper.CurrentMuzzle : null;
+                // Missing weapon geometry must not manufacture an eye-emitted tracer.
+                if (muzzle == null) continue;
+                DrawShot(muzzle, pending.shot);
+            }
+            _pending.Clear();
+            for (int i = 0; i < PoolSize; i++)
+                if (_timers[i] > 0f && _lines[i] != null && _muzzles[i] != null)
+                    _lines[i].SetPosition(0, _muzzles[i].position);
+        }
+
+        private void DrawShot(Transform muzzle, RemoteShotPresentation shot)
+        {
             if (shot.PelletCount <= 1)
             {
-                SpawnTracer(shot.Origin, shot.FinalPoint);
+                SpawnTracer(muzzle, shot.FinalPoint);
                 return;
             }
             if (shot.PelletPoints == null) return;
             for (int i = 0; i < shot.PelletPoints.Length && i < shot.PelletCount; i++)
-                SpawnTracer(shot.Origin, shot.PelletPoints[i]);
+                SpawnTracer(muzzle, shot.PelletPoints[i]);
         }
 
-        private void SpawnTracer(Vector3 start, Vector3 end)
+        private void SpawnTracer(Transform muzzle, Vector3 end)
         {
             int index = _cursor;
             _cursor = (_cursor + 1) % PoolSize;
             var line = _lines[index];
             if (line == null) return;
-            line.SetPosition(0, start);
+            _muzzles[index] = muzzle;
+            line.SetPosition(0, muzzle.position);
             line.SetPosition(1, end);
             line.enabled = true;
             _timers[index] = TracerLifeSeconds;

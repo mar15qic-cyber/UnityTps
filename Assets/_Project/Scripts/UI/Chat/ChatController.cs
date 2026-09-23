@@ -69,7 +69,7 @@ namespace Game.UI.Chat
                 Instance._api = api;
                 Instance._session = session;
                 Instance.BindViewOnce();
-                if (session?.Room?.RoomCode != null) Instance.EnsureRoomGeneration(session.Room.RoomCode);
+                if (session?.Room?.RoomId != null) Instance.EnsureRoomGeneration(session.Room.RoomId);
                 Instance._view?.SetInteractive(true);
                 return Instance;
             }
@@ -85,7 +85,7 @@ namespace Game.UI.Chat
             controller._running = true;
             Instance = controller;
             controller.BindViewOnce();
-            if (session?.Room?.RoomCode != null) controller.EnsureRoomGeneration(session.Room.RoomCode);
+            if (session?.Room?.RoomId != null) controller.EnsureRoomGeneration(session.Room.RoomId);
             controller.SubscribeRpc();
             // R9：从房间会话补水（跨场景保留的可见消息；直接进视图显示层，不再走去重）
             foreach (var message in ChatRoomSession.Messages)
@@ -232,10 +232,10 @@ namespace Game.UI.Chat
             if (!rpcMode)
             {
                 // HTTP 拉取（Waiting/Starting/Returning）：2s 节流；游标由后端权威推进（持久于会话）
-                if (Time.unscaledTime >= _nextFetchAtRealtime && !string.IsNullOrEmpty(_session.Room?.RoomCode))
+                if (Time.unscaledTime >= _nextFetchAtRealtime && !string.IsNullOrEmpty(_session.Room?.RoomId))
                 {
                     _nextFetchAtRealtime = Time.unscaledTime + HttpFetchIntervalSeconds;
-                    _ = FetchHttpAsync(_session.Room.RoomCode);
+                    _ = FetchHttpAsync(_session.Room.RoomId);
                 }
             }
 
@@ -381,7 +381,7 @@ namespace Game.UI.Chat
                 return;
             }
 
-            var roomCode = _session.Room?.RoomCode;
+            var roomCode = _session.Room?.RoomId;
             if (string.IsNullOrEmpty(roomCode))
             {
                 PushLocalSystem("当前不在房间中，无法发送");

@@ -15,15 +15,20 @@ namespace Game.Gameplay.Weapon
     {
         /// <summary>服务器侧 shotRequestId（客户端请求路径）；0=Host/离线本地权威路径。</summary>
         public uint ShotRequestId;
+        public string WeaponId;
+        public bool IsSuppressed;
         public Vector3 Origin;          // AimOrigin（权威射线原点）
         public Vector3 FiredDirection;  // 散布后主弹道方向
         public Vector3 FinalPoint;      // 主 Result.Point（命中点或远点）
         public Vector3 FinalNormal;     // 主 Result.Normal
         public bool FinalHit;           // 主 Result.Hit
+        public bool FinalHitCharacter;  // surface kind only; no client-side damage authority
         /// <summary>弹丸数（1=单发）。霰弹 &gt;1 时 PelletPoints/PelletHits 逐弹丸对应。</summary>
         public int PelletCount;
         public Vector3[] PelletPoints;  // null=单发
         public bool[] PelletHits;       // 与 PelletPoints 等长；null=单发
+        public Vector3[] PelletNormals;
+        public bool[] PelletCharacters;
 
         public static RemoteShotPresentation FromShot(in WeaponShot shot, uint shotRequestId)
         {
@@ -37,6 +42,7 @@ namespace Game.Gameplay.Weapon
                 FinalPoint = shot.Result.Point,
                 FinalNormal = shot.Result.Normal,
                 FinalHit = shot.Result.Hit,
+                FinalHitCharacter = shot.Result.Target != null,
                 PelletCount = multi ? pellets.Length : 1,
                 PelletPoints = null,
                 PelletHits = null
@@ -45,10 +51,14 @@ namespace Game.Gameplay.Weapon
             {
                 dto.PelletPoints = new Vector3[pellets.Length];
                 dto.PelletHits = new bool[pellets.Length];
+                dto.PelletNormals = new Vector3[pellets.Length];
+                dto.PelletCharacters = new bool[pellets.Length];
                 for (int i = 0; i < pellets.Length; i++)
                 {
                     dto.PelletPoints[i] = pellets[i].Point;
                     dto.PelletHits[i] = pellets[i].Hit;
+                    dto.PelletNormals[i] = pellets[i].Normal;
+                    dto.PelletCharacters[i] = pellets[i].Target != null;
                 }
             }
             return dto;

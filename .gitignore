@@ -73,3 +73,22 @@ Tools/Server/Logs/
 Thumbs.db
 .DS_Store
 Desktop.ini
+
+# ===== 本机工具状态与临时测试文件 =====
+/.vscode/
+/.zcode/
+/.json
+/chat-export-current-*.md
+/UnityFpsLowPoly.slnx
+/Assets/InitTestScene*.unity
+/Assets/InitTestScene*.unity.meta
+**/__pycache__/
+*.pyc
+
+# ===== .NET 测试与审计构建输出 =====
+/stagea-bin*/
+**/out_test*/
+**/stagea-audit-bin/
+**/TestResults/
+*.trx
+*.log

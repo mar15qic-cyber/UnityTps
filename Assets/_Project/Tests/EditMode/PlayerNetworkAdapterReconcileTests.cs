@@ -77,6 +77,45 @@ namespace Game.Gameplay.Tests
         private static void SetPrivate(object target, string field, object value)
             => target.GetType().GetField(field, NonPublic)?.SetValue(target, value);
 
+        [Test]
+        public void OwnerPredictionReset_DropsLookAccumulatedBeforeCameraActivation()
+        {
+            var (adapter, _, _) = Spawn(Vector3.zero);
+            // FishNet can expose IsOwner after OnStartNetwork while the owner CameraPivot is
+            // still inactive. This is the cursor-lock delta that must not survive into the
+            // first submitted command: FPMouseLook could not have applied it locally.
+            SetPrivate(adapter, "_pendingYaw", 21.7f);
+            SetPrivate(adapter, "_pendingPitch", -14.3f);
+
+            typeof(PlayerNetworkAdapter).GetMethod("ResetOwnerPredictionState", NonPublic)
+                ?.Invoke(adapter, null);
+
+            Assert.That(Private<float>(adapter, "_pendingYaw"), Is.Zero);
+            Assert.That(Private<float>(adapter, "_pendingPitch"), Is.Zero);
+        }
+
+        [Test]
+        public void InactiveCameraRoot_DropsLookUntilFirstValidNetworkCommand()
+        {
+            var pivot = new GameObject("InactiveCameraPivot");
+            _spawned.Add(pivot);
+            pivot.SetActive(false);
+
+            Vector2 pending = PlayerNetworkAdapter.AccumulateOwnerLook(
+                pivot, new Vector2(21.7f, -14.3f), new Vector2(6f, -4f));
+
+            Assert.That(pending, Is.EqualTo(Vector2.zero),
+                "相机树未激活时，网络层不得保存 FPMouseLook 未消费的锁鼠/生成 delta");
+            Assert.That(PlayerNetworkAdapter.CanCaptureOwnerLook(pivot), Is.False);
+
+            pivot.SetActive(true);
+            pending = PlayerNetworkAdapter.AccumulateOwnerLook(pivot, pending, new Vector2(6f, -4f));
+
+            Assert.That(pending, Is.EqualTo(new Vector2(0.6f, -0.4f)).Within(1e-5f),
+                "第一个有效命令只包含相机启用后的同帧输入，不能夹带失活窗口残差");
+            Assert.That(PlayerNetworkAdapter.CanCaptureOwnerLook(pivot), Is.True);
+        }
+
         /// <summary>建立"配对预测快照"：ACK 前进时按 LastClientTick 精确配对（缺快照=保守硬对位）。</summary>
         private static void SeedPredicted(PlayerNetworkAdapter adapter, uint tick, Vector3 position)
         {

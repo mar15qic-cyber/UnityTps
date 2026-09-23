@@ -180,7 +180,7 @@ public sealed class MatchSettlementTests
         var before = await passService.GetPassAsync(user.Id, CancellationToken.None);
         Assert.Equal(PassSeeder.SeasonId, before.SeasonId);
         Assert.Equal(1, before.Level);
-        Assert.Equal(15, before.Rewards.Length);
+        Assert.Equal(14, before.Rewards.Length);
         Assert.Equal(10, before.Achievements.Length);
         Assert.All(before.Rewards, r => Assert.False(r.Granted));
         Assert.All(before.Achievements, a => { Assert.False(a.Unlocked); Assert.Equal(0, a.Progress); });
@@ -189,7 +189,7 @@ public sealed class MatchSettlementTests
         var after = await passService.GetPassAsync(user.Id, CancellationToken.None);
 
         Assert.Equal(3, after.Level);
-        Assert.Equal(15, after.Rewards.Length);
+        Assert.Equal(14, after.Rewards.Length);
         Assert.Equal(3, after.Rewards.Count(r => r.Granted));
         Assert.True(after.Rewards.Single(r => r.Level == 2).Granted);
         Assert.False(after.Rewards.Single(r => r.Level == 4).Granted);

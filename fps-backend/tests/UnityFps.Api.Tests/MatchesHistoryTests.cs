@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using UnityFps.Api.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -31,9 +34,15 @@ public sealed class MatchesHistoryTests : IClassFixture<ApiFactory>
 
     private async Task SettleAsync(int kills, int deaths, bool isWin, int index)
     {
-        var payload = new { clientMatchId = "history-" + Guid.NewGuid().ToString("N")[..12] + "-" + index, kills, deaths, durationSeconds = 400, isWin };
-        var response = await client.PostAsJsonAsync("/api/matches", payload);
-        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        // History fixtures represent previously recorded server matches, not a retired player POST.
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization!.Parameter);
+        var userId = long.Parse(jwt.Claims.First(c => c.Type == "sub").Value);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Matches.Add(new MatchRecord { UserId = userId, Kills = kills, Deaths = deaths, IsWin = isWin,
+            ClientMatchId = Guid.NewGuid().ToString("N"), MatchId = "fixture-server-" + index,
+            XpEarned = 100 + kills * 20, CoinsEarned = 50 + kills * 10, PlayedAtUtc = DateTime.UtcNow.AddSeconds(index) });
+        await db.SaveChangesAsync();
     }
 
     [Fact]

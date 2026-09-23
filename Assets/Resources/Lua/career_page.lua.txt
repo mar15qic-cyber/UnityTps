@@ -100,12 +100,12 @@ CareerPageRender = function(root, dto, err)
             resultText = "胜利"
             resultColor = Theme.AccentPrimary
         end
-        Typography.Text("T_Row_" .. tostring(y), rt,
-            string.format("%s      %s      %d / %d      +%d XP  +%d 金币",
-                shortTime(row.playedAt), resultText, row.kills or 0, row.deaths or 0,
-                row.xp or 0, row.coins or 0),
-            Theme.FontBody, resultColor,
-            Vector2(0.06, y), Vector2(0.94, y + rowHeight), Alignment.Left)
+        local rowName = "Match_" .. tostring(y)
+        Components.Panel(rowName, rt, Theme.CardSurface, Vector2(0.04, y), Vector2(0.96, y + rowHeight - 0.006), 2, false)
+        Typography.Text(rowName .. "_Time", rt, shortTime(row.playedAt), Theme.FontBody, Theme.TextMuted, Vector2(0.06, y), Vector2(0.28, y + rowHeight), Alignment.Left)
+        Typography.Text(rowName .. "_Result", rt, resultText, Theme.FontBody, resultColor, Vector2(0.30, y), Vector2(0.43, y + rowHeight), Alignment.Left)
+        Typography.Text(rowName .. "_KD", rt, string.format("%d / %d", row.kills or 0, row.deaths or 0), Theme.FontBody, Theme.TextPrimary, Vector2(0.46, y), Vector2(0.62, y + rowHeight), Alignment.Left)
+        Typography.Text(rowName .. "_Reward", rt, string.format("+%d XP   +%d 金币", row.xp or 0, row.coins or 0), Theme.FontBody, Theme.TextMuted, Vector2(0.65, y), Vector2(0.94, y + rowHeight), Alignment.Left)
         y = y - rowHeight
     end
 

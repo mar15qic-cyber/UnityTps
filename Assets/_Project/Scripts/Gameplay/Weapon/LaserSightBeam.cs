@@ -113,7 +113,8 @@ namespace Game.Gameplay.Weapon
             if (_line == null) return;
             if (_lineNode.layer != gameObject.layer) _lineNode.layer = gameObject.layer; // 装备层递归改层后同步
             // 审计 §4：闸门必须先于一切出束逻辑——死亡/镜内/复活准备/无有效视图期间每帧维持关线
-            if (!ResolvePresentationAllowsBeam())
+            var throwable = GetComponentInParent<Game.Gameplay.Combat.ThrowableController>();
+            if (!ResolvePresentationAllowsBeam() || throwable != null && throwable.IsEquipped)
             {
                 if (_line.enabled) _line.enabled = false;
                 return;

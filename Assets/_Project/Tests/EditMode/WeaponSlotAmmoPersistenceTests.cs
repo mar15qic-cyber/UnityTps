@@ -1,6 +1,7 @@
 using Game.Core;
 using Game.Gameplay.Action;
 using Game.Gameplay.Combat;
+using Game.Gameplay.Network;
 using Game.Gameplay.Weapon;
 using NUnit.Framework;
 using UnityEditor;
@@ -202,6 +203,111 @@ namespace Game.Gameplay.Tests
             CompleteSwitch();
             Assert.That(lastEvent.HasValue && lastEvent.Value.current == 9 && lastEvent.Value.reserve == 48,
                 Is.True, "切回主枪：SyncVar 数据源必须收到恢复后的 9/48（服务器权威不退化）");
+        }
+
+        [Test]
+        public void AuthoritativeSnapshot_ReconcilesRuntimeBeforeReload_AndKeepsAmmoConserved()
+        {
+            // Owner 本地曾显示 0/30，而服务器实际只接受部分发次后为 15/30。快照必须先
+            // 回写真正的 Runtime，随后 Reload 才在同一状态上搬运弹药。
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+            _controller.ApplyAuthoritativeAmmoSnapshot("test.rifle", 0, 30);
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.Zero);
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(30));
+
+            _controller.ApplyAuthoritativeAmmoSnapshot("test.rifle", 15, 30);
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(15));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(30));
+            Assert.That(_controller.TryReload(), Is.True);
+            _controller.Runtime.CompleteReload();
+
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(30));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(15));
+            Assert.That(_controller.Runtime.CurrentAmmo + _controller.Runtime.ReserveAmmo, Is.EqualTo(45));
+        }
+
+        [Test]
+        public void AuthoritativeSnapshot_ForInactiveWeapon_IsRestoredWhenSwitchingBack()
+        {
+            _controller.ApplyAuthoritativeAmmoSnapshot("test.rifle", 11, 37);
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(11));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(37),
+                "权威副枪快照必须写入槽位缓存，不能在切枪时重新满弹");
+        }
+
+        [Test]
+        public void AtomicSnapshot_ReloadCompletionMovesZeroThirtyToThirtyZeroWithoutClearingCooldown()
+        {
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.rifle", LifeEpoch = 1, Sequence = 1,
+                CurrentAmmo = 0, ReserveAmmo = 30, ReloadState = WeaponRuntimeState.Ready
+            });
+            Assert.That(_controller.TryReload(), Is.True);
+            _controller.Runtime.StartCooldown(0.5f);
+            float cooldown = _controller.Runtime.CooldownRemaining;
+
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.rifle", LifeEpoch = 1, Sequence = 2,
+                CurrentAmmo = 30, ReserveAmmo = 0, ReloadState = WeaponRuntimeState.Ready
+            });
+
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(30));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.Zero);
+            Assert.That(_controller.Runtime.State, Is.EqualTo(WeaponRuntimeState.Ready));
+            Assert.That(_controller.Runtime.CooldownRemaining, Is.EqualTo(cooldown), "ammo ACK must not reset cooldown");
+        }
+
+        [Test]
+        public void AtomicSnapshot_OlderSequenceAndOtherWeaponCannotRefillCurrentRuntime()
+        {
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", LifeEpoch = 2, Sequence = 5,
+                CurrentAmmo = 4, ReserveAmmo = 9, ReloadState = WeaponRuntimeState.Ready
+            });
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", LifeEpoch = 2, Sequence = 4,
+                CurrentAmmo = 12, ReserveAmmo = 48, ReloadState = WeaponRuntimeState.Ready
+            });
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.rifle", LifeEpoch = 2, Sequence = 6,
+                CurrentAmmo = 30, ReserveAmmo = 120, ReloadState = WeaponRuntimeState.Ready
+            });
+
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(4));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(9), "old or cross-weapon ACK cannot refill held weapon");
+        }
+
+        [Test]
+        public void AtomicSnapshot_ForInactiveWeapon_CachesServerAmmoMinusLaterPendingShots()
+        {
+            _controller.RegisterPredictedShotForAmmo(10, 3);
+            _controller.RegisterPredictedShotForAmmo(11, 3);
+            _controller.RegisterPredictedShotForAmmo(12, 3);
+            _arsenal.TrySelectSlot(1);
+            CompleteSwitch();
+
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", LifeEpoch = 3, Sequence = 1,
+                LastProcessedShotRequestId = 10, CurrentAmmo = 10, ReserveAmmo = 48,
+                ReloadState = WeaponRuntimeState.Ready
+            });
+
+            _arsenal.TrySelectSlot(0);
+            CompleteSwitch();
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(8),
+                "late A ACK must retain A's N+1/N+2 debt while B is equipped");
         }
 
         // ---------- 辅助（与 ArsenalTests 同款） ----------

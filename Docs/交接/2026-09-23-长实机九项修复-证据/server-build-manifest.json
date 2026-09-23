@@ -1,0 +1,12 @@
+{
+    "buildId": "634cdf6b014f",
+    "protocolId": "fps-net-v11",
+    "builtAtUtc": "2026-09-22T22:34:18.1359358Z",
+    "unityVersion": "6000.0.76f1",
+    "subtarget": "Server",
+    "gamePlayDllSha256": "634cdf6b014f2345cc346062f5c905c8714a77dff7be75fea74bde52cee17e08",
+    "gameUiDllSha256": "a98ea078d64747205489b6a204a2ec37ee2078fc3c8c8ce35c3e08672facd96c",
+    "gameAccountDllSha256": "292efb5c4a1b4638931c4b88bf846f943d04edebf4fe13da4a4e14beb0fba66c",
+    "inputDigest": "7547b9ea94b7a40fe53525aa460ad4b843aad35786fa3b55d76821bc4ca254d7",
+    "inputFileCount": 601
+}

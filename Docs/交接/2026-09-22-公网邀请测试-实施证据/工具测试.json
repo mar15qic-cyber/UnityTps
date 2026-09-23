@@ -1,0 +1,8 @@
+{
+  "powershellSyntax": "passed",
+  "cloudPreflightFixture": "passed; CheckOnly did not create runtime state; loopback rejected",
+  "pythonEvidenceTests": {
+    "passed": 3
+  },
+  "netem": "dry-run command generation only; no real packet impairment executed"
+}

@@ -30,13 +30,14 @@ namespace Game.Gameplay.Weapon
         public readonly int ShotIndex;                 // burst 内 0 基序号
         public readonly int Seed;                      // 随机种子快照（网络回放预留）
         public readonly HitscanResult[] Pellets;       // null=单发；Shotgun=全弹丸结果
+        public readonly float Ads01;
 
         public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result)
             : this(origin, direction, direction, result, 0f, default, 0, 0, null) { }
 
         public WeaponShot(Vector3 origin, Vector3 direction, Vector3 firedDirection, HitscanResult result,
             float finalSpreadDegrees, ShotRecoilResult recoil, int shotIndex, int seed,
-            HitscanResult[] pellets)
+            HitscanResult[] pellets, float ads01 = 0f)
         {
             Origin = origin;
             Direction = direction;
@@ -47,6 +48,7 @@ namespace Game.Gameplay.Weapon
             ShotIndex = shotIndex;
             Seed = seed;
             Pellets = pellets;
+            Ads01 = ads01;
         }
     }
 
@@ -105,7 +107,17 @@ namespace Game.Gameplay.Weapon
         public Vector2 CurrentRecoilOffset => _recoil.CurrentOffset;
         public Quaternion CurrentRecoilRotation => _recoil.OffsetRotation;
         /// <summary>权威射线原点：CameraPivot 头位。</summary>
-        public Vector3 AimOrigin => aimPivot != null ? aimPivot.position : transform.position;
+        public Vector3 AimOrigin
+        {
+            get
+            {
+                Vector3 neutral = aimPivot != null ? aimPivot.position : transform.position;
+                var locomotor = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
+                return locomotor != null
+                    ? neutral + transform.root.right * (locomotor.Lean.Amount * Game.Gameplay.Player.LeanProfile.EyeSideMeters)
+                    : neutral;
+            }
+        }
         /// <summary>权威瞄准方向：pivot 旋转 × 后坐偏移。</summary>
         public Vector3 AimDirection => (aimPivot != null ? aimPivot.rotation : transform.rotation)
             * _recoil.OffsetRotation * Vector3.forward;
@@ -165,6 +177,9 @@ namespace Game.Gameplay.Weapon
         // 每把武器保留自己服务器权威的弹匣/备弹状态（跨切槽往返/配件容量重算），切回即恢复
         //（按新容量钳制，绝不隐式补满）。_runtimeWeaponId 记录当前 Runtime 归属，切出时写缓存。
         private readonly Dictionary<string, (int currentAmmo, int reserveAmmo)> _ammoCacheByWeaponId = new();
+        private readonly PendingShotAmmoLedger _pendingShotAmmo = new();
+        private uint _ammoSnapshotEpoch;
+        private uint _lastAmmoSnapshotSequence;
         private readonly Dictionary<string, AttachmentAssetEntry[]> _attachmentsByWeaponId = new();
         private string _runtimeWeaponId;
 
@@ -229,7 +244,7 @@ namespace Game.Gameplay.Weapon
             if (Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.SyncReloadRemaining(actionSystem.Remaining);
 
-            if (!processLocalInput || input == null) return;
+            if (!processLocalInput || input == null || input.WeaponInputBlocked) return;
             bool wantsFire = definition.FireMode == WeaponFireMode.Automatic ? input.FireHeld : input.FirePressed;
             if (wantsFire) TryFire();
             if (input.ReloadPressed) TryReload();
@@ -268,7 +283,11 @@ namespace Game.Gameplay.Weapon
         /// </summary>
         public void SetAttachments(IEnumerable<AttachmentAssetEntry> attachments)
         {
-            _attachmentSource.Reset(attachments);
+            var compatible = attachments != null
+                ? new List<AttachmentAssetEntry>(attachments)
+                : new List<AttachmentAssetEntry>();
+            AttachmentCompatibilityPolicy.RemoveUnsupported(definition, compatible);
+            _attachmentSource.Reset(compatible);
             if (definition != null)
                 _attachmentsByWeaponId[definition.WeaponId] = new List<AttachmentAssetEntry>(_attachmentSource.Equipped).ToArray();
             RebuildResolvedStats();
@@ -324,6 +343,58 @@ namespace Game.Gameplay.Weapon
             Runtime.RestoreAmmo(Runtime.MagazineSize, Stat.ReserveAmmo);
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
         }
+
+        /// <summary>客户端接收服务器弹药快照的唯一回写入口。快照始终按 weaponId 写入
+        /// 槽位缓存；当前持枪再同步 Runtime 并广播 HUD。这样服务器拒绝的一发或换弹请求
+        /// 不会只改右下角文字而把下一次 TryFire/切枪继续留在旧预测弹药上。</summary>
+        public void RegisterPredictedShotForAmmo(uint shotRequestId, uint lifeEpoch)
+        {
+            if (definition == null) return;
+            _pendingShotAmmo.Register(shotRequestId, definition.WeaponId, lifeEpoch);
+        }
+
+        /// <summary>Applies one atomic owner snapshot, then replays only locally predicted
+        /// shots that the server has not processed yet. Stale, cross-life and cross-weapon
+        /// snapshots cannot refill the current Runtime.</summary>
+        public void ApplyAuthoritativeAmmoSnapshot(AuthoritativeAmmoSnapshot snapshot)
+        {
+            if (string.IsNullOrEmpty(snapshot.WeaponId)) return;
+            if (snapshot.LifeEpoch < _ammoSnapshotEpoch) return;
+            if (snapshot.LifeEpoch == _ammoSnapshotEpoch && snapshot.Sequence <= _lastAmmoSnapshotSequence) return;
+
+            if (snapshot.LifeEpoch > _ammoSnapshotEpoch)
+            {
+                _ammoSnapshotEpoch = snapshot.LifeEpoch;
+                _lastAmmoSnapshotSequence = 0;
+                _pendingShotAmmo.ClearForLife(snapshot.LifeEpoch);
+            }
+            _lastAmmoSnapshotSequence = snapshot.Sequence;
+            int current = Mathf.Max(0, snapshot.CurrentAmmo);
+            int reserve = Mathf.Max(0, snapshot.ReserveAmmo);
+            // Consume before checking the equipped weapon: an A acknowledgement can arrive
+            // while B is equipped, and A's cache must retain A's later local shot debt.
+            int pending = _pendingShotAmmo.ConsumeAcknowledgedAndCountRemaining(snapshot.WeaponId,
+                snapshot.LifeEpoch, snapshot.LastProcessedShotRequestId);
+            int reconciledCurrent = Mathf.Max(0, current - pending);
+            _ammoCacheByWeaponId[snapshot.WeaponId] = (reconciledCurrent, reserve);
+            if (Runtime == null || definition == null
+                || !string.Equals(definition.WeaponId, snapshot.WeaponId, StringComparison.Ordinal)) return;
+
+            Runtime.ReconcileAuthoritativeAmmo(current, reserve, snapshot.ReloadState, snapshot.ReloadRemaining);
+            Runtime.ApplyPredictedAmmoDebt(pending);
+            _ammoCacheByWeaponId[snapshot.WeaponId] = (Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+            OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
+        }
+
+        // Kept for existing offline callers/tests. Network code must use the atomic overload.
+        public void ApplyAuthoritativeAmmoSnapshot(string weaponId, int currentAmmo, int reserveAmmo)
+            => ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = weaponId, CurrentAmmo = currentAmmo, ReserveAmmo = reserveAmmo,
+                LifeEpoch = _ammoSnapshotEpoch, Sequence = _lastAmmoSnapshotSequence + 1,
+                ReloadState = Runtime != null ? Runtime.State : WeaponRuntimeState.Ready,
+                ReloadRemaining = Runtime != null ? Runtime.ReloadRemaining : 0f
+            });
 
         /// <summary>切枪中途换装（Arsenal 在交换点调用）：硬重置运行时并广播，供 FP/TP 表现切换。</summary>
         public void EquipDefinition(WeaponDefinition next)
@@ -382,6 +453,45 @@ namespace Game.Gameplay.Weapon
         /// NetworkCombatAuthority.ServerFireRequest 传入（Phase 2——实际回溯 tick 随行，供命中判定
         /// 按射击时刻快照比对目标生命代际/无敌态）；本地/离线调用省略（default = 无回溯语境）。
         /// </summary>
+        private bool _serverAimOverride;
+        private Vector3? _serverMuzzleOverride, _serverBodyAnchorOverride;
+        private Vector3 _serverAimOrigin, _serverAimDirection;
+        private WeaponFireContext? _shotContextOverride;
+        private int? _shotSeedOverride;
+        private Vector3 _presentedOrigin, _presentedDirection;
+        private int _presentedFrame = -10;
+
+        // Presentation publishes the camera actually rendered; Gameplay owns the shot and damage.
+        public void SetPresentedAim(Vector3 origin, Vector3 direction)
+        {
+            _presentedOrigin = origin;
+            _presentedDirection = direction.normalized;
+            _presentedFrame = Time.frameCount;
+        }
+
+        internal bool TryFireWithServerSnapshot(Vector3 origin, Vector3 direction,
+            WeaponFireContext fireContext, int seed, LagCompRewindContext context,
+            Vector3? historicalMuzzle = null, Vector3? historicalBodyAnchor = null)
+        {
+            _shotContextOverride = fireContext;
+            _shotSeedOverride = seed;
+            _serverMuzzleOverride = historicalMuzzle;
+            _serverBodyAnchorOverride = historicalBodyAnchor;
+            try { return TryFireWithServerAim(origin, direction, context); }
+            finally { _shotContextOverride = null; _shotSeedOverride = null;
+                _serverMuzzleOverride = null; _serverBodyAnchorOverride = null; }
+        }
+        internal bool IsPresentedOriginUnobstructed(Vector3 authoritativeOrigin, Vector3 displayedOrigin)
+            => combatResolver != null && combatResolver.IsAimOriginUnobstructed(authoritativeOrigin,
+                displayedOrigin, hitMask.value, transform.root);
+
+        internal bool TryFireWithServerAim(Vector3 origin, Vector3 direction, LagCompRewindContext context)
+        {
+            _serverAimOverride = true; _serverAimOrigin = origin; _serverAimDirection = direction;
+            try { return TryFire(context); }
+            finally { _serverAimOverride = false; }
+        }
+
         public bool TryFire(LagCompRewindContext rewindContext = default)
         {
             if (Runtime == null || actionSystem.IsBusy) return false;
@@ -395,10 +505,21 @@ namespace Game.Gameplay.Weapon
 
             // 五步顺序（Docs/13 §5.3-5）
             // ① 开火前状态算弹道：权威瞄准 + 动态散布锥（腰射/ADS/移动/冲刺/Bloom 均已合成）
-            var ctx = FireContext;
+            var ctx = _shotContextOverride ?? FireContext;
             float spreadDeg = _accuracy.CurrentSpread(ctx, Resolved);
-            Vector3 origin = AimOrigin;
-            Vector3 aimDirection = AimDirection;
+            Vector3 origin = _serverAimOverride ? _serverAimOrigin : AimOrigin;
+            Vector3 aimDirection = _serverAimOverride ? _serverAimDirection : AimDirection;
+            if (!_serverAimOverride && processLocalInput && Time.frameCount - _presentedFrame <= 1)
+            {
+                origin = _presentedOrigin;
+                aimDirection = _presentedDirection;
+            }
+            int? shotSeed = _shotSeedOverride;
+            var networkAuthority = GetComponent<NetworkCombatAuthority>();
+            if (!shotSeed.HasValue && FishNetLifecycleGuard.CanSubmitRpc(networkAuthority) && networkAuthority.IsOwnerPlayer
+                && !networkAuthority.IsServerInitialized)
+                shotSeed = networkAuthority.NextPredictedSpreadSeed;
+            var shotRandom = shotSeed.HasValue ? new System.Random(shotSeed.Value) : _random;
 
             // ② 命中结算（含 Shotgun 多弹丸：主方向一次取样，每弹丸围绕主方向独立 PelletSpread 锥，聚合单次广播）
             // I4a/P4：服务器路径走两段权威命中（相机候选→逻辑枪口遮挡验证→身体锚点防伸墙，同回溯窗口单次伤害）；
@@ -411,21 +532,24 @@ namespace Game.Gameplay.Weapon
             var attributionSource = serverTwoStage
                 ? GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>()
                 : null;
-            Vector3 logicalMuzzle = TwoStageHitResolver.LogicalMuzzle(
-                transform.root.position, transform.root.forward, transform.root.up);
-            Vector3 bodyAnchor = TwoStageHitResolver.BodyAnchor(transform.root.position);
+            var locomotorForLean = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
+            float leanForShot = locomotorForLean != null ? locomotorForLean.Lean.Amount : 0f;
+            Vector3 logicalMuzzle = _serverMuzzleOverride ?? Game.Gameplay.Player.LeanProfile.Muzzle(
+                transform.root.position, transform.root.rotation, leanForShot);
+            Vector3 bodyAnchor = _serverBodyAnchorOverride ?? Game.Gameplay.Player.LeanProfile.BodyAnchor(
+                transform.root.position, transform.root.rotation, leanForShot);
 
             HitscanResult[] pellets = null;
             HitscanResult result;
             int pelletCount = Stat.Ballistic.PelletCount;
-            Vector3 mainDirection = ApplySpread(aimDirection, spreadDeg);
+            Vector3 mainDirection = ApplySpread(aimDirection, spreadDeg, shotRandom);
             if (pelletCount > 1)
             {
                 pellets = new HitscanResult[pelletCount];
                 HitscanResult? primary = null, firstHit = null;
                 for (int i = 0; i < pelletCount; i++)
                 {
-                    Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread);
+                    Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread, shotRandom);
                     pellets[i] = serverTwoStage
                         ? combatResolver.ResolveHitscanTwoStage(
                             origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
@@ -451,7 +575,7 @@ namespace Game.Gameplay.Weapon
             var recoil = _recoil.OnShot(ctx, Resolved);
             // ⑤ 单次广播（FiredDirection=本发实际弹道方向，拖尾/表现消费；Direction 保持瞄准语义）
             OnShotFired?.Invoke(new WeaponShot(origin, aimDirection, mainDirection, result,
-                spreadDeg, recoil, recoil.ShotIndex, _seed, pellets));
+                spreadDeg, recoil, recoil.ShotIndex, shotSeed ?? _seed, pellets, ctx.Ads01));
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             if (debugRecoil)
                 Debug.Log($"[Recoil] {definition.WeaponId} #{recoil.ShotIndex} kick=({recoil.PitchKickDeg:F2}°, {recoil.YawKickDeg:F2}°) " +
@@ -492,16 +616,13 @@ namespace Game.Gameplay.Weapon
         internal static Vector3 ApplySpread(Vector3 forward, float spreadDegrees, System.Random rng)
         {
             if (spreadDegrees <= 0f) return forward.normalized;
-            Vector2 unit = new(
-                (float)rng.NextDouble() * 2f - 1f,
-                (float)rng.NextDouble() * 2f - 1f);
-            if (unit.sqrMagnitude > 1f) unit /= unit.sqrMagnitude; // 拒绝采样≈均匀圆盘
+            float radius = Mathf.Sqrt((float)rng.NextDouble());
+            float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
+            Vector2 unit = new(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
             var offset = unit * Mathf.Tan(spreadDegrees * Mathf.Deg2Rad);
             var rotation = Quaternion.LookRotation(forward.normalized);
             return (rotation * new Vector3(offset.x, offset.y, 1f)).normalized;
         }
 
-        private Vector3 ApplySpread(Vector3 forward, float spreadDegrees)
-            => ApplySpread(forward, spreadDegrees, _random);
     }
 }

@@ -1,4 +1,6 @@
 using Game.Gameplay.Player;
+using Game.Gameplay.Network;
+using Game.Gameplay.Settings;
 using Game.Gameplay.Weapon;
 using Game.Presentation.Animation;
 using Game.Presentation.Camera;
@@ -25,6 +27,7 @@ namespace Game.Presentation.HUD
     /// 世界相机 FOV 仍由 PlayerAimState/FPCameraRig 驱动；本组件不创建第二台相机。
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
+    [DefaultExecutionOrder(30)] // FPWeaponMotion(20) 写完最终枪姿态后再投影分划
     public sealed class OpticAdsView : MonoBehaviour
     {
         [SerializeField] private WeaponController controller;
@@ -40,36 +43,41 @@ namespace Game.Presentation.HUD
         private CanvasGroup _scopeGroup;
         private CanvasGroup _reticleGroup;
         private RectTransform _reticleFrame;
+        private RectTransform _windowClip;
+        private RectMask2D _windowMask;
         private OpticVignetteGraphic _vignette;
         private OpticLensGraphic _lens;
         private TacticalOpticReticleGraphic _tacticalReticle;
+        private RawImage _nativeReticle;
+        private NativeScopeReticleCatalog _nativeCatalog;
+        private NativeScopeReticleCatalog.Entry _nativeEntry;
+        private readonly NativeScopeReticleCatalog.Entry _sniperEntry = new();
         private string _opticId;
         private OpticPresentationMode _mode;
         private bool _hasProfile;
         private bool _viewmodelHidden;
         private static readonly HashSet<string> ProfileWarnings = new();
 
-        // ---- A2 分划-镜窗统一（2026-09-19 ADS 审计）：分划位置跟随真实镜窗中心的
-        //      FP 相机投影（与 FPWeaponMotion 光轴解共用 OpticAimGeometry 语义），
-        //      过渡/后坐期间分划留在镜窗内；无校准数据时保持旧居中行为。 ----
+        // ---- A2 分划-弹道统一：分划位置取世界相机下的真实射击轴投影；镜窗中心只作
+        //      FP 可见性守卫。这样 HUD、相机射线与服务器候选弹着点共享同一真值。 ----
         private OpticAimLocal _aimLocal;
         private bool _aimResolved;
         private string _aimKey;
         private bool _reticleOnScreen = true;
         private UnityEngine.Camera _fpCamera;
+        private UnityEngine.Camera _worldCamera;
+        private NetworkCombatAuthority _authority;
+        private bool _reticleVisibleThisFrame;
 
         private void Awake()
         {
-            if (controller == null) controller = FindObjectOfType<WeaponController>();
-            if (aimState == null) aimState = FindObjectOfType<PlayerAimState>();
-            if (weaponRig == null) weaponRig = FindObjectOfType<FPWeaponRig>();
+            RebindLocalPresentation();
             BuildRuntimeUi();
         }
 
         private void OnEnable()
         {
-            if (controller != null) controller.OnAttachmentsChanged += HandleOpticChanged;
-            if (weaponRig != null) weaponRig.OnActiveViewChanged += HandleViewChanged;
+            RebindLocalPresentation();
         }
 
         private void OnDisable()
@@ -84,6 +92,11 @@ namespace Game.Presentation.HUD
 
         private void Update()
         {
+            _reticleVisibleThisFrame = false;
+            // Arena 可同时保留离线预置玩家与网络 Owner。旧 FindObjectOfType 会独立抓取三个
+            // "第一个"对象，导致 HUD 读 A 的 ADS、B 的镜体或根本不更新。绑定失效时统一重选。
+            if (controller == null || aimState == null || weaponRig == null || !controller.isActiveAndEnabled)
+                RebindLocalPresentation();
             if (controller == null || aimState == null || !controller.IsInitialized)
             {
                 SetAlpha(0f, 0f);
@@ -93,8 +106,8 @@ namespace Game.Presentation.HUD
 
             // P4 实体镜（I4b）接管：镜内 RT/分划/独立倍率由 PhysicalScopeView 渲染，
             // 画布 overlay 与藏枪让位（构建失败时 HandlingOpticId 为空，既有路径原样接管）
-            if (!string.IsNullOrEmpty(Game.Presentation.Camera.PhysicalScopeView.HandlingOpticId)
-                && Game.Presentation.Camera.PhysicalScopeView.HandlingOpticId == controller.CurrentOpticAim.ItemId)
+            var physicalScope = weaponRig != null ? weaponRig.GetComponent<PhysicalScopeView>() : null;
+            if (physicalScope != null && physicalScope.HandlesOptic(controller.CurrentOpticAim.ItemId))
             {
                 SetAlpha(0f, 0f);
                 RestoreViewmodel();
@@ -115,6 +128,8 @@ namespace Game.Presentation.HUD
                 return;
             }
 
+            ApplyLiveReticlePreference();
+
             if (_mode == OpticPresentationMode.Physical1x)
             {
                 SetAlpha(0f, Fade(ads, physicalReticleStart, physicalReticleFull));
@@ -127,9 +142,17 @@ namespace Game.Presentation.HUD
                 else if (_viewmodelHidden && ads <= restoreViewmodelAt) RestoreViewmodel();
             }
 
-            // 分划跟随真实镜窗投影（A2）：在 alpha 淡入后应用，出镜窗时隐去而不是硬贴屏幕内
+            _reticleVisibleThisFrame = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (controller == null || aimState == null || !controller.IsInitialized || !_hasProfile)
+                return;
+            // 这里必须晚于 FPWeaponMotion：Update 读到的是上一帧的镜窗，而本帧枪根/后坐在
+            // LateUpdate 才最终落位。分划以本帧真正会被渲染的相机和姿态为准。
             UpdateReticleBinding();
-            if (_reticleGroup != null && !_reticleOnScreen)
+            if (_reticleGroup != null && (!_reticleOnScreen || !_reticleVisibleThisFrame))
                 _reticleGroup.alpha = 0f;
         }
 
@@ -154,41 +177,135 @@ namespace Game.Presentation.HUD
             }
         }
 
-        /// <summary>把分划容器锚到真实镜窗中心的 FP 相机投影位置（画布局部坐标）；
-        /// 无校准数据/相机不可用时保持居中（旧行为）。</summary>
+        /// <summary>把分划容器锚到实际射击轴在世界相机中的投影；镜窗中心只负责
+        /// 可见性守卫。旧代码直接跟 windowCenter，镜体有一帧延迟或校准近似时会让 UI 分划
+        /// 与 WeaponController.AimDirection 分叉。</summary>
         private void UpdateReticleBinding()
         {
             if (_reticleFrame == null) return;
             var rootRect = ((RectTransform)transform).rect;
             _reticleFrame.sizeDelta = new Vector2(rootRect.width, rootRect.height);
-            _reticleOnScreen = true;
+            bool physical = _mode == OpticPresentationMode.Physical1x;
+            _reticleOnScreen = !physical;
+            _windowMask.enabled = physical;
+            _windowClip.anchoredPosition = Vector2.zero;
+            _windowClip.localRotation = Quaternion.identity;
+            _windowClip.sizeDelta = rootRect.size;
 
             Vector2 canvasPosition = Vector2.zero;
             bool bound = false;
-            if (_aimResolved && controller != null && controller.IsInitialized
-                && weaponRig != null && weaponRig.ActiveView != null)
+            var fpCamera = ResolveFpCamera();
+            var aimCamera = ResolveWorldCamera() ?? fpCamera;
+            if (controller != null && controller.IsInitialized && aimCamera != null)
+            {
+                // FPWeaponRig publishes this rendered camera ray for the next shot. Do not
+                // project the simulation pivot again: Cinemachine already applied its recoil.
+                var projection = CameraProjection.From(aimCamera);
+                if (projection.TryProjectAimRay(aimCamera.transform.position, aimCamera.transform.forward, 100f, out Vector3 aimViewport))
+                {
+                    canvasPosition = new Vector2(
+                        (aimViewport.x - 0.5f) * rootRect.width,
+                        (aimViewport.y - 0.5f) * rootRect.height);
+                    bound = true;
+                }
+            }
+            if (_aimResolved && weaponRig != null && weaponRig.ActiveView != null)
             {
                 var attachments = weaponRig.ActiveView.GetComponent<WeaponAttachmentView>();
                 var socket = attachments != null ? attachments.GetSocketTransform(AttachmentSlotType.Optic) : null;
-                var camera = ResolveFpCamera();
-                if (socket != null && camera != null)
+                if (socket != null && fpCamera != null)
                 {
                     var frameData = OpticAimGeometry.Evaluate(_aimLocal, socket);
-                    Vector3 viewport = camera.WorldToViewportPoint(frameData.WindowCenterWorld);
+                    Vector3 viewport = fpCamera.WorldToViewportPoint(frameData.WindowCenterWorld);
                     if (viewport.z > 0f)
                     {
-                        canvasPosition = new Vector2(
-                            (viewport.x - 0.5f) * rootRect.width,
-                            (viewport.y - 0.5f) * rootRect.height);
-                        bound = true;
-                        // 镜窗中心出画面 12% 边距 → 分划隐去（不硬贴屏内掩盖对位错误）
-                        float excessX = Mathf.Abs(canvasPosition.x) - rootRect.width * 0.62f;
-                        float excessY = Mathf.Abs(canvasPosition.y) - rootRect.height * 0.62f;
-                        _reticleOnScreen = excessX <= 0f && excessY <= 0f;
+                        if (physical && frameData.HasWindow)
+                        {
+                            var up = fpCamera.WorldToViewportPoint(frameData.WindowCenterWorld
+                                + frameData.UpWorld * frameData.WindowHalfHeightMeters);
+                            var right = fpCamera.WorldToViewportPoint(frameData.WindowCenterWorld
+                                + Vector3.Cross(frameData.UpWorld, frameData.AxisWorld).normalized * frameData.WindowHalfWidthMeters);
+                            Vector2 center = Vector2.Scale((Vector2)viewport - Vector2.one * .5f, rootRect.size);
+                            Vector2 upPixels = Vector2.Scale((Vector2)(up - viewport), rootRect.size);
+                            Vector2 rightPixels = Vector2.Scale((Vector2)(right - viewport), rootRect.size);
+                            float angle = Mathf.Atan2(upPixels.y, upPixels.x) * Mathf.Rad2Deg - 90f;
+                            _windowClip.anchoredPosition = center;
+                            _windowClip.localRotation = Quaternion.Euler(0f, 0f, angle);
+                            // Inset keeps luminous pixels off the opaque housing. The aim point
+                            // stays on the shot ray; clipping never moves it onto a false target.
+                            _windowClip.sizeDelta = new Vector2(rightPixels.magnitude, upPixels.magnitude) * 1.8f;
+                            canvasPosition = Quaternion.Euler(0f, 0f, -angle) * (canvasPosition - center);
+                            _reticleOnScreen = bound && up.z > 0f && right.z > 0f;
+                        }
+                        if (_mode == OpticPresentationMode.Physical1x && _nativeReticle != null && _nativeEntry != null)
+                        {
+                            var edge = fpCamera.WorldToViewportPoint(frameData.WindowCenterWorld
+                                + frameData.UpWorld * _aimLocal.WindowHalfHeightMeters);
+                            float windowPixels = Mathf.Abs(edge.y - viewport.y) * rootRect.height * 2f;
+                            LayoutNativeReticle(Mathf.Min(rootRect.height * .12f, windowPixels * .95f));
+                        }
+                        // Only a physical 1x reticle is clipped to its actual sight window.
+                        // Magnified/stock sniper reticles are bound to the shot ray and must
+                        // remain visible while recoil moves the cosmetic scope housing.
+                        float windowX = (viewport.x - 0.5f) * rootRect.width;
+                        float windowY = (viewport.y - 0.5f) * rootRect.height;
+                        float excessX = Mathf.Abs(windowX) - rootRect.width * 0.62f;
+                        float excessY = Mathf.Abs(windowY) - rootRect.height * 0.62f;
+                        if (physical) _reticleOnScreen &= excessX <= 0f && excessY <= 0f;
                     }
                 }
             }
             _reticleFrame.anchoredPosition = bound ? canvasPosition : Vector2.zero;
+        }
+
+        private void RebindLocalPresentation()
+        {
+            if (controller != null) controller.OnAttachmentsChanged -= HandleOpticChanged;
+            if (weaponRig != null) weaponRig.OnActiveViewChanged -= HandleViewChanged;
+
+            controller = null;
+            aimState = null;
+            weaponRig = null;
+            _authority = null;
+            _fpCamera = null;
+            _worldCamera = null;
+            _aimKey = null;
+
+            // 网络场景优先唯一 Owner；离线场景则选择拥有完整 FP 表现链的活动控制器。
+            var authorities = FindObjectsByType<NetworkCombatAuthority>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var candidate in authorities)
+            {
+                if (candidate == null || !candidate.IsOwnerPlayer) continue;
+                var candidateController = candidate.GetComponentInChildren<WeaponController>(true);
+                var candidateAim = candidate.GetComponentInChildren<PlayerAimState>(true);
+                var candidateRig = candidate.GetComponentInChildren<FPWeaponRig>(true);
+                if (candidateController == null || candidateAim == null || candidateRig == null) continue;
+                controller = candidateController;
+                aimState = candidateAim;
+                weaponRig = candidateRig;
+                _authority = candidate;
+                break;
+            }
+            if (controller == null)
+            {
+                var candidates = FindObjectsByType<WeaponController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                foreach (var candidate in candidates)
+                {
+                    var candidateAim = candidate.GetComponentInParent<PlayerAimState>();
+                    var candidateRig = candidate.GetComponentInChildren<FPWeaponRig>(true);
+                    if (candidateAim == null || candidateRig == null) continue;
+                    controller = candidate;
+                    aimState = candidateAim;
+                    weaponRig = candidateRig;
+                    _authority = candidate.GetComponentInParent<NetworkCombatAuthority>();
+                    break;
+                }
+            }
+            if (isActiveAndEnabled)
+            {
+                if (controller != null) controller.OnAttachmentsChanged += HandleOpticChanged;
+                if (weaponRig != null) weaponRig.OnActiveViewChanged += HandleViewChanged;
+            }
         }
 
         private UnityEngine.Camera ResolveFpCamera()
@@ -203,6 +320,35 @@ namespace Game.Presentation.HUD
             if (_fpCamera == null && cameras.Length > 0) _fpCamera = cameras[cameras.Length - 1];
             return _fpCamera;
         }
+
+        private UnityEngine.Camera ResolveWorldCamera()
+        {
+            if (_worldCamera != null && _worldCamera.isActiveAndEnabled && _worldCamera.targetTexture == null)
+                return _worldCamera;
+            _worldCamera = null;
+            int fpLayer = LayerMask.NameToLayer("FirstPersonView");
+            int fpBit = fpLayer >= 0 ? 1 << fpLayer : 0;
+
+            // 主相机优先，避免场景里另有预览/UI 相机时 Camera.allCameras 的枚举顺序
+            // 把分划投到错误视口。无 MainCamera 标签时再走与 PhysicalScopeView 一致的兜底。
+            var main = UnityEngine.Camera.main;
+            if (IsWorldCameraCandidate(main, fpBit))
+            {
+                _worldCamera = main;
+                return _worldCamera;
+            }
+            foreach (var candidate in UnityEngine.Camera.allCameras)
+            {
+                if (!IsWorldCameraCandidate(candidate, fpBit)) continue;
+                _worldCamera = candidate;
+                break;
+            }
+            return _worldCamera;
+        }
+
+        private static bool IsWorldCameraCandidate(UnityEngine.Camera candidate, int fpBit)
+            => candidate != null && candidate.isActiveAndEnabled && candidate.targetTexture == null
+               && (candidate.cullingMask & fpBit) == 0;
 
         private void RefreshProfile()
         {
@@ -237,6 +383,35 @@ namespace Game.Presentation.HUD
                 _tacticalReticle.Illumination = profile.reticleColor;
                 _tacticalReticle.SetVerticesDirty();
             }
+        }
+
+        private void ApplyLiveReticlePreference()
+        {
+            bool basic = _mode == OpticPresentationMode.Physical1x;
+            if (_nativeCatalog == null) _nativeCatalog = NativeScopeReticleCatalog.Load();
+            bool nativeSniper = controller != null && controller.CurrentOpticAim.Tier == OpticAimTier.HighZoom
+                && _nativeCatalog != null && _nativeCatalog.SniperTexture != null;
+            _nativeEntry = basic && _nativeCatalog != null
+                ? _nativeCatalog.Find(SettingsRuntime.ReticleStyle, SettingsRuntime.ReticleColor) : null;
+            if (nativeSniper) { _sniperEntry.texture = _nativeCatalog.SniperTexture; _nativeEntry = _sniperEntry; }
+            if (_nativeReticle != null)
+            {
+                _nativeReticle.enabled = _nativeEntry?.texture != null;
+                _nativeReticle.texture = _nativeEntry?.texture;
+                _nativeReticle.material = _nativeCatalog != null ? (nativeSniper ? _nativeCatalog.SniperMaterial : _nativeCatalog.AdditiveMaterial) : null;
+                _nativeReticle.color = Color.white; // Use source colors, never tint the native texture.
+                LayoutNativeReticle(((RectTransform)transform).rect.height * (nativeSniper ? _vignette.ApertureRadius * 2f : .12f));
+            }
+            if (_tacticalReticle != null) _tacticalReticle.enabled = !basic && !nativeSniper;
+            if (_lens != null) _lens.enabled = !nativeSniper;
+        }
+
+        private void LayoutNativeReticle(float size)
+        {
+            if (_nativeReticle == null || _nativeEntry == null) return;
+            size = Mathf.Max(1f, size);
+            _nativeReticle.rectTransform.sizeDelta = Vector2.one * size;
+            _nativeReticle.rectTransform.anchoredPosition = (Vector2.one * .5f - _nativeEntry.aimUv) * size;
         }
 
         private void WarnMissingProfile(OpticAimContext ctx)
@@ -275,9 +450,16 @@ namespace Game.Presentation.HUD
             var rt = reticleGo.GetComponent<RectTransform>();
             Stretch(rt);
 
+            var clipGo = new GameObject("OpticWindowClip", typeof(RectTransform), typeof(RectMask2D));
+            clipGo.transform.SetParent(reticleGo.transform, false);
+            _windowClip = clipGo.GetComponent<RectTransform>();
+            _windowClip.anchorMin = _windowClip.anchorMax = _windowClip.pivot = Vector2.one * .5f;
+            _windowMask = clipGo.GetComponent<RectMask2D>();
+            _windowMask.enabled = false;
+
             // A2：分划容器——位置每帧锚到真实镜窗中心的投影；无绑定数据时归零=旧居中行为。
             var frameGo = new GameObject("ReticleFrame", typeof(RectTransform));
-            frameGo.transform.SetParent(reticleGo.transform, false);
+            frameGo.transform.SetParent(_windowClip, false);
             _reticleFrame = frameGo.GetComponent<RectTransform>();
             _reticleFrame.anchorMin = _reticleFrame.anchorMax = _reticleFrame.pivot = new Vector2(0.5f, 0.5f);
             _reticleFrame.anchoredPosition = Vector2.zero;
@@ -289,6 +471,14 @@ namespace Game.Presentation.HUD
             Stretch(tacticalGo.GetComponent<RectTransform>());
             _tacticalReticle = tacticalGo.GetComponent<TacticalOpticReticleGraphic>();
             _tacticalReticle.raycastTarget = false;
+
+            var nativeGo = new GameObject("NativeLPFPScopeTexture", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            nativeGo.transform.SetParent(_reticleFrame, false);
+            _nativeReticle = nativeGo.GetComponent<RawImage>();
+            _nativeReticle.raycastTarget = false;
+            _nativeReticle.rectTransform.anchorMin = _nativeReticle.rectTransform.anchorMax =
+                _nativeReticle.rectTransform.pivot = Vector2.one * .5f;
+            _nativeReticle.enabled = false;
 
             scopeGo.transform.SetAsFirstSibling(); // 遮罩在准星和普通 HUD 下方
             reticleGo.transform.SetAsLastSibling();
@@ -379,7 +569,8 @@ namespace Game.Presentation.HUD
         RedDot,
         Holographic,
         ThreePower,
-        HighPower
+        HighPower,
+        Chevron
     }
 
     [RequireComponent(typeof(CanvasRenderer))]
@@ -456,6 +647,7 @@ namespace Game.Presentation.HUD
                 case TacticalReticleStyle.Holographic: DrawHolo(vh, center, unit); break;
                 case TacticalReticleStyle.ThreePower: DrawThreePower(vh, center, unit); break;
                 case TacticalReticleStyle.HighPower: DrawHighPower(vh, center, unit); break;
+                case TacticalReticleStyle.Chevron: DrawBasicChevron(vh, center, unit); break;
             }
         }
 
@@ -481,6 +673,16 @@ namespace Game.Presentation.HUD
             AddLine(vh, c + Vector2.right * radius, c + Vector2.right * (radius + tick), thin, Illumination);
             AddLine(vh, c - Vector2.right * radius, c - Vector2.right * (radius + tick), thin, Illumination);
             AddDisc(vh, c, Mathf.Max(2f, u * .002f), Illumination, 20);
+        }
+
+        private void DrawBasicChevron(VertexHelper vh, Vector2 c, float u)
+        {
+            float size = Mathf.Max(12f, u * .014f);
+            float thin = Mathf.Max(2f, u * .0018f);
+            Color glow = Illumination;
+            glow.a = .13f;
+            AddChevron(vh, c + Vector2.down * (size * .20f), size, thin * 3.2f, glow);
+            AddChevron(vh, c + Vector2.down * (size * .20f), size, thin, Illumination);
         }
 
         private void DrawThreePower(VertexHelper vh, Vector2 c, float u)

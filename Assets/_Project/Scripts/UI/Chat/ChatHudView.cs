@@ -102,6 +102,13 @@ namespace Game.UI.Chat
             else ReleaseFocus();
         }
 
+        /// <summary>Menu chat occupies the reserved strip below teams; combat HUD keeps its existing anchors.</summary>
+        public void SetMenuLayout()
+        {
+            Stretch((RectTransform)transform, 0.03f, 0.70f, 0.025f, 0.32f);
+            if (_panelImage != null) _panelImage.color = new Color(UITheme.BackgroundPanel.r, UITheme.BackgroundPanel.g, UITheme.BackgroundPanel.b, 0.92f);
+        }
+
         private void OnEnable()
         {
             if (_panel == null) Build();
@@ -233,6 +240,13 @@ namespace Game.UI.Chat
         private void Update()
         {
             if (_panel == null) return;
+            if (_hintText != null)
+            {
+                var social = SocialSession.Instance;
+                int unread = social?.Unread ?? 0, invites = social?.Inbox?.invitations?.Length ?? 0;
+                _hintText.text = OpenHint + (unread + invites > 0 ? "  | 私信 " + unread + " · 邀请 " + invites : "");
+            }
+            if (SocialWindow.Instance != null) { UpdateRecentFade(); return; }
 
             // 菜单打开 → 聊天让出焦点（保留草稿；光标归菜单所有）
             if (_open && GameplayInputGate.MenuOpen) Close(keepDraft: true);
@@ -490,7 +504,7 @@ namespace Game.UI.Chat
             scrollGo.transform.SetParent(_expandedRoot.transform, false);
             scrollGo.GetComponent<Image>().color = new Color(0, 0, 0, 0.25f);
             var scrollRect = (RectTransform)scrollGo.transform;
-            Stretch(scrollRect, 0.02f, 0.98f, 0.16f, 0.96f);
+            Stretch(scrollRect, 0.02f, 0.98f, 0.16f, 0.82f);
             _historyScroll = scrollGo.GetComponent<ScrollRect>();
             _historyScroll.horizontal = false;
             _historyScroll.movementType = ScrollRect.MovementType.Clamped;
@@ -578,6 +592,9 @@ namespace Game.UI.Chat
             Stretch(_hintText.rectTransform, 0.02f, 0.98f, 0.02f, 0.16f);
             _hintText.text = OpenHint;
 
+            var direct = UIComponents.Button("DirectMessages", _expandedRoot.transform, "好友私信 / 邀请", UIComponents.ButtonKind.Secondary,
+                new Vector2(.60f,.84f),new Vector2(.98f,.98f));
+            direct.onClick.AddListener(()=>SocialWindow.Open(GetComponentInParent<Canvas>()));
             _expandedRoot.SetActive(false);
         }
 

@@ -20,13 +20,13 @@ namespace Game.UI.Menu
     public sealed class GameplayMenuView : MonoBehaviour, GameplayMenuController.IGameplayMenuView
     {
         // —— 局部配色（VALORANT 式布局语言；非其官方素材）——
-        private static readonly Color VeilDark = new Color(0.04f, 0.06f, 0.10f, 0.90f);
-        private static readonly Color AccentRed = new Color(1.00f, 0.27f, 0.33f);   // #FF4655
-        private static readonly Color AccentRedDim = new Color(0.55f, 0.15f, 0.19f);
-        private static readonly Color RailDark = new Color(0.07f, 0.10f, 0.15f, 0.97f);
-        private static readonly Color CardDark = new Color(0.10f, 0.13f, 0.19f, 0.96f);
-        private static readonly Color TextBright = new Color(0.96f, 0.97f, 0.98f);
-        private static readonly Color TextDim = new Color(0.60f, 0.66f, 0.73f);
+        private static readonly Color VeilDark = new Color(0.063f, 0.090f, 0.098f, 0.90f);
+        private static readonly Color AccentRed = UITheme.AccentDanger;
+        private static readonly Color AccentRedDim = UITheme.AccentDanger * 0.55f;
+        private static readonly Color RailDark = UITheme.BackgroundDeep;
+        private static readonly Color CardDark = UITheme.BackgroundPanel;
+        private static readonly Color TextBright = UITheme.TextPrimary;
+        private static readonly Color TextDim = UITheme.TextMuted;
 
         private GameplayMenuController _controller;
         private GameObject _root;
@@ -139,7 +139,7 @@ namespace Game.UI.Menu
                 SetLeaveBusy(true);
                 RunLeaveTransaction();
             });
-            var leaveCancel = UIMenuKit.MenuButton(_leaveDialog.transform, "LeaveCancel", "取 消", new Color(0.16f, 0.21f, 0.28f),
+            var leaveCancel = UIMenuKit.MenuButton(_leaveDialog.transform, "LeaveCancel", "取 消", UITheme.CardSurfaceAlt,
                 new Vector2(0.53f, 0.10f), new Vector2(0.92f, 0.26f));
             leaveCancel.onClick.AddListener(() => { SetLeaveBusy(false); _controller?.CancelLeave(); });
 
@@ -147,10 +147,10 @@ namespace Game.UI.Menu
             _conflictDialog = UIMenuKit.Panel("ConflictDialog", rootRect, CardDark, new Vector2(0.32f, 0.34f), new Vector2(0.70f, 0.66f));
             UIMenuKit.Title(_conflictDialog.transform, "键位冲突", new Vector2(0.08f, 0.74f), new Vector2(0.92f, 0.90f));
             _conflictBodyText = UIMenuKit.Body(_conflictDialog.transform, string.Empty, new Vector2(0.08f, 0.42f), new Vector2(0.92f, 0.70f), TextDim);
-            var swapBtn = UIMenuKit.MenuButton(_conflictDialog.transform, "ConflictSwap", "交换键位", AccentRed,
+            var swapBtn = UIMenuKit.MenuButton(_conflictDialog.transform, "ConflictSwap", "交换键位", UITheme.AccentPrimary,
                 new Vector2(0.08f, 0.10f), new Vector2(0.47f, 0.26f));
             swapBtn.onClick.AddListener(() => _controller?.ResolveRebindConflict(swap: true));
-            var cancelSwap = UIMenuKit.MenuButton(_conflictDialog.transform, "ConflictCancel", "取 消", new Color(0.16f, 0.21f, 0.28f),
+            var cancelSwap = UIMenuKit.MenuButton(_conflictDialog.transform, "ConflictCancel", "取 消", UITheme.CardSurfaceAlt,
                 new Vector2(0.53f, 0.10f), new Vector2(0.92f, 0.26f));
             cancelSwap.onClick.AddListener(() => _controller?.ResolveRebindConflict(swap: false));
 
@@ -192,7 +192,7 @@ namespace Game.UI.Menu
                 bool selected = state == GameplayMenuState.PauseMenu
                     ? i == 0
                     : i == 1 && (state == GameplayMenuState.Settings || state == GameplayMenuState.RebindCapture);
-                _navButtons[i].accent.color = selected ? AccentRed : new Color(1f, 1f, 1f, 0.08f);
+                _navButtons[i].accent.color = selected ? UITheme.AccentPrimary : new Color(1f, 1f, 1f, 0.08f);
                 _navButtons[i].label.color = selected ? TextBright : TextDim;
                 _navButtons[i].label.fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
             }
@@ -232,7 +232,7 @@ namespace Game.UI.Menu
                 if (label == null) continue;
                 bool capturing = _controller.RebindAction == action;
                 label.text = capturing ? "按任意键…" : SettingsKeyMap.DisplayName(SettingsKeyMap.Get(action));
-                label.color = capturing ? AccentRed : TextBright;
+                label.color = capturing ? UITheme.AccentPrimary : TextBright;
             }
         }
 

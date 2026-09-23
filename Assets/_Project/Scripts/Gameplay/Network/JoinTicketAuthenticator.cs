@@ -227,6 +227,11 @@ namespace Game.Gameplay.Network
                     FinishAuthentication(connection, TicketConsumeResult.Rejected(GameProtocolIdentity.ProtocolMismatchCode), message);
                     return;
                 case JoinTicketAuthService.IncomingDecision.BeginValidation:
+                    if (!MapContentIdentity.Matches(Environment.GetEnvironmentVariable("FPS_MAP_CONTENT_HASH"), message.MapContentHash))
+                    {
+                        FinishAuthentication(connection, TicketConsumeResult.Rejected("MAP_CONTENT_MISMATCH"), message);
+                        return;
+                    }
                     RunValidation(connection, message);
                     return;
             }

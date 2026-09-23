@@ -66,12 +66,14 @@ namespace Game.UI
         public static async Task<InstallOutcome> InstallAsync(
             HotUpdateManifest remote, string manifestJson, string rootBase,
             HotUpdateManifest installed, string installedVersionDir,
-            Func<HotUpdateManifest.HotUpdateFileEntry, Task<byte[]>> fetchAsync)
+            Func<HotUpdateManifest.HotUpdateFileEntry, Task<byte[]>> fetchAsync,
+            System.Threading.CancellationToken cancellationToken = default)
         {
             var outcome = new InstallOutcome();
             string staging = null;
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (fetchAsync == null) throw new ArgumentNullException(nameof(fetchAsync));
                 var invalid = ValidateManifest(remote);
                 if (invalid != null) { outcome.Error = invalid; return outcome; }
@@ -104,6 +106,7 @@ namespace Game.UI
 
                 foreach (var file in remote.files)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var relative = HotUpdatePlan.SanitizeRelativePath(file.path);
                     var dest = Path.GetFullPath(Path.Combine(stagingFull, relative));
                     EnsureUnderRoot(dest, stagingFull, "staging entry");
@@ -152,6 +155,7 @@ namespace Game.UI
                 staging = null;
 
                 // ⑥ 指针原子替换（F05）
+                cancellationToken.ThrowIfCancellationRequested();
                 WritePointerAtomic(rootFull, manifestJson);
                 outcome.Success = true;
                 return outcome;

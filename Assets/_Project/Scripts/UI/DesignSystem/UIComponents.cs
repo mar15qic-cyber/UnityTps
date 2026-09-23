@@ -53,8 +53,8 @@ namespace Game.UI
             var overlayImage = overlay.GetComponent<Image>();
             overlayImage.type = Image.Type.Simple;
             overlayImage.sprite = UISprites.GradientVertical(
-                new Color(0.05f, 0.08f, 0.12f, 0.10f),
-                new Color(0.05f, 0.08f, 0.12f, 0.82f));
+                new Color(0.02f, 0.04f, 0.04f, 0.10f),
+                new Color(0.02f, 0.04f, 0.04f, 0.82f));
             overlayImage.raycastTarget = false;
             return root;
         }
@@ -97,7 +97,7 @@ namespace Game.UI
             Vector2 anchorMin, Vector2 anchorMax)
         {
             var faceColor = ButtonColor(kind);
-            var textColor = kind == ButtonKind.Primary ? UITheme.TextOnAccent : UITheme.TextPrimary;
+            var textColor = kind == ButtonKind.Secondary ? UITheme.TextPrimary : UITheme.TextOnAccent;
 
             var root = new GameObject(name, typeof(RectTransform));
             root.transform.SetParent(parent, false);
@@ -108,13 +108,13 @@ namespace Game.UI
             var depthImage = depth.GetComponent<Image>();
             depthImage.sprite = UISprites.RoundedRect(UITheme.RadiusButton);
             depthImage.type = Image.Type.Sliced;
-            depthImage.color = UITheme.ButtonShadow;
+            depthImage.color = Color.clear;
             depthImage.raycastTarget = false;
             var depthRect = depth.GetComponent<RectTransform>();
             depthRect.anchorMin = Vector2.zero;
             depthRect.anchorMax = Vector2.one;
             depthRect.offsetMin = new Vector2(0f, 0f);
-            depthRect.offsetMax = new Vector2(0f, -UITheme.ButtonDepth + UITheme.BorderWidth);
+            depthRect.offsetMax = Vector2.zero;
 
             var face = new GameObject("Face", typeof(RectTransform), typeof(Image), typeof(Button));
             face.transform.SetParent(root.transform, false);
@@ -153,6 +153,15 @@ namespace Game.UI
             UITypography.Text("Label", face.transform, label, UITheme.FontBody, textColor,
                 new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.97f), TextAlignmentOptions.Center, FontStyles.Bold);
             return button;
+        }
+
+        /// <summary>显示/隐藏整个按钮（Face + 根节点一起切换）。Button 返回的是 Face 子物体上的组件——
+        /// 直接对 button.gameObject.SetActive 切换会留下根节点的 Depth 阴影层（ButtonShadow 近黑
+        /// #0D1117），视觉上呈现为一块"黑按钮"（2026-09-20 房间页实测根因）。</summary>
+        public static void SetVisible(Button button, bool visible)
+        {
+            if (button != null && button.transform.parent != null)
+                button.transform.parent.gameObject.SetActive(visible);
         }
 
         /// <summary>Stylized TMP input with border that highlights on focus.</summary>

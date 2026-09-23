@@ -38,6 +38,10 @@ namespace Game.Gameplay.Player
         private InputReader _input;
         private ActionSystem _actions;
         private WeaponController _weapon;
+        private bool? _remoteAimIntent;
+
+        public void SetRemoteAimIntent(bool wantsAim) => _remoteAimIntent = wantsAim;
+        public void ClearRemoteAimIntent() => _remoteAimIntent = null;
 
         private void Awake()
         {
@@ -57,8 +61,8 @@ namespace Game.Gameplay.Player
         private void Update()
         {
             // 换弹/切枪占用上半身动作槽时强制收镜（与原 FPCameraRig 行为一致）
-            bool wantsAim = _input != null && _input.AimHeld;
-            bool actionFree = _actions == null || !_actions.IsBusy;
+            bool wantsAim = _remoteAimIntent ?? (_input != null && _input.AimHeld);
+            bool actionFree = (_actions == null || !_actions.IsBusy) && (_input == null || !_input.WeaponInputBlocked);
             if (!actionFree)
             {
                 // 切换开镜模式：动作收镜后不回弹，复位 InputReader 的切换态（长按模式无效果）

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d1ee0a153d67c3429b22744272941e3, type: 3}
+  m_Name: ThrowableCatalog
+  m_EditorClassIdentifier: 
+  Frag: {fileID: 11400000, guid: a9cbedbf67d9750468bcd3024a4ae86e, type: 2}
+  Flash: {fileID: 11400000, guid: e0a1b653d730e3e4283abfa67e70a3f1, type: 2}
+  Smoke: {fileID: 11400000, guid: 7725fbe94de15e743883bd6eddef56e6, type: 2}
+  NetworkProjectilePrefab: {fileID: 543343758811637522, guid: 4e57263dea9926448b6e85f2583dbd4a, type: 3}
+  ReleaseDelaySeconds: 0.15
+  ThrowActionSeconds: 0.5

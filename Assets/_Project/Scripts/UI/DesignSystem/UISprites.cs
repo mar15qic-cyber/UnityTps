@@ -13,6 +13,23 @@ namespace Game.UI
         private const int AtlasSize = 64;
         private static readonly Dictionary<string, Sprite> cache = new();
 
+        public static Sprite EdgeShade()
+        {
+            if (cache.TryGetValue("edgeShade", out var sprite) && sprite != null) return sprite;
+            var texture = new Texture2D(256, 2, TextureFormat.RGBA32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            for (var x = 0; x < 256; x++)
+            {
+                var distance = Mathf.Abs(x / 255f - 0.5f) * 2f;
+                var color = new Color(0.03f, 0.06f, 0.06f, Mathf.SmoothStep(0, 0.87f, distance * distance));
+                texture.SetPixel(x, 0, color); texture.SetPixel(x, 1, color);
+            }
+            texture.Apply();
+            sprite = Sprite.Create(texture, new Rect(0, 0, 256, 2), new Vector2(0.5f, 0.5f));
+            cache["edgeShade"] = sprite;
+            return sprite;
+        }
+
         /// <summary>White rounded-rect sprite with 9-slice border; tint via Image.color.</summary>
         public static Sprite RoundedRect(float radius)
         {

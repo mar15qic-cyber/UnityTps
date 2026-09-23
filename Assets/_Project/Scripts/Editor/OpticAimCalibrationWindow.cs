@@ -402,6 +402,8 @@ namespace Game.EditorTools
                 WindowCenterLocal = _windowCenter,
                 WindowHalfWidthMeters = _windowHalfWidth,
                 WindowHalfHeightMeters = _windowHalfHeight,
+                TargetViewportHeight = Calibration.TryGetOpticAim(CurrentWeaponItemId, CurrentOpticItemId, out var existing)
+                    ? existing.TargetViewportHeight : 0f,
                 HasAxisFront = _axisFrontPoint.sqrMagnitude > 1e-10f,
                 HasWindow = _windowCenter.sqrMagnitude > 1e-10f && _windowHalfWidth > 0f && _windowHalfHeight > 0f
             });

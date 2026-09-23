@@ -86,11 +86,13 @@ namespace Game.Gameplay.Tests
         {
             GameplayInputGate.SetMenuOpen(true);
             GameplayInputGate.SetDead(true);
+            GameplayInputGate.SetChatFocused(true);
             GameplayInputGate.GrantResumeGrace(4);
             GameplayInputGate.ResetAll();
             Assert.That(GameplayInputGate.InputBlocked, Is.False);
             Assert.That(GameplayInputGate.MenuOpen, Is.False);
             Assert.That(GameplayInputGate.Dead, Is.False);
+            Assert.That(GameplayInputGate.ChatFocused, Is.False);
         }
     }
 }

@@ -50,25 +50,25 @@ public sealed class ProtocolGateTests
 
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, clientProtocolId: NewProtocol);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         // 旧协议客户端 → 409 PROTOCOL_MISMATCH
         var (guestOld, _) = await ServerTest.RegisterUserAsync(client);
         var oldJoin = await ServerTest.Authorized(client, guestOld)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { clientProtocolId = OldProtocol });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { clientProtocolId = OldProtocol });
         Assert.Equal(HttpStatusCode.Conflict, oldJoin.StatusCode);
         Assert.Equal("PROTOCOL_MISMATCH", await CodeOfAsync(oldJoin));
 
         // 未申报（旧客户端 null）→ 同样拒绝
         var silentJoin = await ServerTest.Authorized(client, guestOld)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { });
         Assert.Equal(HttpStatusCode.Conflict, silentJoin.StatusCode);
         Assert.Equal("PROTOCOL_MISMATCH", await CodeOfAsync(silentJoin));
 
         // 一致协议 → 200
         var (guestNew, _) = await ServerTest.RegisterUserAsync(client);
         var okJoin = await ServerTest.Authorized(client, guestNew)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { clientProtocolId = NewProtocol });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { clientProtocolId = NewProtocol });
         Assert.Equal(HttpStatusCode.OK, okJoin.StatusCode);
     }
 
@@ -81,19 +81,19 @@ public sealed class ProtocolGateTests
 
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken); // 未申报（旧客户端建房）
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         // 新客户端申报非空协议 → 旧房拒绝（无法为其租到协议匹配的 DS）
         var (guestNew, _) = await ServerTest.RegisterUserAsync(client);
         var newJoin = await ServerTest.Authorized(client, guestNew)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { clientProtocolId = NewProtocol });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { clientProtocolId = NewProtocol });
         Assert.Equal(HttpStatusCode.Conflict, newJoin.StatusCode);
         Assert.Equal("PROTOCOL_MISMATCH", await CodeOfAsync(newJoin));
 
         // 旧客户端（不申报）→ 200
         var (guestLegacy, _) = await ServerTest.RegisterUserAsync(client);
         var legacyJoin = await ServerTest.Authorized(client, guestLegacy)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/join", new { });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/join", new { });
         Assert.Equal(HttpStatusCode.OK, legacyJoin.StatusCode);
     }
 
@@ -107,12 +107,12 @@ public sealed class ProtocolGateTests
         await ServerTest.RegisterInstanceAsync(client, protocolId: null);
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken, clientProtocolId: NewProtocol);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         var (guestToken, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken, roomCode, new { clientProtocolId = NewProtocol });
         await ServerTest.ReadyAsync(client, guestToken, roomCode);
 
-        var noServer = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{roomCode}/start", null);
+        var noServer = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/start", null);
         Assert.Equal(HttpStatusCode.Conflict, noServer.StatusCode);
         Assert.Equal("NO_SERVER_AVAILABLE", await CodeOfAsync(noServer));
 

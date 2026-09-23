@@ -18,17 +18,10 @@ public sealed class LoginRequest
 }
 
 public sealed record AuthSessionDto(string Token, DateTime ExpiresAtUtc, PlayerProfileDto Profile, LoadoutDto Loadout, long Coins);
-public sealed record UpgradeLevelsDto(int UpDamage, int UpAmmoCap, int UpMaxHealth);
-public sealed record PlayerProfileDto(string Username, int Level, int Xp, int XpToNextLevel, int SkillPoints, long Coins, UpgradeLevelsDto Upgrades);
+public sealed record PlayerProfileDto(string Username, string IdentityTag, int Level, int Xp, int XpToNextLevel, long Coins);
 public sealed record LoadoutAttachmentDto(string WeaponSlot, string AttachmentSlot, string AttachmentItemId);
 public sealed record LoadoutDto(string PrimaryWeaponId, string SecondaryWeaponId, string? ThrowableId, long Version, LoadoutAttachmentDto[] Attachments);
 
-public sealed class UpgradeRequest
-{
-    [Range(0, 5)] public int UpDamage { get; set; }
-    [Range(0, 5)] public int UpAmmoCap { get; set; }
-    [Range(0, 5)] public int UpMaxHealth { get; set; }
-}
 
 public sealed class LoadoutRequest
 {
@@ -114,9 +107,9 @@ public sealed class RoomSettingsRequest
 }
 
 /// <summary>列表/房间信息统一形状（只读投影），绝不携带 ticket/密钥类字段。</summary>
-public sealed record GameRoomDto(string RoomCode, string LeaderUsername, int JoinedPlayers, int MaxPlayers,
+public sealed record GameRoomDto([property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? RoomCode, string LeaderUsername, int JoinedPlayers, int MaxPlayers,
     string Status, DateTime CreatedAtUtc, string Mode, string MapId, int KillTarget, int TimeLimitMinutes,
-    long RoomVersion, string? MatchId, int MatchGeneration);
+    long RoomVersion, string? MatchId, int MatchGeneration, long RoomId = 0);
 
 public sealed record RoomMemberDto(long UserId, string Username, string TeamId, bool IsReady, bool IsLeader, DateTime JoinedAtUtc);
 public sealed record RoomSelfDto(long UserId, string TeamId, bool IsReady);
@@ -206,7 +199,7 @@ public sealed record JoinTicketConsumeDto(bool Valid, string? RoomCode, long? Us
 
 /// <summary>地图目录项（服务端常量白名单；客户端/DS 镜像只读）。</summary>
 public sealed record MapCatalogDto(string MapId, string DisplayName, string SceneName, string[] Modes,
-    int MaxCapacity, string[] SpawnGroups);
+    int MaxCapacity, string[] SpawnGroups, string? ContentVersion = null, string? ContentHash = null, string Availability = "ready");
 
 /// <summary>DS 权威终局逐玩家结果行。IsWin = 逐玩家胜负（R2）：KillRace 个人胜者 winnerTeam=null 时
 /// 由该字段承载；TDM 由胜队推导。旧 DS 上报缺字段 → null = 按胜队/无胜队兜底。</summary>
@@ -246,7 +239,7 @@ public sealed record ServerInstancePoolSummaryDto(
 /// ProtocolId：实例申报的应用协议代际（null = 旧 DS；P0-A 协议筛选可见性）。</summary>
 public sealed record ServerInstanceDiagnosticDto(
     string InstanceId, string State, string? RoomCode, int CurrentPlayers, int Capacity,
-    int HeartbeatAgeSeconds, bool Fresh, string? ProtocolId = null, string? BuildVersion = null);
+    int HeartbeatAgeSeconds, bool Fresh, string? ProtocolId = null, string? BuildVersion = null, string? MapId = null, string? Address = null, int Port = 0);
 
 /// <summary>实例池状态查询响应（GET /api/server-instances/pool，仅 X-Server-Key）。</summary>
 public sealed record ServerInstancePoolDto(ServerInstancePoolSummaryDto Summary, ServerInstanceDiagnosticDto[] Instances);
@@ -283,6 +276,9 @@ public sealed class LoadoutAttachmentsRequest
 {
     [Range(0, long.MaxValue)] public long ExpectedVersion { get; set; }
     [Required, StringLength(24)] public string WeaponSlot { get; set; } = string.Empty;
+    // The gunsmith may preview an owned weapon that is not currently equipped.
+    // Omitted by older clients: keep the existing equipped-weapon behavior.
+    [StringLength(64)] public string? WeaponItemId { get; set; }
     public AttachmentSelectionRequest[] Attachments { get; set; } = [];
 }
 
@@ -327,3 +323,27 @@ public sealed record PassDto(string SeasonId, int Level, int Xp, int XpToNextLev
     PassRewardDto[] Rewards, PassAchievementDto[] Achievements);
 public sealed record AchievementDto(string Id, string DisplayName, string Description,
     string TargetMetric, int TargetValue, int Progress, bool Unlocked, int PassXpReward);
+
+// ---- 好友系统（2026-09-20 需求2：用户名#编码 查找 + 请求-同意制 + 在线状态）----
+
+/// <summary>发送申请的查询串：必须形如 "用户名#1234"（按最后一个 # 切分，编码 4 位数字）。</summary>
+public sealed class FriendSendRequest
+{
+    [Required, StringLength(64, MinimumLength = 3)] public string Query { get; set; } = string.Empty;
+}
+
+/// <summary>好友在线状态字面值（客户端镜像）：对局中/房间中 优先于 在线（LastSeenUtc 120s 内）/离线。</summary>
+public static class FriendPresence
+{
+    public const string Offline = "Offline";
+    public const string Online = "Online";
+    public const string InRoom = "InRoom";
+    public const string InMatch = "InMatch";
+}
+
+public sealed record FriendEntryDto(long UserId, string Username, string IdentityTag, string Presence);
+public sealed record FriendRequestEntryDto(long RequestId, long UserId, string Username, string IdentityTag, DateTime CreatedAtUtc);
+public sealed record FriendListDto(FriendEntryDto[] Friends, FriendRequestEntryDto[] Incoming, FriendRequestEntryDto[] Outgoing);
+
+public sealed class JoinRoomByCodeRequest : RoomCodeJoinBase { }
+public class RoomCodeJoinBase { public string RoomCode { get; set; } = ""; public string? TeamId { get; set; } public string? ClientProtocolId { get; set; } }

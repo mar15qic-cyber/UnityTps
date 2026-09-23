@@ -31,6 +31,11 @@ namespace Game.Presentation.HUD
         private readonly List<FPWeaponAnimator> _scanBuffer = new();
         private int _fireVoiceIndex;
         private WeaponAudioProfile _profile;
+        // 联机时场景预置的 authored 玩家会被禁用，Awake 的 FindObjectOfType 可能拿到它（或 null）。
+        // 音频必须像 HUD 一样在 Owner 网络玩家生成后重绑，否则弹壳 prefab 仍会响而 WeaponAudioView
+        // 从未订阅真正执行 TryFire 的 WeaponController，表现为朝空气射击没有枪声。
+        private Game.Gameplay.Network.NetworkWeaponState _ownerWeaponState;
+        private float _ownerScanTimer;
 
         private void Awake()
         {
@@ -40,6 +45,16 @@ namespace Game.Presentation.HUD
         }
 
         private void OnEnable()
+        {
+            Subscribe();
+        }
+
+        private void OnDisable()
+        {
+            Unsubscribe();
+        }
+
+        private void Subscribe()
         {
             if (controller == null) return;
             controller.OnShotFired += HandleShot;
@@ -56,7 +71,7 @@ namespace Game.Presentation.HUD
             ResubscribeAnimators();
         }
 
-        private void OnDisable()
+        private void Unsubscribe()
         {
             if (controller == null) return;
             controller.OnShotFired -= HandleShot;
@@ -70,6 +85,39 @@ namespace Game.Presentation.HUD
                 arsenal.OnActiveWeaponChanged -= HandleActiveWeaponChanged;
             }
             UnsubscribeAll();
+        }
+
+        private void Update()
+        {
+            // 离线保留 Awake 绑定；在线只在尚未绑定当前 Owner 时低频扫描，避免每帧查找。
+            if (!Game.Gameplay.Network.FishNetLifecycleGuard.IsNetworkActive()) return;
+            if (_ownerWeaponState != null && _ownerWeaponState.IsOwnerPlayerSafe
+                && _ownerWeaponState.GetComponentInParent<WeaponController>() == controller) return;
+
+            _ownerScanTimer -= Time.unscaledDeltaTime;
+            if (_ownerScanTimer > 0f) return;
+            _ownerScanTimer = 0.5f;
+            foreach (var state in FindObjectsByType<Game.Gameplay.Network.NetworkWeaponState>(FindObjectsSortMode.None))
+            {
+                if (!state.IsOwnerPlayerSafe) continue;
+                RebindToOwnerPlayer(state);
+                break;
+            }
+        }
+
+        private void RebindToOwnerPlayer(Game.Gameplay.Network.NetworkWeaponState ownerState)
+        {
+            var ownerController = ownerState.GetComponentInParent<WeaponController>();
+            if (ownerController == null) return;
+            _ownerWeaponState = ownerState;
+            if (ownerController == controller) return;
+
+            bool active = isActiveAndEnabled;
+            if (active && controller != null) Unsubscribe();
+            controller = ownerController;
+            arsenal = ownerState.GetComponentInParent<Arsenal>();
+            RefreshProfile();
+            if (active) Subscribe();
         }
 
         // ---------------- 事件 → 音频 ----------------

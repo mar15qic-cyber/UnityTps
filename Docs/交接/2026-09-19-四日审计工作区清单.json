@@ -1,0 +1,5133 @@
+{
+  "scope": "Existing workspace delivery snapshot at audit, before audit documents; not a complete repository inventory",
+  "baselineHead": "5bf12f43",
+  "files": [
+    {
+      "path": ".gitignore",
+      "status": "modified-or-deleted",
+      "bytes": 1657,
+      "sha256": "109f22344e957f90e3222f39a300ff39b37050f99d99a254291094b36cd52e24"
+    },
+    {
+      "path": "Assets/Codely/Fonts/NotoSansSC-Regular SDF.asset",
+      "status": "modified-or-deleted",
+      "bytes": 1814520,
+      "sha256": "fe2c2857d5b07df08615e0edea3a0190613d023a6dffb2e0ac762e1fbf1c51c2"
+    },
+    {
+      "path": "Assets/Resources/Lua.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "2a715c140df1053003e3e8dceb181efab2195ed5342f6f70e08dab651fdd3e2c"
+    },
+    {
+      "path": "Assets/Resources/Lua/career_page.lua.txt",
+      "status": "untracked",
+      "bytes": 6476,
+      "sha256": "650ace3ca6c79001e951b46f073d7f61eb0ef365b29604f4660b6a0064e1992d"
+    },
+    {
+      "path": "Assets/Resources/Lua/career_page.lua.txt.meta",
+      "status": "untracked",
+      "bytes": 158,
+      "sha256": "6a9a5bfc1e78434a20276403b76e7dda30b5985f894e9946f005a3693e2090e4"
+    },
+    {
+      "path": "Assets/Resources/Lua/hello_page.lua.txt",
+      "status": "untracked",
+      "bytes": 1532,
+      "sha256": "d05766672a90bdbe928ddfa1f9b0e39d2ce6231dfbf594c8ae4626632761fdfc"
+    },
+    {
+      "path": "Assets/Resources/Lua/hello_page.lua.txt.meta",
+      "status": "untracked",
+      "bytes": 158,
+      "sha256": "660b69dcac04f5aa8e9188d755a6f8b6f5d2b66fb933885c14f2080fa0f7a813"
+    },
+    {
+      "path": "Assets/Resources/Lua/hot_bootstrap.lua.txt",
+      "status": "untracked",
+      "bytes": 207,
+      "sha256": "307e4497b0efb4971fd0ebb045ad92c5286459d03ef6a6a9a1c11171485236c0"
+    },
+    {
+      "path": "Assets/Resources/Lua/hot_bootstrap.lua.txt.meta",
+      "status": "untracked",
+      "bytes": 158,
+      "sha256": "a4aaf2cd05b9d6c1e100ff60582519fc9172eb1fcb1074d1f8aa4b187d1d36d1"
+    },
+    {
+      "path": "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset",
+      "status": "modified-or-deleted",
+      "bytes": 9748,
+      "sha256": "6792385c280302fc148141e7248f57fdab55b01366c31275e035a8fed3a4d850"
+    },
+    {
+      "path": "Assets/XLua/Examples/13_BuildFromCLI/Editor/XLua.Examples.Editor.asmdef",
+      "status": "untracked",
+      "bytes": 427,
+      "sha256": "a8cf5ac55d994502b5f3581fb513bc4374df3a31de48606cd0809961a926359b"
+    },
+    {
+      "path": "Assets/XLua/Examples/13_BuildFromCLI/Editor/XLua.Examples.Editor.asmdef.meta",
+      "status": "untracked",
+      "bytes": 166,
+      "sha256": "0e232a868c03f15d61e85bd53cf0c65586e4b64436d42aff20f485af58146b1b"
+    },
+    {
+      "path": "Assets/XLua/Gen/DelegatesGensBridge.cs",
+      "status": "modified-or-deleted",
+      "bytes": 27640,
+      "sha256": "096e376a1ae4c67000da1d08c2ff20a06706bccbdf6acc7cd6febdb3c48f62da"
+    },
+    {
+      "path": "Assets/XLua/Gen/EnumWrap.cs",
+      "status": "modified-or-deleted",
+      "bytes": 13365,
+      "sha256": "8fa62ea3638361fe485eff30ad2bca5a6d640abe2b364f41598d61cf0e5829ba"
+    },
+    {
+      "path": "Assets/XLua/Gen/TMPro_TMP_TextWrap.cs",
+      "status": "untracked",
+      "bytes": 148262,
+      "sha256": "afd8d8982b632f45e2136c6c0165514708ba115e5b75f361137bee06f9e8a98b"
+    },
+    {
+      "path": "Assets/XLua/Gen/TMPro_TMP_TextWrap.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "78e9d2244e30f1567829fa74cce492a228b29e84d7b3eaf31a7ff48957e2e3a1"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_RectTransformWrap.cs",
+      "status": "untracked",
+      "bytes": 23291,
+      "sha256": "9b47c8ab4dbec9f5bad785290623449a695646df987d82394ce47bf691596257"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_RectTransformWrap.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c9fa93882bf258d55704873463233a4fb633e100b116db0f7d5c1c22bdf28efb"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_UI_ButtonWrap.cs",
+      "status": "untracked",
+      "bytes": 5028,
+      "sha256": "20d6f2e9a7375ea2d059d7ee2a045dd9ace36fad38d357ffbdae869d1c941e60"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_UI_ButtonWrap.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8b5c123a098dbe936fb0118a8f7b865a316920f0dec07c884777c985f52d1432"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_UI_ImageWrap.cs",
+      "status": "untracked",
+      "bytes": 34234,
+      "sha256": "f1cbea94377c53f59d5d452e5608c7b217524428143a428c6af912a2f3d3b8b1"
+    },
+    {
+      "path": "Assets/XLua/Gen/UnityEngine_UI_ImageWrap.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "4ddcfe4e70f9864dd32a5ad92afdceffd4f449eaf3f0b604413ab96e1803b1d7"
+    },
+    {
+      "path": "Assets/XLua/Gen/WrapPusher.cs",
+      "status": "modified-or-deleted",
+      "bytes": 50576,
+      "sha256": "301dfac64218f56b564b417c426b565d80ddcdac4791947ca51699ca6a36dc75"
+    },
+    {
+      "path": "Assets/XLua/Gen/XLuaGenAutoRegister.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8990,
+      "sha256": "c1fe01821fc2d7bd813ac840e47e61184d093843bbf241394b1290f2b7729a0b"
+    },
+    {
+      "path": "Assets/XLua/Gen/link.xml",
+      "status": "modified-or-deleted",
+      "bytes": 3591,
+      "sha256": "5f442b4a0bc15136d7ac562c23c118e2d21f61d8254b0122c2e3b417591015c8"
+    },
+    {
+      "path": "Assets/XLua/Src/Editor/XLua.Editor.asmdef",
+      "status": "untracked",
+      "bytes": 395,
+      "sha256": "60c3f3f8323745f57c6f752314c1b70fd28c3d7a3259749e9ae0d641cb3e3f43"
+    },
+    {
+      "path": "Assets/XLua/Src/Editor/XLua.Editor.asmdef.meta",
+      "status": "untracked",
+      "bytes": 166,
+      "sha256": "39133ca4696016587193f0cf4e5c5fff7cf9efb4523892f82b9e9ff860b27bb6"
+    },
+    {
+      "path": "Assets/XLua/XLua.Runtime.asmdef",
+      "status": "untracked",
+      "bytes": 409,
+      "sha256": "23ecf33d615a2da7989735d6fa4f4a95fc925581887916aba4d7ec53187a6826"
+    },
+    {
+      "path": "Assets/XLua/XLua.Runtime.asmdef.meta",
+      "status": "untracked",
+      "bytes": 166,
+      "sha256": "d6f1128a9ab060992278111778c7f17fbfe34acb822e48fdc9f53adcaf0b0c56"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Handgun.wav",
+      "status": "untracked",
+      "bytes": 360526,
+      "sha256": "75edb0a358e5a29233e855688ae440261f5fa21d16bc1672e8607efbff0bfe58"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Handgun.wav.meta",
+      "status": "untracked",
+      "bytes": 552,
+      "sha256": "b459a570731f3a58c2084449ed08286a061cc5ab747d53136f73813ed9a34275"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_Heavy.wav",
+      "status": "untracked",
+      "bytes": 360526,
+      "sha256": "49b0dda07933654621a7902cac79a10ab0bad30747337a076c8c2a562b5a6564"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_Heavy.wav.meta",
+      "status": "untracked",
+      "bytes": 552,
+      "sha256": "914b05d68b7d1e48badeb933e3262b35cbddfd10c157d2b8ff2ee11be7c00d78"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_M4.wav",
+      "status": "untracked",
+      "bytes": 360526,
+      "sha256": "5e6c8e3d153a97369b4b98a6498bbce12b8ed76c6fc5d382f75c6d091324c4b5"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Rifle_M4.wav.meta",
+      "status": "untracked",
+      "bytes": 552,
+      "sha256": "6eb68d5ef4fcfa3d891ca810cea42850db3c220f9cdf1150602cfd2182bbabfd"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_SMG.wav",
+      "status": "untracked",
+      "bytes": 180302,
+      "sha256": "a6e3875649282ec7c80250246546fdcb9e4731be3046b604809d42aec45234c1"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_SMG.wav.meta",
+      "status": "untracked",
+      "bytes": 552,
+      "sha256": "942273189152ddc05e7280be65adc0687f42a42c3fc7ee8c945ba800dec6a2b0"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Shotgun.wav",
+      "status": "untracked",
+      "bytes": 360526,
+      "sha256": "16a43cbcaf354fa1094fdc9eb0e92b66724db5bd6e5b591f2250c38559ffa8a6"
+    },
+    {
+      "path": "Assets/_Project/Audio/Generated/Fire_Suppressed_Shotgun.wav.meta",
+      "status": "untracked",
+      "bytes": 552,
+      "sha256": "5f7347e10f704ddf9ad68772231d1d84adebd5212168c9abc37d289aa9c28933"
+    },
+    {
+      "path": "Assets/_Project/Editor/BuildManifestWriter.cs",
+      "status": "untracked",
+      "bytes": 4314,
+      "sha256": "4f3ec387b4e7bf979538cb92745669f3a0ec563f2224d08d3a49a21b0bb1856b"
+    },
+    {
+      "path": "Assets/_Project/Editor/BuildManifestWriter.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "647e85d809103e407b9139535baafbde041ee4332776ab8a50273aa132134a83"
+    },
+    {
+      "path": "Assets/_Project/Editor/CP5_HudBuilder.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10610,
+      "sha256": "bcd927815bec122fcc118e34ad400676c66938560bfb33e0309a81aed5c48df3"
+    },
+    {
+      "path": "Assets/_Project/Editor/ClientBuild.cs",
+      "status": "untracked",
+      "bytes": 2901,
+      "sha256": "4309ba9c320803fd639123aabca6f947234805e4bfafb329ee6dbede5b27a852"
+    },
+    {
+      "path": "Assets/_Project/Editor/ClientBuild.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "6dead9af2135920f72f7e3ed0d27fc5324a2b25af26d93469bcf84294ef782a1"
+    },
+    {
+      "path": "Assets/_Project/Editor/DedicatedServerBuild.cs",
+      "status": "untracked",
+      "bytes": 4297,
+      "sha256": "3ee65697378cb75a0a5af1d8437b3d3dcd54841f7f5d882eedc8393dbf43d7d9"
+    },
+    {
+      "path": "Assets/_Project/Editor/DedicatedServerBuild.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "e938c07ccca3fcbc9f679a4d64b75fd6e42cfcaa7847bf20124c6c9c44d5626f"
+    },
+    {
+      "path": "Assets/_Project/Editor/EditModeTestRunner.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4350,
+      "sha256": "50b17b6d0763668369e548c8ff0c5990ae60c1ad678d853156544abc19717ca9"
+    },
+    {
+      "path": "Assets/_Project/Editor/FPWeaponPoseProfileEditor.cs",
+      "status": "modified-or-deleted",
+      "bytes": 23185,
+      "sha256": "9d2d09b298b866cf898f1dd894246334f5837a96c5d80f00a0e90832cb5ce1de"
+    },
+    {
+      "path": "Assets/_Project/Editor/HotUpdateBundleBuild.cs",
+      "status": "untracked",
+      "bytes": 2515,
+      "sha256": "6fb51cdabaa30841582102b8ca28f950336f3e46b34970f878bd644de875d9f9"
+    },
+    {
+      "path": "Assets/_Project/Editor/HotUpdateBundleBuild.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e5e83954a136a0a269a9a2ad987b0d7200c5098ecbf541e51bae54334855705a"
+    },
+    {
+      "path": "Assets/_Project/Editor/LPWDualLayerCalibrationWindow.cs",
+      "status": "modified-or-deleted",
+      "bytes": 59885,
+      "sha256": "6b4ef1334531fc22ca20febda1a71c95a3533ccbfaf7de82408017f3545523ba"
+    },
+    {
+      "path": "Assets/_Project/Editor/LPWWeaponProductionPipeline.cs",
+      "status": "modified-or-deleted",
+      "bytes": 91282,
+      "sha256": "8c615f6f17e8945d8c13ba33bea00e97e69c4f1c4808f5ba3f93fe73e0ea9b8f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Player/Player_Day2_Rebuilt.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 44540,
+      "sha256": "d768f73f012eaee27cb2a6bfed0e6a42a293ca329e10acfea9aa7a3cea66f574"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Handgun02_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 18114,
+      "sha256": "d7a45d8e0e4950e38feadd23eb9a71f50aaa29e2ddd69a5f4feb275f883621f5"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Handgun03_View.prefab",
+      "status": "untracked",
+      "bytes": 18115,
+      "sha256": "5a4645fa5e1946f84353464f3b80d02f6e94887c2a5372e6e3210a3f376f288d"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Handgun03_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "001d84c452a6fdfed7001cb5123fe7dd08e0bd5e9a6d70504e072e5aba0dab6f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Handgun04_View.prefab",
+      "status": "untracked",
+      "bytes": 18968,
+      "sha256": "d51937e67d1b9db5dde12ee27c43d913070b65efdef584faad3e90f16bd59004"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Handgun04_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "821c6665606b3c14880b3f509e645ed7ee491255fe0920653b60a68a77b6c4fb"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Rifle02_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 23435,
+      "sha256": "d20bb436709417b2d40e3069f93ac35d9d904777cc21605000f4c85dc809dd79"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Rifle03_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 23267,
+      "sha256": "a9d39fe0781468f268d69cf57649f99cf2d95b8059d069e6b9a6ef43c7d2da2a"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Rifle_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 82781,
+      "sha256": "edc24b733a870e9fc11516888341936aa91e2e579bfebcd3f956ec766f681bea"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 23275,
+      "sha256": "5e08b5eeb94ca22b02d00d7fd2970537a6bf0b4db3e95cc81be0d21e1c4e94e8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG02_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 20146,
+      "sha256": "dc412acbe5ad1f6e9ac451fcab3d9ab182badce87f4c93517f49d69f897ef6f4"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG03_View.prefab",
+      "status": "untracked",
+      "bytes": 23274,
+      "sha256": "91bd53c0b701c36970a3409dc7440e97fb92a9eb1bd78d180ca1a73ae6ccb4cc"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG03_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "55c84390ee93127ac6a8ce047b7cdb125f481ab4fc5982d926b0dac49a457332"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG04_View.prefab",
+      "status": "untracked",
+      "bytes": 23504,
+      "sha256": "22936c55b72a65a12ae79b75f1c4e5e0ca9beaa2b0863abe2ddcbd2de19d667d"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG04_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "77984e9500c199a26bbe2527dc4255b89c0ab78b04609ddd08a038a65715cdc5"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG05_View.prefab",
+      "status": "untracked",
+      "bytes": 23502,
+      "sha256": "d9332b6b8019fae25e48f3765b80a47e27f9a2d7a0fd15dc7db7662059e152e0"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_SMG05_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "baa5089a777062ec2667b78b2cb03538883813279a6a41b4f98f55e9effbe7f4"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_ServicePistol_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 74329,
+      "sha256": "0a9c78403b15387d79c8827abe52b80157be30c53e2a530a43806b26becb4ebd"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Shotgun01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 19812,
+      "sha256": "10b325268347e5cb6efd1585c87841ef16deaeb425b7fc0cc224d10916f4a035"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Sniper01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 17842,
+      "sha256": "7f3c395ca304f87365eafb67607a4ae9c87efcc3085dbf9bca6dbe464b1a8c42"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Sniper02_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 18643,
+      "sha256": "bf6b739dc172aced2e01d8b34c2a0df9d298260c89857c66c188fc6f59fc5c38"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Sniper03_View.prefab",
+      "status": "untracked",
+      "bytes": 18701,
+      "sha256": "9c3600e0b1e174e41c2028caf21cde79433229cb9acfbe44543e54bda0f800f3"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/FP_Sniper03_View.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "feb7b6930850d938496899ee04878d35dd0c3e8200d4433535fc0666ab71407b"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle1_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 101635,
+      "sha256": "5dde8b6efdab5647688cb9e45b82699c767eef57f6e0025a8078d13881675e52"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle2_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 106728,
+      "sha256": "d3edb663666e057df6b93e3473d661364f3e5e23c45959abed8dec81a129d28a"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle3_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 105823,
+      "sha256": "0e876233bce6208ea9548ecc086677aea959717f995ba7a24914272d37ef9b43"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle4_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 105570,
+      "sha256": "228c43816fc8415f518b051a8ff3513da436cdb2e31f6769e5a62740f54db9bf"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle5_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 101284,
+      "sha256": "974ca1258b04ce7c4470d7921f51b3c026d56b5f0a7d04c70659e65ffebdc695"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_AssaultRifle6_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 105837,
+      "sha256": "66e2a8130701f222895995f8b8b5e505944421d20f0b907ab4017991f8cf0a29"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol1_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 93380,
+      "sha256": "83e65d1721ca632ddd0279e116986fc133e2e0d063ed83df30fe7c47c0dce295"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol2_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 90610,
+      "sha256": "67be4142863609d80f6433ea3b5ab0e62d1583e7eaf457a07b17c46eb46020dd"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol3_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 92755,
+      "sha256": "dfc53c499e5b47c8b7ed43faa3ff4f4c2ab98565e6fddce3cb4bbec40e084fa8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol4_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 90285,
+      "sha256": "9a230ee20ada0c2a393daf03fee71d743790e1e53a22cfd965cbf71b576b2da9"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol5_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 88988,
+      "sha256": "b165aebdf86e46cd1daf5f94783d0011656f7cd19353d979f0cfdb8d49d73bf1"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Pistol6_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 90332,
+      "sha256": "099608c6a8e32027de35553cd7e0965dc74cad3a01f01b73447c7d71592b9f2f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG1_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 39979,
+      "sha256": "8d59c1907ea30dbd1ec7e1afba81b9f833eb0dc68047e8b19227a38c98982651"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG2_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 44367,
+      "sha256": "4573d9f95bef4effdc124009967b8fabe4d9ad6c5b958f40178466852b3c5048"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG3_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 41363,
+      "sha256": "4f7c08694420f94b25f4d3082683488a98d827f666d9a215dbabd72b27c3cdcc"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG4_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 41293,
+      "sha256": "c01f15b12c68eef8b5d3262e96becac3c7fc196060008ea90711bc221db6a85b"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG5_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 41477,
+      "sha256": "d233e9355714e1ef1a4219141c2eba741596e7074a6924ba3527db6e542e31e7"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SMG6_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 44293,
+      "sha256": "7fe95fa0fdf8d75222bc67e20dbd4f56980240dac7c156159cf9db0f5674a2ae"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun1_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 42210,
+      "sha256": "160180cf13dfed96a6e221b6b00058f1e8da7768faaeb74d457ed0cc0d3a41a8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun2_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 42370,
+      "sha256": "1e15ba4d3cfe2f187d2d69b5286f94ddef2b6d88a3568ef8316c4b59be567783"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun3_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 39347,
+      "sha256": "56642439b666f2c785343e39dcdb9b14dd8a9a1d7bc5c0a66a5ebe77aabb757c"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun4_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 37960,
+      "sha256": "55aa91aba7b7439afb471d8ffc575174fd363b23369ceb47eb13b782d6ef2756"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_Shotgun5_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 42683,
+      "sha256": "a66447084e9a215f725e0c2726427a2b4616fc3e60694513af4089ac6c0731f2"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle1_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 38298,
+      "sha256": "47f01a335c5a0fce8bed642e8436e77a4efef8b13fb79960473de1398de40c6b"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle2_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 39594,
+      "sha256": "6efdab0462a37cd67d8c91f7770323251c1ed38053c178f45062d09786aaeda8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle3_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 38057,
+      "sha256": "ef86a22cefeba76163e0113998e22a23ffb7f638f143ca911a954df5660d3ec6"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle4_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 39611,
+      "sha256": "32aafb709ecbe1b0ec7355aadb9affd5a046efa94b39e5c6f273648b4ee4b84a"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle5_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 38250,
+      "sha256": "9d9e64f93e11a21770080c01fd2a61d1724bf44411e32af6f5e44407bf413df2"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/FP/FP_SniperRifle6_01_View.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 39634,
+      "sha256": "7b6acc08c36a10475204e98d75c7ef63d60e64a87a7d8e296783e1523d812ce5"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle1_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8286,
+      "sha256": "3d7e96f00334bf2189c92ec4cb094f9730be6489e68517a154cada94eee749e7"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle2_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 9723,
+      "sha256": "8039a5362a6a8fcb7ce04b30ce74a9e36335df05708c211eb544c940ee2affdd"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle3_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 12497,
+      "sha256": "2bed106fee155f4279ee0bf52d5cf72c86103d955306fbea3e8296d088c26cf8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle4_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 12445,
+      "sha256": "36d5a2a11e059f16ddd4e24cfa262cb28fa921d391fbec43fe5b951e22f4f0c7"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle5_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8207,
+      "sha256": "ce1c28d555aad2fed439fe6f0d51f328f29345417834399106139ca459c53d14"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_AssaultRifle6_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 12514,
+      "sha256": "17ec4c1622aa3114101c2a2366c460788cdf28b3b4fb8d64dd5ad16e9e20c3d4"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol1_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 11176,
+      "sha256": "26c26a263f761cc7892ce5d94ed7b76015cd0930f8f37a040423933748a9e4d0"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol2_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8372,
+      "sha256": "cf5360e84df94f13f2b34b40b85813f4779aed97639b72919c5129658ca52ef5"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol3_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 9856,
+      "sha256": "72ac1820b67d032eff6deef1e4e81c406a0a2b4c4c56f0dd850a6aa96e6216aa"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol4_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8304,
+      "sha256": "45efe162fbfed3ecbb9d1795b95173df9305ec4a8cd46245559a1c8a47ec2f53"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Pistol6_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8296,
+      "sha256": "673d519d6cd3a45af83504e2dac86501cfef798a9f00c5c3fabc2be01ba1957f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG1_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8290,
+      "sha256": "0dc7219375b19b7644a257193e31f814cddb4e9130be735bb66825363491ece3"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG2_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 12585,
+      "sha256": "72d2da2a7fcab7235a5fca3a28360f6ea6ae4e3de6ff7ede62492b31b4c7b796"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG3_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 9669,
+      "sha256": "ac7689230980ffb7b40c7d5354d5db0cae02ade8216d158d51c451777e02d504"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG4_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 9604,
+      "sha256": "b759830f505be6b62ead0f1ad41079a7213f5b990a645c426bbd1ab1850468b6"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG5_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 9709,
+      "sha256": "619ae206893deed10e6dcca60f978999da8b1733b24033572e2ffad8b1115f40"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SMG6_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 12503,
+      "sha256": "2c377252cfedc45b3d5a708ec8b9ecd7374fc899e0b24c55d5f8b8ef0eca2391"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun1_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 11010,
+      "sha256": "ebb6c62b8e170e6fa1153e3c59d1deda213af5d054f158cb2184af1c5eabdd50"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun2_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 11101,
+      "sha256": "3efb89ca26b454347d0ff602656288399816d6f6f041216f9c6362f98544410f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun3_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8211,
+      "sha256": "3357bb585345771d5c62f114686bb1c66a814a4c43d081bc35c0fa989bc76b08"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_Shotgun5_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 11242,
+      "sha256": "6d54157b61399d3bb22dafe2a3e2769695ca315d4f63fb9e5348017846f2bf20"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle1_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8263,
+      "sha256": "43f22b450360b9bc4513b7c450fdd3397562f24252d94c64a3068ebb2745a001"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle2_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8280,
+      "sha256": "d5407aa97f6a1e05c79c575ab2a0e6541dce371ba2e4281b8c354167394ea74c"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle3_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8208,
+      "sha256": "f9db1f5568436d959008fa91fc0aee6da0f8659b9b5b1aca34e6fcb2f8d780b6"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle4_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8299,
+      "sha256": "862ff5592e0964247dc5903542f9283f0d838d4a42e7d4583ae9a6d4af98d432"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/LPW/TP/TP_SniperRifle6_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8308,
+      "sha256": "817faaafcca65ac92c698d53a9362621fe6cdfe6127b5b5223481244652d2d91"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 13573,
+      "sha256": "6f3f2e0b1a7c1b38acd42846c993dfca5295e42324d040e7bd56f7456148c86a"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 10940,
+      "sha256": "56cec8491f71e9f89fb168f3416bbf01f8dd9c410fbe4058f9e32aaf8ed0ffb6"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 10938,
+      "sha256": "4474871eecce558bbca844c45f25dc2af835a36e664235560cb14409285093e9"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 16479,
+      "sha256": "b10d1390bd3e8e984ac780dcd20f78c1d5da79b4a2bb633effc5529b71c47cc0"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 6803,
+      "sha256": "6f2d85037842e1deb604c19abb9f1dfed9859c7a4b30d58030ef9223540e3e87"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab",
+      "status": "untracked",
+      "bytes": 8328,
+      "sha256": "ec5bcb76d1067aa1ca15ccaceb767d7720b12a012a67411d21fc713e047ebfb1"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "1066576962823e58c1e0a7b4cfe48cf52a5d722dd3adbcbf7e7b50bef294a2f3"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab",
+      "status": "untracked",
+      "bytes": 8327,
+      "sha256": "0ce5b4071b97fb814b5d75d47d89f89747a57ce4e8b36e4f16b1a050a16c56e9"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "d4d09d3a749b7a8e8957c76572ee741877dbb418e049830ecfe85fc6058eaf21"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 10924,
+      "sha256": "5167c89299aef00469ff3be9197907d1af35d9012e595aa37710edbdaf267fa8"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_02.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 7839,
+      "sha256": "32d345e8e783cf028ace6da2b56615ab41b1de12b583920735397a5cc2321419"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_03.prefab",
+      "status": "untracked",
+      "bytes": 11176,
+      "sha256": "21b55c3ea3d2325b981a46592888818c34867374ccf06830614ee71d3cef65b0"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_03.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "fe45bf75e6309c6c8e748ce5889e414a84e319611421e77a6e1add8bba84c618"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_04.prefab",
+      "status": "untracked",
+      "bytes": 11179,
+      "sha256": "c49448ec8f8ca6c4c13701727a08227252a70680aae57d3c0a4a0211223e5e50"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_04.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "61ae45f6c6e36e32768029ce4b8fc754fede68d7c899d48d1c44adebd8c8e1c5"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_05.prefab",
+      "status": "untracked",
+      "bytes": 11175,
+      "sha256": "56935b2b6b4011b7c47ce834ee67d4395ae5e081be6100fd5e442ef4f72b2544"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_SMG_05.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "1bf052ca1168a6fa91368b43e2f2e353eb5e31ccf022a1cbc45d05212da6fd22"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Shotgun_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 8345,
+      "sha256": "019e2d2a7b4eb5572b526c14cfcf852f710d2c71453ba34036dc9761d9b74b02"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_01.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 6300,
+      "sha256": "0b19060fa4e84c258173ac992791b4e8b7de12fe7d3a7a627ee9b517495f3964"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_02.prefab",
+      "status": "modified-or-deleted",
+      "bytes": 6793,
+      "sha256": "c306e3b3a8d3bd3b9ed5efa8e7e4277dc2283754c346978911f4a9dfc92d3a3f"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_03.prefab",
+      "status": "untracked",
+      "bytes": 6522,
+      "sha256": "aa408e855448da6d77a9f699f1f2fbe508d4ee7c40b8e9b2d8dc1f4445e4c89a"
+    },
+    {
+      "path": "Assets/_Project/Prefabs/Weapons/TP_Weapon_Sniper_03.prefab.meta",
+      "status": "untracked",
+      "bytes": 154,
+      "sha256": "91d95c2aab77c8ef8544ee00185ce11a2dff3b85712ce18277ebd1d8de496687"
+    },
+    {
+      "path": "Assets/_Project/Resources/AttachmentAssetCatalog.asset",
+      "status": "untracked",
+      "bytes": 13601,
+      "sha256": "f6b3bdb669d32ca54289ad78227919e21bf3b38d5f2b4f8bf948df3274acd07c"
+    },
+    {
+      "path": "Assets/_Project/Resources/AttachmentAssetCatalog.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "7e0548f1847e2059fa6ee78dc0117512c8a4dd634d0597795ae37be62dc16c8b"
+    },
+    {
+      "path": "Assets/_Project/Resources/AttachmentCalibration.asset",
+      "status": "untracked",
+      "bytes": 26051,
+      "sha256": "634f3310294bf8cbcbe1a189186861c09756c0508835ab7fbbb7944c8acf9117"
+    },
+    {
+      "path": "Assets/_Project/Resources/AttachmentCalibration.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "793916704eae97577d97928a009f222349c9de226cf7e0fbb9154f7ea87551f0"
+    },
+    {
+      "path": "Assets/_Project/Resources/OpticViewCatalog.asset",
+      "status": "untracked",
+      "bytes": 3753,
+      "sha256": "5b3e835a56f9614a9e442b5a21ff342727c4587c23684155687db89bf48d5c3b"
+    },
+    {
+      "path": "Assets/_Project/Resources/OpticViewCatalog.asset.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "da02579358f401d654ea930c1b70028aa1cda62a5fe1eb549dcd5ac084964916"
+    },
+    {
+      "path": "Assets/_Project/Resources/WeaponAssetCatalog.asset",
+      "status": "untracked",
+      "bytes": 27401,
+      "sha256": "76bf52ebd73c4693242f140fd7e06ddfa2d9cf9d81691cb1372d1055ae0903b1"
+    },
+    {
+      "path": "Assets/_Project/Resources/WeaponAssetCatalog.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "a13cc8a4a8922ae1d9483772e8640e4789478edd3d2b7c70c7722761dd415350"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Arena.unity",
+      "status": "modified-or-deleted",
+      "bytes": 143988,
+      "sha256": "2096a53e1e60e23095f8512dcc6b167f7d904a5fc34f28eec387b85e2257db37"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Arena_LPWTest.unity",
+      "status": "modified-or-deleted",
+      "bytes": 142566,
+      "sha256": "d20f95cb5a4354a0e4a3667d14761a9d7ac66bb7cd23c19efee9095e4487a4c4"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Lobby.unity",
+      "status": "modified-or-deleted",
+      "bytes": 14274,
+      "sha256": "65a7d2243b35bd5ccd7615cfe06a70231b1ed80c7a1cf1d50f2875ef16e160af"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "3e0e68bdba1b435af7b046c1fd37b2b43ded9327799f278bb546b1cf2ff39ce0"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55.unity",
+      "status": "untracked",
+      "bytes": 160171,
+      "sha256": "a5f83394bbf6cfbe4242838d12c3e8eaff45cad8cba02f93ae244b1141d5844d"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55.unity.meta",
+      "status": "untracked",
+      "bytes": 155,
+      "sha256": "8c285f591c6784c239a95312dbc0df91cf2d6225afef93da7276e33cf7a3798d"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/LightingData.asset",
+      "status": "untracked",
+      "bytes": 17921,
+      "sha256": "416406740d580e95ed8c1bf6ee62114cadf707e3bf711caef8a900a8cf882feb"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/LightingData.asset.meta",
+      "status": "untracked",
+      "bytes": 190,
+      "sha256": "e8f9a1d0683f697e69c8bb2f1a46580032a3676ae508bc25f69563bb3168aa43"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/Lightmap-0_comp_dir.png",
+      "status": "untracked",
+      "bytes": 91807,
+      "sha256": "024a07e2088e89e294252cc74062298eafdcdec96412810fd40ab0023251a041"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/Lightmap-0_comp_dir.png.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "87eb3e8778bc472c63dac1cd032294e35dd0da569803650df1027860b4b0f15e"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/Lightmap-0_comp_light.exr",
+      "status": "untracked",
+      "bytes": 5953943,
+      "sha256": "c736899984cbc0b09b8bad938ea1168fd5663d8a85d619e66e29f9a89b4d112c"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/Lightmap-0_comp_light.exr.meta",
+      "status": "untracked",
+      "bytes": 2652,
+      "sha256": "90d75b75a8d3cb2ac0b0941c8e696913f673115766bc24a4447036c887617c65"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/ReflectionProbe-0.exr",
+      "status": "untracked",
+      "bytes": 163864,
+      "sha256": "844922b87d22ecd9aca91245610bf6ed0cbb819e7b30d14e9c74ee05347f06ec"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Depot55/ReflectionProbe-0.exr.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "2735111f8570ea021ed5e83f88b023f3b893c5faba1ad3659204dc49255c7330"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "67b6e385eab8a51f9493b2c33634ec21e11be343adb70ea4c399aa7f494850db"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline.unity",
+      "status": "untracked",
+      "bytes": 155563,
+      "sha256": "4866ba4b2a58b0e7876656a8dbfc74c11803588832e494a7a78a841cf9673991"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline.unity.meta",
+      "status": "untracked",
+      "bytes": 155,
+      "sha256": "f772b189ebabdd733e4d362ef6662afe91a6a6b9fe97b2f6cc7ff715d2cebeed"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/LightingData.asset",
+      "status": "untracked",
+      "bytes": 17921,
+      "sha256": "d8a79ab504e5cbf120b8fa9d4b84d3ec56808b873fdd55e0b1c782f742393934"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/LightingData.asset.meta",
+      "status": "untracked",
+      "bytes": 190,
+      "sha256": "20db378ddea3e412c8a94c8c458180790c8a52972c727a1eea72ead7a349c482"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/Lightmap-0_comp_dir.png",
+      "status": "untracked",
+      "bytes": 91807,
+      "sha256": "024a07e2088e89e294252cc74062298eafdcdec96412810fd40ab0023251a041"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/Lightmap-0_comp_dir.png.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "5eb94a4aa552986afa025282cc147631954d1831beae08453fc611502be12186"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/Lightmap-0_comp_light.exr",
+      "status": "untracked",
+      "bytes": 5953683,
+      "sha256": "dbf01cc60205d4d20d6b9620ce4ab06f61b49e5f46eb2e5b9d87655e2bdd8601"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/Lightmap-0_comp_light.exr.meta",
+      "status": "untracked",
+      "bytes": 2652,
+      "sha256": "b9da1618e93d583ce0a8d16ddda0600cee07acd618bbba3e3d473b29d5d4ef0d"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/ReflectionProbe-0.exr",
+      "status": "untracked",
+      "bytes": 163864,
+      "sha256": "844922b87d22ecd9aca91245610bf6ed0cbb819e7b30d14e9c74ee05347f06ec"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Ridgeline/ReflectionProbe-0.exr.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "84e844b45ed2bcebfb0ca67e5792316d7ea4dfaa8ffe7347db14583ba1c98cbb"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "9f36ffe8a26a0a832b8c2a270274c9f40e644086035c2e256d09fb676c36d9a9"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard.unity",
+      "status": "untracked",
+      "bytes": 144181,
+      "sha256": "26950e2f1a23806b0c50fa1f286a8360cf4233f9bef6e70529d28d587e39c54b"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard.unity.meta",
+      "status": "untracked",
+      "bytes": 155,
+      "sha256": "ca5fb1f74693478bf4244887aafcd4ff9ac4909909055337b2c8e689548811ef"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/LightingData.asset",
+      "status": "untracked",
+      "bytes": 17921,
+      "sha256": "0ba5d42a74804ac21ddb7b3a49dc2c1eb5c6dc195ab68ca61310d0608461ceb7"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/LightingData.asset.meta",
+      "status": "untracked",
+      "bytes": 190,
+      "sha256": "a388e0ff862c0458af0b97be7de294cf2bed205c27c3ac106823a62b03a41a8f"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/Lightmap-0_comp_dir.png",
+      "status": "untracked",
+      "bytes": 91807,
+      "sha256": "024a07e2088e89e294252cc74062298eafdcdec96412810fd40ab0023251a041"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/Lightmap-0_comp_dir.png.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "2a583c6136133b0bf5d73718652b7623b6ce3f772beec6fd0b748e340d52843c"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/Lightmap-0_comp_light.exr",
+      "status": "untracked",
+      "bytes": 5953499,
+      "sha256": "1b70bf75cc30abbbbf3907f18431277490965ec7c2361ba69e06acb6f8fd4404"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/Lightmap-0_comp_light.exr.meta",
+      "status": "untracked",
+      "bytes": 2652,
+      "sha256": "66f69e699f8059195d6e9cc824f16c6723a56d73982df4f37633ac83f83d1a44"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/ReflectionProbe-0.exr",
+      "status": "untracked",
+      "bytes": 163864,
+      "sha256": "844922b87d22ecd9aca91245610bf6ed0cbb819e7b30d14e9c74ee05347f06ec"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_Stackyard/ReflectionProbe-0.exr.meta",
+      "status": "untracked",
+      "bytes": 2653,
+      "sha256": "cd2755eadf7ca9888d0e26a314e6de707ba61ce6b6a6574a66953240c2fcef96"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_TrainingYard.unity",
+      "status": "untracked",
+      "bytes": 144190,
+      "sha256": "12cb6a80b772011496088d57f8a25d2a6625a02125cd9b96c2bc09e991038f24"
+    },
+    {
+      "path": "Assets/_Project/Scenes/Map_TrainingYard.unity.meta",
+      "status": "untracked",
+      "bytes": 155,
+      "sha256": "239073d96bf2db79412fe4f68248474425e4c15b043b13260bc3735a81d617bc"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset",
+      "status": "modified-or-deleted",
+      "bytes": 0
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Account/WeaponAssetCatalog.asset.meta",
+      "status": "modified-or-deleted",
+      "bytes": 0
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Audio/AudioProfile_Handgun.asset",
+      "status": "modified-or-deleted",
+      "bytes": 2128,
+      "sha256": "a0dd92870a7f82775a40b0f6a71443bf0f35e639d02bbf163710b4d8ac1cc8dd"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Audio/AudioProfile_Rifle.asset",
+      "status": "modified-or-deleted",
+      "bytes": 2126,
+      "sha256": "3b320773030c404266b10af22261be8942430acb039dc49fbef290aad66cb1ab"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Audio/AudioProfile_Rifle02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 2132,
+      "sha256": "195a0afe95ccad9f31f13eb0ed6857d60752cce4ba573a0789a7fe93fbbcbcc7"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Audio/AudioProfile_SMG.asset",
+      "status": "modified-or-deleted",
+      "bytes": 2130,
+      "sha256": "696e366c714e1beec2f082b38417acd801fd3f841a76080cabead54894ff6cb2"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Audio/AudioProfile_Shotgun.asset",
+      "status": "modified-or-deleted",
+      "bytes": 2168,
+      "sha256": "7447f86d727b64a4efe2650847b44664739dcb2eefb07542eeb77ede43adbf03"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day2_DemoBalance.asset",
+      "status": "modified-or-deleted",
+      "bytes": 38728,
+      "sha256": "ff306884a8ccd35ceba36f22325c3aa04d2edb5cbce652d41475b63e5970bf96"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day2_ServicePistol.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4797,
+      "sha256": "cb7c491046061c6b4e9c0080580f1181fc5c0b51b36c8bd7388ff7463ab1f4c7"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_AssaultRifle.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5055,
+      "sha256": "3727e1d3665b38406fee8cd34f2878f1546aacc4d9146eec4e8bc2f6df241463"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4790,
+      "sha256": "5fea696e895df99b3c5fe34315d24e7640a967adce6c2b857b7b9aec31689943"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun03.asset",
+      "status": "untracked",
+      "bytes": 4854,
+      "sha256": "71f2ffe715b31d3f3f7328bbb0e6208ba2bc81b7b8c17f7f0f3950cb2fb89c4e"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun03.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "44d26d63a1d2602682581648a8130612c6f2638c9fc9702c3816dba81091ed81"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun04.asset",
+      "status": "untracked",
+      "bytes": 4853,
+      "sha256": "bf58bcafa44b2d0fd8ca766b3224fd49ec325b326acd21009bb6db3d1d0c3d1d"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Handgun04.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "f13aae4af730dedeb729a2ac3283dbde4086352689aea82bdb9973ab78dc3a9b"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Rifle02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5048,
+      "sha256": "b6fa45a7205f2cdac07da1d709b798825c8bb6dd2601d33c1fa0369f8a93a264"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Rifle03.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5054,
+      "sha256": "f3ac73a7bd20be47ac53c2447334d12cb5abb43fe8e09e127a136f9cc89189b5"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4725,
+      "sha256": "d6070c5106a6dd6e294fa95fcfc4cb079f3d4d817ec8895cd04f874aab43c6c5"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4721,
+      "sha256": "6bcfd6d17055b0fecb7458c58aaf211b10a6863b73df221777725e7744c62383"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG03.asset",
+      "status": "untracked",
+      "bytes": 4783,
+      "sha256": "c6face322de9fad5570019ef361e24270a1d6a913efd60a1e810a4808372fe30"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG03.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "a11b81930879fdd39510ca9679c3bd5b5b8c646d156f64fe15596b4709c341bd"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG04.asset",
+      "status": "untracked",
+      "bytes": 4786,
+      "sha256": "0608165d31c3ad4fd6844ba7ef85356a6160377757fdeeb8e4672a58ded6ce85"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG04.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "1b8cda2b84ec56cdc9d3871d65a26abceccb764085b3fd26ab8c4a3794e0bd46"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG05.asset",
+      "status": "untracked",
+      "bytes": 4786,
+      "sha256": "19d5238babca8d7847605985c64bd5e4655cbfe301cf9f105c380754c938eeab"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_SMG05.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "88ae4b409a30eaaceeb08e5e53da3aa2e7bd3d6ad04646dbe428c73b94ecaa27"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Shotgun01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4633,
+      "sha256": "5ccfc24408fa930426effe2b47fb8b6a8f96dba43cf108017a94f7562a76d24e"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4731,
+      "sha256": "76dc82ba552b3d1c5306bb5954bd3120ed200390df5e75ea69a1d422e90d7dee"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4847,
+      "sha256": "908da79717300c938e8e4e998ecf2e39a1044a3797ffe788c8e42552b11196a7"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper03.asset",
+      "status": "untracked",
+      "bytes": 4732,
+      "sha256": "82f15d0eeed85f30d0f01994d25d938eb9ede2e22995d3036e85c5854cd81d65"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/Day3_Sniper03.asset.meta",
+      "status": "untracked",
+      "bytes": 189,
+      "sha256": "f35ea1d7a48b37080cffba75be6eea8895530cd06ca0c8adb2b7e0424dc94bca"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPWWeaponManifest.asset",
+      "status": "modified-or-deleted",
+      "bytes": 122260,
+      "sha256": "e62823f9b660677ca7604f25ef4ba4d6a8ed95e547d16c073daa64b654c7e5ce"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5070,
+      "sha256": "11b0645ea9ff665609fbf417480bd6a46b6a565b32d6709ca8bebb7ce99d717c"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle2_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5618,
+      "sha256": "de28fac78d47880f80fc8f6d30318b452bb36ff6a680f021572371214494e216"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle3_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5068,
+      "sha256": "7b2101decb7cbd6935b9f4b910910fbc1025bdd854c88cdbe8e7de70e2953f49"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle4_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5070,
+      "sha256": "1af27af3a07919c51f3b54e753829af87eef0c567df2e16d6bbd99ce334be102"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle5_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5069,
+      "sha256": "c2a73030a29c3fc76583885bc45aa3610f4aaecb6e0a3c0ea362c2357c5b011c"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_AssaultRifle6_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 5072,
+      "sha256": "9db8e1a47c355207ac958593622578f3919a906f5d3793e47216f1800c9cb5da"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4812,
+      "sha256": "23f31ffba5f95346dcd3d01e52808c52bf697214a5b7330996443211b526f030"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol2_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4794,
+      "sha256": "fee4973b425f1bd009f565519f1b6b0c5af5cd32daa082d4543c4a8b19fa5349"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol3_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4811,
+      "sha256": "aa4db11c0ef950d413d59b2648135a99af36d1a813bdeb4eb517cfbf8619ab35"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol4_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4813,
+      "sha256": "f1543665547cd02c23f8f4ec1475d5ce72aeffbb2c20b74205d335fed4d4f74e"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol5_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4818,
+      "sha256": "8d921b57065763511c3e91c7597a7fff2081b33e7f4cc68ce52a4d9608610511"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Pistol6_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4804,
+      "sha256": "158cedf1acae355c38e23461f22f370c6d0abf81c43ad0bc01439cd4ee05484d"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4728,
+      "sha256": "7af040d3a4520c2936daffc45b71c831b90c8a3f070f2b549dbeabe619ce561d"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG2_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4726,
+      "sha256": "418fd7579e8c8f7ddd9bb83763a5ada9f708fd1ac2144fb38e42c8610990d373"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG3_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4746,
+      "sha256": "696159e5393c4822f3d9dc219679a424e9ee5ba398c3033cb2d24793ac3052b7"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG4_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4729,
+      "sha256": "455690e3f7f3f6575dc76bcdf8867f3fac2d5f734baaa67e0fb8e07876328f72"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG5_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4726,
+      "sha256": "c78261975a0a8a9edd6d21bb8d0f9d87cb6b1844c02bbb2e00970c7ed36ffa1a"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SMG6_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4727,
+      "sha256": "90665da0f15cee0ea1164ff3e5a46981cec180971b2ec31508f46b175fea2a81"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4761,
+      "sha256": "a64d4ba11aa2dd32e1f14ff56a915822908b3436f0ad4958add35fa0b652ab3a"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun2_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4760,
+      "sha256": "8681f2dd959de0932813c92a9af8e3b7077346153e951bc575a5f9342166d143"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun3_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4760,
+      "sha256": "bdbee7483a626148e433244f7135b37e593d9100b663fee0d5f2e865f7c99e0f"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun4_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4773,
+      "sha256": "efd43a96daac5649b0788863761491d7bf19abe51657cf9607352b369cba14d7"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_Shotgun5_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4740,
+      "sha256": "8f6bd8deba24ebcdcc935e8f048cf2c427ef4f0ad7187f1d9d907f4b4c27b8a3"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4743,
+      "sha256": "f58fe0c016403eacdf51d0a8cc5d411fa929f3f40bf7e3ff07db76d4894913ef"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle2_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4742,
+      "sha256": "bc77b2a7f917abc4faa7f43ccc18cbcb14ba935f317521c724d184b547c0d275"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle3_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4741,
+      "sha256": "067c38c9c380e340470a89e331eda7006a709fc53b8616b2ce8cbad964fb900f"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle4_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4742,
+      "sha256": "6c1b383f69d9424d31ffc6571634423af7ce81f6e5a8c8afb1003048d7640014"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle5_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4744,
+      "sha256": "a1d4ccc62f00faf3ac6babf3717fd287d92234aa099f27438187ebe2d11f4c0a"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPW/LPW_SniperRifle6_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4742,
+      "sha256": "39c57971ace21d2239a4e77f1644e32997b71a6a4cd6c9135a4eea5c60d46ccb"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_Pistol5_06.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4571,
+      "sha256": "26b5fee2a7e81239d2c05f6ca057d2dea28e437505fa756db35aa5f9c25e19c9"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_Rifle2_02.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4839,
+      "sha256": "f19c2e78684c338284807c277d50e0510743a4c42c2519d31236782f50c7d793"
+    },
+    {
+      "path": "Assets/_Project/ScriptableObjects/Weapons/LPWTest/LPW_SMG1_01.asset",
+      "status": "modified-or-deleted",
+      "bytes": 4513,
+      "sha256": "18b0df7ec8b9bc0b4ea066851255f81fdbb38e38d5507373a599a94f8e4400c7"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/AccountContracts.cs",
+      "status": "modified-or-deleted",
+      "bytes": 11092,
+      "sha256": "1f019739e787e4478f4976f9e8a241f3f484b07821fa9f141831df614375dba0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/AccountSession.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7727,
+      "sha256": "e9a281558202005f3d2c2acabd775c2314399c7ff8f1ea8ee2820a411e6fa691"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/ApiClient.cs",
+      "status": "modified-or-deleted",
+      "bytes": 16173,
+      "sha256": "3a28a20e02b9a5df8eddd0bdefe1a363e771ec91269cd545873377c99dd0c0a3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/ApiClientErrorCodes.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1058,
+      "sha256": "132204fc468cfde708ab03a9e90b2575d46e0a24ea87c0ce67cc3b3dd137412c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/ApiTransportFailureClassifier.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1535,
+      "sha256": "77b4417e99b5f8207f2fe97213c2f614337789070a801401cad6de4bd430bc21"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Account/IApiClient.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4452,
+      "sha256": "8cc7a7fda658c8d1919f1c9466d5c387273e2e4bf39a815edc0a51d7b51eb519"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Core/WeaponStatModifier.cs",
+      "status": "modified-or-deleted",
+      "bytes": 2883,
+      "sha256": "53a9a220218d0afbfb826340ca91f67fbd56af399031edb92ac84aae214a3a44"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Debug/LPWAdsRuntimeVerifier.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8929,
+      "sha256": "c4e51bf354e11a2af032b2abd782ab6d39c9783ec238c9699755cf4f28284310"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Debug/OpticAimCalibrationOverlay.cs",
+      "status": "untracked",
+      "bytes": 2802,
+      "sha256": "cdd89aede38c5331620a329ba5028b05ee31344af0e5d2245d5cefb411e08613"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Debug/OpticAimCalibrationOverlay.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8e0ed6d55c6d6d458e1c3cae01b801dbb5a62c9e80dd158ed1bc3d0609a9386d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentCalibrationWindow.cs",
+      "status": "untracked",
+      "bytes": 11605,
+      "sha256": "187e41be79e605bfceb7da9c665b22c131f4fcea42174cc683de1cc250193c53"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentCalibrationWindow.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "d461b6b180843ccf0288a8185dfa96975fe2ac3aa57a945fc93018adfdd4ba53"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentCatalogBuilder.cs",
+      "status": "untracked",
+      "bytes": 25612,
+      "sha256": "3de58a77c944dd2af19623c8214895e00e8f120f39cde1af92f326aae8e59c26"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentCatalogBuilder.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "ff7f996ef5351d8689d589f289ca562e366d5465191b4a298ea83e965f7c56b3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentSocketBuilder.cs",
+      "status": "untracked",
+      "bytes": 27905,
+      "sha256": "7c3d5720c923071fcbc3ed0adb1a2d2d6465480186c32a976206fa6a5009d2a5"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/AttachmentSocketBuilder.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "57eef68f2b931bceed841469e821f1f65f47f3cc6bea3f30aba362ddc1d3ef8b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/HotUpdateGenConfig.cs",
+      "status": "untracked",
+      "bytes": 2257,
+      "sha256": "644cd34d0b76007b16a5d30bb41610882e8a493850e438a9ec9704637bb12290"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/HotUpdateGenConfig.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e34cac6bb412a886b8a4649305cc1b102da468e62682ea6dbcccb9522d4754a9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/OpticAimCalibrationWindow.cs",
+      "status": "untracked",
+      "bytes": 22335,
+      "sha256": "d75eec7f8ff02f63858cbcab5fa795148c1d5de9bc79136ae0872a68a4c872d4"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Editor/OpticAimCalibrationWindow.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "9361dc40424f3b000bf5391b486b51fe0cf33892d45aafab3354b92f0d7e5906"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Animation.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "43f54ee57d43a812c5470bb29b73d2dc4c987a3afc6ab59e2cff3fe9ac91354b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Animation/IThirdPersonPoseLifecycle.cs",
+      "status": "untracked",
+      "bytes": 1384,
+      "sha256": "0cd41601050c97acb05d2e96ff52af96e8b96ccea58ba2a351591e6520064915"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Animation/IThirdPersonPoseLifecycle.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "48dddbf0eb252b2d922cf3e861b136b87182e9f50913f03e6ba60c7512915704"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Combat/CombatResolver.cs",
+      "status": "modified-or-deleted",
+      "bytes": 29443,
+      "sha256": "01287cf1921aff43c041bd4ef77b0e0dfabe0fc4c7aa0cf3a6813c638197c686"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Combat/HitVolumeRoles.cs",
+      "status": "untracked",
+      "bytes": 2023,
+      "sha256": "4581bf0e8c56aa414c5c67c4de636f662e825d1455ce933c6471b1165bfc4177"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Combat/HitVolumeRoles.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "4ddd5a088455129703bd6aec1a823253a07c6c6965d9b246d7cd4a75bf4abe19"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Combat/TwoStageHitResolver.cs",
+      "status": "untracked",
+      "bytes": 3806,
+      "sha256": "49170a4a394435362465f6b11f49323743a40de6e35510112ee9fee5eb9333bb"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Combat/TwoStageHitResolver.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "3bb476145cdfe5a7ce7cc6bb0df7fc07603ea6c72f999fed549bccc1cfe249a7"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Health/DamageableTarget.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3484,
+      "sha256": "b2203698f72c47b42aa6a5f68a4f181d43ad9706f11ce56ab478a460527f5448"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Menu/GameplayInputGate.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4263,
+      "sha256": "166c48ee6476532d2bcb900671f7409adb1e797a0e08b041db61ad483c1ec778"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Menu/GameplayMenuController.cs",
+      "status": "modified-or-deleted",
+      "bytes": 23383,
+      "sha256": "d1500704ccc6ae334351d286c1d1be4ebc69bb9c192d1ebbdbbefee80290f955"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/AuthoritativeMovementState.cs",
+      "status": "untracked",
+      "bytes": 1670,
+      "sha256": "b2341dfd66894659cb2fe95cfb6d393a4c1ddf720e07579348e8e53b404afc75"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/AuthoritativeMovementState.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b13f521ca2226b354f866df1c7ae76da20ce17090c4b1d900c17a84993da892d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/Locomotor.cs",
+      "status": "modified-or-deleted",
+      "bytes": 20849,
+      "sha256": "b938e907706abc1288e404af40b25804899e5144cd222be3aaa7b1997efbb112"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementDiagnostics.cs",
+      "status": "untracked",
+      "bytes": 21733,
+      "sha256": "ab0d6942f61bd3ceccf56701a1d5252b4f0fdb81d43654134eda9e1948323f2e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementDiagnostics.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "a7fb7e581fbf919ffa1b29f8c44f398a7ad93163b5fd9ccc43f57689a17a4c64"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementPredictionCore.cs",
+      "status": "untracked",
+      "bytes": 40770,
+      "sha256": "fb50c5a76cb596e93d068e254671c6dd555f66c52fa365501dbe514da5ea6a0a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementPredictionCore.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "32a381ef026e839f26a1ab68becae5e86e9a3090e9611c35f231464586807a44"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementPullbackTrace.cs",
+      "status": "untracked",
+      "bytes": 12302,
+      "sha256": "45d6f83ef12354f851722db0d7bbcdc2e6a225366bf8c93ce01f92d538722a97"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementPullbackTrace.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "434d91af1701ef4aa486bd3b4a7d616208d8c66664f153d0d32679636de8072b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementSimulationTypes.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3253,
+      "sha256": "3d330eb9cb15cf25815d4962bf57db7576ca5869f8379ccb9396eb665f7dcfea"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementStepTrace.cs",
+      "status": "untracked",
+      "bytes": 8141,
+      "sha256": "535a6f82adde26f5973997b028982e6a84492857df0531cc3200e9eea68ebf69"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/MovementStepTrace.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "4f4e661c439ab7f221e7735d5f861a178e3279e14e9288db8aec80225be026dc"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/RemoteGaitPhase.cs",
+      "status": "untracked",
+      "bytes": 2571,
+      "sha256": "535c05ebee231073138d1deadd8d8477282fda4a0265f401008e1511cea9edcb"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/RemoteGaitPhase.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "a9a57b0733a8b45a3505d211064a7c826080cfa7731efd9c1db99c7cf351686d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/RemoteVisualInterpolationBuffer.cs",
+      "status": "untracked",
+      "bytes": 5089,
+      "sha256": "d8c57b342c754bb7b51d7df618dd53c8bb0edabb1b998720c4cccf43f748671d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/RemoteVisualInterpolationBuffer.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "4ccc4ecbeb26888772fe2affba6ddc2ce8f7e384f7e07bbb0d2d08fae051a651"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Movement/RootMotionProfile.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7903,
+      "sha256": "0dacf85748dd3f00bb162ff2303edc2f32eb9b7ec9dbadde310873aecb40de7b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/AttachmentSnapshotCodec.cs",
+      "status": "untracked",
+      "bytes": 4677,
+      "sha256": "75fbfac18e6a31a3fe6db15419daa94d689c08a5560d34b7de305a198f75aee2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/AttachmentSnapshotCodec.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "21f89e03a8303f2c6327c2f02e0c0b39b7b6b537faf1ea0678fd900c2d74002e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/AuthFailurePolicy.cs",
+      "status": "untracked",
+      "bytes": 4759,
+      "sha256": "e51f0fcac384cf18ad64b2dfc8f6943baa65d4393536496beb165ec19997fe8c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/AuthFailurePolicy.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "a1ed81acac9bad6f625d77e56017c44fa8279ae06410791467879e9cbb571852"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ChatRelayCore.cs",
+      "status": "untracked",
+      "bytes": 8466,
+      "sha256": "9813b076640fd4216a1b3d5196268810ff844369bc48ff23ef405803f6b24f6d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ChatRelayCore.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b0bbf2adff61fb10201febd578aa5f491a76a05319ac2df6b223c3ee6c18aba6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ChatRules.cs",
+      "status": "untracked",
+      "bytes": 3078,
+      "sha256": "1de3ff9542fd25924ed208abcbe7fe9c6698326a84d4ee34f36fc5b97a1bc02a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ChatRules.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "db98ad9210cd6e73cd0f60a7e6424069d967d0619019ebaf232f7c13035879c5"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientAuthFailureHandler.cs",
+      "status": "untracked",
+      "bytes": 10570,
+      "sha256": "85abd88f07190a165b4f787e29343812d86055a6363fc4d992ace26ef0198522"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientAuthFailureHandler.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "2d8c59ed7de3321e4ef43de98ec0d08b888a694937db5b32f8f4ca53474d86a0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientMatchSessionCoordinator.cs",
+      "status": "untracked",
+      "bytes": 18170,
+      "sha256": "a78216e11fdb37b55c50092f9e72deae6b4b001016b04ce2d2631505c9270da9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientMatchSessionCoordinator.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "16186f04a08d18f25b24ac20ccec81637966f467fe7c27c176ebd4b91ac6ea65"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientMatchSessionCore.cs",
+      "status": "untracked",
+      "bytes": 14080,
+      "sha256": "ebb72d4d1be09e645cc7ded1cd68c49553fe7824825c8f5c2dcdf676b8d5ed2c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ClientMatchSessionCore.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "2c36a3652878d8b1e3db49367d0021c809f29c4c3448baa9c72540b50e160bbd"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerBootstrap.cs",
+      "status": "untracked",
+      "bytes": 42837,
+      "sha256": "aee45d1ddb89124e06fe125d7bd38ba27519b28d208be7cdf9c51586f7710670"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerBootstrap.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "8cc5a6267fc2de50fdd33c1887d4d4b422cc34798f9829f9f39e5da4ba7215bd"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerLifecycle.cs",
+      "status": "untracked",
+      "bytes": 9039,
+      "sha256": "a02cd1a8ba8feb6df8206aba59c54278c5d3707ee75e6e89d35c98dde01d4998"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerLifecycle.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "9130754ef6ae3a2adcb33ef276dd6dee7f2aa0350a0a38a8a91cbd1f72c762ae"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerOptions.cs",
+      "status": "untracked",
+      "bytes": 10360,
+      "sha256": "5738c506357cee0636f076aacd1c07fcc81c38d7654cecce618c8ade64edc6cc"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerOptions.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "b11b724b05ed498cd8f4c189e0e392614378e5b5d989efb19450e90a9ca920c6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerRuntime.cs",
+      "status": "untracked",
+      "bytes": 27235,
+      "sha256": "55b52cc5e583cd9d7de663d161b72981ad7ae3e11b6f23c6989f655562378da4"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/DedicatedServerRuntime.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "ed7ee384532c888758a2527fbcf7a5acce92501c409a60d9552a56617734bac3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameMapCatalog.cs",
+      "status": "untracked",
+      "bytes": 1902,
+      "sha256": "7baf7b43f1fbc582693adb45644c09139e5b459e5ba5688000118c01b75ab16f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameMapCatalog.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "0350d21490a2befd2367403f93f18039a7189f72dba500bd6f4e8fa9dbf0927e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameProtocolIdentity.cs",
+      "status": "untracked",
+      "bytes": 4417,
+      "sha256": "e9472683ecaf3d0a64b6c63bcf92dcf8e4c9c5fe61145b8b0d7077fb4eda869c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameProtocolIdentity.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "09d5b8153bb411f3ff57d2a6201fbeb695e0439c0b1db5b3bf5c961f45bab75a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameplayClientInvariantProbe.cs",
+      "status": "untracked",
+      "bytes": 6444,
+      "sha256": "57d9a6a71accc733b0372bc1f9552a8aba11d188a52530e6400af873513fea9f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/GameplayClientInvariantProbe.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "67b2187eba695c8736fd2eba3b9b3a7d22c4e57f444cd3f29bd1d2920ded9aff"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketAuthenticator.cs",
+      "status": "untracked",
+      "bytes": 32716,
+      "sha256": "896f9b613f752cb5062f285e55eff7ea6f770312753f2beb75a76ef1603f66f5"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketAuthenticator.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "a05d62b8eaeb5e3d1cf6195ccf2e6ff574f9f3b61504d370d36b794d3039a937"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketBroadcasts.cs",
+      "status": "untracked",
+      "bytes": 2315,
+      "sha256": "46d3f11fa4bd507ce50022315ea62c5b29d8ce078c83e8698fad8bf84e93a931"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketBroadcasts.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "2d09dc1eea6daedc00d73da4213c0fc64bc73a18b48df427e5c113ee9ebad953"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketCapacityPolicy.cs",
+      "status": "untracked",
+      "bytes": 2550,
+      "sha256": "6799fe652793ad839ae5f6928c0f6d5a0329bb91967b6eff2ab49411fe824886"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/JoinTicketCapacityPolicy.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "37f7e6b5968962c3e4d60366afc0556544428b9a884cced9fec2537003e86f5b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchConnectionWatcher.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4001,
+      "sha256": "74d20afff8bbc4e2759f054bf7880bc1c6c52cbeb81f1d18cad2415181c687bf"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchEligibility.cs",
+      "status": "untracked",
+      "bytes": 3248,
+      "sha256": "1c16404547d839de8483df094a0273fbfcaad5221af183b2d575b2e2e9752455"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchEligibility.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "761783b3e1a82eb3352f9a406189adff05846162baaf24a13978929c3ce507bd"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchEventKind.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1712,
+      "sha256": "cebca0f5731cea3931736389b792c9a75fe54f8b128daf913871989f82f0b6ba"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchExitState.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1274,
+      "sha256": "c2fbb21c5bda997a4d3e43e4d1228999e796a9210720b0f260f9eed45478711a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchKillAttributionPolicy.cs",
+      "status": "untracked",
+      "bytes": 2026,
+      "sha256": "35ed9a5ef7632d268ab2319224851b4715ada1e697638840eb172834e1b71ee3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchKillAttributionPolicy.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "b29a1e83335ccb3673105d4dc7a268319a38aeb520cb9339c81a3d146f25726c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchLeavePolicy.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3424,
+      "sha256": "9ab6bee5b14e4aa07ac6e50c51b93baa6f5738ba4497876ff55d1f2428ffc6b0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchLifecycle.cs",
+      "status": "modified-or-deleted",
+      "bytes": 49871,
+      "sha256": "2f756b16cc9dba822fcf60344284f1548d31e62755a0c429f983746d0e7582dd"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchPlayerIdentity.cs",
+      "status": "untracked",
+      "bytes": 6066,
+      "sha256": "f32ea915cf76107f86e79b82217165b69f86b8c58cfd33024128f391a507ac8b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchPlayerIdentity.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "578bb5e6e1c98227ceb465b1e0f026d586aceabcf4d840c6330588193dced56f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchResultPendingStore.cs",
+      "status": "untracked",
+      "bytes": 4940,
+      "sha256": "b863cf4b97747e832f1e68b7b1237aff08c31bd20cefb8e004d06464e95f500c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchResultPendingStore.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "5f4b61d48b40408c6d8005835c7f8b5eec6d8fe9568540cf7d175dc309d62332"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchRules.cs",
+      "status": "modified-or-deleted",
+      "bytes": 11873,
+      "sha256": "d89baf42eb022086221691f262f125455e99d86d8f0b6458af385cb36ad0dec8"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchScoreboardSnapshot.cs",
+      "status": "untracked",
+      "bytes": 6206,
+      "sha256": "466ce87d903ff3751e90101f793e641ef32e7340c29665cb09db506ec333495c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/MatchScoreboardSnapshot.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "890a1d0c773e1ff31ac0d80b7dd9ebfc4d764e978844de394a6367750e60275f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkHud.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6992,
+      "sha256": "1f13577372219bde015bfe29deaba302f134b5cc1b5eef5109a241c95b4823f9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkLaunchContext.cs",
+      "status": "untracked",
+      "bytes": 5205,
+      "sha256": "d99dd9229d30b793b8fd7ffc5526d415740237cbf8b3b65fa2912f5e5cce8c90"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkLaunchContext.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "55d09ee6e64be7e72cd44716036cd0225d8b01ade53bb008870fa784b25b4cb6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkLoadoutPolicy.cs",
+      "status": "untracked",
+      "bytes": 7294,
+      "sha256": "a37b7d254749e9170eb8e62af9362280c466dc58e95b4c3d5b8cf45d94c84caf"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkLoadoutPolicy.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "7a857c04543118dec7be9b9b175ca40d5591d7a7cbe4165f7cf5a0a8b84b2e07"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkLocomotionState.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3177,
+      "sha256": "bb2d685badc1a36cdbc695cdbec782d7fccda868bb5d9ac6887118e948b0362a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/NetworkWeaponState.cs",
+      "status": "modified-or-deleted",
+      "bytes": 17282,
+      "sha256": "bfecb3920365a6a17c00fcd06508ac5d75296cd56996536e0011ddfef2f4067c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/PlayerDisconnectQueue.cs",
+      "status": "untracked",
+      "bytes": 6099,
+      "sha256": "658e8cf970e505f2b3f2ea5157ad789cab96c4bfc83328908c32a02c492dcd32"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/PlayerDisconnectQueue.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "de3a2e51ac97e63f547bc62d8245c4e819ddd761c2fc5dd711783fd4097043d7"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ServerLagCompensation.cs",
+      "status": "untracked",
+      "bytes": 18699,
+      "sha256": "ed2da9eebbbac0a1d883a6f741f389da7c5bf9676612a673eb75040aaa6f0183"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ServerLagCompensation.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "2e1fc2cea57949c2610f4681d9d617ce3238866db17a4c28d8ca4ef4ac706fc5"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ServerTicketValidator.cs",
+      "status": "untracked",
+      "bytes": 41152,
+      "sha256": "1ffc370a6b67137a15b4dd869ae8119fef54724dc33577d39024b4a037908a18"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/ServerTicketValidator.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "138d76c7874146e66fe2b394a16c7c52c666f449346b77f897acd5e53a909d5e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/TeamFirstSpawnDirector.cs",
+      "status": "untracked",
+      "bytes": 10978,
+      "sha256": "46abb673f568064d25ef0c76707eea44a5e787b5e92238629ce525008cb51fdf"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/TeamFirstSpawnDirector.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "1d7509369ffe9112d62d17d22fa5afea3b85fc7e46e734979934e7fdda60166a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/TeamSpawnDirectory.cs",
+      "status": "untracked",
+      "bytes": 7014,
+      "sha256": "519e3e85ef56f6c5021259becacd596e5ccdec17ebb55d5de4e0218538466298"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Network/TeamSpawnDirectory.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b7526013f5d49eb1cf365200c8dad9d9fbf1924fd4d8684f4868bf7b579690c0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Player/AdsFovMath.cs",
+      "status": "untracked",
+      "bytes": 2312,
+      "sha256": "b520a291a9a1277423ee2821b1324a0dbf991e5556e25058a649d82c03c108f9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Player/AdsFovMath.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e8108a33d22238a33381139bc028eb5177dc72d87bc3b88980825548675d99db"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Player/InputReader.cs",
+      "status": "modified-or-deleted",
+      "bytes": 9744,
+      "sha256": "4e798940210f22daa387eb15b960dffa30a42ed3f09833283c7e698c82bd004a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Player/PlayerAimState.cs",
+      "status": "modified-or-deleted",
+      "bytes": 5146,
+      "sha256": "acb5adabd481c4ba552dd0a5f00489881532d8c6a4872b50909a328486e7b358"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Settings/SettingsDraft.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8209,
+      "sha256": "4aaa82980dd929a2844e13dc03577eecdaf7075ecf4cfe1ca181f6117cb79a15"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Settings/UserSettingsSync.cs",
+      "status": "untracked",
+      "bytes": 4176,
+      "sha256": "b71ca5e8f4fc5784566c44e65b3f715c0d07a10c40e299a1df29e663ead4d318"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Settings/UserSettingsSync.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "d5f033b403ee8d7f69c5b399c3b487f029dcdf3c753867227dec92db5e1d79c9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/Arsenal.cs",
+      "status": "modified-or-deleted",
+      "bytes": 11780,
+      "sha256": "9101de878ab9383fc1def07bcbc2579e7b8f7762ddb8223229ae3c4081ee77de"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentAssetCatalog.cs",
+      "status": "untracked",
+      "bytes": 10995,
+      "sha256": "4b9102d1178f69684d8f92f0040a5e6a21974c1c2eb37284f36be7593c7a307d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentAssetCatalog.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "f691fe3818f06601f3a7b957a6dd8d8b2431c6cd1620dcc92aa45f933e55b1e6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentCalibration.cs",
+      "status": "untracked",
+      "bytes": 10346,
+      "sha256": "b497ad422f579ff82b9f9081cba0a65c1b5b0742c8d5a1c496d1819c24d83dc2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentCalibration.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "65d3342580fe0ffc73a2192ca1d93ff2a8913a271b535b64d7d842ccd03e86f8"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentSocket.cs",
+      "status": "untracked",
+      "bytes": 838,
+      "sha256": "757acb18d76968227529951c4472d32485238e9c8d83e384b9a49c8dfad70475"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/AttachmentSocket.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "dac2a804415753b484ef420d4f3d506e468c5a0c2e7a3743e97a9171692a301b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/FPWeaponAttachmentView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 0
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/FPWeaponAttachmentView.cs.meta",
+      "status": "modified-or-deleted",
+      "bytes": 0
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/IWeaponPresentationGate.cs",
+      "status": "untracked",
+      "bytes": 979,
+      "sha256": "a3d29a81ea543b718a23262dd17777073cde2fe459fb456ec9ace4df1a945895"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/IWeaponPresentationGate.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "d8df028259197cb7fb0a4ca0a840272eaf7cf835629d81dac77ad11d60353004"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/LPWWeaponManifest.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7884,
+      "sha256": "090ff1d2dec8da727f5ce8610a0c58f750114ed1bc39478b35af6521278f16ff"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/LaserSightBeam.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10016,
+      "sha256": "42510d7d8e764dd253a24aa55f11d5fce6252738c1c8b7e9ae0ff699485c3623"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/OpticLensMath.cs",
+      "status": "untracked",
+      "bytes": 3624,
+      "sha256": "7f6d4efd91118875d64d248dea680ce6014752b615eee00bb0577fc8c9eb137c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/OpticLensMath.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b2275a64edabca54d84a114ec9c5883d248cbcf55e6fd4fdb53cf6f856923d21"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponAttachmentView.cs",
+      "status": "untracked",
+      "bytes": 15054,
+      "sha256": "72237c1118abb2a332eb7aa52dfaf9fadda4e98062e3b813be1d341cfcfa0195"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponAttachmentView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "2b87c9ab629e5cdbc716d4dccb0dd547d78a5e9151b476fab1cffeef089a0b28"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponAudioProfile.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3115,
+      "sha256": "b50df7ebe7c958d7ae82a009b3976c76b7219d19b05fd90cb63389dd58159ce8"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponController.cs",
+      "status": "modified-or-deleted",
+      "bytes": 25778,
+      "sha256": "4796091d13b2b77a5df73a236037a0bbebf1d84eb5791b0e475046b76e43e09b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponDefinition.cs",
+      "status": "modified-or-deleted",
+      "bytes": 9992,
+      "sha256": "c841c800816196a93cdfbb7209f4634b10f013ddf13b903092c07ee98bfe9ecb"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponRecoilState.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6487,
+      "sha256": "13c434c4f9d64137ba9aba3abdb3ff23ca43accfbfb62b1cf3eae72043e5b25b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponRuntime.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3513,
+      "sha256": "acc0b2bbc41ff2b9566657b1a6c6e13bad8cd1d9cd5290cda3c8571ba09b27d0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Gameplay/Weapon/WeaponStatResolver.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7960,
+      "sha256": "015661ecfbf5ca226726e8fc11c5910dc0228957ae6b16001e27e6014883febe"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/DetachableMagazineView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 9843,
+      "sha256": "33f027900cddfd83ffe728537c3e224cebc542d225a165b4eb59cff2d321b9ed"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPAimAnimStateMachine.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10025,
+      "sha256": "04b3ba7249765479b60b922d9fdf806d2f0403046bf06dc5b8c9aabcb1116e61"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPLeftHandIK.cs",
+      "status": "modified-or-deleted",
+      "bytes": 22179,
+      "sha256": "87ace2106bd9d7cd6a433161b85b01a5cc819689a6c316e53ae55eda86b1d081"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPRightHandIK.cs",
+      "status": "modified-or-deleted",
+      "bytes": 5220,
+      "sha256": "d4c94bccb7231dec6b88fda0dc37c321cdd23e028b94d602d98edb3b845d8443"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPViewModelVisibility.cs",
+      "status": "untracked",
+      "bytes": 5135,
+      "sha256": "074be81d0bd5bd2508cbcd83f166f21b5d890aa456b0ece2eb8202c88223b539"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPViewModelVisibility.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "24d7109a56fd3410735c1e21858ffc6f8b317d537ae231414180821ba89f6dac"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPWeaponAnimator.cs",
+      "status": "modified-or-deleted",
+      "bytes": 28885,
+      "sha256": "d77fc2c1c0aa7b6b25f43cc2cae0f106e094246b4705bbb34aac7b419c3b30e3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseMath.cs",
+      "status": "untracked",
+      "bytes": 5728,
+      "sha256": "5c14c680a02ce3c7391c2d7a7c0a360150270950414947d5614f6203b1a9afe0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseMath.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c5d0cccd0fc2f1adee48cbe892d290019aecb01968f8437f8502877a8076ad99"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPWeaponPoseProfile.cs",
+      "status": "modified-or-deleted",
+      "bytes": 39984,
+      "sha256": "990fc1a699939cc5711af506f7d2be873b5583717f547b0e3787094ab8ffe08f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/FPWeaponRig.cs",
+      "status": "modified-or-deleted",
+      "bytes": 16886,
+      "sha256": "da00feca6b36f197c0dc0ad483aa365dc712626a1c52ba66db7a08baae98e9bc"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/LPWGunPoseDriver.cs",
+      "status": "untracked",
+      "bytes": 7007,
+      "sha256": "96545379c94291dfda6e73742cc5483bac4b908a43598e7aa7c10fe8759716f6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/LPWGunPoseDriver.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "03bb73a27d345c77d5791e4a01e3f5dc26617d0eea1bffa94ea3c052a78c7679"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/RemotePlayerStateView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 2137,
+      "sha256": "8a846ad3e91da87a44feda020fe7849b88882b98a950728f7bbb7d17bfe07c99"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/TPAimDriver.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7368,
+      "sha256": "c6b55bee07748fa00fdfff7adc3449b55b04d946e3da5e67f0edd1c02d0e0d05"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/TPAnimDriver.cs",
+      "status": "modified-or-deleted",
+      "bytes": 22999,
+      "sha256": "def12ed4c88a38a07149e9523172827c7a66525cba3c97754edb578ff35c170d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/TPLeftHandIK.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4869,
+      "sha256": "08a1b36bdeff1d6e4d10b59d0f5c6d50ce43197a2e646bf2cf1e6bd7e220a411"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/TPWeaponMeshSwapper.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6434,
+      "sha256": "d4cc0f3d0fcc07f82cfcef5f8ad0bcf2b4df11093e7c616c0411e2bae19f2ad2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Animation/TwoBoneIKSolver.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4274,
+      "sha256": "587a49885738a0a9dc2668e8ea514b548101b1dbc6b26ac016c18fe346047860"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/AssemblyInfo.cs",
+      "status": "untracked",
+      "bytes": 94,
+      "sha256": "887c57633232d8eaebd91edca6ac0d2e161ec36f3e52bbd61d21fb8588e72fbb"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/AssemblyInfo.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "619835f8d64a0629ac87090e76d9abb14adc9661f0fddd3b4ba7c3982c4b7aad"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Camera/FPCameraRig.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4441,
+      "sha256": "9daa3416425699e5db134dd33a95fc55d0d0af58e3caf5bfc3109d20fd94fd7b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Camera/FPMouseLook.cs",
+      "status": "modified-or-deleted",
+      "bytes": 2517,
+      "sha256": "0715519bfc542738f04a7d8f4d06ac9a9c508a54aadd4a00233aa3f583d18ead"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Camera/FPWeaponMotion.cs",
+      "status": "modified-or-deleted",
+      "bytes": 49516,
+      "sha256": "dd87705586be0e2f3d77ec67c5628cc862ef6f5295724649459acf64a0cf0ed9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Camera/PhysicalScopeView.cs",
+      "status": "untracked",
+      "bytes": 29873,
+      "sha256": "79d16d998d02961e9f1f225123e1a89240deda216cbabf54fc299e1cce703fc0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Camera/PhysicalScopeView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "944846860fd51068ee5b755ba4ff8fdaec97c61e5d350eb2185e6eb9a42492c9"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Game.Presentation.asmdef",
+      "status": "modified-or-deleted",
+      "bytes": 564,
+      "sha256": "6321bbf754b38ab94e7c9c2afaeabe6da6add2fba5eb29988d26409936b42968"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/CrosshairPresenter.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6755,
+      "sha256": "6917d5491ceae87b843b6b2578a6006210c29d1fa6acadb2bf255e977056b0e7"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/MatchHudView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 12102,
+      "sha256": "1b050718e5f0625be279a36d9d633a9731cae1256459770063e1e31cf2757e03"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/MatchScoreboardView.cs",
+      "status": "untracked",
+      "bytes": 26397,
+      "sha256": "f1933d9c7d7c630be39192dd7fc9fa989d732d349a0c91776a49522107135f1a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/MatchScoreboardView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e766b63fc497d4630cba6c89143fdba20af1e9a169f8c5ef50a3035191b44b55"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/OpticAdsView.cs",
+      "status": "untracked",
+      "bytes": 22567,
+      "sha256": "920e99160fb7d5010599370935bcbe4f561445fcf4a9d0f17b143d8896f1b46d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/OpticAdsView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "499ccde105e8379545d2163632db3be9cf3f4e8ebc3de50cc3fbefde26e1561f"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/OpticViewCatalog.cs",
+      "status": "untracked",
+      "bytes": 3054,
+      "sha256": "0924befb163513a5739b4f299ac7dabe5f89cb85c12c8025d55bf0c741633847"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/OpticViewCatalog.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "540ddfb7dab47c5e1b0fa9341de4a214bbcf9a50a232c7fe6e669a09b2c419bf"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/RespawnProtectionHudView.cs",
+      "status": "untracked",
+      "bytes": 10297,
+      "sha256": "7fa4f24ef43f93297d7317914fd12306c30a6066b91a2896bb22a6740e6e2882"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/RespawnProtectionHudView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "3dee4f75522dadc546f4333f3bd95395ce0988b88030e3fa337cbc11cd3e26ff"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/HUD/WeaponAudioView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10559,
+      "sha256": "d7f7d2fa0b6a1cfbb016ab12c722d929953e71de184f453a969a54ac566310ad"
+    },
+    {
+      "path": "Assets/_Project/Scripts/Presentation/Weapon/WeaponView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 14036,
+      "sha256": "a31a6f0d60460df4a4a9d0463fb3a9570b4d795c2d5b6f75b51f4825efa65f85"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/AppRoot.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8553,
+      "sha256": "20229611ab84201f785e8b4969cd8c30f9723eb4eb2bfae74909b5a633e625c2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/BootEntry.cs",
+      "status": "modified-or-deleted",
+      "bytes": 976,
+      "sha256": "96d774fc5c5a8e90038485183e8a8f85d708255d93b421f3c6e11f2c00238670"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "4dddaec665dd76a784a26a1d777ff580ada801b0d728acdb543a2027400ef6dd"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatBootstrapper.cs",
+      "status": "untracked",
+      "bytes": 1379,
+      "sha256": "d451bc447f0f45ecedec20629f123273bb4daa92a3681a0b962383077087cf87"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatBootstrapper.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "2f5b1b7ba3d8ef3fbb04c5a6b86bdca9ae32e253ad1f003dd762b06d9f925a13"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatController.cs",
+      "status": "untracked",
+      "bytes": 24369,
+      "sha256": "5000a2e4ffe857f9fc6ec103a45628fe2af929d00f17a5d546648f50ce377844"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatController.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "6dd299de36e6265ad83a35821411f155f1c2bd8b60e9cb6edfde51ae989655d2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatHudView.cs",
+      "status": "untracked",
+      "bytes": 29646,
+      "sha256": "c1e5adb62b5718dd75c57963ac7fe86d9a3c9e3b5eeefdbba5759a2fd25f6845"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatHudView.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "cf3350075553d7e00699da31b232c450d8a430d37bac40e81fedd01786225334"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatRoomSession.cs",
+      "status": "untracked",
+      "bytes": 4626,
+      "sha256": "ad717eb0f160c68b0b058318d54dc8f56620d417efa526d8386b7e0ee63a954d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Chat/ChatRoomSession.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "d95f9740b7b399083526633f47115c5bf28079d9adebea20016e6c4f45bede21"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/ClientAutoPilot.cs",
+      "status": "untracked",
+      "bytes": 15739,
+      "sha256": "59b624910a2aedf27b6bf02d335dc1bce4bee540302bf4fa3f84255470985191"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/ClientAutoPilot.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "fe3639d04b20196ab94aade7a2de1ad202bcc3dbef13c6bb57aec79d027d1f91"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/DesignSystem/UIComponents.cs",
+      "status": "modified-or-deleted",
+      "bytes": 22791,
+      "sha256": "de36f6b2e4670cda38d385b44ac7850dc005c3c0ec8c60bee83e8ff428b2f894"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/DesignSystem/UIMotion.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6705,
+      "sha256": "64c10469bc3de379ed7fbf92231bf069409d9ffa9d00e311dd8fcaf514b9a9a3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Game.UI.asmdef",
+      "status": "modified-or-deleted",
+      "bytes": 557,
+      "sha256": "a159da9a7affb1b7709a1a19ed871dc8b1b805ba7ce9fb10f145ff1e95618341"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/GameplayLoadoutBootstrap.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6210,
+      "sha256": "907e55714ae6b762bb1b401bcc8e2256866f42abbacc3da29516afa7389e4b88"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "b8fd8b10ca387813b7cc19420d61f4558b613c4f92b59638d35ff1721cca8b59"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotLuaFacade.cs",
+      "status": "untracked",
+      "bytes": 4639,
+      "sha256": "ddd5c0f4fae05055092036acda456185388b0c107cb85cc0f453cc20209ec580"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotLuaFacade.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "03d236cb09f024928d3647bf48da948ef8ffdfd24107d417d7162ec3127b8eb7"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotPageRegistry.cs",
+      "status": "untracked",
+      "bytes": 1916,
+      "sha256": "66031cc00f662dff58a0a0c9e7838d3face94ef0b3e87bab5e881bca72233613"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotPageRegistry.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "209e243a6132d0764020308cc07652e452f597dfc44af88b42cd712c29dce660"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotSceneLoader.cs",
+      "status": "untracked",
+      "bytes": 5521,
+      "sha256": "9a21bb57b4aaba6728eec0e625dbe79cb626d508347ecd43106c4f58afeda4e6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotSceneLoader.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e7856f7816f7ce537d54a35030eb1b11a9bf55bbff1a6abd9f5f108f553d9162"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateBootstrap.cs",
+      "status": "untracked",
+      "bytes": 9342,
+      "sha256": "0b0a8d694f29eb8947530db159794398883a720bf6ec66081ef68cd4094a9e14"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateBootstrap.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "31d3f261fea621eab44df90676ba5f917707759114e652b35e1ef66b41fdbef2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateManifest.cs",
+      "status": "untracked",
+      "bytes": 5942,
+      "sha256": "94ddbfa54cd1857cffb6e7ab609b5de8604f27569e57d4fb7721c10e237ccac2"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateManifest.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "97c76d885e8f48a16aca86b0a3e822cf4cca43155fa01e48dd117d6c551c631e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateRuntime.cs",
+      "status": "untracked",
+      "bytes": 3986,
+      "sha256": "39f3bf2c413946cad1071746ae5b0972c58afecc2ee86a4c8503f8b2cc607d37"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/HotUpdate/HotUpdateRuntime.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "1fa31d47b60c8faa9dd74be94e05dca505b171c2e47ab08fae6a937013a7557a"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/LobbyPage.cs",
+      "status": "modified-or-deleted",
+      "bytes": 791,
+      "sha256": "2b4b890759150a5ec761efb20136190e4e2e0ad5605692ce4a9219403a6a4497"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/LobbyPresenter.cs",
+      "status": "modified-or-deleted",
+      "bytes": 32652,
+      "sha256": "5bbacd583b44952248bbdd432a3985a5927e62ee2e5e52555b7884d9696306ed"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/MatchReturnSequence.cs",
+      "status": "untracked",
+      "bytes": 7744,
+      "sha256": "ff8134c9fe0b176a51c59a3e120786188549d968280d286b3100edfe9be01509"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/MatchReturnSequence.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "42bee195a17a04da2c59fa5d94b5479bd8902b3466cc027337e2dfc19fc5d2a6"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/MatchSettlementFlow.cs",
+      "status": "modified-or-deleted",
+      "bytes": 18959,
+      "sha256": "809260ea50c218f17e0cfd93454492b9f3f71381b53b43f2d04bd4bb7b39345b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Menu/GameplayMenuView.cs",
+      "status": "modified-or-deleted",
+      "bytes": 17363,
+      "sha256": "b24e2649e08e1705dc2bdefd23c888d4061ddc564c3da57787c686f30d4795c0"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Menu/LeaveTransactionCoordinator.cs",
+      "status": "untracked",
+      "bytes": 7467,
+      "sha256": "5f38076c81e89f49906c15ad517ecf4cdfba2c82b74676626eae7a181ed22c46"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Menu/LeaveTransactionCoordinator.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "f645c13035e7bf992e01144143da76cd763f0dcfd083fb15f71ce3905108f28e"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/NetworkPlayerLoadoutApplier.cs",
+      "status": "untracked",
+      "bytes": 4095,
+      "sha256": "ac1a6244819cd2afc3543ecffa800b42d5409b87c32d41930ece6ef6857aafb3"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/NetworkPlayerLoadoutApplier.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "add5e13f028d4e17e13ff69b506f822065c64ed8a36a4e96ca228a3405e1733c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Pages/LobbyPresenter.AuthPages.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6933,
+      "sha256": "98039938686a9e1364b2b7072bfdd2a523189f8287ff1456c3170b99abd8d0cc"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Pages/LobbyPresenter.ShellPages.cs",
+      "status": "modified-or-deleted",
+      "bytes": 23968,
+      "sha256": "9d0e1262a6462167379a0ca9d10e4e68f48d1fcf87dd716e3bd776e157299713"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Pages/LobbyPresenter.SubPages.cs",
+      "status": "modified-or-deleted",
+      "bytes": 76472,
+      "sha256": "ebdc158f6a22d0cb283524a481789999793a2ea3da93b888deb0c6374c5228d4"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Pages/LobbyPresenter.WaitingRoom.cs",
+      "status": "untracked",
+      "bytes": 25674,
+      "sha256": "820476514e622ab4008aebe96f15aed35767aa4f14e046bbaae6eadad3038363"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Pages/LobbyPresenter.WaitingRoom.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8ec77c470717f601528ce72115d78fb49ec710fb8fa067b9462c99bec0a33b0c"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/RoomConnectionGate.cs",
+      "status": "untracked",
+      "bytes": 3259,
+      "sha256": "4a8a25e398ecd2fa6eb980f95b30b283af4cd5619d8e34b5814cd5dccc7eeaa4"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/RoomConnectionGate.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c6252e4d957953f98cc94ec38ca96c6b787b9f8e726f66c2ae15dc4847aa614b"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/Settings.meta",
+      "status": "modified-or-deleted",
+      "bytes": 0
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/WeaponAssetCatalog.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8694,
+      "sha256": "f061453289f026cd93d4a000cb257a80abc63f97ff81aff90042c2f6ad20c57d"
+    },
+    {
+      "path": "Assets/_Project/Scripts/UI/WeaponPreviewController.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8250,
+      "sha256": "aa2d5a766583e4d9a362e9380aca53c3644c73e90fa8086048f57f193c57e336"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/A06NetworkPrefabCameraChainTests.cs",
+      "status": "untracked",
+      "bytes": 10682,
+      "sha256": "27cc8eaac2dcdc299d069dc496bf81bda8e20bd8f59016f2da1c233c7544a057"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/A06NetworkPrefabCameraChainTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "faa858d7855b83721398710730c3d823f4e0ad62ae47ee1bfde924b59fff6d10"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/Account/AccountClientContractTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6456,
+      "sha256": "a87f14d242276648425c8fa2198f118a73ceb1b44450412fd55d618514d3abf0"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/Account/ApiClientNetworkErrorTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1925,
+      "sha256": "0faf8db56ed2d296b601ca328d0e47d0a48e4af4efcd33d4ffd9f3227c1223ab"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ArsenalTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 14119,
+      "sha256": "84ad506cd0c4472adbaf4926c582225cc1691d5f4edf5d0bbba2b5f335a555ac"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AttachmentCalibrationFrameTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 11112,
+      "sha256": "8c6d022f39985444a79eb2e846001252670b1a77aa4e858a143b1dc1cb58d5c9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AttachmentSnapshotSyncTests.cs",
+      "status": "untracked",
+      "bytes": 9759,
+      "sha256": "2ffd1a1854cbf54594180816d2bdf98ad127a3f488f772db75f850406c344d58"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AttachmentSnapshotSyncTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "45d8d1ddb626bd1cb343f233866f095f39771008abc878f3762bea88254b6e94"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AttachmentStatTests.cs",
+      "status": "untracked",
+      "bytes": 6061,
+      "sha256": "7adee255a3d7c3e9322468a2b50fef78d0747a24a9ad502240f8a9fdf3f82cbf"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AttachmentStatTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "37ddf5e90efa3a8404e11c705cbfc576586ceba9128fdb22f1f6a3183dd93ca1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AuthFailurePolicyTests.cs",
+      "status": "untracked",
+      "bytes": 6392,
+      "sha256": "2c3c8b3e80083dbb60b8f90d321f8776bd67bea0112c1305df51308c8bfe581f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/AuthFailurePolicyTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "805dbe338abe6473b65140cd5512d9f51dae7e776a35b594427f4ff553debe34"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/BodyHitboxAlignmentTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c9d3c76239473b4b3b3a42833360cdb30ba2ad839fd082603fd9f66c1919db23"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatEnterInteractionTests.cs",
+      "status": "untracked",
+      "bytes": 5433,
+      "sha256": "616b94d25b3c55420abaff315cf95924d825d3c88c37f345a55445cbcabe2eff"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatEnterInteractionTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b854756fc0bee1702731e9bd0cccef0caafe99f8e22c90a3b2d5d06309440131"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatLifecycleTests.cs",
+      "status": "untracked",
+      "bytes": 7577,
+      "sha256": "ad0c03a4aca477c9b729827a60c9f052b03db8d38c958495ea4f2753edec982f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatLifecycleTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "f8543ff214ae877d8984fe18cc010f39c3c6da3328d71b7c4e8b86c7de3b7524"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatRoomSessionTests.cs",
+      "status": "untracked",
+      "bytes": 5447,
+      "sha256": "e7ce6e4edf4faff625a6325034572e3d73a6272377f078061b03eac22bf1566d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatRoomSessionTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8ef88c3732113d6e0203ffc23c6ea1bd4e052fc340c0dcae3ba0b9229a2f8112"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatRulesTests.cs",
+      "status": "untracked",
+      "bytes": 7263,
+      "sha256": "52be07632eaa92fd942fcb7b25af175becb276ac040f314fec1079e75d07ba73"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ChatRulesTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "6c7a6827fcd78e669f1a6a0e0ceafd83b23c51dc028eb223a6e2a14fa81d8648"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ClientMatchSessionTests.cs",
+      "status": "untracked",
+      "bytes": 16452,
+      "sha256": "53781cb68e57b1486b635c0423eb18d511c851e36316b92ac96a6bc7801ccb90"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ClientMatchSessionTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b1104ad6253968dffa3e62f23b0f1ca4ce5b0c2efae065ea759440648253bd86"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/CombatResolverSelfHitTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10114,
+      "sha256": "af2e00310aa77c56a0c9e63ce8370db07b7f962130d4251a8c9f2af877e20ef9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/CrosshairRebindAndCursorTests.cs",
+      "status": "untracked",
+      "bytes": 5556,
+      "sha256": "49e5ddf9303e3e5f232e396730e43d84a51b54bf49fddfa5bd62e72411913761"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/CrosshairRebindAndCursorTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b5f8a3ea4ac27417bbda35cfea30f568717820cadd101a9d7a25402e250b8d48"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DeathVisualGroundingTests.cs",
+      "status": "untracked",
+      "bytes": 13097,
+      "sha256": "1fe2215a8bf93bc803048410c523c8e052094cf8e0a6ef5a3bdddcd519328d25"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DeathVisualGroundingTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "090aedeb1b4f94fa5c21f1c87cab17b5047fe74bf9ba232d89e919973200139b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerDisconnectTests.cs",
+      "status": "untracked",
+      "bytes": 13782,
+      "sha256": "7f48bef2910eb9f38311f497f4d105021d9508849733c3b30f1e4652b635349b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerDisconnectTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "2ae71523d57e84ddd79cf838f4435baddb5bdf72afebe081fa252b67346213a9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerEntryTests.cs",
+      "status": "untracked",
+      "bytes": 13348,
+      "sha256": "d41c61516f6b7cf09fdc3d44af7c5e045b32478696810066a08a1b64e91b90d1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerEntryTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "776e03436286bb97a55e90bf6ead64c2cc331b0729da727ce89825fac28020aa"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerHeartbeatTests.cs",
+      "status": "untracked",
+      "bytes": 13213,
+      "sha256": "2b685dce9a61fca353f819b1b63fca61bcc8c9b6634770c56293f3ea0a238f8b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerHeartbeatTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "3fe321003b167a7db91f497924c03b097dc0093b8fc1305bf1407912b05870d9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerLifecycleTests.cs",
+      "status": "untracked",
+      "bytes": 9292,
+      "sha256": "503686955f37405b5529a0a41c9f617f362cf1d49931a82594f3a6e7d865bf92"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerLifecycleTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "bbf724be31986aea46597c1e4834189c85a53808c5cc87d61b82d3cd47542225"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerNetworkLaunchTests.cs",
+      "status": "untracked",
+      "bytes": 5110,
+      "sha256": "a5755fd977fc89c07031a7e7cf97302f44b1a29ceb88c2cb8339f6a9083eaae7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerNetworkLaunchTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "ab00c871642904659dff3a2e20bbc9c271e4b0e0618d22ac812f04d8c4595c02"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerOptionsTests.cs",
+      "status": "untracked",
+      "bytes": 12507,
+      "sha256": "f80db10204b4c308cacccfa8109677469a5afab4b37d75c5b819059b1b11d2f7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerOptionsTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "39657fdc865979d4fbf3621121298cb9dc2bbc69e7383c727d8bb3c19e9dd79b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerStartupSequenceTests.cs",
+      "status": "untracked",
+      "bytes": 14692,
+      "sha256": "1963de000c40d42dab8ef22a77510ab1069ba9b82179b76ef167159fa27d8985"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/DedicatedServerStartupSequenceTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "b63d11a47cc0611bdc17bfc4fdf71888c29a383dafaed84d2ff4969304e4b10a"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPAimAnimStateMachineTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 14762,
+      "sha256": "6bb9c06306eca29aeefb2bff227b76035f2cc215045894576cff98cdb49515ca"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPCameraRigDeathViewTests.cs",
+      "status": "untracked",
+      "bytes": 11441,
+      "sha256": "153a3498f096e191622f6b9e16dcd9d8f73b782d971a9e4ecf71de090b5e35dd"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPCameraRigDeathViewTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b300b56035f46d9aeb65a9dfb724cf3683688ec9d83290b45356a490a794688c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPVisibilityAndLaserGateTests.cs",
+      "status": "untracked",
+      "bytes": 11945,
+      "sha256": "0424e6f1027be4df52753fc083ac3590eb8b4e03139e9ccaa56a0baeacdd4b47"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPVisibilityAndLaserGateTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "23de91440f2895c1970f60f9e8ae4bd01b9b25a2fae32714df0a0199ad3c51c5"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPWeaponAdsFireRoutingTests.cs",
+      "status": "untracked",
+      "bytes": 6650,
+      "sha256": "c9a8f7ca62b22248c38127f5794e8d14defea64c2fcb06ae03108e0ceb701972"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPWeaponAdsFireRoutingTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "343d6dac5869a9e0de1ddd81e827c2759dd2b4597b744e3fd9636a23ba9a3198"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPWeaponMotionFiniteRecoveryTests.cs",
+      "status": "untracked",
+      "bytes": 1962,
+      "sha256": "ff8e9718f479aedc8eab46efdfd38ed5fa060a7918f61ec7eb2b4bed1503e6f1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FPWeaponMotionFiniteRecoveryTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "636ed8a27ca34b9c79040af877d77f1818f5d6c6f005d2709f5c9f1eb02577a4"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FormalLpfpAssetIntegrityTests.cs",
+      "status": "untracked",
+      "bytes": 4244,
+      "sha256": "2035874f9af004511a482f0643d241514996d06ae6301ac139668e215db1e7b7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/FormalLpfpAssetIntegrityTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "fb38885973db2ca48505d61f553c0f5c9068535b77da4b37ba014e0a8e1e0729"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/Game.Gameplay.Tests.asmdef",
+      "status": "modified-or-deleted",
+      "bytes": 817,
+      "sha256": "1fc09bbdc2329cf5c75d8ca8272bef1890eac2936c9deef7d0e9965044fcb98c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/GameplayClientInvariantProbeTests.cs",
+      "status": "untracked",
+      "bytes": 4857,
+      "sha256": "4b91091912eb390742834e7a419668a9cfa969f5f65e2b65aeb697dcb845bbef"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/GameplayClientInvariantProbeTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8777c4a2d6646bc9d7a9e48bcb98a85a4100056a1e6b08e9e9b12782e056c2f5"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/GunsmithPageTests.cs",
+      "status": "untracked",
+      "bytes": 11355,
+      "sha256": "d5c4697a419e4cb13071cd68822cc7f6ca11326cab8660f1640e6bdcf9bd193c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/GunsmithPageTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c533a4ba89ae3a3fda1a45de04f03e95a5bce67bb214a32b799807fc3e40a8c2"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HitAttributionFallbackTests.cs",
+      "status": "untracked",
+      "bytes": 10633,
+      "sha256": "a00f58ff39cfc0a133d66bb1a8bd3fd3000715bbc206f02a571155c230edbdaa"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HitAttributionFallbackTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b73045e1036473427e2615152305022505df40eee39ce864000b7553c94b62f5"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate.meta",
+      "status": "untracked",
+      "bytes": 172,
+      "sha256": "71e08b764027d91275c46955be4438eb1ce3107e4ea5c0a9f5446e2fa8f3de8c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/AssemblyBoundaryGuardTests.cs",
+      "status": "untracked",
+      "bytes": 1966,
+      "sha256": "683cc1515803d68c3bd2192f7ccaa55ea75cc654391b0fa2e5f9c5c28dff01b7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/AssemblyBoundaryGuardTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "4453c7c3c190f42f640376b1acc2fd18fafafeb1768c78f101417872920f84d3"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/HotPageSmokeTests.cs",
+      "status": "untracked",
+      "bytes": 11448,
+      "sha256": "67343b1dd2dc05022a85296f8bf6a57a5a6cd9f141b48465cad7c68ccf000b27"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/HotPageSmokeTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "389db4031fcb102ca8c49972071b31745a7c52fe239a229181bb971a78f2f256"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/HotUpdateManifestTests.cs",
+      "status": "untracked",
+      "bytes": 5811,
+      "sha256": "f601c0b953b1cb4d747a3b9f070fcc4199763780210a775c826856ebeb5a16fb"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/HotUpdate/HotUpdateManifestTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e62cffd06fffd91c7bfe1462cc8f1b84f8da2a142803f4f06c8997d068b106c9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketAuthenticatorTests.cs",
+      "status": "untracked",
+      "bytes": 13966,
+      "sha256": "dbdeb0965c9734dbd7a1d36ffd6667ab555ae594330f20165a5c4dc4b6484820"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketAuthenticatorTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "1d7bd17eab868d864b8c929f2a2f2ef7d228af9f701441dc09a05c2cf550cdb3"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketCapacityPolicyTests.cs",
+      "status": "untracked",
+      "bytes": 3099,
+      "sha256": "e07920d4a770b8c51e0c05a43f4ede6de0f54014bd0e1c6d33bcd731afc10d06"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketCapacityPolicyTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "57aa13db341879fe260c9ea954cd042087667b9eb4faa486d8919c270c5841ed"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketClientSessionTests.cs",
+      "status": "untracked",
+      "bytes": 5818,
+      "sha256": "faeeece6f34d4d7cd9aa334fb517acc7ea2d411ce7677cc591ee7b0fcb6e8fd3"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketClientSessionTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "a04271c39060f4936d7d23b3f91dc522aec4b82e1798514ce15f7bf694998c7d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketRejectionDeliveryTests.cs",
+      "status": "untracked",
+      "bytes": 5399,
+      "sha256": "67b778dcd4cad9cbaa430c2fbea699199c7df66f4851c393a560d2e551ae7162"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/JoinTicketRejectionDeliveryTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "f0ad1094e3278d7d495799c62a71e428189105b3d24c288d00359700c443ca2d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LPWDualLayerCalibrationTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 10029,
+      "sha256": "76d2b93c92582654843592396651500ca680203f962c79dedb1f57283aafd9c1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LPWProductionAssetTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 5231,
+      "sha256": "d15dcadb8f7db9ee6e5a248c91c194bac7c9a8c93139694c8a9a2fbd32af3490"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LPWWeaponPoseAdapterTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 23002,
+      "sha256": "5de3e5b962f0a2ce7f788ed3fa8f79c7e736d25832b98f14daae49c3a07d6e26"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LagCompGenerationTests.cs",
+      "status": "untracked",
+      "bytes": 6994,
+      "sha256": "df22540cc022e9aa7e17613ec9a64ac14ae3dce2639c63d1c7d8ddf2af458506"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LagCompGenerationTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "5fa77164aa38eabdcbad2699ad7461967bdd7fb85349f5777bcd46abb1391af2"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LagCompensationPolicyTests.cs",
+      "status": "untracked",
+      "bytes": 11704,
+      "sha256": "08d04a8de432d0c5a684c49f9d5b782b6c9ff8cc07d03dde9a1b2ab857d8a42d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LagCompensationPolicyTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "0e64321d1763fa8e80ff9e574d75353f09b3ed7af96796e71f1b09241e098fb7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LeaveTransactionCoordinatorTests.cs",
+      "status": "untracked",
+      "bytes": 17060,
+      "sha256": "fe35d7a3facb0003618cecea8f1dd7a133a8e7fb8a59405e89c77719388c874e"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LeaveTransactionCoordinatorTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "de000301a87ef92b7a067f676d7bccabbfdb9793f7e23793053e2c0903acdd97"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LobbyAuthPageTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6726,
+      "sha256": "39985a138300be93a6d8785007f48d9137345466cfe23d700b0ea98b541b337a"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LobbyShellPageTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8766,
+      "sha256": "63da7e4eec021b55cf7b16e6448fe32571da1d6a89cf56df435eea992bb4062f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/LobbySubPageTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 14166,
+      "sha256": "3e3ecfdefc0a0689811884ad8a0276befa44e84aceffa7a0d719ae0044d60384"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchEligibilityTests.cs",
+      "status": "untracked",
+      "bytes": 4701,
+      "sha256": "18ad11b7d5ccbc171b7c0a30edc4e553501e03f850ea26356e93cf021c41f7ac"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchEligibilityTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "a2ff5c5684e9c70a36a960c4f57ead2811cd0c62e3ef4ecb95d88a06a18d8e33"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchKillAttributionPolicyTests.cs",
+      "status": "untracked",
+      "bytes": 3222,
+      "sha256": "e9ba0f56d384d17e4314b3b5374049f747c51d268c984f1b3424b38af391e608"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchKillAttributionPolicyTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "f38ec264349cfffb82538cc28f4118a2d3f843aff268e015d36e1912c0f3db58"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchLeavePolicyTeamEndTests.cs",
+      "status": "untracked",
+      "bytes": 2501,
+      "sha256": "a38a8c8fc7a035487285716586ebd158ee5adffff8357d2fb05c0673e55b348e"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchLeavePolicyTeamEndTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "76e97e1f453a40e4cd3c2dac540340993bfef5df36d39e3c0a32d50887e6b59d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchLifecycleRearmTests.cs",
+      "status": "untracked",
+      "bytes": 13112,
+      "sha256": "7398eea1ddfdf79459f967f27315e0fe3542753508a727309383e77fe33dcb36"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchLifecycleRearmTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "4491a85172fec3a9bbaa9b56cca09808c5b3176429293048b06470c9cf8278e8"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchPlayerIdentityTests.cs",
+      "status": "untracked",
+      "bytes": 6578,
+      "sha256": "ba784ad96bf039fef21ddaf56f74c2db22c0195ecc9b1c2c2e94bb35ab834be4"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchPlayerIdentityTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "3e9e8debd45fe6c98c6b1cf7cd6e914b2f9a6a3f26598a9e8fb12fd3174295e9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchResultPendingStoreTests.cs",
+      "status": "untracked",
+      "bytes": 4441,
+      "sha256": "9406085a845e74f29b3bcf8dd958b338d69e4704726323db81c522dd7d20419d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchResultPendingStoreTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "93d4a9d6d2d89650751a2c6a7b5cd2eaf418c3c47f3e724c6a093e3ecdafaba5"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchReturnSequenceTests.cs",
+      "status": "untracked",
+      "bytes": 9844,
+      "sha256": "63dfcfa594534dfee14b2357fe5e20a856b4c54bb79b40fa0af00ed0d82c1d27"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchReturnSequenceTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "46bc693602322dc4e1c67850dea9bc5ea94d27684c31682e723d79866dd1be68"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchRulesTdmTests.cs",
+      "status": "untracked",
+      "bytes": 8641,
+      "sha256": "d89d56b167ed9f8e5a21f858f9e01d76408a6423a8744097552d2dbdd3c6a1a8"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchRulesTdmTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "6d89010f766f7d607d42db03cfa9fb140a09d00674b734d1cc11d96643de4504"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchScoreboardSnapshotTests.cs",
+      "status": "untracked",
+      "bytes": 7930,
+      "sha256": "d40bc99ca358312a79f0a42d364782c5e9fde2648f7e848c7609e17fa47a411a"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MatchScoreboardSnapshotTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "abb92a27044f8102cc9a23ecbbec1f33ad9784b797a645062b1345b539b4000e"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementBatchAndGapTests.cs",
+      "status": "untracked",
+      "bytes": 21484,
+      "sha256": "fa34ce07907f7090a9ae5c483d17d53924a10006fdaac94a3d388875b44a75ce"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementBatchAndGapTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e6756a3f3902cb475bf589961d4b4cc1aaf79253ef37d156a056cdf98ca444a4"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementDiagnosticsTests.cs",
+      "status": "untracked",
+      "bytes": 5445,
+      "sha256": "15f80142919b24dbd59b8c8dd373c1087b9e86d387c7d35d410f8cef94092c9f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementDiagnosticsTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "1834adb6c9511225b8c398c8f2ea2ca4250fe35b608bfc191bc4ed1ac8828331"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementPredictionCoreTests.cs",
+      "status": "untracked",
+      "bytes": 28339,
+      "sha256": "c02cd9ab966b8d303c9adc477bbc982ef9aced700c7bbb1eaf2031673a20ae55"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementPredictionCoreTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "53f89ba1b6c5b522f474243fd05f67dd89d4a47b1d1a258c4a6a312cb9871737"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementPullbackTraceTests.cs",
+      "status": "untracked",
+      "bytes": 10662,
+      "sha256": "9f7b5d7a0ac019e2265f63994e01feb4944e62b0c73af2814da4c79f8b74dde0"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/MovementPullbackTraceTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "aed9690bc025ade65f8e83146adda4c090fcb1d9bb3573b00e0b9d5e6907a4ba"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/NetworkLoadoutAndSingleActiveTests.cs",
+      "status": "untracked",
+      "bytes": 6390,
+      "sha256": "44a4e8f203c924ebaf78f16ce2833169fa8a72be9f8498968df3b785877752a6"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/NetworkLoadoutAndSingleActiveTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "a1c5c03e2a4726a4a2bcc4a06dcfe32c7120eaf1f9848b392d4d38165dde2424"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimCalibrationTests.cs",
+      "status": "untracked",
+      "bytes": 5162,
+      "sha256": "fe44329d5af564ae29c4ede7ab36bbc2fdf944d7aa218980cf843e296963db7f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimCalibrationTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "10fae7229abefd194366f388c564a74415ee06a644589f36496509a2ba671ced"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimContextTests.cs",
+      "status": "untracked",
+      "bytes": 6413,
+      "sha256": "f83f7e2026684b26053a09ab598ddb26e1b1eb171e2c3d2e52cd6da925e47153"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimContextTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "fb63abc33ba71fdbc797b967c6beffd0b52cc1220fa78398a4d86dfbbb4a79ff"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimCoverageTests.cs",
+      "status": "untracked",
+      "bytes": 2561,
+      "sha256": "803b2715e3ab6a5bf593ea2407eb29ea81edbf1aa545eb641564db25f00aa933"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticAimCoverageTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "055141c41972acf57af7f02c11d2eba6d9f02c48a5e781b682257853b68017f7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticViewCatalogTests.cs",
+      "status": "untracked",
+      "bytes": 4757,
+      "sha256": "99e13f16d574a38fd8b5947edde355c5e5c8a3be525e7742c769c938974f8b1c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OpticViewCatalogTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "277c7f3921aa97f915e3143e48063a6399fcb9cee23e0e33db92e117cb585fb8"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OwnerDeathRespawnSnapshotTests.cs",
+      "status": "untracked",
+      "bytes": 11466,
+      "sha256": "4ac00730be18fde8a6dd49ea73936228997b45f86512fa6c2729334231d4b1f7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/OwnerDeathRespawnSnapshotTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "0646b926befc0b2884c9a81a8c6773cc0c4761c1a300e8c041b4ee968b22dddf"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/P30Handgun04AssetTests.cs",
+      "status": "untracked",
+      "bytes": 4469,
+      "sha256": "4e300eb536acc7ab2b0174f6c8f09bc8f64a23ebce85ae50cc126ab3f8510334"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/P30Handgun04AssetTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "019cf739d24a47f1ccd6f34800538a495c11692dec786eaff0b9e15cf05fcfb7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PhysicalScopeMathTests.cs",
+      "status": "untracked",
+      "bytes": 6134,
+      "sha256": "1a02b74670b09445e4979db0c91f00fb7fae7f0d5ab706477ea3132588d79b7d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PhysicalScopeMathTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "10a785de26ff3c73b6db36b18ff800a90523863737b4cb9e6b690ebc546df987"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerDisconnectQueueTests.cs",
+      "status": "untracked",
+      "bytes": 8843,
+      "sha256": "bcefebaae9d3271ad44b649c25aa108689e2629ec8a2c2ee1b5eecaeb24443b7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerDisconnectQueueTests.cs.meta",
+      "status": "untracked",
+      "bytes": 60,
+      "sha256": "cee3c56a48731aebae2ca2b3cdcd017d6828be58973cad85387854804e8dabee"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerHitVolumeFilterTests.cs",
+      "status": "untracked",
+      "bytes": 8620,
+      "sha256": "8a0b6b8423447acfaeb85f77072cf4ca054a1607413ecbea3348a008e2502368"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerHitVolumeFilterTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "cb1d6bb9717896a80bffa861e12a777789d3a5019bbb8a68540378a1d6fa6b29"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerHitVolumeWiringTests.cs",
+      "status": "untracked",
+      "bytes": 9369,
+      "sha256": "54a40c4434cb6bad9de185fb1ccb01c894c5a5b7cd4f0dbca51b3d5cb69a18ee"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerHitVolumeWiringTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "1bde8d0143a1fc8dc66e548c6d6651b3bffce42a079d480a7101a27390e73498"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerNetworkAdapterReconcileTests.cs",
+      "status": "untracked",
+      "bytes": 19333,
+      "sha256": "3995cc52c44dc90170dd6bf7e6c3d4ca2291bf30187cccc58ed0c7ca903dc038"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerNetworkAdapterReconcileTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "80a45c432617626d2a336a2752a5438d099f2dd38f812119a9c1dcbf6e643ab3"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerVisualContinuityTests.cs",
+      "status": "untracked",
+      "bytes": 16150,
+      "sha256": "846f1f1a196a5eb2c8f5a960d03eccb713c6f0ba3a2659aa6646c3595f655eeb"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PlayerVisualContinuityTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "015b0a5e9a619c58179e8d63d21a099d28c2f1847997f107c7bf9d6be3c6419b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PredictedReplayConvergenceTests.cs",
+      "status": "untracked",
+      "bytes": 15023,
+      "sha256": "5c520fd2a5d97247748a1ef6b2bd95bbefbb61a7c071c73ec937cd93ecd217c2"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/PredictedReplayConvergenceTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "83ff8e5fb659fa96bae33e7c86ab5ae9f2b03568c54e3bb966a61b9bd9f06c49"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ReloadAnimationTimingTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 5674,
+      "sha256": "5eab911a2d223cf4d0691e14599938188990e3e11e9c0dda1089f5ec4357261f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteGaitPhaseTests.cs",
+      "status": "untracked",
+      "bytes": 5782,
+      "sha256": "9cbf2c6247012aed258d2f14b5c838f24468c47319e2b348fb78606a4047c33b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteGaitPhaseTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "ee20c1f15fd94316ea17f61e1998d602c1de5e2f6b1ab24e997b0ff4d210d75d"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteVisualInterpolationBufferTests.cs",
+      "status": "untracked",
+      "bytes": 5090,
+      "sha256": "c6fba91e315256aa6d3169c238ce69f0d639cff62ab05ac8b8c409c7b34ce53c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteVisualInterpolationBufferTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "b1e6082de1c32e2dfd98171d038c5d5c62d49c3fd5884552e998e224ae411582"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteVisualSmoothingTests.cs",
+      "status": "untracked",
+      "bytes": 16775,
+      "sha256": "3d28aed2ec365fbb698b76ecc193cf1f7f50a1b260f14b353bff1f275fdf0bc7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RemoteVisualSmoothingTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e59cf0e0eb2b6fa1e795f52c814e267882b86fdb2d4c4f347b82152fe94460a1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnAmmoAndImpactParentTests.cs",
+      "status": "untracked",
+      "bytes": 16889,
+      "sha256": "354d08e78ba48526186c69e97b29add50271dd935307b36510e7a2d01acef49e"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnAmmoAndImpactParentTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "5d28bed6c8f1c022c6556c0713068277de9b3e5e5ade0488021025f6846d0ff9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnProtectionHudTests.cs",
+      "status": "untracked",
+      "bytes": 3944,
+      "sha256": "cc941d4d4645f5625ba0bf03a4659e9e24f13b28e37c7c107a12037d2271458b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnProtectionHudTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "d70f451837d285285bdbae02143e311b99e85a800cc3effa0b39bb4e43d4868b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnTickTests.cs",
+      "status": "untracked",
+      "bytes": 5173,
+      "sha256": "72e79b1d354da8b85f29a58f6013d972f1485135bdf11cf60da8314dc1de9066"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RespawnTickTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "082646a8b6b9b6a2119980215607f5e5b761c212790afd1b4bc1fb0f85d348e8"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RoomConnectionGateTests.cs",
+      "status": "untracked",
+      "bytes": 6932,
+      "sha256": "0cdf2d8f9be9db2bf3ca12c924ab6ff5aef7b33cebc646636490c1641ca2ee7b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/RoomConnectionGateTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "c296f320420db25aafaa411d4c4b976a1933d0d970a05180c948b0d1f1753ab1"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/SettingsModelTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 6977,
+      "sha256": "b98f7ddb4286c42c899ca1e4b1583baade1a1f97986ad6923983403a67243185"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ShotRequestIdDedupTests.cs",
+      "status": "untracked",
+      "bytes": 2893,
+      "sha256": "992c10f2c09a502879d45b612a8d3d40709f17205e0a25eed79280aa17cd84e4"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ShotRequestIdDedupTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "ec1bbc18bc0a2b20d8b8e97676f92b132158ae09ec239de565b6c97a949bb906"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/SmoothCorrectionLedgerTests.cs",
+      "status": "untracked",
+      "bytes": 5816,
+      "sha256": "8c22273bbcfd0339db545844752b4150b7c72dda3ec7ee6f096a751cba026473"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/SmoothCorrectionLedgerTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "8ccbf3701c0e3313752d4a18140881c0c01a8f93c5b1adda6eea8b58fc57d43a"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/SuppressedFireSoundTests.cs",
+      "status": "untracked",
+      "bytes": 5108,
+      "sha256": "1c0e68fbe0531f8d319992396de65829a61cf640e0231e3fb5cf3708e826c016"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/SuppressedFireSoundTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "ff4b2282d98a1bf60637fce8b0dd74b945385ef623e582f9c32da957ead0c64b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TPAimDriverPrefabTests.cs",
+      "status": "untracked",
+      "bytes": 3380,
+      "sha256": "44228c1baa5abbc9e603e32711efcc8c2103973a5869841aa64c0f7e2a7317a8"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TPAimDriverPrefabTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "fb11aae7599ba30e643afcb276eaa4826ea25800c7c1f8aa2cc527f3730446e9"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TPWeaponMountPoseTests.cs",
+      "status": "untracked",
+      "bytes": 4050,
+      "sha256": "0dbbd61161085e3ddbe41b5c9ef179cb48d0d9af85d08605c73423713d0e69d7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TPWeaponMountPoseTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "0d07376ca246d745d92603b0da5c4881ef7f74291bd93ff98534df800f27398c"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TeamSpawnDirectoryTests.cs",
+      "status": "untracked",
+      "bytes": 7151,
+      "sha256": "280fb96473a50ee044e3237fbbd821f3793db147c197016eab77e3cd3668d7a4"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TeamSpawnDirectoryTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "e5dcc2db8ef0275f1db2da142e29b15c7e9866cebd5b073483d6471ac93ae8c7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TpAnimDriverRespawnTests.cs",
+      "status": "untracked",
+      "bytes": 10267,
+      "sha256": "b30f92caf33a522143b8dd0c235d53ddb62f9fa5d7778ba54f7e8c8e00765908"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TpAnimDriverRespawnTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "acae82bff619579d9b8d145c8017dbe0892a498079a730622947fb65bead9d9a"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TpPoseLifecycleTests.cs",
+      "status": "untracked",
+      "bytes": 9501,
+      "sha256": "19a80969f94ddb72dff36ef5360ab0d483220117f85ce65514e1147caa130063"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TpPoseLifecycleTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "3cdf9a7e7ef1ba8597409fbded64af94ec2363cc9523e331628fa9b7842c2a68"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TwoStageHitPhysicsTests.cs",
+      "status": "untracked",
+      "bytes": 10028,
+      "sha256": "7ebaa7fd1b5ee7557bafbd9461ca61dff5496989fa131da74cb880545444d45b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TwoStageHitPhysicsTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "cffd6ea95dbf655a4935e978672be37df4a8edb35e8b1238ff2ea8973cdeb110"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TwoStageHitResolverTests.cs",
+      "status": "untracked",
+      "bytes": 5622,
+      "sha256": "5543d5f3e4c61977df85ecd15fe8a1945d4a758a974b47a40e4a7798ea86782f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/TwoStageHitResolverTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "1be26a32b2c571ea1139b0d685027f9a5edd6750370a3e7d37bbe5107629f8e6"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ViewYawLeadResidueTests.cs",
+      "status": "untracked",
+      "bytes": 4458,
+      "sha256": "fbd879e34882043c2f8394df02ffd31314d415de167eb71ee00feaca0beb99b7"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/ViewYawLeadResidueTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "fff4d72edbe1e9d3b797925bea72400a740b4f2aa648f503c9c0a9988e322e6b"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/WeaponBalanceIntegrityTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7541,
+      "sha256": "725e9c83047aa0d5e80ebcef3144e5bb57bfee5f1784e334c9d0c9b35b40f19e"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/WeaponSlotAmmoPersistenceTests.cs",
+      "status": "untracked",
+      "bytes": 11741,
+      "sha256": "6bd50ac3f6eddaa656e7df5875621a20a256b765137c09afbf3070e485c0c81f"
+    },
+    {
+      "path": "Assets/_Project/Tests/EditMode/WeaponSlotAmmoPersistenceTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "5f65cde5f93b7868f3eb977c33f9b9237080f5f9c177aa3bdb6f701db689207f"
+    },
+    {
+      "path": "Assets/_Project/Tests/PlayMode/FPWeaponAdsFireSamplingTests.cs",
+      "status": "untracked",
+      "bytes": 25778,
+      "sha256": "5abda48700de4b164b475f0dd42625c1771fec324617505fd9c87aae1c2b677a"
+    },
+    {
+      "path": "Assets/_Project/Tests/PlayMode/FPWeaponAdsFireSamplingTests.cs.meta",
+      "status": "untracked",
+      "bytes": 59,
+      "sha256": "19ac5f88fb3948808ff5b303554cfcd4693515066c66a6ccd5cf461993043b99"
+    },
+    {
+      "path": "Assets/_Project/Tests/PlayMode/LPWWeaponPlayModeTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3771,
+      "sha256": "0a2580c3b13368ccd41693c5a3a72073d6f5842a7f96de86cafee961710f333d"
+    },
+    {
+      "path": "Assets/link.xml",
+      "status": "untracked",
+      "bytes": 250,
+      "sha256": "17ea5af5114cffa58faf2710e49fcc0c46e09fbcc005cf571b4a99881d59f18a"
+    },
+    {
+      "path": "Assets/link.xml.meta",
+      "status": "untracked",
+      "bytes": 158,
+      "sha256": "d7c617057f330201e8cd33271c616dc5136dd5abea2695e26ea5078141081387"
+    },
+    {
+      "path": "CODELY.md",
+      "status": "modified-or-deleted",
+      "bytes": 174147,
+      "sha256": "fe398905b9be43a45a56188b5ba66628cb05e724e0a6785ba1de2c05976628f5"
+    },
+    {
+      "path": "Docs/00-总览与导航.md",
+      "status": "modified-or-deleted",
+      "bytes": 4379,
+      "sha256": "4d2fa529f9be2a8f251eb087a9ae354240c868438795797aab3c134c7a07d603"
+    },
+    {
+      "path": "Docs/21-weapon-identity-matrix.csv",
+      "status": "untracked",
+      "bytes": 4464,
+      "sha256": "9f1a05093684bfca85b61bbc5938017a36aa68aa53197b22ce73fd344ce3de9c"
+    },
+    {
+      "path": "Docs/22-firing-jitter-audit.md",
+      "status": "untracked",
+      "bytes": 9188,
+      "sha256": "1c1411a9b39306713dac82c26f80c26ced4be912e9a832ca52e9762dfc815b9b"
+    },
+    {
+      "path": "Docs/26-CF房间TDM聊天与实体倍镜实施计划.md",
+      "status": "untracked",
+      "bytes": 14648,
+      "sha256": "458ec23472df7536a7aa1e2ae5b393cf4fd03df8c9e1e7a0882b4822e25cf700"
+    },
+    {
+      "path": "Docs/27-CF房间与地图接口契约.md",
+      "status": "modified-or-deleted",
+      "bytes": 29478,
+      "sha256": "6b7e71a6569c8877bb04b9e19a9be97510a12895cef6be784a5f824a40f84785"
+    },
+    {
+      "path": "Docs/28-CF无人值守推进执行计划.md",
+      "status": "untracked",
+      "bytes": 36358,
+      "sha256": "0eeec1671d049f62e466b03c0ffd261780a0fc68d6d142d8ee30934d69aa79fd"
+    },
+    {
+      "path": "Docs/交接/2026-09-07-Day2审计与主项目集成接管.md",
+      "status": "untracked",
+      "bytes": 14986,
+      "sha256": "5dcd66225859c9bc369d2b52bb5b1032b195992359c0dc1179456e6451c9da11"
+    },
+    {
+      "path": "Docs/交接/2026-09-07-Day3审计与最终验收准入.md",
+      "status": "untracked",
+      "bytes": 4089,
+      "sha256": "31f0605074367e0a9c9de79f4b8db0f5d03721b379ecdf7215ee9221f440eae6"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-CF契约阶段计划与延后问题档案.md",
+      "status": "untracked",
+      "bytes": 12063,
+      "sha256": "7e0119208314a89e5eda6741fa6d8d5a05d3d884c4838a839f50423bb3c75953"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-Day3实机房间流程问题审计.md",
+      "status": "untracked",
+      "bytes": 16840,
+      "sha256": "6836a36f84bc027aaf0d96286567d90516dd85c666e574e57a698c7e506dc197"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-Day4最终验收与发布-报告.md",
+      "status": "untracked",
+      "bytes": 14269,
+      "sha256": "a9c063158dda2ba64eb070bb708fb1a9ac228501920f17a8c70db45ff7890ef8"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-Day4最终验收报告审计.md",
+      "status": "untracked",
+      "bytes": 12178,
+      "sha256": "e052669f706d54fea5071fbb46f5c5a95cb9961bd3abd02c69f377cd0e939882"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-Day4残余收口复审与CF准入.md",
+      "status": "untracked",
+      "bytes": 7744,
+      "sha256": "8f2e873ebdfc1f808a31d000cad16d67a05af5605ad3851989fea9ff4b68ae7f"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-Day4残余门禁收口-报告.md",
+      "status": "untracked",
+      "bytes": 12661,
+      "sha256": "639454b163eb92f10870b475a276cf33baae036ea6b911326f4a3320e2e41011"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-GateA复审与Day4最终日计划.md",
+      "status": "untracked",
+      "bytes": 11354,
+      "sha256": "bf2533d831a09bc2dc46eefb7e572c9c2eee7a12bed32fb4026e29fa3318ba0f"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-GateA多人准入修复-报告.md",
+      "status": "untracked",
+      "bytes": 14352,
+      "sha256": "301e1ed8ea1e4604d7c6717ff843918a10f0fd47b18e116216420d0b310137cb"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-P0实例租约闭环修复-报告.md",
+      "status": "untracked",
+      "bytes": 22147,
+      "sha256": "caee542987122afd80a07abcd091f2aa5efff72b21b69284bb78d589a8a7ccbb"
+    },
+    {
+      "path": "Docs/交接/2026-09-08-P0追加修复复审与下一步计划.md",
+      "status": "untracked",
+      "bytes": 10051,
+      "sha256": "f0668208c259e8c64fe62c7e603102918a9774e1492fe5632cd76ec2073e0662"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF-Codely接续实施-报告.md",
+      "status": "untracked",
+      "bytes": 12204,
+      "sha256": "5b1087b19b9324b4f13d92b80a1cf8929fe924287b600acb8de5e764b808f205"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF-R1-R10-F1-F3修复-报告.md",
+      "status": "untracked",
+      "bytes": 6410,
+      "sha256": "8e4e7648c293c7c4957902811ff0d59692d5f2509bba25c2175a0d6de358980f"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF-R1-R10修复复审.md",
+      "status": "untracked",
+      "bytes": 7241,
+      "sha256": "d017c2e32fe79f4be107fdb79c7168b9a3c2e4028694a8d53ba8d6f07d8f3e16"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF剩余实现与集中收口-报告.md",
+      "status": "untracked",
+      "bytes": 18056,
+      "sha256": "2ed7e8901fd0a6b36fd6c51b22dff7470b4ccb003971eef18fe2071f4f147761"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF剩余实现优先与集中验收计划.md",
+      "status": "untracked",
+      "bytes": 16767,
+      "sha256": "8731a51c2217b8ca6f07dd6490ac82936f7e62a1afdacf2444ed0976d05d7ac5"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF审计R1-R10修复报告.md",
+      "status": "untracked",
+      "bytes": 9698,
+      "sha256": "1bfde5ab0ee37c81b72b314fcd30af4b8d10995034e4bbc057eecd0f72fbec5e"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-CF集中收口独立审计.md",
+      "status": "untracked",
+      "bytes": 14303,
+      "sha256": "3513f2e0d6754fdaa1d4e7b184ab2f2c9f26f71c54b39753bc26aa39d906014a"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-ZCode报告复审与Codely接续计划.md",
+      "status": "untracked",
+      "bytes": 17593,
+      "sha256": "ff92ef4985aaa4d9492bc90d347842f4d5ccdac031d8121897450f8c7d10e2b6"
+    },
+    {
+      "path": "Docs/交接/2026-09-09-联机第一人称相机差异链路审计.md",
+      "status": "untracked",
+      "bytes": 10022,
+      "sha256": "7378d001d4ff28a72a360d3d55e11613095904f93f531109b9c05773205a4c02"
+    },
+    {
+      "path": "Docs/交接/2026-09-10-双人实测链路修复-报告.md",
+      "status": "untracked",
+      "bytes": 11631,
+      "sha256": "a275ed77151ed801dc1fb002fac290bc5c650c52c7ce5b3b7b077fe8becc3dd8"
+    },
+    {
+      "path": "Docs/交接/2026-09-10-双人实测链路审计与Codely修复提示词.md",
+      "status": "untracked",
+      "bytes": 14732,
+      "sha256": "266ee79dc0149f91d64ad6436cec3d09ad090bae19e2d0ec43e64ca822d950f4"
+    },
+    {
+      "path": "Docs/交接/2026-09-13-大规模集成测试与自主修复-报告.md",
+      "status": "untracked",
+      "bytes": 18132,
+      "sha256": "6e5634ebda76ad55a8d5e1fde93717b0621106e40b2b382bb30f6254ec0a3a30"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-一枪终局与二次入场卡住-Codely修复报告.md",
+      "status": "untracked",
+      "bytes": 18750,
+      "sha256": "06635daa2ca06b66a463644b1ab0085ea087b3c781f140a5147edf52a74ee90d"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-一枪终局与二次入场卡住-审计及Codely修复方案.md",
+      "status": "untracked",
+      "bytes": 13897,
+      "sha256": "089a43bd6e3eedecf7287213ff83a4336383a722ea0dbbb9db27cd8486c5678d"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-双端拽回陷地相机抖动-Codely修复报告.md",
+      "status": "untracked",
+      "bytes": 19371,
+      "sha256": "1ace3e994c3d7dc580a584ee25c4ee412a39b4a26f550449217020e305f95326"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-双端拽回陷地相机抖动-审计与Codely实施提示词.md",
+      "status": "untracked",
+      "bytes": 11344,
+      "sha256": "41962a5977501760c0fbec6498180e3583261fef41b227bca32e5dc84397baef"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-房间页开始按钮与聊天体验修复-Codely报告.md",
+      "status": "untracked",
+      "bytes": 8434,
+      "sha256": "8373aa3f4a08fb90b4a6394530b92830a10d4f103a2528ad7b5136d1c773a695"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-死亡重生退出与开赛规则-Codely测试提示词.md",
+      "status": "untracked",
+      "bytes": 11329,
+      "sha256": "72ff94378ef6b60544103071438d2a92b92f88d69e53d99bcbdbb44b5541d972"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-死亡重生退出与开赛规则-Codely验证报告.md",
+      "status": "untracked",
+      "bytes": 17081,
+      "sha256": "f7a74e0eda5ae51975d444a27e90cce0f924f79ae0aa05d4bdb8984aa710536e"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-配装错位移动晃动无伤害-Codely修复报告.md",
+      "status": "untracked",
+      "bytes": 9419,
+      "sha256": "2962a4beff3b3471b6a2d79c1d6a7c1f0b0f131aa5911e195e43db4d42971faf"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-配装错位移动晃动无伤害-审计与Codely修复交接.md",
+      "status": "untracked",
+      "bytes": 11720,
+      "sha256": "1597a4d75a5c8eedd023430e8942cfb62bfaecafe502e45e58f39e7719aaec08"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1307四问题-Codely实施报告.md",
+      "status": "untracked",
+      "bytes": 15209,
+      "sha256": "5ab2a36377c2a4ce776a24ba41f32fcad32b1df6aed37326ffbd9f68b115856d"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1307四问题审计与Codely修复计划.md",
+      "status": "untracked",
+      "bytes": 18944,
+      "sha256": "0c36e75356ff8d82ba99ec8351b7a28d4a058580126df0a66af0cf5ac8220a8a"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1455死亡丢枪激光残留与聊天越界-Codely修复计划.md",
+      "status": "untracked",
+      "bytes": 20567,
+      "sha256": "be35580015a67c4f07fe1cb54124d60e905330bd0c5a393b7dd5b298f3a224af"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1455死亡丢枪激光残留与聊天越界-Codely实施报告.md",
+      "status": "untracked",
+      "bytes": 11871,
+      "sha256": "bc798fae97b5fc494fce069504917b7821f73fbf89034449b11db2be9dbf1760"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1643左偏与硬校正-审计及Codely修复计划.md",
+      "status": "untracked",
+      "bytes": 9816,
+      "sha256": "1e25dc77b14f247cf207aeff94e98e0da4218e4bc6e507e7ed6f61df89b928ef"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-UI四需求-Codely交付报告.md",
+      "status": "untracked",
+      "bytes": 5015,
+      "sha256": "86c1b1f663877c769e039689777dff78ff2e8dae4aea4a9551b56451fb5a369e"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-双端三问题-Codely实施与v3验证报告.md",
+      "status": "untracked",
+      "bytes": 12586,
+      "sha256": "bc8e669793f18fc8067e257a278c73402f66b3f9f51cbab5c18ff75b0a9cdfd6"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-双端三问题全链路审计.md",
+      "status": "untracked",
+      "bytes": 24248,
+      "sha256": "9d78d3313cd3f327f55e7a6f2045f10c8e3a0f4201668ae8661cc36941e0f3bd"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-视角yaw残差与命中归属-Codely修复报告.md",
+      "status": "untracked",
+      "bytes": 12641,
+      "sha256": "c6412687f6e549660ae0699c5ffc87d6aa9a24ed7ab9ce93ad8374eb53b4b99e"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP修复-Codely实施报告.md",
+      "status": "untracked",
+      "bytes": 10589,
+      "sha256": "478b4dcdaa6867950c96e5f86cb3657d73a9c3157b649e67857f897a86d4268a"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告-附录A-链路代码.md",
+      "status": "untracked",
+      "bytes": 21063,
+      "sha256": "7aa2e4d015850ea0fba70934a366d4ffb5741583f89f738f047d2ead406ee420"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告-附录B-纯逻辑与阈值.md",
+      "status": "untracked",
+      "bytes": 21660,
+      "sha256": "f97d6114c8032a666d31ffe930719e1a4dd13c9d461c332b9ef16a4558aeba55"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告.md",
+      "status": "untracked",
+      "bytes": 18593,
+      "sha256": "57a2d865bf877dd60ed58e3feeba3b8f1f80ba16bd1ecb706fe920e3c0be3f7b"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP静态全量代码审计报告.md",
+      "status": "untracked",
+      "bytes": 65001,
+      "sha256": "c06ffc3d3ad27cbd60231c9d13652862e7766792e47a8553c9cfe77601a0ca1d"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-四组需求死亡复活无敌计分板光轴地图-Codely交付报告.md",
+      "status": "untracked",
+      "bytes": 16247,
+      "sha256": "20a9995b8f5a1fb608923350691b0d6c8e205e977f1e9ce91f040c3278898298"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-热更新xLua接入与两试点-报告.md",
+      "status": "untracked",
+      "bytes": 10833,
+      "sha256": "0b95f8f4e5258ead8ae691f7934bdc0d2982f135904dbe071f6ec2dce4351051"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-贴墙横移审计-Codely报告.md",
+      "status": "untracked",
+      "bytes": 8295,
+      "sha256": "e75acb9fd81bd34b3fce4820995185165f72ddb4b452f57b9adad385ec9c1093"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端丝滑度静态审计.md",
+      "status": "untracked",
+      "bytes": 6107,
+      "sha256": "7e1b724eff5996f5d455c7cee7d8c9da0cff0c88a46933d75f89777608e94ab3"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端步态翻小人书方案B-Codely实施报告.md",
+      "status": "untracked",
+      "bytes": 3308,
+      "sha256": "bac7a1b168b13b1947e8bf3ea601d1f9030988bbd1b8b1acab0fb9e20830c243"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端表现两问题-Codely修复报告.md",
+      "status": "untracked",
+      "bytes": 3902,
+      "sha256": "510959de912de54ccba22979ea1a851560aaca360b15b122847a48a56b525a7c"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-Qoder模型外受击与重生陷地-复核报告.md",
+      "status": "untracked",
+      "bytes": 7417,
+      "sha256": "4f1bd6fa3329fe687ae67f847c932de880eb40ab4ceddd1c45a2395458654c11"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-受击体几何标定-实施报告.md",
+      "status": "untracked",
+      "bytes": 18136,
+      "sha256": "698a38184bfe43938cb680efb0793c88fcc7758aaf9f27eb5064dc5092cdd114"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-实机九项反馈-Codely交付报告.md",
+      "status": "untracked",
+      "bytes": 9103,
+      "sha256": "d0001d51991bccffc14922c1c3ca86f02e96c70edfebe5744e122d21aacf66bb"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-模型外受击与重生陷地-实施报告.md",
+      "status": "untracked",
+      "bytes": 31712,
+      "sha256": "8c6155e243b0eb243efc11ce834025650675547a96b881cc05582c951d859682"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-模型外受击与重生陷地-审计及zcode修复方案.md",
+      "status": "untracked",
+      "bytes": 18023,
+      "sha256": "ddaa1353417d4e5cd31661b67a63f2289e3b6f8f5c43a822ff512da0d8c3cbae"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-重生动画停播与模型外受击-排查报告.md",
+      "status": "untracked",
+      "bytes": 11309,
+      "sha256": "d57afad4539616a207e3f3b085636699e04cb9023de47b3644e09d8c5c7b4e1c"
+    },
+    {
+      "path": "Docs/交接/20260909-1040-CF-Codely接续-状态.md",
+      "status": "untracked",
+      "bytes": 4748,
+      "sha256": "c1e1af8a452132dabbe4df3b553721b626fbc2f0b66cf68ce707290b2a6d982d"
+    },
+    {
+      "path": "Docs/复盘与面试/01-网络同步预测与校正.md",
+      "status": "untracked",
+      "bytes": 46509,
+      "sha256": "4e20bd48dc8efb64908c3462be362efae80acb85d28c85552fe98b5aa943acd0"
+    },
+    {
+      "path": "Docs/复盘与面试/02-第三人称表现同步.md",
+      "status": "untracked",
+      "bytes": 11522,
+      "sha256": "48de9c18695f18a14543301a69626bb420157b546c65fabd0a4867ddac6c7020"
+    },
+    {
+      "path": "Docs/复盘与面试/03-热更新.md",
+      "status": "untracked",
+      "bytes": 7696,
+      "sha256": "c8ddd1e8e6cee4335c77fd083e33fb20c4d387695801f500ca721db1bbb28e0c"
+    },
+    {
+      "path": "Docs/复盘与面试/04-命中判定与表现层九项.md",
+      "status": "untracked",
+      "bytes": 12354,
+      "sha256": "e9793ddb86ab22d23be2a28ea40ea903addc7fc0603a73d8858e7e198712be99"
+    },
+    {
+      "path": "Docs/复盘与面试/Lua热更页开发规范.md",
+      "status": "untracked",
+      "bytes": 2856,
+      "sha256": "230f8c8ce626520e1c423afcfa15900664c9bf2fed33c441b27944896967c1f1"
+    },
+    {
+      "path": "Docs/复盘与面试/热更新Demo演示手册.md",
+      "status": "untracked",
+      "bytes": 4382,
+      "sha256": "221ad02c0e2661b4529d24638a0c8ee55894a8cf29b6975228f5bd3a4c7decd4"
+    },
+    {
+      "path": "Docs/多人FPS项目面试准备.md",
+      "status": "untracked",
+      "bytes": 22570,
+      "sha256": "efdccf8429d553ddbfae43d0ef5e1f2bc52089ebb839260736eb08e6983b53cf"
+    },
+    {
+      "path": "Packages/manifest.json",
+      "status": "modified-or-deleted",
+      "bytes": 2248,
+      "sha256": "2ce06f01f673cd464c0b332b5a140eed22d2cedfe9de176f4bd7680f1666b5d8"
+    },
+    {
+      "path": "Packages/packages-lock.json",
+      "status": "modified-or-deleted",
+      "bytes": 16122,
+      "sha256": "415d7b539fa991e38dc05afa1e815b14b14a75fe31c5bd69ae13694737f693f3"
+    },
+    {
+      "path": "ProjectSettings/DynamicsManager.asset",
+      "status": "modified-or-deleted",
+      "bytes": 1553,
+      "sha256": "5bd5459034890184362b0a6b85cd40787b3136d5d42e9594fe483c8b23c00c01"
+    },
+    {
+      "path": "ProjectSettings/EditorBuildSettings.asset",
+      "status": "modified-or-deleted",
+      "bytes": 940,
+      "sha256": "f6eb4ec73d7061a99703d041e71e03cc75922e895a3eea887c6af528148ec17c"
+    },
+    {
+      "path": "ProjectSettings/ProjectSettings.asset",
+      "status": "modified-or-deleted",
+      "bytes": 25242,
+      "sha256": "48d92243beaa9d050ff08e94db0a133715edc40feb01d3eeb6203da3ad97d2c7"
+    },
+    {
+      "path": "StartAllMapServers.cmd",
+      "status": "untracked",
+      "bytes": 663,
+      "sha256": "c6d5f05cd740ad0dfd43afb047c97dd4bff9d3a46e2f67a12153ef0bf1046d5a"
+    },
+    {
+      "path": "Tools/Client/Start-LocalClient.ps1",
+      "status": "untracked",
+      "bytes": 1856,
+      "sha256": "f5e961daac652dc557da8be57822089c3d2328f3a43290610662bc6c98a2e2ea"
+    },
+    {
+      "path": "Tools/HotUpdate/Publish-HotUpdate.ps1",
+      "status": "untracked",
+      "bytes": 6674,
+      "sha256": "ea04e9be52f7751028dea10fe10bc4933abdae9733d9eb95ef757f8b424be31c"
+    },
+    {
+      "path": "Tools/Server/Start-LocalServer.ps1",
+      "status": "untracked",
+      "bytes": 17881,
+      "sha256": "de8e2a15b50f4720b8a7e9777851d82f9bd59c72ee045311b8be5162453332e8"
+    },
+    {
+      "path": "Tools/Server/Stop-LocalServer.ps1",
+      "status": "untracked",
+      "bytes": 3755,
+      "sha256": "baaa57d54127beb2c104c4361bd189ad928700398877e0f31a900a57a9436784"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Common/ApiErrorCodes.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3917,
+      "sha256": "afdae09b85a7f1530bd5aae279a4ad065ff1445e11636d2b8b15e74cbaf60431"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Controllers/MapsController.cs",
+      "status": "untracked",
+      "bytes": 452,
+      "sha256": "1cb72c4828a73295a77f5c6bdc485c99b920ad4c876a9c828c376472edbf2c56"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Controllers/MatchesController.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1028,
+      "sha256": "9c68a2591e78a23abe9e9e2151678b0699d0352b272ba172b24dfee9caacaffd"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Controllers/RoomsController.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4934,
+      "sha256": "9da3702a323c020b3927951af7d749fcf443e3e2a2b2a9d2af3063df41346351"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Controllers/ServerInstancesController.cs",
+      "status": "untracked",
+      "bytes": 3507,
+      "sha256": "eda0cc9a49ab0344f1a121faf28659222dff0c40d980a648fb19c4d741b9ba2e"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Controllers/SettingsController.cs",
+      "status": "untracked",
+      "bytes": 793,
+      "sha256": "3df348c12197e006adc34af059aac912be3f31fd806813d79bc8c3aebfb5a524"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/AppDbContext.cs",
+      "status": "modified-or-deleted",
+      "bytes": 17409,
+      "sha256": "af63c69eb3ccdb3769a907fa0e4763cfb333db40563b8716efee0b1612098eb0"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Entities.cs",
+      "status": "modified-or-deleted",
+      "bytes": 21472,
+      "sha256": "063c8697b217af0b0245ba7f5ae957f95eadca22638929aa8ba33b20383262f5"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260901044346_AddAttachmentCompat.Designer.cs",
+      "status": "untracked",
+      "bytes": 30243,
+      "sha256": "9b5f7d021867de67deb38fc6c56aa9c7b93a08e0bae48da78e2c580e3156fc4b"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260901044346_AddAttachmentCompat.cs",
+      "status": "untracked",
+      "bytes": 2654,
+      "sha256": "e299f31fff74fd9694ec82ae7ec327b05a623e402143da91d32379c36559e493"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260905163056_AddServerInstancesAndJoinTickets.Designer.cs",
+      "status": "untracked",
+      "bytes": 32757,
+      "sha256": "4f5a6ebdc88133ff73348956d53bd8fcbc9f6dc87098f804622955d5104907b7"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260905163056_AddServerInstancesAndJoinTickets.cs",
+      "status": "untracked",
+      "bytes": 8098,
+      "sha256": "d8b0c239753f58c3818a65b9e4249c2a1c8b51e81477f4ef6c94a02f389af941"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260907082531_AddUserSettings.Designer.cs",
+      "status": "untracked",
+      "bytes": 31451,
+      "sha256": "89da5b9b23577eb484b7427ccfc5ba9c985382af0ee906e84611418a0d971b3b"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260907082531_AddUserSettings.cs",
+      "status": "untracked",
+      "bytes": 1797,
+      "sha256": "34ab47074644bdec0beb742d5b2820de9d77e199887077adc8e39fed2830b0a8"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260908153904_CFWaitingRoomLifecycle.Designer.cs",
+      "status": "untracked",
+      "bytes": 41919,
+      "sha256": "03cc4d9b9d40b274462b492c22d2e9f8ec5ba699068dab043cbae2d433d61f79"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260908153904_CFWaitingRoomLifecycle.cs",
+      "status": "untracked",
+      "bytes": 11292,
+      "sha256": "79dac44093e8ca96920ee099b3c1a29753f888661d70a238ac6550662d74d2fc"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260909020637_CFReviewR01R04.Designer.cs",
+      "status": "untracked",
+      "bytes": 42445,
+      "sha256": "1f269559eea5a277249b1e04fff3be1a987946285a3dac78254c74611aa24cd1"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260909020637_CFReviewR01R04.cs",
+      "status": "untracked",
+      "bytes": 1984,
+      "sha256": "0e848f3c46511e78a4e00be58eedb7f096ca16da0b99ac020fe1b011c95d9b13"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260915133417_AddProtocolIdColumns.Designer.cs",
+      "status": "untracked",
+      "bytes": 42683,
+      "sha256": "526380151162ed82107c25a231e5d9ced4b7e25e2b16e7c27e23afbef438f4b0"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260915133417_AddProtocolIdColumns.cs",
+      "status": "untracked",
+      "bytes": 1224,
+      "sha256": "50d340849967d780e06f9e16980262a7d2a656201c40f2f136acf1a5b092c527"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260917103000_AddServerInstanceMapId.cs",
+      "status": "untracked",
+      "bytes": 1100,
+      "sha256": "2325c830cdb000d99a4d1682b384e55ebfe61f08d4c6e8d09a45f8ea9c84f61e"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/20260917112000_AddUserTokenVersion.cs",
+      "status": "untracked",
+      "bytes": 1146,
+      "sha256": "7701aa0de9273bb3c3ae2486f95b6b53cc0782864a3b78be35f30044a3a5508c"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Data/Migrations/AppDbContextModelSnapshot.cs",
+      "status": "modified-or-deleted",
+      "bytes": 42776,
+      "sha256": "3420d44e42563b0c26c7e637e3f3b7c32c8da43524409ca3131292e7ab78e360"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Features/ChatPolicy.cs",
+      "status": "untracked",
+      "bytes": 2617,
+      "sha256": "7bf1d9101c1b361831704a597835e84e8bcccb29ceb9efb032ac8c32957ccb60"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Features/Contracts.cs",
+      "status": "modified-or-deleted",
+      "bytes": 19443,
+      "sha256": "d179bba9a851be5790971ff2eaeaa609fd675c2ce0fa638be9d465da1c2971a5"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Features/MapCatalog.cs",
+      "status": "untracked",
+      "bytes": 4657,
+      "sha256": "efadaf18a9160200d633dae2a2feb8c14361672f925b0577de33d63cb6bb0080"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Program.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8904,
+      "sha256": "88ce5b66c0640dca0cf513eaea380a1cb70ecb63e1caabf415649ce46abadf3f"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/AttachmentSystemSeeder.cs",
+      "status": "untracked",
+      "bytes": 17337,
+      "sha256": "394f6eb1c1244404e38219a863f943f1bb1901b64645a03c98cc57eb5a1e3362"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/AuthService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4409,
+      "sha256": "088a2de098ef37382ad7e687ce22eef752822b8ccc70732e434b7f3e91cd22bb"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/CommerceService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7953,
+      "sha256": "c2a875a19626ea16bce7831abe17c37332fc9d96505c1157bd69383cd85aabca"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/JwtTokenService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1900,
+      "sha256": "2d02b65aca5cb35f3b8156d57fbf46b7a4e033f002164d553ec442512832ec83"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/LoadoutService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 8706,
+      "sha256": "813b6f482d8a8d87a1073e0b1a91d4bfa117084dacbf56ac00490fb1ec6e7a9f"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/Mapping.cs",
+      "status": "modified-or-deleted",
+      "bytes": 1829,
+      "sha256": "81958bec4dc3b9d9dfb7cb0582299413bb68f0cd5e714aead188496f86c0237b"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/MatchService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 21887,
+      "sha256": "d82703787b00730cbe113e2355b7f3bb440cce448237aeb76641a4668f96274a"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/ProgressionRules.cs",
+      "status": "modified-or-deleted",
+      "bytes": 3057,
+      "sha256": "c595bc4c0288ae0f3fa557f782d2481777509f32398dac4cdaf6c5a2f777cfd2"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/RoomChatService.cs",
+      "status": "untracked",
+      "bytes": 10301,
+      "sha256": "e41f1c4d678c8ed91659c0ed9585f415db2ebf84cb63ce6b3431bb46e0ea4b4a"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/RoomService.cs",
+      "status": "modified-or-deleted",
+      "bytes": 88548,
+      "sha256": "0df4831e4042add187f3b3cba8867c099ec6b585d83ab9d1992e1e1a79cd588f"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/ServerInstanceOptions.cs",
+      "status": "untracked",
+      "bytes": 4623,
+      "sha256": "c23e555093ea59c6ddd44339ee3ac4222b0d1d12d5e1f68c79185b3a3d0da9a0"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/ServerInstanceService.cs",
+      "status": "untracked",
+      "bytes": 31695,
+      "sha256": "c434058f5f13287b1ff03f4518a441db409c4a895f60dbe621d126580bd63280"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/UserSettingsService.cs",
+      "status": "untracked",
+      "bytes": 2992,
+      "sha256": "2a0f79abae13a3637bfa618ea8e53df14112f957de475388ea35a5256d409279"
+    },
+    {
+      "path": "fps-backend/src/UnityFps.Api/Services/WeaponCatalogSeed.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7562,
+      "sha256": "601a22ae56cdc364ff59f76889e5b2e8c28bd890478e92ab2f864a0c083aba2b"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/ApiContractTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 7077,
+      "sha256": "0b193f27b8a865701f82f61baf2ba3d4900982e374bcc75f0685077a284af045"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/AttachmentApiTests.cs",
+      "status": "untracked",
+      "bytes": 10842,
+      "sha256": "dc97ff02fd2aa0a06dcfde049b0cceebb6187a6daca3f769ed6d09d908c6f3a0"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFAuditFixTests.cs",
+      "status": "untracked",
+      "bytes": 24240,
+      "sha256": "8de773409346986ea39716ff13ceb9db908f8f58716fd7104af25151ba83f7a2"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFChatHttpTests.cs",
+      "status": "untracked",
+      "bytes": 12276,
+      "sha256": "18f5f7f9726e8260c4b4bf8f328d954ff10b9b69afbe9522fb3b789ceb84b64e"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFChatR05Tests.cs",
+      "status": "untracked",
+      "bytes": 6058,
+      "sha256": "2ce31bebba2de9c22722560d771dd0e78669d3e494398331169cecf448ecc2d0"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFReturnLifecycleTests.cs",
+      "status": "untracked",
+      "bytes": 15557,
+      "sha256": "6861bbfc394e7a506441b9c193f30a70eab51641779ee1daae3c8f2bfaf43f6f"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFReviewF1FixTests.cs",
+      "status": "untracked",
+      "bytes": 10988,
+      "sha256": "a841e53d64735fa127c85f4263dc8e7121d2f831e88bd0552799921354d2be15"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFReviewFixTests.cs",
+      "status": "untracked",
+      "bytes": 27528,
+      "sha256": "1595289a38a68c841f98e4eaba12ffd5a5ce197388c71d2c63fc6fc8969fff86"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFV0SettlementAndLeaseTests.cs",
+      "status": "untracked",
+      "bytes": 12683,
+      "sha256": "b38ab097f12dbd7094e045ea9261779ccaa92be50fcfbd87e7f94075d665d778"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CFWaitingRoomTests.cs",
+      "status": "untracked",
+      "bytes": 32235,
+      "sha256": "ee30ea138dca2eb5d04821c11f79d08881607eb6b7c5a3c3e017abd644092637"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/ChatPolicyTests.cs",
+      "status": "untracked",
+      "bytes": 3362,
+      "sha256": "6d72c5e67ea60907247397e0c33c865ddee3c3d6397ffe316b4dfbb1ca61f091"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/CommerceTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 4742,
+      "sha256": "8dc631169cd177ef255b2d5d7f5dc5744ba7f948ca98f937332b11c77af5e747"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/MatchSettlementTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 12922,
+      "sha256": "6e2deb46861b6e3c524a79176faab264b5596f8fba83e8b0f60c17c806de67a1"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/MatchesHistoryTests.cs",
+      "status": "untracked",
+      "bytes": 6142,
+      "sha256": "b8048c5d2ff7190c848f4c58d49d02a6ac3d19ae99ebafeedf9d208d031a72f2"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/ProtocolGateTests.cs",
+      "status": "untracked",
+      "bytes": 9350,
+      "sha256": "c3cd8640d7d22d42c669ee17c2d2784abda59d8ff3af41fe7a2ff51aed79a876"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/RoomApiTests.cs",
+      "status": "modified-or-deleted",
+      "bytes": 18626,
+      "sha256": "5b243689a1acafd66764e133e315b69bfadf2b952f31f7910860f19fa678da0d"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/RoomSameRoomRejoinTests.cs",
+      "status": "untracked",
+      "bytes": 9440,
+      "sha256": "9ad006158abd426e80e6a62ec113d8f1544c81f11d5156dd3ed75d07ec1527a8"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/ServerInstanceApiTests.cs",
+      "status": "untracked",
+      "bytes": 42746,
+      "sha256": "25e1a3fba8e72b2655cc7d458347ce3193954a557b6c48e29781b8f344461553"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/ServerInstanceDisconnectReportTests.cs",
+      "status": "untracked",
+      "bytes": 31033,
+      "sha256": "c315b4a647005f4152e8c79092cd4728dfdd2eb152530429ca4e559ca8dc3aa7"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/UserSessionSingleActiveTests.cs",
+      "status": "untracked",
+      "bytes": 3662,
+      "sha256": "32c99c7bdf1f47cdf9e16a31710b1d429a525804272f85c15ccb5fe19c14f938"
+    },
+    {
+      "path": "fps-backend/tests/UnityFps.Api.Tests/UserSettingsTests.cs",
+      "status": "untracked",
+      "bytes": 3888,
+      "sha256": "4c1e115564303f6a5a17bede7ecd938c4ce72233bc5e86cd1d3690e36f57cf93"
+    },
+    {
+      "path": "停止联机服务器.cmd",
+      "status": "untracked",
+      "bytes": 377,
+      "sha256": "938382d194c48d6896c3bf408947c1a25b74486a0cb9b20cde8d8405d579eb26"
+    },
+    {
+      "path": "启动联机服务器.cmd",
+      "status": "untracked",
+      "bytes": 764,
+      "sha256": "cec60056a2a28c7920d006c99b34fbaa77433c3a444e42c211efc6c4c2590317"
+    }
+  ],
+  "excludedCount": 1222,
+  "excludedReasons": {
+    "local temporary/export/generated file": 3,
+    "local agent/editor configuration": 4,
+    "generated backend build/test output": 1215
+  },
+  "auditReports": [
+    {
+      "path": "Docs/交接/2026-09-15-一枪终局与二次入场卡住-Codely修复报告.md",
+      "sha256": "06635daa2ca06b66a463644b1ab0085ea087b3c781f140a5147edf52a74ee90d"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-一枪终局与二次入场卡住-审计及Codely修复方案.md",
+      "sha256": "089a43bd6e3eedecf7287213ff83a4336383a722ea0dbbb9db27cd8486c5678d"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-双端拽回陷地相机抖动-Codely修复报告.md",
+      "sha256": "1ace3e994c3d7dc580a584ee25c4ee412a39b4a26f550449217020e305f95326"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-双端拽回陷地相机抖动-审计与Codely实施提示词.md",
+      "sha256": "41962a5977501760c0fbec6498180e3583261fef41b227bca32e5dc84397baef"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-房间页开始按钮与聊天体验修复-Codely报告.md",
+      "sha256": "8373aa3f4a08fb90b4a6394530b92830a10d4f103a2528ad7b5136d1c773a695"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-死亡重生退出与开赛规则-Codely测试提示词.md",
+      "sha256": "72ff94378ef6b60544103071438d2a92b92f88d69e53d99bcbdbb44b5541d972"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-死亡重生退出与开赛规则-Codely验证报告.md",
+      "sha256": "f7a74e0eda5ae51975d444a27e90cce0f924f79ae0aa05d4bdb8984aa710536e"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-配装错位移动晃动无伤害-Codely修复报告.md",
+      "sha256": "2962a4beff3b3471b6a2d79c1d6a7c1f0b0f131aa5911e195e43db4d42971faf"
+    },
+    {
+      "path": "Docs/交接/2026-09-15-配装错位移动晃动无伤害-审计与Codely修复交接.md",
+      "sha256": "1597a4d75a5c8eedd023430e8942cfb62bfaecafe502e45e58f39e7719aaec08"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1307四问题-Codely实施报告.md",
+      "sha256": "5ab2a36377c2a4ce776a24ba41f32fcad32b1df6aed37326ffbd9f68b115856d"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1307四问题审计与Codely修复计划.md",
+      "sha256": "0c36e75356ff8d82ba99ec8351b7a28d4a058580126df0a66af0cf5ac8220a8a"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1455死亡丢枪激光残留与聊天越界-Codely修复计划.md",
+      "sha256": "be35580015a67c4f07fe1cb54124d60e905330bd0c5a393b7dd5b298f3a224af"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1455死亡丢枪激光残留与聊天越界-Codely实施报告.md",
+      "sha256": "bc798fae97b5fc494fce069504917b7821f73fbf89034449b11db2be9dbf1760"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-1643左偏与硬校正-审计及Codely修复计划.md",
+      "sha256": "1e25dc77b14f247cf207aeff94e98e0da4218e4bc6e507e7ed6f61df89b928ef"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-UI四需求-Codely交付报告.md",
+      "sha256": "86c1b1f663877c769e039689777dff78ff2e8dae4aea4a9551b56451fb5a369e"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-双端三问题-Codely实施与v3验证报告.md",
+      "sha256": "bc8e669793f18fc8067e257a278c73402f66b3f9f51cbab5c18ff75b0a9cdfd6"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-双端三问题全链路审计.md",
+      "sha256": "9d78d3313cd3f327f55e7a6f2045f10c8e3a0f4201668ae8661cc36941e0f3bd"
+    },
+    {
+      "path": "Docs/交接/2026-09-16-视角yaw残差与命中归属-Codely修复报告.md",
+      "sha256": "c6412687f6e549660ae0699c5ffc87d6aa9a24ed7ab9ce93ad8374eb53b4b99e"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP修复-Codely实施报告.md",
+      "sha256": "478b4dcdaa6867950c96e5f86cb3657d73a9c3157b649e67857f897a86d4268a"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告-附录A-链路代码.md",
+      "sha256": "7aa2e4d015850ea0fba70934a366d4ffb5741583f89f738f047d2ead406ee420"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告-附录B-纯逻辑与阈值.md",
+      "sha256": "f97d6114c8032a666d31ffe930719e1a4dd13c9d461c332b9ef16a4558aeba55"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP链路审计报告.md",
+      "sha256": "57a2d865bf877dd60ed58e3feeba3b8f1f80ba16bd1ecb706fe920e3c0be3f7b"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-SNAP静态全量代码审计报告.md",
+      "sha256": "c06ffc3d3ad27cbd60231c9d13652862e7766792e47a8553c9cfe77601a0ca1d"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-四组需求死亡复活无敌计分板光轴地图-Codely交付报告.md",
+      "sha256": "20a9995b8f5a1fb608923350691b0d6c8e205e977f1e9ce91f040c3278898298"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-热更新xLua接入与两试点-报告.md",
+      "sha256": "0b95f8f4e5258ead8ae691f7934bdc0d2982f135904dbe071f6ec2dce4351051"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-贴墙横移审计-Codely报告.md",
+      "sha256": "e75acb9fd81bd34b3fce4820995185165f72ddb4b452f57b9adad385ec9c1093"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端丝滑度静态审计.md",
+      "sha256": "7e1b724eff5996f5d455c7cee7d8c9da0cff0c88a46933d75f89777608e94ab3"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端步态翻小人书方案B-Codely实施报告.md",
+      "sha256": "bac7a1b168b13b1947e8bf3ea601d1f9030988bbd1b8b1acab0fb9e20830c243"
+    },
+    {
+      "path": "Docs/交接/2026-09-17-远端表现两问题-Codely修复报告.md",
+      "sha256": "510959de912de54ccba22979ea1a851560aaca360b15b122847a48a56b525a7c"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-Qoder模型外受击与重生陷地-复核报告.md",
+      "sha256": "4f1bd6fa3329fe687ae67f847c932de880eb40ab4ceddd1c45a2395458654c11"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-受击体几何标定-实施报告.md",
+      "sha256": "698a38184bfe43938cb680efb0793c88fcc7758aaf9f27eb5064dc5092cdd114"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-实机九项反馈-Codely交付报告.md",
+      "sha256": "d0001d51991bccffc14922c1c3ca86f02e96c70edfebe5744e122d21aacf66bb"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-模型外受击与重生陷地-实施报告.md",
+      "sha256": "8c6155e243b0eb243efc11ce834025650675547a96b881cc05582c951d859682"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-模型外受击与重生陷地-审计及zcode修复方案.md",
+      "sha256": "ddaa1353417d4e5cd31661b67a63f2289e3b6f8f5c43a822ff512da0d8c3cbae"
+    },
+    {
+      "path": "Docs/交接/2026-09-18-重生动画停播与模型外受击-排查报告.md",
+      "sha256": "d57afad4539616a207e3f3b085636699e04cb9023de47b3644e09d8c5c7b4e1c"
+    },
+    {
+      "path": "Docs/交接/2026-09-19-后方空气命中第四轮-取证与修复-实施报告.md",
+      "sha256": "97b8757171a332bd1ea9a22001bdec804aa9236f26b431e3d5f3b2757dce2a0f"
+    }
+  ]
+}

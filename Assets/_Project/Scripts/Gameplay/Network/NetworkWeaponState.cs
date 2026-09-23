@@ -17,9 +17,11 @@ namespace Game.Gameplay.Network
     public sealed class NetworkWeaponState : NetworkBehaviour
     {
         private readonly SyncVar<string> _weaponId = new();
-        // Docs/23 P0-3（G1c）：弹药服务器权威——服务器 Runtime 变化广播；Owner 本地 -1 仅作预测显示
-        private readonly SyncVar<int> _currentAmmo = new();
-        private readonly SyncVar<int> _reserveAmmo = new();
+        // A single SyncVar is intentional: current/reserve, weapon/life identity and ACK
+        // sequence must arrive as one observation. Separate ints can transiently manufacture
+        // ammunition (the observed 0/30 -> 30/15 failure).
+        private readonly SyncVar<AuthoritativeAmmoSnapshot> _ammoSnapshot = new();
+        private uint _nextAmmoSnapshotSequence;
         // 服务器权威两槽（2026-09-08 P0 §6 二.4）：服务器 OnStartServer 从已按账号配装配置好的
         // Arsenal 读出并广播——Owner/Observer 各端把本地副本复刻为同两槽（Owner 只显示/切换
         // 这两槽；远端 ApplyWeapon 按 weaponId 命中）。调试 Host（十槽）不写——空串=本地保留。
@@ -52,11 +54,7 @@ namespace Game.Gameplay.Network
                 _controller.OnShotFired += HandleServerShotFired;
                 _controller.OnReloadStarted += HandleServerReloadStarted;
                 // 弹药权威采集：初始值 + 后续变化（Docs/23 P0-3）
-                if (_controller.Runtime != null)
-                {
-                    _currentAmmo.Value = _controller.Runtime.CurrentAmmo;
-                    _reserveAmmo.Value = _controller.Runtime.ReserveAmmo;
-                }
+                PublishAuthoritativeAmmoSnapshot(0u);
                 _controller.OnAmmoChanged += HandleServerAmmoChanged;
             }
 
@@ -104,6 +102,12 @@ namespace Game.Gameplay.Network
             // Owner 一并订阅权威变化（修正分支终于接通 §6 二.4）：本地切枪预测照旧，
             // 服务器广播的权威武器与本地不一致（初始错位/非法切枪被拒）时把 Owner 拉回权威武器
             _weaponId.OnChange += HandleWeaponChanged;
+            _ammoSnapshot.OnChange += HandleAmmoSnapshotChanged;
+            if (IsOwnerPlayerSafe)
+            {
+                ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(_ammoSnapshot.Value.LifeEpoch);
+                _controller?.ApplyAuthoritativeAmmoSnapshot(_ammoSnapshot.Value);
+            }
             // 审计 2026-09-15 §3.4：两槽初值可能晚于 OnStartClient 到达（生成/池化时序）——
             // 变化时幂等重试权威两槽复刻（已配置同两槽时为空操作，不会打断对局中状态）。
             _primaryWeaponId.OnChange += HandleAuthoritativeSlotsChanged;
@@ -114,6 +118,7 @@ namespace Game.Gameplay.Network
         {
             // 生成/池化复用边界退订，防止重复订阅叠加处理器
             _weaponId.OnChange -= HandleWeaponChanged;
+            _ammoSnapshot.OnChange -= HandleAmmoSnapshotChanged;
             _primaryWeaponId.OnChange -= HandleAuthoritativeSlotsChanged;
             _secondaryWeaponId.OnChange -= HandleAuthoritativeSlotsChanged;
         }
@@ -152,8 +157,11 @@ namespace Game.Gameplay.Network
             entries.Clear();
             int slot = ResolveSlotIndex(_primaryWeaponId.Value, _secondaryWeaponId.Value, definition.CatalogItemId);
             if (slot < 0) return false;
-            return AttachmentSnapshotCodec.TryResolveEntries(
+            bool resolved = AttachmentSnapshotCodec.TryResolveEntries(
                 slot == 0 ? _primaryAttachments.Value : _secondaryAttachments.Value, entries, logContext: this);
+            if (resolved)
+                AttachmentCompatibilityPolicy.RemoveUnsupported(definition, entries);
+            return resolved;
         }
 
         /// <summary>把本地副本 Arsenal 复刻为服务器权威两槽（全端，OnStartClient 时机——早于 Start 首装）。
@@ -198,16 +206,48 @@ namespace Game.Gameplay.Network
         private void HandleServerAmmoChanged(int current, int reserve)
         {
             if (IsServerInitialized)
-            {
-                _currentAmmo.Value = current;
-                _reserveAmmo.Value = reserve;
-            }
+                PublishAuthoritativeAmmoSnapshot(ResolveCombatAuthority()?.LastProcessedShotRequestId ?? 0u);
         }
 
-        /// <summary>服务器权威弹药（在线时 HUD 显示读这里；离线时 HUD 走本地事件路径）。</summary>
-        public int CurrentAmmo => _currentAmmo.Value;
+        /// <summary>服务器权威弹药快照（Owner 会先回写 Runtime，HUD 只读 Runtime）。</summary>
+        public AuthoritativeAmmoSnapshot AmmoSnapshot => _ammoSnapshot.Value;
+        public int CurrentAmmo => _ammoSnapshot.Value.CurrentAmmo;
         /// <summary>服务器权威备弹。</summary>
-        public int ReserveAmmo => _reserveAmmo.Value;
+        public int ReserveAmmo => _ammoSnapshot.Value.ReserveAmmo;
+
+        private NetworkCombatAuthority ResolveCombatAuthority()
+            => GetComponent<NetworkCombatAuthority>();
+
+        /// <summary>Server-only producer. Every runtime mutation (fire, reload completion,
+        /// respawn) calls this through OnAmmoChanged; callers with a fire ACK pass its id.
+        /// The returned value is suitable for the immediate TargetRpc fast path.</summary>
+        internal AuthoritativeAmmoSnapshot PublishAuthoritativeAmmoSnapshot(uint lastProcessedShotRequestId)
+        {
+            if (!IsServerInitialized || _controller == null || _controller.Runtime == null || _controller.Definition == null)
+                return default;
+            var authority = ResolveCombatAuthority();
+            var snapshot = new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = _controller.Definition.WeaponId,
+                LifeEpoch = authority != null ? authority.CurrentLifeEpoch : 0u,
+                Sequence = ++_nextAmmoSnapshotSequence,
+                LastProcessedShotRequestId = lastProcessedShotRequestId,
+                CurrentAmmo = _controller.Runtime.CurrentAmmo,
+                ReserveAmmo = _controller.Runtime.ReserveAmmo,
+                ReloadState = _controller.Runtime.State,
+                ReloadRemaining = _controller.Runtime.ReloadRemaining
+            };
+            _ammoSnapshot.Value = snapshot;
+            return snapshot;
+        }
+
+        private void HandleAmmoSnapshotChanged(AuthoritativeAmmoSnapshot previous,
+            AuthoritativeAmmoSnapshot next, bool asServer)
+        {
+            if (asServer || !IsOwnerPlayerSafe) return;
+            ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(next.LifeEpoch);
+            _controller?.ApplyAuthoritativeAmmoSnapshot(next);
+        }
 
         /// <summary>离线安全的本地所有权判定（HUD 消费入口）：authored player 被
         /// SetIsNetworked(false) 后所有权缓存未建立，直接读 FishNet IsOwner 会 NRE

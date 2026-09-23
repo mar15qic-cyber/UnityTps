@@ -17,9 +17,9 @@ namespace Game.UI
         /// <summary>会话快照（房间码 + 连接代际）。</summary>
         public readonly struct SessionSnapshot
         {
-            public readonly string RoomCode;
+            public readonly string RoomId;
             public readonly long Generation;
-            public SessionSnapshot(string roomCode, long generation) { RoomCode = roomCode ?? string.Empty; Generation = generation; }
+            public SessionSnapshot(string roomCode, long generation) { RoomId = roomCode ?? string.Empty; Generation = generation; }
         }
 
         /// <summary>注入依赖（全部必填；生产由 MatchSettlementFlow 装配，测试用假实现）。</summary>
@@ -50,7 +50,7 @@ namespace Game.UI
             public Action NavigateToLobby;
         }
 
-        public const int MaxAttempts = 12;
+        public const int MaxAttempts = 3;
         public const double PollIntervalSeconds = 1.0;
 
         /// <summary>整条链是否因代际/房间被顶替而终止（true = 未发布/未 ack/未断连接/未导航）。</summary>
@@ -63,8 +63,8 @@ namespace Game.UI
         public bool ReachedFinal { get; private set; }
 
         /// <summary>代际守卫（纯函数）：会话房间码与捕获不一致，或代际推进 = 已被顶替。</summary>
-        public static bool IsSuperseded(SessionSnapshot live, string capturedRoomCode, long capturedGeneration)
-            => !string.Equals(live.RoomCode, capturedRoomCode, StringComparison.Ordinal)
+        public static bool IsSuperseded(SessionSnapshot live, string capturedRoomId, long capturedGeneration)
+            => !string.Equals(live.RoomId, capturedRoomId, StringComparison.Ordinal)
                || live.Generation != capturedGeneration;
 
         public async Task RunAsync(string roomCode, string matchId, long generationAtStart, Deps deps)
@@ -75,7 +75,9 @@ namespace Game.UI
             for (int attempt = 0; attempt < MaxAttempts; attempt++)
             {
                 if (CheckSuperseded(deps, roomCode, generationAtStart)) return;
-                var outcome = await deps.QueryResultOnce();
+                (bool Success, RoomMatchResultViewDto Data) outcome;
+                try { outcome = await deps.QueryResultOnce(); }
+                catch (Exception) { outcome = (false, null); }
                 if (CheckSuperseded(deps, roomCode, generationAtStart)) return;
                 if (outcome.Success && outcome.Data != null)
                 {
@@ -95,18 +97,22 @@ namespace Game.UI
 
             // ---- 阶段 2：返房 ack → 断战斗 → 清上下文 → 导航（每步 await 后校验）----
             if (CheckSuperseded(deps, roomCode, generationAtStart)) return;
-            bool acked;
+            bool acked = false;
             RoomSnapshotDto ackSnapshot = null;
-            if (deps.AckReturnWithData != null)
+            try
             {
-                var ackResult = await deps.AckReturnWithData();
-                acked = ackResult.Success;
-                ackSnapshot = ackResult.Data;
+                if (deps.AckReturnWithData != null)
+                {
+                    var ackResult = await deps.AckReturnWithData();
+                    acked = ackResult.Success;
+                    ackSnapshot = ackResult.Data;
+                }
+                else
+                {
+                    acked = deps.AckReturn != null && await deps.AckReturn();
+                }
             }
-            else
-            {
-                acked = deps.AckReturn != null && await deps.AckReturn();
-            }
+            catch (Exception) { /* Navigation and transport cleanup must still run. */ }
             if (CheckSuperseded(deps, roomCode, generationAtStart)) return;
 
             // F3：旧响应只在同一 room + connection generation 仍存活时写入会话。
@@ -119,10 +125,10 @@ namespace Game.UI
                 if (CheckSuperseded(deps, roomCode, generationAtStart)) return;
             }
 
-            if (acked)
-                deps.StopBattleConnection?.Invoke();
-            else
+            if (!acked)
                 UnityEngine.Debug.LogWarning("[MatchReturnSequence] 返房 ack 未成功（后端懒维护兜底）——仍按既定链路返回等待房间");
+            // HTTP failure cannot keep the battle transport alive in the lobby.
+            deps.StopBattleConnection?.Invoke();
             deps.ClearLaunchContext?.Invoke();
             deps.NavigateToLobby?.Invoke();
         }
@@ -135,7 +141,7 @@ namespace Game.UI
             if (IsSuperseded(live, roomCode, generationAtStart))
             {
                 Superseded = true;
-                UnityEngine.Debug.Log($"[MatchReturnSequence] 返房链终止（会话已变化：room={live.RoomCode} gen={live.Generation} ≠ 捕获 room={roomCode} gen={generationAtStart}）");
+                UnityEngine.Debug.Log($"[MatchReturnSequence] 返房链终止（会话已变化：room={live.RoomId} gen={live.Generation} ≠ 捕获 room={roomCode} gen={generationAtStart}）");
             }
             return Superseded;
         }

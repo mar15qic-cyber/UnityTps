@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <!-- IIS URL Rewrite + ARR proxy required; bind this site to HTTPS only. -->
+    <rewrite><rules>
+      <rule name="Block control plane" stopProcessing="true">
+        <match url="^api/server-instances(?:/|$)" ignoreCase="true" />
+        <action type="CustomResponse" statusCode="404" statusReason="Not Found" statusDescription="Not Found" />
+      </rule>
+      <rule name="Public API" stopProcessing="true">
+        <match url="^(api/.*|health|hotupdate/.*)$" />
+        <action type="Rewrite" url="http://127.0.0.1:5080/{R:0}" appendQueryString="true" />
+      </rule>
+      <rule name="Deny other paths" stopProcessing="true"><match url=".*" />
+        <action type="CustomResponse" statusCode="404" statusReason="Not Found" statusDescription="Not Found" />
+      </rule>
+    </rules></rewrite>
+  </system.webServer>
+</configuration>

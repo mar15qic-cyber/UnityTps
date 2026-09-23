@@ -27,9 +27,10 @@ public sealed class MigrationDiscoveryTests
 
         Assert.Contains("20260917103000_AddServerInstanceMapId", migrations);
         Assert.Contains("20260917112000_AddUserTokenVersion", migrations);
+        Assert.Contains("20260921090000_RemoveRetiredOpticRows", migrations);
         // Migrate() 按 ID 升序应用：发现集合必须保持有序（回归加列顺序）。
         Assert.Equal(migrations.OrderBy(x => x, StringComparer.Ordinal), migrations);
         // 两条必须排在既有最后一条 AddProtocolIdColumns 之后（ID 字典序）。
-        Assert.True(string.CompareOrdinal(migrations[^1], "20260917112000_AddUserTokenVersion") >= 0);
+        Assert.True(string.CompareOrdinal(migrations[^1], "20260921090000_RemoveRetiredOpticRows") >= 0);
     }
 }

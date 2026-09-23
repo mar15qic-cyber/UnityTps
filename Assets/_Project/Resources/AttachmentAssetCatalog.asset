@@ -13,50 +13,6 @@ MonoBehaviour:
   m_Name: AttachmentAssetCatalog
   m_EditorClassIdentifier: 
   entries:
-  - itemId: attach.lpw.muffler.01
-    displayName: "\u7D27\u51D1\u6D88\u97F3\u5668"
-    description: "\u7D27\u51D1\u578B\u6D88\u97F3\u5668\uFF1B\u9002\u914D\u624B\u67AA\u4E0E\u51B2\u950B\u67AA"
-    slot: 1
-    aimTier: 0
-    isSuppressor: 1
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 7655180175298284364, guid: 9d569399ee9d7444abbb600ac1d5f7e1, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Attachments/Muffler_01_1.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.041241027, y: 0.0000000018626451, z: -0}
-    modifiers:
-    - stat: 0
-      op: 1
-      value: 0.92
-    - stat: 1
-      op: 1
-      value: 0.92
-    - stat: 3
-      op: 1
-      value: 1.05
-  - itemId: attach.lpw.muffler.02
-    displayName: "\u91CD\u578B\u6D88\u97F3\u5668"
-    description: "\u5168\u957F\u91CD\u578B\u6D88\u97F3\u5668\uFF1B\u9002\u914D\u6B65\u67AA\u4E0E\u9730\u5F39\u67AA"
-    slot: 1
-    aimTier: 0
-    isSuppressor: 1
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 3023386225711174416, guid: d0fff6067e5b8164a83831fb5e04fb16, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Attachments/Muffler_02_1.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.041241027, y: 0.0071161687, z: -0}
-    modifiers:
-    - stat: 0
-      op: 1
-      value: 0.92
-    - stat: 1
-      op: 1
-      value: 0.92
-    - stat: 3
-      op: 1
-      value: 1.05
   - itemId: attach.lpfp.muffler.01
     displayName: "\u7ECF\u5178\u6D88\u97F3\u5668"
     description: "\u7ECF\u5178\u5236\u5F0F\u6D88\u97F3\u5668\uFF1B\u9002\u914D\u539F\u751F\u6B66\u5668"
@@ -68,7 +24,7 @@ MonoBehaviour:
     prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
     mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: -0.11614642, y: 0.00000057183206, z: -0.000000026077032}
+    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
     modifiers:
     - stat: 0
       op: 1
@@ -79,177 +35,27 @@ MonoBehaviour:
     - stat: 3
       op: 1
       value: 1.05
-  - itemId: attach.lpw.optic.01
-    displayName: "\u7D27\u51D1\u7EA2\u70B9\u955C"
-    description: "\u5F00\u653E\u5F0F\u53CD\u5C04\u7EA2\u70B9\uFF1B\u5F00\u955C\u5FEB\u3001\u65E0\u653E\u5927"
-    slot: 0
-    aimTier: 1
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 5210971280425732102, guid: dc1012bb41100c84eb17f7c055924b1a, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_01.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.030292384, y: 0.009079594, z: -0}
-    modifiers:
-    - stat: 7
-      op: 1
-      value: 0.97
-    - stat: 8
-      op: 1
-      value: 0.95
-  - itemId: attach.lpw.optic.02
-    displayName: "\u5168\u606F\u7784\u5177 551"
-    description: "\u65B9\u5F62\u7A97\u53E3\u5168\u606F\u7784\u5177\uFF1B\u89C6\u91CE\u5F00\u9614"
-    slot: 0
-    aimTier: 2
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 4732349226674936529, guid: 16a97667b2d49c141a1c306e58fb7e5b, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_02.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.0013791956, y: 0.008202292, z: 0.000000014901161}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.94
-    - stat: 7
-      op: 1
-      value: 0.97
-  - itemId: attach.lpw.optic.03
-    displayName: "\u7D27\u51D1\u5168\u606F\u7784\u5177"
-    description: "\u77ED\u955C\u4F53\u5168\u606F\u7784\u5177"
-    slot: 0
-    aimTier: 2
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 1280689841861606444, guid: ca7b88cbdaab8504c8c498c9ee4f7b81, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_03.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.011854859, y: 0.0087303445, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.94
-    - stat: 3
-      op: 1
-      value: 0.98
-  - itemId: attach.lpw.optic.04
-    displayName: "4 \u500D\u6218\u672F\u7784\u51C6\u955C"
-    description: "4x \u56FA\u5B9A\u500D\u7387\u68F1\u955C\u955C\uFF1B\u4E2D\u8DDD\u79BB\u538B\u5236"
-    slot: 0
-    aimTier: 3
-    isSuppressor: 0
-    adsFovOverride: 28
-    magnification: 4
-    prefab: {fileID: 4328884182544352210, guid: 1f804f4789d8b4c46b6910c7e925fe71, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_04.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.01101394, y: 0.012557384, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.88
-    - stat: 3
-      op: 1
-      value: 1.05
-  - itemId: attach.lpw.optic.05
-    displayName: "\u5C01\u95ED\u7EA2\u70B9\u955C"
-    description: "\u5C01\u95ED\u955C\u4F53\u7EA2\u70B9\uFF1B\u517C\u987E\u673A\u7784\u9AD8\u5EA6"
-    slot: 0
-    aimTier: 1
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 313249400331479229, guid: 527e1db2b05013c4fa9a027a6fb3185e, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_05.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.0016393475, y: 0.013126278, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.95
-    - stat: 7
-      op: 1
-      value: 0.97
-  - itemId: attach.lpw.optic.06
-    displayName: "\u5FAE\u578B\u7EA2\u70B9\u955C"
-    description: "\u5FAE\u578B\u7EA2\u70B9\uFF1B\u6700\u8F7B\u91CF\u5316"
-    slot: 0
-    aimTier: 1
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 1146801870810025038, guid: f80374c1f9717b841802f59669fe39bf, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_06.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.00056220964, y: 0.009287346, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.96
-  - itemId: attach.lpw.optic.07
-    displayName: "\u9AD8\u500D\u72D9\u51FB\u955C"
-    description: "\u9AD8\u500D\u7387\u8FDC\u8DDD\u79BB\u72D9\u51FB\u955C"
-    slot: 0
-    aimTier: 4
-    isSuppressor: 0
-    adsFovOverride: 12
-    magnification: 8
-    prefab: {fileID: 7183663585702307278, guid: b5a71e657e75e7a4dba51941c8f2bc0d, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_07.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.0034200102, y: 0.047945492, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.85
-    - stat: 3
-      op: 1
-      value: 1.08
-  - itemId: attach.lpw.optic.08
-    displayName: "\u8FDC\u5C04\u72D9\u51FB\u955C"
-    description: "\u9AD8\u500D\u7387\u8FDC\u5C04\u7784\u51C6\u955C"
-    slot: 0
-    aimTier: 4
-    isSuppressor: 0
-    adsFovOverride: 12
-    magnification: 8
-    prefab: {fileID: 4604419853416227889, guid: 8d79cab10d4456a4e9ac109bb319121d, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_08.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.019421369, y: 0.057775535, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.85
-    - stat: 3
-      op: 1
-      value: 1.08
   - itemId: attach.lpfp.optic.01
-    displayName: "3 \u500D\u6218\u672F\u7784\u955C"
-    description: "3x \u6218\u672F\u68F1\u955C\u7784\u955C"
+    scopeApertureCenter: {x: 0, y: 0, z: -0.043809}
+    scopeApertureRadius: 0.0136
+    displayName: "LPFP \u4F4E\u500D\u7784\u5177"
+    description: "Scope_01\uFF1B3x \u4F4E\u500D\u68F1\u955C\u7784\u5177"
     slot: 0
     aimTier: 3
     isSuppressor: 0
-    adsFovOverride: 28
+    adsFovOverride: 18
     magnification: 3
     prefab: {fileID: 1197744642030098, guid: 759667527e525f24c9dba463ceda4bfb, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_01.prefab
     mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: -0, y: 0.029749248, z: -0.00000008568168}
+    mountOffset: {x: -0.00000011269003, y: 0.022518018, z: 0}
     modifiers:
-    - stat: 8
-      op: 1
-      value: 0.9
     - stat: 3
       op: 1
       value: 1.03
-  - itemId: attach.lpfp.optic.02
-    displayName: "\u5168\u606F\u7784\u5177 553"
-    description: "\u65B9\u5F62\u7A97\u53E3\u5168\u606F\u7784\u5177\uFF08\u589E\u5F3A\u7248\uFF09"
+  - itemId: attach.rifle.optic
+    displayName: "LPFP 1x \u6B65\u67AA\u7784\u5177"
+    description: "Scope_02\uFF1B\u901A\u884C\u8BC1\u4FDD\u7559\u7684 1x \u5149\u5B66\u7784\u5177"
     slot: 0
     aimTier: 2
     isSuppressor: 0
@@ -258,11 +64,39 @@ MonoBehaviour:
     prefab: {fileID: 1194264044487710, guid: 5c49a531748802848ae6f61fccf14419, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_02.prefab
     mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: 0.0006028563, y: 0.021282822, z: -0.00000024959445}
+    mountOffset: {x: 0.0138318185, y: 0.01405159, z: 0}
+    modifiers: []
+  - itemId: attach.lpfp.optic.03
+    scopeApertureCenter: {x: 0, y: 0.0262827, z: 0.0342}
+    scopeApertureRadius: 0.0122
+    displayName: "LPFP \u4F4E\u500D\u7784\u5177 II"
+    description: "Scope_03\uFF1B3x \u4F4E\u500D\u68F1\u955C\u7784\u5177"
+    slot: 0
+    aimTier: 3
+    isSuppressor: 0
+    adsFovOverride: 18
+    magnification: 3
+    prefab: {fileID: 1482690945650468, guid: ac1712ba43e146d43b152a3fb88772cb, type: 3}
+    prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_03.prefab
+    mountEuler: {x: 0, y: -90, z: 0}
+    mountOffset: {x: -0.00095566176, y: 0.0122822225, z: 0}
     modifiers:
-    - stat: 8
+    - stat: 3
       op: 1
-      value: 0.93
+      value: 1.03
+  - itemId: attach.lpfp.optic.02
+    displayName: "LPFP 1x \u5168\u606F\u7784\u5177"
+    description: "Scope_04\uFF1B1x \u5168\u606F\u7784\u5177"
+    slot: 0
+    aimTier: 2
+    isSuppressor: 0
+    adsFovOverride: 0
+    magnification: 0
+    prefab: {fileID: 1520935681403202, guid: 18d623e45a8f1474a98e48f3535b9997, type: 3}
+    prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_04.prefab
+    mountEuler: {x: 0, y: -90, z: 0}
+    mountOffset: {x: -0.004679556, y: 0.01166083, z: 0}
+    modifiers: []
   - itemId: attach.lpw.tactical.laser
     displayName: "\u6FC0\u5149\u6307\u793A\u5668"
     description: "\u4E0B\u6302\u6FC0\u5149\u6307\u793A\u6A21\u5757\uFF1B\u5F00\u955C\u5BF9\u4E2D\u63D0\u793A"
@@ -273,8 +107,8 @@ MonoBehaviour:
     magnification: 0
     prefab: {fileID: 2023918930673560193, guid: 7930bd4bd11e39349af837ca20be6f96, type: 3}
     prefabPath: Assets/LowPolyWeapons/Prefabs/Attachments/Laser_01.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.00013402663, y: 0.018203508, z: -0}
+    mountEuler: {x: 180, y: 0, z: 0}
+    mountOffset: {x: 0.00013402663, y: 0.005041386, z: -0}
     modifiers:
     - stat: 8
       op: 1
@@ -289,8 +123,8 @@ MonoBehaviour:
     magnification: 0
     prefab: {fileID: 3938442281329267272, guid: 0a03a01472424d542b1b88ea876f90f4, type: 3}
     prefabPath: Assets/LowPolyWeapons/Prefabs/Attachments/Light_01.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: -0.008251429, y: 0.02289994, z: -0}
+    mountEuler: {x: 180, y: 0, z: 0}
+    mountOffset: {x: -0.008251427, y: 0.005041386, z: -9.313226e-10}
     modifiers: []
   - itemId: attach.lpw.grip.01
     displayName: "\u5782\u76F4\u524D\u63E1\u628A"
@@ -314,22 +148,6 @@ MonoBehaviour:
     - stat: 3
       op: 1
       value: 0.9
-  - itemId: attach.rifle.optic
-    displayName: "\u6B65\u67AA\u5149\u5B66\u7784\u5177"
-    description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u901A\u7528\u7784\u5177"
-    slot: 0
-    aimTier: 2
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 1194264044487710, guid: 5c49a531748802848ae6f61fccf14419, type: 3}
-    prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_02.prefab
-    mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: 0.0006028563, y: 0.021282822, z: -0.00000024959445}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.95
   - itemId: attach.rifle.muzzle
     displayName: "\u6B65\u67AA\u6D88\u97F3\u5668"
     description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u901A\u7528\u6D88\u97F3\u5668"
@@ -338,10 +156,10 @@ MonoBehaviour:
     isSuppressor: 1
     adsFovOverride: 0
     magnification: 0
-    prefab: {fileID: 0}
-    prefabPath: 
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0, y: 0, z: 0}
+    prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
+    prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
+    mountEuler: {x: 0, y: -90, z: 0}
+    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
     modifiers:
     - stat: 0
       op: 1
@@ -368,22 +186,6 @@ MonoBehaviour:
     - stat: 9
       op: 0
       value: 8
-  - itemId: attach.pistol.optic
-    displayName: "\u624B\u67AA\u5149\u5B66\u7784\u5177"
-    description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u901A\u7528\u7784\u5177"
-    slot: 0
-    aimTier: 1
-    isSuppressor: 0
-    adsFovOverride: 0
-    magnification: 0
-    prefab: {fileID: 1146801870810025038, guid: f80374c1f9717b841802f59669fe39bf, type: 3}
-    prefabPath: Assets/LowPolyWeapons/Prefabs/Optic/Optic_06.prefab
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0.00056220964, y: 0.009287346, z: -0}
-    modifiers:
-    - stat: 8
-      op: 1
-      value: 0.95
   - itemId: attach.pistol.muzzle
     displayName: "\u624B\u67AA\u6D88\u97F3\u5668"
     description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u901A\u7528\u6D88\u97F3\u5668"
@@ -392,10 +194,10 @@ MonoBehaviour:
     isSuppressor: 1
     adsFovOverride: 0
     magnification: 0
-    prefab: {fileID: 0}
-    prefabPath: 
-    mountEuler: {x: 0, y: 0, z: 0}
-    mountOffset: {x: 0, y: 0, z: 0}
+    prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
+    prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
+    mountEuler: {x: 0, y: -90, z: 0}
+    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
     modifiers:
     - stat: 0
       op: 1

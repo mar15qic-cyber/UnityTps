@@ -24,6 +24,9 @@ namespace Game.Gameplay.Settings
         public static float MusicVolume { get; private set; } = 1f;
         public static float SfxVolume { get; private set; } = 1f;
         public static float Sensitivity { get; private set; } = 1f;
+        public static OpticReticleStyle ReticleStyle { get; private set; } = SettingsModel.DefaultOpticReticleStyle;
+        public static OpticReticleColor ReticleColor { get; private set; } = SettingsModel.DefaultOpticReticleColor;
+        public static Color ReticleColorValue => SettingsModel.ResolveReticleColor(ReticleColor);
 
         /// <summary>
         /// 启动入口（幂等）：从持久层加载实时值并应用全部音频/画质设置。
@@ -43,7 +46,15 @@ namespace Game.Gameplay.Settings
             MusicVolume = SettingsModel.MusicVolume;
             SfxVolume = SettingsModel.SfxVolume;
             Sensitivity = SettingsModel.Sensitivity;
+            ReticleStyle = SettingsModel.ReticleStyle;
+            ReticleColor = SettingsModel.ReticleColor;
             SettingsModel.ApplyAll(); // Master(AudioListener) + 分类(AudioBus) + 锁帧 + 分辨率
+        }
+
+        public static void SetReticleLive(OpticReticleStyle style, OpticReticleColor color)
+        {
+            ReticleStyle = SettingsModel.NormalizeReticleStyle(style);
+            ReticleColor = SettingsModel.NormalizeReticleColor(ReticleStyle, color);
         }
 
         /// <summary>实时写单个通道并立即应用（设置页即时预览；不写 PlayerPrefs）。</summary>
@@ -77,6 +88,8 @@ namespace Game.Gameplay.Settings
             MusicVolume = SettingsModel.DefaultMusicVolume;
             SfxVolume = SettingsModel.DefaultSfxVolume;
             Sensitivity = SettingsModel.DefaultSensitivity;
+            ReticleStyle = SettingsModel.DefaultOpticReticleStyle;
+            ReticleColor = SettingsModel.DefaultOpticReticleColor;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]

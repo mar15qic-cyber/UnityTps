@@ -150,6 +150,105 @@ namespace UnityFps.Api.Data.Migrations
                     b.ToTable("CatalogItem", (string)null);
                 });
 
+            modelBuilder.Entity("UnityFps.Api.Data.DirectMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<string>("ClientMessageId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("RecipientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SenderId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderId", "ClientMessageId")
+                        .IsUnique();
+
+                    b.HasIndex("RecipientId", "SenderId", "Id");
+
+                    b.ToTable("DirectMessage", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.DirectMessageRead", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PeerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("LastReadId")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId", "PeerId");
+
+                    b.ToTable("DirectMessageRead", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.FriendRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("FromUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ToUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ToUserId");
+
+                    b.HasIndex("FromUserId", "ToUserId")
+                        .IsUnique();
+
+                    b.ToTable("FriendRequest", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.Friendship", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("FriendId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("UserId", "FriendId");
+
+                    b.HasIndex("FriendId");
+
+                    b.ToTable("Friendship", (string)null);
+                });
+
             modelBuilder.Entity("UnityFps.Api.Data.GameRoom", b =>
                 {
                     b.Property<long>("Id")
@@ -560,18 +659,6 @@ namespace UnityFps.Api.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
-                    b.Property<int>("SkillPoints")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpAmmoCap")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpDamage")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpMaxHealth")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -597,6 +684,44 @@ namespace UnityFps.Api.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("PlayerWallet", (string)null);
+                });
+
+            modelBuilder.Entity("UnityFps.Api.Data.RoomInvitation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("RecipientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RoomId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SenderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientId", "State", "ExpiresAtUtc");
+
+                    b.HasIndex("RoomId", "SenderId", "RecipientId")
+                        .IsUnique();
+
+                    b.ToTable("RoomInvitation", (string)null);
                 });
 
             modelBuilder.Entity("UnityFps.Api.Data.RoomMatchResult", b =>
@@ -863,7 +988,20 @@ namespace UnityFps.Api.Data.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("IdentityTag")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .HasDefaultValue("");
+
                     b.Property<DateTime?>("LastLoginAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("LastSeenUtc")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("NormalizedUsername")
@@ -887,6 +1025,9 @@ namespace UnityFps.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedUsername")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedUsername", "IdentityTag")
                         .IsUnique();
 
                     b.ToTable("UserAccount", (string)null);

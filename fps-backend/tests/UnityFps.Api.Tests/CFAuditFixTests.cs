@@ -61,7 +61,7 @@ public sealed class CFAuditFixTests
         var sessions = new List<(long UserId, long SessionId)>();
         foreach (var token in tokens)
         {
-            var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{roomCode}");
+            var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
             detail.EnsureSuccessStatusCode();
             using var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync());
             var ticket = json.RootElement.GetProperty("connection").GetProperty("joinTicket").GetString()!;
@@ -147,7 +147,7 @@ public sealed class CFAuditFixTests
 
         // 同房连开两局：第二局可租到同一实例
         await ServerTest.ReadyAsync(client, guestToken, roomCode);
-        var restart = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{roomCode}/start", null);
+        var restart = await ServerTest.Authorized(client, hostToken).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/start", null);
         Assert.Equal(HttpStatusCode.OK, restart.StatusCode);
         using var restartJson = JsonDocument.Parse(await restart.Content.ReadAsStringAsync());
         Assert.NotEqual(matchId, restartJson.RootElement.GetProperty("matchId").GetString());
@@ -256,7 +256,7 @@ public sealed class CFAuditFixTests
 
         // 结果视图逐玩家 isWin（结果卡数据源）
         var detail = await ServerTest.Authorized(client, hostToken)
-            .GetAsync($"/api/rooms/{roomCode}/match-result?matchId={matchId}");
+            .GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/match-result?matchId={matchId}");
         detail.EnsureSuccessStatusCode();
         using var view = JsonDocument.Parse(await detail.Content.ReadAsStringAsync());
         var rows = view.RootElement.GetProperty("players");

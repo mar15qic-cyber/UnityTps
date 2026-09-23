@@ -51,6 +51,7 @@ namespace Game.Gameplay.Network
 
         /// <summary>当前已分配的最新代际（ConfigureClient 递增；无历史配置时为 0）。</summary>
         public static long CurrentGeneration { get; private set; }
+        public static string CurrentGameplayScene { get; private set; }
 
         /// <summary>上层页面在进入 Arena 前配置客户端连接；重复配置以最后一次为准（代际随之递增）。</summary>
         public static void ConfigureClient(
@@ -59,6 +60,7 @@ namespace Game.Gameplay.Network
         {
             _nextGeneration++;
             CurrentGeneration = _nextGeneration;
+            CurrentGameplayScene = sceneName;
             _pendingClient = new ClientLaunch
             {
                 ServerAddress = serverAddress,

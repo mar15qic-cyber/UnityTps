@@ -1,0 +1,7 @@
+{
+  "environmentId": "invitation",
+  "releaseId": "invite-20260922-01",
+  "apiBaseUrl": "https://REPLACE_WITH_REAL_DOMAIN",
+  "hotUpdateBaseUrl": "https://REPLACE_WITH_REAL_DOMAIN/hotupdate",
+  "inviteOnly": true
+}

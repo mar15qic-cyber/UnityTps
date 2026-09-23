@@ -319,6 +319,35 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void ApplyLoadoutAttachments_AdvancesSharedVersionWithoutChangingWeaponSlots()
+        {
+            var session = NewSession();
+            session.ApplyLoadout(new LoadoutDto
+            {
+                primaryWeaponId = "weapon.m4",
+                secondaryWeaponId = "weapon.service_pistol",
+                version = 7,
+                attachments = System.Array.Empty<LoadoutAttachmentDto>()
+            });
+
+            var attachments = new[]
+            {
+                new LoadoutAttachmentDto
+                {
+                    weaponSlot = "Primary",
+                    attachmentSlot = "Optic",
+                    attachmentItemId = "attach.lpfp.optic.02"
+                }
+            };
+            session.ApplyLoadoutAttachments(new LoadoutAttachmentsDto { version = 8, attachments = attachments });
+
+            Assert.That(session.Loadout.version, Is.EqualTo(8));
+            Assert.That(session.Loadout.primaryWeaponId, Is.EqualTo("weapon.m4"));
+            Assert.That(session.Loadout.secondaryWeaponId, Is.EqualTo("weapon.service_pistol"));
+            Assert.That(session.Loadout.attachments, Is.SameAs(attachments));
+        }
+
+        [Test]
         public void RefreshRoomSnapshot_DoesNotAdvanceGeneration_ButUpdatesFields()
         {
             var session = NewSession();

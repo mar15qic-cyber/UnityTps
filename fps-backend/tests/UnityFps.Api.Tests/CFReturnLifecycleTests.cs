@@ -57,7 +57,7 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
 
         // 终局前结果查询 → Pending
         var pending = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement>(
-            $"/api/rooms/{roomCode}/match-result?matchId={matchId}");
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/match-result?matchId={matchId}");
         Assert.Equal("Pending", pending.GetProperty("status").GetString());
 
         var hostId = UserIdFromToken(hostToken);
@@ -80,7 +80,7 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
 
         // 房间 → Returning；A03（V0）：实例退役（Draining）不可租——DS 重臂 Ready+0 心跳后权威回池
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.Equal("Returning", list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode)
+        Assert.Equal("Returning", list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode))
             .GetProperty("status").GetString());
         var poolDuringReturn = await ServerTest.SendWithKeyAsync(client, HttpMethod.Get,
             "/api/server-instances/pool?requestedCapacity=8", ServerTest.ServerKey, payload: null);
@@ -105,7 +105,7 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
 
         // 结果查询 → Final（TDM 权威快照）
         var view = await ServerTest.Authorized(client, hostToken).GetFromJsonAsync<JsonElement>(
-            $"/api/rooms/{roomCode}/match-result?matchId={matchId}");
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/match-result?matchId={matchId}");
         Assert.Equal("Final", view.GetProperty("status").GetString());
         Assert.Equal("Red", view.GetProperty("winnerTeam").GetString());
         Assert.Equal(2, view.GetProperty("players").GetArrayLength());
@@ -170,28 +170,28 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
             clientMatchId = "kr-" + Guid.NewGuid().ToString("N")[..16],
             kills = 45, deaths = 7, durationSeconds = 580, isWin = true, matchId,
         });
-        Assert.Equal(HttpStatusCode.Conflict, submit.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, submit.StatusCode);
 
-        var ack = await ServerTest.Authorized(client, guestToken).PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId });
+        var ack = await ServerTest.Authorized(client, guestToken).PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId });
         Assert.Equal(HttpStatusCode.OK, ack.StatusCode);
-        var ackReplay = await ServerTest.Authorized(client, guestToken).PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId });
+        var ackReplay = await ServerTest.Authorized(client, guestToken).PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId });
         Assert.Equal(HttpStatusCode.OK, ackReplay.StatusCode); // 幂等
         _ = hostToken;
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.Equal("Returning", list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode)
+        Assert.Equal("Returning", list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode))
             .GetProperty("status").GetString());
 
         // 45s 超时 → Waiting，准备清空，比赛归档为 LastMatchId（结果仍可查）
         await RewindRoomStateClockAsync(isolated, roomCode, TimeSpan.FromSeconds(60));
         await client.GetFromJsonAsync<JsonElement[]>("/api/rooms"); // 触发懒维护
-        var detail = await ServerTest.Authorized(client, guestToken).GetFromJsonAsync<JsonElement>($"/api/rooms/{roomCode}");
+        var detail = await ServerTest.Authorized(client, guestToken).GetFromJsonAsync<JsonElement>($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
         Assert.Equal("Waiting", detail.GetProperty("room").GetProperty("status").GetString());
         Assert.All(detail.GetProperty("members").EnumerateArray(),
             m => Assert.False(m.GetProperty("isReady").GetBoolean()));
 
         var view = await ServerTest.Authorized(client, guestToken).GetFromJsonAsync<JsonElement>(
-            $"/api/rooms/{roomCode}/match-result?matchId={matchId}");
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/match-result?matchId={matchId}");
         Assert.Equal("Final", view.GetProperty("status").GetString()); // 权威快照优先于 MatchRecord 聚合
         Assert.Equal(45, view.GetProperty("players")[0].GetProperty("kills").GetInt32());
     }
@@ -206,7 +206,7 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
         var foreignMatchId = Guid.NewGuid().ToString("N");
 
         var badReturn = await ServerTest.Authorized(client, hostToken).PostAsJsonAsync(
-            $"/api/rooms/{roomCode}/return", new { matchId = foreignMatchId });
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId = foreignMatchId });
         Assert.Equal(HttpStatusCode.Conflict, badReturn.StatusCode);
         using var problem = JsonDocument.Parse(await badReturn.Content.ReadAsStringAsync());
         Assert.Equal("ROOM_STATE_CONFLICT", problem.RootElement.GetProperty("code").GetString());
@@ -219,7 +219,7 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
             clientMatchId = "legacy-" + Guid.NewGuid().ToString("N")[..16],
             kills = 31, deaths = 0, durationSeconds = 300, isWin = false,
         });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, legacyCapped.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, legacyCapped.StatusCode);
 
         // 伪造他人房间比赛：matchId 查无绑定 → 409
         var forged = await ServerTest.Authorized(client, hostToken).PostAsJsonAsync("/api/matches", new
@@ -227,9 +227,9 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
             clientMatchId = "forged-" + Guid.NewGuid().ToString("N")[..16],
             kills = 10, deaths = 0, durationSeconds = 100, isWin = true, matchId = foreignMatchId,
         });
-        Assert.Equal(HttpStatusCode.Conflict, forged.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, forged.StatusCode);
         using var forgedProblem = JsonDocument.Parse(await forged.Content.ReadAsStringAsync());
-        Assert.Equal("ROOM_STATE_CONFLICT", forgedProblem.RootElement.GetProperty("code").GetString());
+        Assert.Equal("PLAYER_SETTLEMENT_RETIRED", forgedProblem.RootElement.GetProperty("code").GetString());
         _ = start;
     }
 
@@ -245,15 +245,15 @@ public sealed class CFReturnLifecycleTests : IClassFixture<ServerApiFactory>
         // 非成员查结果 → 404（不泄露房间存在性）
         var (outsiderToken, _) = await ServerTest.RegisterUserAsync(client);
         var outsider = await ServerTest.Authorized(client, outsiderToken).GetAsync(
-            $"/api/rooms/{roomCode}/match-result?matchId={matchId}");
+            $"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/match-result?matchId={matchId}");
         Assert.Equal(HttpStatusCode.NotFound, outsider.StatusCode);
 
         // 成员查他房 matchId → 409
         var (otherToken, _) = await ServerTest.RegisterUserAsync(client);
         var otherRoom = await ServerTest.CreateRoomAsync(client, otherToken);
-        var otherCode = otherRoom.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var otherCode = ServerTest.HostRoomCode(otherRoom.GetProperty("room"));
         var cross = await ServerTest.Authorized(client, otherToken).GetAsync(
-            $"/api/rooms/{otherCode}/match-result?matchId={matchId}");
+            $"/api/rooms/{ServerTest.PublicRoomId(otherCode)}/match-result?matchId={matchId}");
         Assert.Equal(HttpStatusCode.Conflict, cross.StatusCode);
     }
 

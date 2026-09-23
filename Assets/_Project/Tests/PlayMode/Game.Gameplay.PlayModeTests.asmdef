@@ -3,9 +3,14 @@
     "rootNamespace": "Game.Gameplay.PlayModeTests",
     "references": [
         "Game.Core",
+        "Game.Account",
+        "Unity.InputSystem",
+        "Unity.ugui",
+        "FishNet.Runtime",
         "Game.Gameplay",
         "Game.Presentation",
-        "Game.UI"
+        "Game.UI",
+        "Kybernetik.Animancer"
     ],
     "includePlatforms": [],
     "optionalUnityReferences": ["TestAssemblies"],

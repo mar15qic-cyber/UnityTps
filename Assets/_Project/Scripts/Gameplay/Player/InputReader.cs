@@ -7,7 +7,7 @@ namespace Game.Gameplay.Player
 {
     /// <summary>
     /// 输入唯一采样点（架构表A）：所有玩家输入只经此组件读取，其余系统只读其属性。
-    /// 键位经 SettingsKeyMap 可重绑；未自定义时与旧硬编码行为一致。
+    /// 键位经 SettingsKeyMap 可重绑；默认移动为跑步，静步键按住时使用走路步态。
     /// ESC/光标所有权已迁移到 GameplayMenuController（Phase A）：本组件不消费 Escape、
     /// 不写光标；只在 GameplayInputGate.InputBlocked 时输出全零快照并清内部意图。
     /// 用户灵敏度（SettingsRuntime.Sensitivity）在源头只乘一次——所有视角消费者
@@ -21,7 +21,7 @@ namespace Game.Gameplay.Player
         /// <summary>WASD 移动向量，已归一化（幅值 ≤ 1）。</summary>
         public Vector2 Move { get; private set; }
 
-        /// <summary>LeftShift 按住。</summary>
+        /// <summary>默认移动使用跑步步态；按住静步键时为 false。保留 Sprint 命令字段供预测与服务器共用。</summary>
         public bool Sprint { get; private set; }
 
         /// <summary>鼠标帧增量（像素，已乘用户灵敏度与 PlayerAimState.LookSensitivityScale 开镜倍率——
@@ -49,6 +49,11 @@ namespace Game.Gameplay.Player
 
         /// <summary>快速切枪键（默认 Q，SettingsKeyMap.QuickSwap 可重绑）本帧按下。</summary>
         public bool QuickSwapPressed { get; private set; }
+        public bool SelectThrowablePressed { get; private set; }
+        public bool ThrowFragPressed { get; private set; }
+        public bool ThrowFlashPressed { get; private set; }
+        public bool ThrowSmokePressed { get; private set; }
+        public sbyte LeanIntent { get; private set; }
 
         /// <summary>缓冲窗口内存在未消费的跳跃请求。</summary>
         public bool JumpQueued => _jumpBufferTimer > 0f;
@@ -61,7 +66,14 @@ namespace Game.Gameplay.Player
         private uint _dOrder;
         private bool _adsToggled;
         private bool _lastAdsToggleMode;
+        private bool _lastLeanToggleMode;
+        private sbyte _leanToggle;
+        private uint _leanLeftOrder, _leanRightOrder;
+        private bool _leanMustRelease;
+        private bool _leanSimultaneous;
         private PlayerAimState _aimState;
+        private Game.Gameplay.Combat.ThrowableController _throwableController;
+        public bool WeaponInputBlocked => SelectThrowablePressed || (_throwableController != null && _throwableController.IsEquipped);
 
         public void ConsumeJump() => _jumpBufferTimer = 0f;
 
@@ -72,18 +84,36 @@ namespace Game.Gameplay.Player
         private void Awake()
         {
             _aimState = GetComponentInChildren<PlayerAimState>();
+            _throwableController = GetComponent<Game.Gameplay.Combat.ThrowableController>();
         }
 
         private void OnEnable()
         {
             // 光标锁定由 GameplayMenuController 统一负责（挂载时按状态应用）；此处不再写光标
             if (_aimState == null) _aimState = GetComponentInChildren<PlayerAimState>();
+            _throwableController = GetComponent<Game.Gameplay.Combat.ThrowableController>();
         }
 
         private void OnDisable()
         {
             // 光标交还由菜单控制器场景清理统一处理（远端实例本组件本就被禁用，不参与）
+            ClearLean();
         }
+
+        private void OnApplicationFocus(bool focus)
+        {
+            if (!focus) ClearLean();
+        }
+
+        private void ClearLean()
+        {
+            LeanIntent = 0;
+            _leanToggle = 0;
+            _leanMustRelease = true;
+            _leanSimultaneous = false;
+        }
+
+        public void ResetLean() => ClearLean();
 
         /// <summary>LookDelta 合成（纯函数，EditMode 可测「灵敏度只应用一次」契约）：
         /// raw 鼠标像素 × 用户灵敏度 × ADS 焦距比倍率——除此之外任何消费方不得再乘灵敏度。</summary>
@@ -102,17 +132,57 @@ namespace Game.Gameplay.Player
             SlotPressed = -1;
             SwapAxis = 0f;
             QuickSwapPressed = false;
+            SelectThrowablePressed = false;
+            ThrowFragPressed = ThrowFlashPressed = ThrowSmokePressed = false;
             AimHeld = false;
+            LeanIntent = 0;
 
             // 输入门控（菜单打开/硬锁/死亡/恢复宽限）：全零快照 + 清内部意图，不读任何设备
             if (GameplayInputGate.InputBlocked)
             {
+                ClearLean();
                 _jumpBufferTimer = 0f;       // 跳跃缓冲一并清零（菜单内不保留起跳意图）
                 if (GameplayInputGate.MenuOpen || GameplayInputGate.HardLocked)
                     _adsToggled = false;     // 菜单/硬锁清开镜切换态，避免关闭后 ADS 自动回弹
                 return;
             }
-            if (kb == null) return;
+            if (kb == null) { ClearLean(); return; }
+
+            var leftLean = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.LeanLeft)];
+            var rightLean = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.LeanRight)];
+            if (!leftLean.isPressed && !rightLean.isPressed) _leanMustRelease = false;
+            bool toggleLean = LeanInputMode.Toggle;
+            if (toggleLean != _lastLeanToggleMode)
+            {
+                _lastLeanToggleMode = toggleLean;
+                _leanToggle = 0;
+                _leanMustRelease = true;
+            }
+            if (!_leanMustRelease)
+            {
+                bool leftDown = leftLean.wasPressedThisFrame;
+                bool rightDown = rightLean.wasPressedThisFrame;
+                if (toggleLean)
+                {
+                    if (leftDown && rightDown) _leanToggle = 0;
+                    else if (leftDown) _leanToggle = _leanToggle == -1 ? (sbyte)0 : (sbyte)-1;
+                    else if (rightDown) _leanToggle = _leanToggle == 1 ? (sbyte)0 : (sbyte)1;
+                    LeanIntent = _leanToggle;
+                }
+                else
+                {
+                    if (leftDown && rightDown) _leanSimultaneous = true;
+                    else
+                    {
+                        if (leftDown) _leanLeftOrder = ++_pressSequence;
+                        if (rightDown) _leanRightOrder = ++_pressSequence;
+                    }
+                    if (!leftLean.isPressed || !rightLean.isPressed) _leanSimultaneous = false;
+                    LeanIntent = leftLean.isPressed && rightLean.isPressed
+                        ? _leanSimultaneous ? (sbyte)0 : _leanLeftOrder > _leanRightOrder ? (sbyte)-1 : (sbyte)1
+                        : leftLean.isPressed ? (sbyte)-1 : rightLean.isPressed ? (sbyte)1 : (sbyte)0;
+                }
+            }
 
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveForward)].wasPressedThisFrame) _wOrder = ++_pressSequence;
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveBack)].wasPressedThisFrame) _sOrder = ++_pressSequence;
@@ -124,15 +194,17 @@ namespace Game.Gameplay.Player
                 ResolveOpposingAxis(kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveForward)].isPressed, _wOrder, kb[SettingsKeyMap.Get(SettingsKeyMap.Action.MoveBack)].isPressed, _sOrder));
             Move = Vector2.ClampMagnitude(move, 1f);
 
-            Sprint = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Sprint)].isPressed;
+            Sprint = Move.sqrMagnitude > 0.0001f
+                && !kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Sprint)].isPressed;
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Jump)].wasPressedThisFrame)
+            {
                 _jumpBufferTimer = jumpBufferTime;
+                ClearLean();
+            }
             ReloadPressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Reload)].wasPressedThisFrame;
-            // 快速切枪（Q，可重绑）
-            QuickSwapPressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.QuickSwap)].wasPressedThisFrame;
+            SelectThrowablePressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.SelectThrowable)].wasPressedThisFrame;
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot1)].wasPressedThisFrame) SlotPressed = 0;
             else if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot2)].wasPressedThisFrame) SlotPressed = 1;
-            else if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot3)].wasPressedThisFrame) SlotPressed = 2;
             else if (kb.digit4Key.wasPressedThisFrame) SlotPressed = 3;
             else if (kb.digit5Key.wasPressedThisFrame) SlotPressed = 4;
             else if (kb.digit6Key.wasPressedThisFrame) SlotPressed = 5;

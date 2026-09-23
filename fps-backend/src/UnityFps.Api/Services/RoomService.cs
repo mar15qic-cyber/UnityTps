@@ -23,6 +23,11 @@ namespace UnityFps.Api.Services;
 /// </summary>
 public sealed class RoomService(AppDbContext db, ServerInstanceService instances, MatchService matches, RoomChatService chat, ILogger<RoomService> logger)
 {
+    public async Task<string> ResolveInternalCodeAsync(long roomId, CancellationToken ct) =>
+        await db.GameRooms.Where(r => r.Id == roomId && r.Status != RoomStatus.Closed)
+            .Select(r => r.RoomCode).SingleOrDefaultAsync(ct)
+        ?? throw new ApiException(404, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
+
     public async Task<RoomSnapshotDto> CreateAsync(long userId, CreateRoomRequest request, CancellationToken cancellationToken)
     {
         var strategy = db.Database.CreateExecutionStrategy();
@@ -114,14 +119,14 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
 
         var rooms = await db.GameRooms.AsNoTracking()
             .Include(x => x.Members)
-            .Where(x => x.Status != RoomStatus.Closed)
+            .Where(x => x.Status != RoomStatus.Closed && x.Members.Any())
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(50)
             .ToListAsync(cancellationToken);
-        return rooms.Select(ToDto).ToList();
+        return rooms.Select(room => ToDto(room)).ToList();
     }
 
-    public async Task<RoomSnapshotDto> JoinAsync(long userId, string roomCode, string? teamId, string? clientProtocolId, CancellationToken cancellationToken)
+    public async Task<RoomSnapshotDto> JoinAsync(long userId, string roomCode, string? teamId, string? clientProtocolId, CancellationToken cancellationToken, bool waitingOnly = false, long? invitationId = null)
     {
         var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
         var strategy = db.Database.CreateExecutionStrategy();
@@ -131,7 +136,7 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
             {
                 try
                 {
-                    return await TryJoinOnceAsync(userId, normalized, teamId, clientProtocolId, cancellationToken);
+                    return await TryJoinOnceAsync(userId, normalized, teamId, clientProtocolId, cancellationToken, waitingOnly, invitationId);
                 }
                 catch (DbUpdateException) when (attempt < 4)
                 {
@@ -142,7 +147,7 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
         });
     }
 
-    private async Task<RoomSnapshotDto> TryJoinOnceAsync(long userId, string roomCode, string? requestedTeam, string? clientProtocolId, CancellationToken cancellationToken)
+    private async Task<RoomSnapshotDto> TryJoinOnceAsync(long userId, string roomCode, string? requestedTeam, string? clientProtocolId, CancellationToken cancellationToken, bool waitingOnly, long? invitationId)
     {
         db.ChangeTracker.Clear();
         await using var transaction = db.Database.IsRelational()
@@ -155,6 +160,22 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                 .SingleOrDefaultAsync(x => x.RoomCode == roomCode, cancellationToken)
                 ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.RoomNotFound, "房间不存在或已过期");
 
+            if (invitationId.HasValue)
+            {
+                var invitation = await db.Set<RoomInvitation>().SingleOrDefaultAsync(i => i.Id == invitationId.Value && i.RecipientId == userId, cancellationToken);
+                var alreadyHere = room.Members.Any(m => m.UserId == userId);
+                if (invitation == null || invitation.RoomId != room.Id || invitation.ExpiresAtUtc <= DateTime.UtcNow
+                    || (invitation.State != "Pending" && !(invitation.State == "Accepted" && alreadyHere))
+                    || !room.Members.Any(m => m.UserId == invitation.SenderId)
+                    || !await db.Friendships.AnyAsync(f => f.UserId == userId && f.FriendId == invitation.SenderId, cancellationToken))
+                    throw new ApiException(409, "INVITE_EXPIRED", "邀请已失效");
+                if (await db.GameRoomMembers.AnyAsync(m => m.UserId == userId && m.RoomId != room.Id, cancellationToken))
+                    throw new ApiException(409, "INVITE_LEAVE_FIRST", "请先退出当前房间");
+                invitation.State = "Accepted";
+            }
+
+            if (waitingOnly && room.Status != RoomStatus.Waiting)
+                throw new ApiException(409, ApiErrorCodes.RoomStateConflict, "房间已不在等待状态");
             if (room.Status == RoomStatus.Closed)
                 throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomClosed, "房间已关闭");
 
@@ -471,6 +492,14 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
         if (membership is null) return;
         membership.LastSeenUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        // 好友在线状态信号（2026-09-20 需求2）：等待房间 15s 心跳兼作 LastSeenUtc 刷新（节流单条 UPDATE）
+        if (db.Database.IsRelational())
+        {
+            var threshold = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+            await db.Database.ExecuteSqlAsync(
+                $"UPDATE UserAccount SET LastSeenUtc = {DateTime.UtcNow} WHERE Id = {userId} AND (LastSeenUtc IS NULL OR LastSeenUtc < {threshold})",
+                cancellationToken);
+        }
     }
 
     public async Task LeaveAsync(long userId, CancellationToken cancellationToken)
@@ -579,7 +608,8 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                             && x.UserId == request.UserId
                             && x.ConsumedAtUtc > reportedSessionConsumedAt, cancellationToken);
                 var reportedSessionMissing = request.SessionId > 0 && sessionTicket is null;
-                if (membership is null || membership.JoinedAtUtc > noticeStart
+                if (membership is null && sessionTicket?.ConsumedAtUtc is null
+                    || membership is not null && membership.JoinedAtUtc > noticeStart
                     || newerConsumedSessionExists || reportedSessionMissing)
                 {
                     if (transaction is not null) await transaction.CommitAsync(cancellationToken);
@@ -601,6 +631,23 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                 // ③ 成员在本局票据消费之后重新进房（JoinedAtUtc > ConsumedAtUtc）：旧战斗会话已过期。
                 var statusNow = RoomStatus.Normalize(room.Status);
 
+                // HTTP leave removes membership before the DS disconnect arrives.
+                // A consumed ticket for this match is still authoritative departure
+                // evidence; an empty InMatch room must not retain the lease forever.
+                if (membership is null && sessionTicket?.ConsumedAtUtc != null
+                    && string.Equals(sessionTicket.MatchId, room.CurrentMatchId, StringComparison.Ordinal)
+                    && room.Members.Count == 0)
+                {
+                    ReleaseMatchArchiveUnsafe(room);
+                    db.GameRooms.Remove(room);
+                    await db.SaveChangesAsync(cancellationToken);
+                    if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                    chat.DropRoom(roomCode!);
+                    // Permit rearm only. Database remains Draining until the DS has
+                    // actually cleared all connections and sends Ready/0.
+                    return new ServerPlayerDisconnectReportDto(roomCode!, 0, InstanceState.Ready);
+                }
+
                 // F1 重试口：最后一条断线上报若 HTTP 响应丢失，DS 会用同一 session 重试；
                 // 此时房间已经 Waiting、CurrentMatchId 已清空，不能把已确认的旧局退场误报成
                 // 普通 Waiting 成员水位。仅当旧票据身份、旧局名单全员 Left、且绑定实例仍
@@ -620,7 +667,7 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                     return new ServerPlayerDisconnectReportDto(roomCode!, 0, InstanceState.Ready);
                 }
 
-                var removalPermitted = statusNow is RoomStatus.Starting or RoomStatus.InMatch
+                var removalPermitted = membership is not null && statusNow is RoomStatus.Starting or RoomStatus.InMatch
                     && (sessionTicket is null
                         || string.Equals(sessionTicket.MatchId, room.CurrentMatchId, StringComparison.Ordinal))
                     && (reportedSessionConsumedAt is null || membership.JoinedAtUtc <= reportedSessionConsumedAt);
@@ -684,8 +731,8 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                         room.ServerInstance?.State ?? instance.State);
                 }
 
-                var wasLeader = room.HostUserId == membership.UserId;
-                await RemoveMemberUnsafeAsync(membership, cancellationToken, allowReleaseDuringMatch: true);
+                var wasLeader = room.HostUserId == membership!.UserId;
+                await RemoveMemberUnsafeAsync(membership!, cancellationToken, allowReleaseDuringMatch: true);
                 await db.SaveChangesAsync(cancellationToken);
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
                 // R1 契约（CFAuditFixTests 锁定，与上方战斗退场路径一致）：全员退场（房间随最后成员删除）
@@ -1231,6 +1278,9 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                         && (x.ServerInstanceId == null || x.ServerInstance.LastHeartbeatUtc < instanceCutoff))
                     || (x.Status == RoomStatus.Starting && x.StateChangedAtUtc <= startCutoff)
                     || (x.Status == RoomStatus.Returning && x.StateChangedAtUtc <= returningCutoff)
+                    || ((x.Status == RoomStatus.InMatch || x.Status == RoomStatus.Returning)
+                        && !x.Members.Any() && x.ServerInstance != null && x.ServerInstance.CurrentPlayers == 0)
+                    || (x.Status == RoomStatus.Waiting && !x.Members.Any())
                     || (x.Status == RoomStatus.Waiting
                         && x.Members.Any(m => m.LastSeenUtc < memberCutoff))
                     // 未知/空白状态（client-hosted 时代遗留行）同样是清理候选
@@ -1274,6 +1324,27 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
     private async Task MaintainRoomUnsafeAsync(GameRoom room, DateTime now, CancellationToken cancellationToken)
     {
         var status = RoomStatus.Normalize(room.Status);
+        // Old backends could leave empty Waiting rows forever: the stale-member
+        // sweep below has no member to inspect. Retire the room and quarantine any
+        // lingering lease until the dedicated server confirms Ready/0.
+        if (status == RoomStatus.Waiting && room.Members.Count == 0)
+        {
+            if (room.ServerInstance != null) ReleaseMatchArchiveUnsafe(room);
+            db.GameRooms.Remove(room);
+            chat.DropRoom(room.RoomCode);
+            return;
+        }
+        // Recover rooms stranded by older leave-before-disconnect implementations.
+        // Both membership and DS-reported transport occupancy must be empty. This
+        // only retires the binding; normal DS rearm/registration still releases it.
+        if (status is RoomStatus.InMatch or RoomStatus.Returning
+            && room.Members.Count == 0 && room.ServerInstance?.CurrentPlayers == 0)
+        {
+            ReleaseMatchArchiveUnsafe(room);
+            db.GameRooms.Remove(room);
+            chat.DropRoom(room.RoomCode);
+            return;
+        }
         if (status == RoomStatus.Starting)
         {
             var instanceDead = room.ServerInstanceId is null
@@ -1440,16 +1511,18 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
     }
 
     /// <summary>人数以 Members 集合投影（Phase E 纪律①：并发下 JoinedPlayers 列可能丢失更新，集合才是真相）。</summary>
-    private static GameRoomDto ToDto(GameRoom room) => new(
-        room.RoomCode, room.HostUsername, room.Members.Count, room.MaxPlayers, RoomStatus.Normalize(room.Status),
+    private static GameRoomDto ToDto(GameRoom room) => ToDto(room, null);
+
+    private static GameRoomDto ToDto(GameRoom room, long? viewerId) => new(
+        viewerId == room.HostUserId ? room.RoomCode : null, room.HostUsername, room.Members.Count, room.MaxPlayers, RoomStatus.Normalize(room.Status),
         room.CreatedAtUtc, room.Mode, room.MapId, room.KillTarget, room.TimeLimitMinutes,
-        room.RoomVersion, room.CurrentMatchId, room.MatchGeneration);
+        room.RoomVersion, room.CurrentMatchId, room.MatchGeneration, room.Id);
 
     private static RoomMemberDto ToMemberDto(GameRoomMember member, GameRoom room) => new(
         member.UserId, member.User.Username, member.TeamId, member.IsReady, room.HostUserId == member.UserId, member.JoinedAtUtc);
 
     private static RoomSnapshotDto ToSnapshot(GameRoom room, long userId, RoomConnectionInfoDto? connection) => new(
-        ToDto(room),
+        ToDto(room, userId),
         room.Members
             .OrderBy(m => m.TeamId == Teams.Red ? 0 : m.TeamId == Teams.Blue ? 1 : 2)
             .ThenBy(m => m.JoinedAtUtc)

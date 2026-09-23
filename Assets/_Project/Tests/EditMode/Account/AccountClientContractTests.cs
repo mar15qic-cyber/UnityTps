@@ -55,7 +55,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void LobbyFlowState_ContainsOnlyDay6States()
         {
-            Assert.That(Enum.GetNames(typeof(LobbyFlowState)), Is.EqualTo(new[] { "Login", "Main", "Loadout", "Upgrade" }));
+            Assert.That(Enum.GetNames(typeof(LobbyFlowState)), Is.EqualTo(new[] { "Login", "Main", "Loadout" }));
         }
 
         // ---- Docs/27 v1.2 CF 等待房间契约（Q03）----

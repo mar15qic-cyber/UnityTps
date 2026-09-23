@@ -9,23 +9,23 @@ namespace Game.UI
     public static class UITheme
     {
         // Surfaces
-        public static readonly Color BackgroundDeep = Hex("#141B26");
-        public static readonly Color BackgroundPanel = Hex("#232F3F");
-        public static readonly Color CardSurface = Hex("#2E3D52");
-        public static readonly Color CardSurfaceAlt = Hex("#37485F");
-        public static readonly Color BorderDark = Hex("#10161F");
+        public static readonly Color BackgroundDeep = Hex("#101719");
+        public static readonly Color BackgroundPanel = Hex("#1B2528");
+        public static readonly Color CardSurface = Hex("#233033");
+        public static readonly Color CardSurfaceAlt = Hex("#304144");
+        public static readonly Color BorderDark = Hex("#405356");
 
         // Accents
-        public static readonly Color AccentPrimary = Hex("#FFC93C");
-        public static readonly Color AccentSecondary = Hex("#6BCB77");
-        public static readonly Color AccentInfo = Hex("#4D96FF");
-        public static readonly Color AccentDanger = Hex("#FF6B6B");
-        public static readonly Color AccentWarning = Hex("#FFA41B");
+        public static readonly Color AccentPrimary = Hex("#58D8BE");
+        public static readonly Color AccentSecondary = Hex("#58D8BE");
+        public static readonly Color AccentInfo = Hex("#91BFC7");
+        public static readonly Color AccentDanger = Hex("#EE7676");
+        public static readonly Color AccentWarning = Hex("#D6B875");
 
         // Text
         public static readonly Color TextPrimary = Hex("#F5F7FA");
-        public static readonly Color TextMuted = Hex("#9AA7B8");
-        public static readonly Color TextOnAccent = Hex("#1A222E");
+        public static readonly Color TextMuted = Hex("#A8B9BB");
+        public static readonly Color TextOnAccent = Hex("#101719");
 
         // Button pseudo-3D thickness layer
         public static readonly Color ButtonShadow = Hex("#0D1117");
@@ -38,11 +38,11 @@ namespace Game.UI
         public const int FontCaption = 14;
 
         // Geometry
-        public const float RadiusPanel = 12f;
-        public const float RadiusButton = 10f;
-        public const float RadiusPill = 18f;
-        public const float BorderWidth = 2f;
-        public const float ButtonDepth = 4f;
+        public const float RadiusPanel = 3f;
+        public const float RadiusButton = 3f;
+        public const float RadiusPill = 3f;
+        public const float BorderWidth = 1f;
+        public const float ButtonDepth = 0f;
 
         // Motion (seconds)
         public const float PageFadeSeconds = 0.25f;
@@ -50,7 +50,7 @@ namespace Game.UI
         public const float PressScale = 0.96f;
         public const float PressSeconds = 0.08f;
         public const float HoverSeconds = 0.12f;
-        public const float HoverLiftPixels = 2f;
+        public const float HoverLiftPixels = 0f;
 
         public static Color Hex(string hex)
         {

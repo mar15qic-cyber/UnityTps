@@ -73,7 +73,7 @@ namespace Game.Gameplay.Tests
             {
                 token = "test-token",
                 expiresAtUtc = DateTime.UtcNow.AddHours(1).ToString("o"),
-                profile = new PlayerProfileDto { username = "Tester", level = 3, xp = 40, xpToNextLevel = 100, skillPoints = 2, coins = 12345 },
+                profile = new PlayerProfileDto { username = "Tester", level = 3, xp = 40, xpToNextLevel = 100, coins = 12345 },
             });
         }
 
@@ -84,7 +84,7 @@ namespace Game.Gameplay.Tests
             var bar = presenter.transform.Find("LobbyCanvas/ShellTopBar");
             Assert.That(bar, Is.Not.Null, "ShellTopBar should exist under canvas");
             var pills = bar.GetComponentsInChildren<Button>(true);
-            Assert.That(pills.Length, Is.EqualTo(6));
+            Assert.That(pills.Length, Is.EqualTo(5));
             Assert.That(bar.Find("BarLogo")?.GetComponent<Image>()?.sprite, Is.Not.Null);
             var status = GetField<TMP_Text>(presenter, "status");
             Assert.That(status, Is.Not.Null);
@@ -128,42 +128,18 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void LobbyHome_Authenticated_BuildsModeCardsProfileAndLoadout()
+        public void LobbyHome_Authenticated_BuildsCharacterAndSingleOnlineEntry()
         {
-            var presenter = CreatePresenter(buildShell: false);
+            var presenter = CreatePresenter(buildShell: true);
             Authenticate(presenter);
+            SetField(presenter, "currentPage", LobbyPage.Lobby);
             Invoke(presenter, "RenderLobby");
-            var body = GetField<Transform>(presenter, "body");
-            var page = body.Find("LobbyPage");
-            Assert.That(page, Is.Not.Null);
-            // 2026-09-16 需求4：三角洲行动式主页 = 左模式大卡 + 右档案/装备卡
-            Assert.That(page.Find("ModeCardOnline"), Is.Not.Null);
-            Assert.That(page.Find("ModeCardOffline"), Is.Not.Null);
-            Assert.That(page.Find("ProfileCard"), Is.Not.Null);
-            Assert.That(page.Find("LoadoutCard"), Is.Not.Null);
-
-            var labels = new List<string>();
-            foreach (var t in page.GetComponentsInChildren<TMP_Text>(true))
-                labels.Add(t.text);
-            Assert.That(labels, Has.Member("联机对战"));
-            Assert.That(labels, Has.Member("进入匹配大厅"));
-            Assert.That(labels, Has.Member("离线演练"));
-            Assert.That(labels, Has.Member("开始演练"));
-            Assert.That(labels, Has.Member("退出会话"));
-            Assert.That(labels, Has.Member("前往仓库改装"));
-            Assert.That(labels, Has.Member("Tester"));
-            Assert.That(labels, Has.Member("COINS 12,345"));
-
-            // 配装未加载时的占位文案（api 为空的离线测试不会触发补拉）
-            Assert.That(labels, Has.Member("未配置"));
-
-            // XP bar: 40/100 => 0.4
-            var fills = page.GetComponentsInChildren<Image>(true);
-            Image xpFill = null;
-            foreach (var img in fills)
-                if (img.type == Image.Type.Filled && img.name == "Fill") xpFill = img;
-            Assert.That(xpFill, Is.Not.Null);
-            Assert.That(xpFill.fillAmount, Is.EqualTo(0.4f).Within(0.001f));
+            var page = GetField<Transform>(presenter, "body").Find("LobbyPage");
+            Assert.That(page.Find("CharacterDisplay"), Is.Not.Null);
+            Assert.That(page.Find("ModeCardOffline"), Is.Null);
+            Assert.That(page.Find("LoadoutCard/WeaponIcon").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(page.Find("QuitGameButton"), Is.Not.Null);
+            Assert.That(page.GetComponentsInChildren<Button>().Length, Is.EqualTo(3));
         }
 
         [Test]

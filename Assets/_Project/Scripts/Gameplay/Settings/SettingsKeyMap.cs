@@ -6,8 +6,8 @@ using UnityEngine.InputSystem;
 namespace Game.Gameplay.Settings
 {
     /// <summary>
-    /// 键位重绑映射（PlayerPrefs 持久化，InputReader 读取）。默认键与 InputReader 原硬编码一致，
-    /// 未自定义时行为完全等同旧实现。
+    /// 键位重绑映射（PlayerPrefs 持久化，InputReader 读取）。默认键沿用原映射；
+    /// Sprint 动作名与存档键为兼容旧设置保留，玩家看到的动作是静步。
     /// </summary>
     public static class SettingsKeyMap
     {
@@ -17,6 +17,9 @@ namespace Game.Gameplay.Settings
             Sprint, Jump, Reload,
             Slot1, Slot2, Slot3,
             QuickSwap,
+            ThrowFrag, ThrowFlash, ThrowSmoke,
+            SelectThrowable,
+            LeanLeft, LeanRight,
         }
 
         public sealed class Binding
@@ -33,13 +36,14 @@ namespace Game.Gameplay.Settings
             new() { action = Action.MoveBack,    label = "后退", defaultKey = Key.S, prefsKey = "unityfps.key.back" },
             new() { action = Action.MoveLeft,    label = "左移", defaultKey = Key.A, prefsKey = "unityfps.key.left" },
             new() { action = Action.MoveRight,   label = "右移", defaultKey = Key.D, prefsKey = "unityfps.key.right" },
-            new() { action = Action.Sprint,      label = "疾跑", defaultKey = Key.LeftShift, prefsKey = "unityfps.key.sprint" },
+            new() { action = Action.Sprint,      label = "静步", defaultKey = Key.LeftShift, prefsKey = "unityfps.key.sprint" },
             new() { action = Action.Jump,        label = "跳跃", defaultKey = Key.Space, prefsKey = "unityfps.key.jump" },
             new() { action = Action.Reload,      label = "换弹", defaultKey = Key.R, prefsKey = "unityfps.key.reload" },
             new() { action = Action.Slot1,       label = "武器 1", defaultKey = Key.Digit1, prefsKey = "unityfps.key.slot1" },
             new() { action = Action.Slot2,       label = "武器 2", defaultKey = Key.Digit2, prefsKey = "unityfps.key.slot2" },
-            new() { action = Action.Slot3,       label = "武器 3", defaultKey = Key.Digit3, prefsKey = "unityfps.key.slot3" },
-            new() { action = Action.QuickSwap,   label = "快速切枪", defaultKey = Key.Q, prefsKey = "unityfps.key.quickSwap" },
+            new() { action = Action.SelectThrowable, label = "选择 / 切换投掷物", defaultKey = Key.Digit3, prefsKey = "unityfps.key.selectThrowable" },
+            new() { action = Action.LeanLeft, label = "左探头", defaultKey = Key.Q, prefsKey = "unityfps.key.leanLeft" },
+            new() { action = Action.LeanRight, label = "右探头", defaultKey = Key.E, prefsKey = "unityfps.key.leanRight" },
         };
 
         private static readonly Dictionary<Action, Key> cache = new();
@@ -111,6 +115,8 @@ namespace Game.Gameplay.Settings
         {
             switch (key)
             {
+                case Key.Digit3: return "3";
+                case Key.Numpad3: return "小键盘 3";
                 case Key.Space: return "空格";
                 case Key.LeftShift: return "左Shift";
                 case Key.LeftCtrl: return "左Ctrl";

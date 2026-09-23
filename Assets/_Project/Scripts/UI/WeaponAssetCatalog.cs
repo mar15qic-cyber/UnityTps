@@ -49,6 +49,7 @@ namespace Game.UI
         public WeaponSlotType slotType;
         public WeaponDefinition definition;
         public GameObject previewPrefab;
+        public Sprite icon;
         public WeaponUiStats stats;
 
         // The legacy catalog predates the serialized source field. Keep its

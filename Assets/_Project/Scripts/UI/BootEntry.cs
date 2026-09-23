@@ -12,12 +12,35 @@ namespace Game.UI
     {
         [SerializeField] private string lobbySceneName = "Lobby";
 
+        private string _error;
+        private bool _busy;
+
         private async void Start()
         {
-            await HotUpdateBootstrap.CheckAndApplyAsync();
+            _busy = true;
+            _error = null;
+            try
+            {
+            var release = Game.Core.ClientReleaseEnvironment.Current;
+            var result = await HotUpdateBootstrap.CheckAndApplyAsync();
+            if (release?.inviteOnly == true && result.Kind != "applied" && result.Kind != "uptodate")
+                throw new System.InvalidOperationException("热更新未就绪: " + result.Kind + "。请检查网络或联系测试组织者。");
             AppRoot.Ensure();
             if (!string.IsNullOrWhiteSpace(lobbySceneName) && SceneManager.GetActiveScene().name != lobbySceneName)
                 SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+            }
+            catch (System.Exception exception) { _error = exception.Message; Debug.LogError("[Boot] " + _error); }
+            finally { _busy = false; }
+        }
+        private void OnGUI()
+        {
+            if (string.IsNullOrEmpty(_error)) return;
+            GUILayout.BeginArea(new Rect(30, 30, Mathf.Min(Screen.width - 60, 720), 180), GUI.skin.box);
+            GUILayout.Label(_error);
+            GUI.enabled = !_busy;
+            if (GUILayout.Button("重试")) Start();
+            GUI.enabled = true;
+            GUILayout.EndArea();
         }
     }
 }

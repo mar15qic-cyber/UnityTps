@@ -48,6 +48,8 @@ namespace Game.Gameplay.Weapon
         public Vector3 windowCenterLocal;
         public float windowHalfWidthMeters;
         public float windowHalfHeightMeters;
+        /// <summary>空 axis 构图时镜窗目标屏占高度（0=运行时默认值）。按组合校准，不能改变挂具安装位姿。</summary>
+        public float targetViewportHeight;
 
         public bool HasAxisFront => axisFrontPointLocal.sqrMagnitude > 1e-10f;
         public bool HasWindow => windowCenterLocal.sqrMagnitude > 1e-10f
@@ -62,6 +64,8 @@ namespace Game.Gameplay.Weapon
         public Vector3 WindowCenterLocal;
         public float WindowHalfWidthMeters;
         public float WindowHalfHeightMeters;
+        /// <summary>空 axis 构图目标屏占高度；未标定时由 FPWeaponMotion 使用历史默认值。</summary>
+        public float TargetViewportHeight;
         public bool HasAxisFront;
         public bool HasWindow;
 
@@ -78,7 +82,7 @@ namespace Game.Gameplay.Weapon
     /// 空 offset = 直通（挂点初始位姿即最终位姿）。
     /// </summary>
     [CreateAssetMenu(fileName = "AttachmentCalibration", menuName = "Game/Attachment Calibration")]
-    public sealed class AttachmentCalibration : ScriptableObject
+    public sealed class AttachmentCalibration : ScriptableObject, ISerializationCallbackReceiver
     {
         [SerializeField] private List<AttachmentCalibrationRow> rows = new();
         [SerializeField] private List<OpticAimCalibrationRow> opticAimRows = new();
@@ -119,6 +123,7 @@ namespace Game.Gameplay.Weapon
             data.WindowCenterLocal = row.windowCenterLocal;
             data.WindowHalfWidthMeters = row.windowHalfWidthMeters;
             data.WindowHalfHeightMeters = row.windowHalfHeightMeters;
+            data.TargetViewportHeight = row.targetViewportHeight;
             data.HasAxisFront = row.HasAxisFront;
             data.HasWindow = row.HasWindow;
             return true;
@@ -161,6 +166,7 @@ namespace Game.Gameplay.Weapon
             row.windowCenterLocal = data.HasWindow ? data.WindowCenterLocal : Vector3.zero;
             row.windowHalfWidthMeters = data.HasWindow ? data.WindowHalfWidthMeters : 0f;
             row.windowHalfHeightMeters = data.HasWindow ? data.WindowHalfHeightMeters : 0f;
+            row.targetViewportHeight = data.HasWindow ? data.TargetViewportHeight : 0f;
             BumpDataVersion();
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -204,7 +210,27 @@ namespace Game.Gameplay.Weapon
 
         private void BumpDataVersion() => DataVersion++;
 
-        private void OnValidate() => BumpDataVersion();
+        // Both maps contain row object references.  Inspector/SerializedObject edits and
+        // an asset reimport may replace opticAimRows while a Resources-loaded calibration
+        // asset is still alive; retaining the old map then silently returns the previous
+        // eye-only row and ignores a newly authored SCAR x 553 window.  This is especially
+        // easy to reproduce in an editor session because the probe reads the same loaded
+        // Resources asset repeatedly.  Treat deserialization and validation as cache
+        // boundaries so runtime/probe always observe the serialized source of truth.
+        private void InvalidateCachedIndices(bool bumpVersion)
+        {
+            _index = null;
+            _opticIndex = null;
+            if (bumpVersion) BumpDataVersion();
+        }
+
+        private void OnEnable() => InvalidateCachedIndices(false);
+
+        private void OnValidate() => InvalidateCachedIndices(true);
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+
+        void ISerializationCallbackReceiver.OnAfterDeserialize() => InvalidateCachedIndices(true);
 
         private void EnsureOpticIndex()
         {

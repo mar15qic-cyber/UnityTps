@@ -1,0 +1,15 @@
+{
+  "privateOverlay": true,
+  "networkId": "REPLACE_WITH_NETWORK_ID",
+  "publicAddress": "10.147.17.1",
+  "dsBindAddress": "10.147.17.1",
+  "overlaySubnet": "10.147.17.0/24",
+  "playerTcpPort": 5081,
+  "apiListenUrl": "http://127.0.0.1:5080",
+  "baseUdpPort": 7770,
+  "capacityPerMap": 8,
+  "releaseId": "private-test-01",
+  "releaseRoot": "E:\\UnityProject\\UnityFpsLowPoly\\Builds\\PrivateInvitations\\private-test-01",
+  "stateRoot": "E:\\UnityProject\\UnityFpsLowPoly\\Tools\\PrivateTest\\.runtime",
+  "secretsFile": "E:\\UnityProject\\UnityFpsLowPoly\\Tools\\PrivateTest\\.runtime\\secrets.json"
+}

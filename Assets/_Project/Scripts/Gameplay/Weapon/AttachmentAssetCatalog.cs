@@ -107,6 +107,10 @@ namespace Game.Gameplay.Weapon
         public float adsFovOverride;
         [Tooltip("固定放大率（P4 实体镜 I4b，>1 生效）：镜内 RT 相机独立倍率；0/1 = 走既有 overlay 路径")]
         public float magnification;
+        [Tooltip("实体镜有效孔径中心，瞄具 prefab 局部坐标；光轴沿 prefab +Z。与安装位姿无关。")]
+        public Vector3 scopeApertureCenter;
+        [Tooltip("实体镜有效圆孔半径（prefab 局部米）；0=未标定。须内接于镜圈，不能取整个模型包围盒。")]
+        public float scopeApertureRadius;
         public GameObject prefab;          // null = 纯数值配件（弹匣），无模型不改枪械美术
         public string prefabPath;
         [Tooltip("挂入挂点时的旋转校正（欧拉度）：LPW 配件恒等；LPFP 配件 (0,-90,0) 把 +Z 长轴对齐挂点 -X 前向")]
@@ -126,6 +130,39 @@ namespace Game.Gameplay.Weapon
             if (modifiers == null || output == null) return;
             foreach (var m in modifiers)
                 output.Add(new WeaponStatModifier(m.stat, m.op, m.value, itemId));
+        }
+    }
+
+    /// <summary>
+    /// Runtime safety net for attachment compatibility rules that are also enforced by the backend.
+    /// Old accounts can retain rows that were legal before the compatibility matrix changed; those
+    /// rows must never create duplicate geometry or alter weapon stats while the backend cleans them.
+    /// </summary>
+    public static class AttachmentCompatibilityPolicy
+    {
+        public static bool IsAllowed(WeaponDefinition definition, AttachmentAssetEntry entry)
+        {
+            if (entry == null || WeaponAttachmentStore.IsRetiredAttachmentId(entry.itemId)) return false;
+            return IsAllowed(definition != null ? definition.CatalogItemId : null, entry)
+                && (definition == null || entry.slot != AttachmentSlotType.Underbarrel || !definition.RifleHasVerticalGrip);
+        }
+
+        public static bool IsAllowed(string weaponItemId, AttachmentAssetEntry entry)
+        {
+            if (entry == null || WeaponAttachmentStore.IsRetiredAttachmentId(entry.itemId)) return false;
+            if (entry.slot == AttachmentSlotType.Underbarrel
+                && (weaponItemId == "weapon.smg01" || weaponItemId == "weapon.smg04"
+                    || weaponItemId == "weapon.smg05" || weaponItemId == "weapon.ak" || weaponItemId == "weapon.rifle03")) return false;
+            bool pistol = weaponItemId == "weapon.service_pistol" || weaponItemId == "weapon.handgun02"
+                || weaponItemId == "weapon.handgun03" || weaponItemId == "weapon.handgun04";
+            return !pistol || entry.slot != AttachmentSlotType.Optic
+                || entry.itemId == "attach.lpfp.optic.01" || entry.itemId == "attach.lpfp.optic.03";
+        }
+
+        public static int RemoveUnsupported(WeaponDefinition definition, List<AttachmentAssetEntry> entries)
+        {
+            if (entries == null || definition == null) return 0;
+            return entries.RemoveAll(entry => !IsAllowed(definition, entry));
         }
     }
 
@@ -161,6 +198,8 @@ namespace Game.Gameplay.Weapon
 
         public bool TryGet(string itemId, out AttachmentAssetEntry entry)
         {
+            entry = null;
+            if (string.IsNullOrEmpty(itemId) || WeaponAttachmentStore.IsRetiredAttachmentId(itemId)) return false;
             EnsureIndex();
             return _byId.TryGetValue(itemId, out entry);
         }
@@ -174,7 +213,7 @@ namespace Game.Gameplay.Weapon
             EnsureIndex();
             var result = new List<AttachmentAssetEntry>();
             foreach (var e in entries)
-                if (e != null && e.slot == slot) result.Add(e);
+                if (e != null && e.slot == slot && !WeaponAttachmentStore.IsRetiredAttachmentId(e.itemId)) result.Add(e);
             return result;
         }
 
@@ -214,7 +253,7 @@ namespace Game.Gameplay.Weapon
             if (equipped == null) return;
             foreach (var entry in equipped)
             {
-                if (entry == null) continue;
+                if (entry == null || WeaponAttachmentStore.IsRetiredAttachmentId(entry.itemId)) continue;
                 _equipped.Add(entry);
                 entry.CollectModifiers(_modifiers);
             }

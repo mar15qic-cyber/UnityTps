@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ede26462bfdb17e40a6651d93bb12a5f, type: 3}
+  m_Name: Throwable_Smoke
+  m_EditorClassIdentifier: 
+  Type: 2
+  InitialCount: 1
+  ModelPrefab: {fileID: 1791050219838120, guid: 1fb4c88c30d94444491843718c70605e, type: 3}
+  EffectPrefab: {fileID: 3020076383919280433, guid: 8fe25ab5080878c4aa837dc44aff1bfe, type: 3}
+  ThrowClip: {fileID: 8300000, guid: a640cc6972f037f4ca8f590635bb4f2a, type: 3}
+  ImpactClip: {fileID: 8300000, guid: 89b4957f2e6ee4740adfdccd422b9262, type: 3}
+  DetonateClip: {fileID: 0}
+  FuseSeconds: 0.75
+  Radius: 3
+  EffectSeconds: 14.25
+  ForwardSpeed: 12
+  UpwardSpeed: 2
+  InheritedHorizontalVelocity: 0.3
+  Mass: 0.38
+  AirDrag: 0.02
+  Bounciness: 0.55
+  DynamicFriction: 0.32
+  RollStopSpeed: 0.18
+  FragMaxDamage: 0
+  FlashStrength: 0
+  SmokeDensity: 0.85

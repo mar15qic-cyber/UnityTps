@@ -71,6 +71,7 @@ namespace Game.Gameplay.Menu
         private InputReader _localInput;
         private bool _leaveRequested;
         private bool _matchEndLockedApplied;
+        private long _sessionGeneration;
 
         // ---- 挂载与场景引导 ----
 
@@ -84,15 +85,16 @@ namespace Game.Gameplay.Menu
 
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name == ArenaSceneName) EnsureMounted();
+            if (GameMapCatalog.IsGameplayScene(scene.name)) EnsureMounted();
             else TeardownIfMounted();
         }
 
         /// <summary>挂载入口（幂等）：网络 Owner 生成（反射调用点）与场景引导共同调用。</summary>
         public static void EnsureMounted()
         {
-            if (Instance != null) return;
-            if (SceneManager.GetActiveScene().name != ArenaSceneName) return;
+            if (Instance != null && Instance.gameObject.scene == SceneManager.GetActiveScene()) return;
+            if (Instance != null) { var old = Instance; Instance = null; Destroy(old.gameObject); }
+            if (!GameMapCatalog.IsGameplayScene(SceneManager.GetActiveScene().name)) return;
             var root = new GameObject("GameplayMenuRoot");
             Instance = root.AddComponent<GameplayMenuController>();
             // 视图经反射创建（Gameplay 程序集无 UnityEngine.UI 引用——EventSystem 由视图侧保证；
@@ -109,9 +111,27 @@ namespace Game.Gameplay.Menu
             Destroy(Instance.gameObject);
         }
 
+        public static void BeginSession(long generation)
+        {
+            EnsureMounted();
+            if (Instance == null) return;
+            var menu = Instance;
+            menu.StopAllCoroutines();
+            menu.RollbackDraftIfAny();
+            menu._sessionGeneration = generation;
+            menu._leaveRequested = false;
+            menu._matchEndLockedApplied = false;
+            menu._localCombat = null;
+            menu._localInput = null;
+            menu.Machine.ResetForNewSession();
+            GameplayInputGate.ResetAll();
+            menu.ApplyState();
+        }
+
         private void OnEnable()
         {
             // 新场景挂载（含从大厅重回 Arena）：门控全复位（离线/新对局必须可采样）
+            _sessionGeneration = NetworkLaunchContext.CurrentGeneration;
             GameplayInputGate.ResetAll();
         }
 
@@ -120,6 +140,7 @@ namespace Game.Gameplay.Menu
             if (Instance == this)
             {
                 Instance = null;
+                if (_sessionGeneration != NetworkLaunchContext.CurrentGeneration) return;
                 // 场景切换/销毁：门控全复位 + 光标交还系统（进大厅需要光标）；
                 // 场景切换窗口期硬锁防再打开（新场景挂载时 OnEnable 复位）
                 GameplayInputGate.ResetAll();
@@ -187,7 +208,7 @@ namespace Game.Gameplay.Menu
         private void EnforceCursorState()
         {
             if (!ShouldLockCursor(Machine.MenuVisible, GameplayInputGate.ChatFocused, Machine.IsLocked)) return;
-            if (Cursor.lockState == CursorLockMode.Locked) return;
+            if (Cursor.lockState == CursorLockMode.Locked && !Cursor.visible) return;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -238,7 +259,7 @@ namespace Game.Gameplay.Menu
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            else if (!GameplayInputGate.ChatFocused)
+            else if (!GameplayInputGate.ChatFocused && !Machine.IsLocked)
             {
                 // C4/I2：聊天聚焦时聊天视图拥有光标（菜单未开时），此处不得抢锁
                 Cursor.lockState = CursorLockMode.Locked;
@@ -443,6 +464,7 @@ namespace Game.Gameplay.Menu
         {
             if (_leaveRequested || Machine.State != GameplayMenuState.LeaveConfirm) return LeaveTransactionOutcome.Rejected;
             _leaveRequested = true;
+            MatchLoadingScreen.Begin(false);
             MatchExitState.VoluntaryLeaveRequested = true;
             MatchExitState.SettlementNavigationPending = false;
             Machine.ForceClose(); // 立即关菜单（后续是流程页/断线，不再有菜单）
@@ -478,6 +500,7 @@ namespace Game.Gameplay.Menu
 
         private IEnumerator LeaveAndWaitForDisconnect()
         {
+            long generation = _sessionGeneration;
             float deadline = Time.realtimeSinceStartup + LeaveDisconnectTimeoutSeconds;
             while (Time.realtimeSinceStartup < deadline)
             {
@@ -486,6 +509,7 @@ namespace Game.Gameplay.Menu
                 if (!connected) break;
                 yield return null;
             }
+            if (generation != NetworkLaunchContext.CurrentGeneration) yield break;
             StopAllConnections();
             // 退出事务 finally 语义（§6 三.2）：断开即清启动上下文——结算导航与本地回大厅
             // 两条收尾路径都不得携带跨局残留
@@ -515,7 +539,7 @@ namespace Game.Gameplay.Menu
                 ?.Invoke(null, null);
             if (SceneManager.GetActiveScene().name == LobbySceneName) return;
             GameplayInputGate.ResetAll();
-            SceneManager.LoadScene(LobbySceneName, LoadSceneMode.Single);
+            _ = MatchLoadingScreen.LoadAsync(LobbySceneName, false);
         }
     }
 }

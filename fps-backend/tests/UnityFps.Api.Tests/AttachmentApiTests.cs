@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnityFps.Api.Data;
+using UnityFps.Api.Services;
 using Xunit;
 
 namespace UnityFps.Api.Tests;
@@ -49,7 +50,7 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         var rows = await GetJsonAsync(client, "/api/loadout/compatibility");
         Assert.True(rows.GetArrayLength() > 150, $"矩阵行数不足: {rows.GetArrayLength()}");
 
-        // weapon.m4（AKM 模型，无顶部导轨）：弹匣 stat-only + 消音器（家族放行），无瞄具行
+        // weapon.m4（AKM 模型）：弹匣 stat-only + 消音器（家族放行）+ 四款正式 LPFP 瞄具
         var m4 = rows.EnumerateArray().Where(x => x.GetProperty("weaponId").GetString() == "weapon.m4").ToArray();
         Assert.Contains(m4, x => x.GetProperty("attachmentId").GetString() == "attach.rifle.magazine"
                               && x.GetProperty("slotType").GetString() == "Magazine"
@@ -58,18 +59,24 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         Assert.Contains(m4, x => x.GetProperty("attachmentId").GetString() == "attach.lpfp.muffler.01"
                               && x.GetProperty("isImplemented").GetBoolean()
                               && x.GetProperty("calibrationKey").GetString() == "socket-v2");
-        Assert.DoesNotContain(m4, x => x.GetProperty("slotType").GetString() == "Optic");
+        foreach (var optic in new[] { "attach.lpfp.optic.01", "attach.rifle.optic", "attach.lpfp.optic.03", "attach.lpfp.optic.02" })
+            Assert.Contains(m4, x => x.GetProperty("attachmentId").GetString() == optic
+                                  && x.GetProperty("slotType").GetString() == "Optic"
+                                  && x.GetProperty("isImplemented").GetBoolean());
 
-        // 家族矩阵（2026-09-02 返工）：
-        // ak(M4A1)=步枪档瞄具（无高倍镜行）+重型消音器；sniper02(M82A1)=仅高倍镜、无任何消音器；转轮(pistol.05)无枪口行
+        // 阶段 A 矩阵：正式 LPFP 原生枪开放四款基础瞄具（狙击族除外：仅内置高倍镜，
+        // 基础瞄具不提供——2026-09-21 用户拍板）；旧 LPW 镜不再出现。
         var ak = rows.EnumerateArray().Where(x => x.GetProperty("weaponId").GetString() == "weapon.ak").ToArray();
         Assert.False(ak.Any(x => x.GetProperty("attachmentId").GetString() == "attach.lpw.optic.07"), "步枪族无高倍狙击镜行");
-        Assert.Contains(ak, x => x.GetProperty("attachmentId").GetString() == "attach.lpw.muffler.02"
+        Assert.DoesNotContain(ak, x => x.GetProperty("slotType").GetString() == "Underbarrel");
+        Assert.Contains(ak, x => x.GetProperty("attachmentId").GetString() == "attach.lpfp.muffler.01"
                               && x.GetProperty("isImplemented").GetBoolean());
+        var scar = rows.EnumerateArray().Where(x => x.GetProperty("weaponId").GetString() == "weapon.rifle03").ToArray();
+        Assert.DoesNotContain(scar, x => x.GetProperty("slotType").GetString() == "Underbarrel");
         var m82 = rows.EnumerateArray().Where(x => x.GetProperty("weaponId").GetString() == "weapon.sniper02").ToArray();
-        Assert.Contains(m82, x => x.GetProperty("attachmentId").GetString() == "attach.lpw.optic.07"
-                               && x.GetProperty("isImplemented").GetBoolean());
+        Assert.DoesNotContain(m82, x => x.GetProperty("slotType").GetString() == "Optic");
         Assert.DoesNotContain(m82, x => x.GetProperty("slotType").GetString() == "Muzzle");
+        Assert.Contains(m82, x => x.GetProperty("slotType").GetString() == "Magazine");
         var python = rows.EnumerateArray().Where(x => x.GetProperty("weaponId").GetString() == "weapon.lpw.pistol.05").ToArray();
         Assert.DoesNotContain(python, x => x.GetProperty("slotType").GetString() == "Muzzle");
         Assert.Contains(python, x => x.GetProperty("slotType").GetString() == "Magazine"
@@ -82,7 +89,7 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         var (token, userId) = await RegisterAndLoginAsync("att");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // 商城购买配件（AcquisitionSource=Shop，等级 1 可购的消音器）；高倍狙击镜直发库存做档位 422 用例
+        // 商城购买配件（AcquisitionSource=Shop，等级 1 可购的消音器）；旧瞄具库存行应直接判为无效
         var purchase = await client.PostAsJsonAsync("/api/shop/purchases",
             new { itemId = "attach.lpfp.muffler.01", quantity = 1, idempotencyKey = "att-buy-" + Guid.NewGuid().ToString("N") });
         Assert.True(purchase.IsSuccessStatusCode, await purchase.Content.ReadAsStringAsync());
@@ -99,7 +106,7 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         var loadout = await GetJsonAsync(client, "/api/loadout");
         var version = loadout.GetProperty("version").GetInt64();
 
-        // 已拥有但矩阵未放行（m4=AKM 无瞄具槽；且高倍镜仅狙击）→ 422
+        // 旧 ID 已从目录和矩阵清理，即使存量库存被手工写回也必须判为无效 → 422
         var blocked = await client.PutAsJsonAsync("/api/loadout/attachments", new
         {
             expectedVersion = version, weaponSlot = "Primary",
@@ -107,7 +114,7 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, blocked.StatusCode);
         using var blockedJson = JsonDocument.Parse(await blocked.Content.ReadAsStringAsync());
-        Assert.Equal("ATTACHMENT_NOT_COMPATIBLE", blockedJson.RootElement.GetProperty("code").GetString());
+        Assert.Equal("ATTACHMENT_INVALID", blockedJson.RootElement.GetProperty("code").GetString());
 
         // 已拥有且已放行（消音器 socket-v1）→ 200 完整回路
         var equipped = await client.PutAsJsonAsync("/api/loadout/attachments", new
@@ -189,5 +196,71 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         Assert.True(change.IsSuccessStatusCode, await change.Content.ReadAsStringAsync());
         var cleared = await GetJsonAsync(client, "/api/loadout/attachments");
         Assert.Equal(0, cleared.GetProperty("attachments").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task SavingPreviewedAkAndPistolEquipsTheWeaponThatWasValidated()
+    {
+        var (token, userId) = await RegisterAndLoginAsync("previewed");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var loadout = await db.Loadouts.SingleAsync(x => x.UserId == userId);
+            loadout.PrimaryWeaponId = "weapon.ak"; // M4A1 equipped; gunsmith previews AK-47 (weapon.m4).
+            foreach (var itemId in new[] { "weapon.ak", "weapon.handgun02", "attach.lpfp.optic.01", "attach.pistol.magazine" })
+                if (!await db.InventoryItems.AnyAsync(x => x.UserId == userId && x.ItemId == itemId))
+                    db.InventoryItems.Add(new PlayerInventoryItem
+                    { UserId = userId, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        var before = await GetJsonAsync(client, "/api/loadout");
+        var akSave = await client.PutAsJsonAsync("/api/loadout/attachments", new
+        {
+            expectedVersion = before.GetProperty("version").GetInt64(), weaponSlot = "Primary",
+            weaponItemId = "weapon.m4",
+            attachments = new[] { new { attachmentSlot = "Optic", attachmentItemId = "attach.lpfp.optic.01" } }
+        });
+        Assert.True(akSave.IsSuccessStatusCode, await akSave.Content.ReadAsStringAsync());
+        var afterAk = await GetJsonAsync(client, "/api/loadout");
+        Assert.Equal("weapon.m4", afterAk.GetProperty("primaryWeaponId").GetString());
+        var pistolSave = await client.PutAsJsonAsync("/api/loadout/attachments", new
+        {
+            expectedVersion = afterAk.GetProperty("version").GetInt64(), weaponSlot = "Secondary",
+            weaponItemId = "weapon.handgun02",
+            attachments = new[] { new { attachmentSlot = "Magazine", attachmentItemId = "attach.pistol.magazine" } }
+        });
+        Assert.True(pistolSave.IsSuccessStatusCode, await pistolSave.Content.ReadAsStringAsync());
+        var final = await GetJsonAsync(client, "/api/loadout");
+        Assert.Equal("weapon.handgun02", final.GetProperty("secondaryWeaponId").GetString());
+        var attachments = final.GetProperty("attachments").EnumerateArray().ToArray();
+        Assert.Contains(attachments, x => x.GetProperty("attachmentItemId").GetString() == "attach.lpfp.optic.01");
+        Assert.Contains(attachments, x => x.GetProperty("attachmentItemId").GetString() == "attach.pistol.magazine");
+    }
+
+    [Fact]
+    public async Task SeederRemovesStaleAttachmentSelectionsNoLongerInCompatibilityMatrix()
+    {
+        var (_, userId) = await RegisterAndLoginAsync("stalegrip");
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var loadout = await db.Loadouts.Include(x => x.Attachments).SingleAsync(x => x.UserId == userId);
+        loadout.PrimaryWeaponId = "weapon.ak"; // Rifle02/M4A1: factory vertical grip.
+        loadout.Attachments.Add(new PlayerLoadoutAttachment
+        {
+            WeaponSlot = "Primary",
+            AttachmentSlot = "Underbarrel",
+            AttachmentItemId = "attach.lpw.grip.01"
+        });
+        var versionBefore = loadout.Version;
+        await db.SaveChangesAsync();
+
+        await AttachmentSystemSeeder.SeedAsync(db);
+        db.ChangeTracker.Clear();
+
+        var cleaned = await db.Loadouts.Include(x => x.Attachments).SingleAsync(x => x.UserId == userId);
+        Assert.DoesNotContain(cleaned.Attachments, x => x.AttachmentItemId == "attach.lpw.grip.01");
+        Assert.Equal(versionBefore + 1, cleaned.Version);
     }
 }

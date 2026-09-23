@@ -34,7 +34,7 @@ public sealed class CFReviewFixTests
 
     private static async Task<JsonElement> GetDetailAsync(HttpClient client, string token, string roomCode)
     {
-        var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{roomCode}");
+        var detail = await ServerTest.Authorized(client, token).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
         return await detail.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -193,7 +193,7 @@ public sealed class CFReviewFixTests
             clientMatchId = "tdm-self-" + Guid.NewGuid().ToString("N")[..12],
             kills = 99, deaths = 0, durationSeconds = 500, isWin = true, matchId,
         });
-        Assert.Equal(HttpStatusCode.Conflict, submit.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, submit.StatusCode);
         using var scope = isolated.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.Equal(0, await db.Matches.CountAsync(x => x.MatchId == matchId));
@@ -215,7 +215,7 @@ public sealed class CFReviewFixTests
             clientMatchId = "tdm-legacy-" + Guid.NewGuid().ToString("N")[..12],
             kills = 25, deaths = 2, durationSeconds = 300, isWin = true,
         });
-        Assert.Equal(HttpStatusCode.Conflict, legacy.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, legacy.StatusCode);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed class CFReviewFixTests
             clientMatchId = "kr-compat-" + Guid.NewGuid().ToString("N")[..12],
             kills = 45, deaths = 7, durationSeconds = 580, isWin = true, matchId,
         });
-        Assert.Equal(HttpStatusCode.Conflict, submit.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, submit.StatusCode);
 
         // 旧非房间路径明确隔离：不在任何房间的新玩家无 matchId 自报仍合法（30 杀上限语义）
         var (freshToken, _) = await ServerTest.RegisterUserAsync(client);
@@ -243,7 +243,7 @@ public sealed class CFReviewFixTests
             clientMatchId = "legacy-" + Guid.NewGuid().ToString("N")[..12],
             kills = 10, deaths = 3, durationSeconds = 300, isWin = false,
         });
-        Assert.Equal(HttpStatusCode.OK, legacy.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, legacy.StatusCode);
     }
 
     // ===== R03 =====
@@ -260,11 +260,11 @@ public sealed class CFReviewFixTests
 
         // 比赛仍在进行：普通成员 return ack 不得创建终局/释放实例
         var ack = await ServerTest.Authorized(client, guestToken)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId });
         Assert.Equal(HttpStatusCode.Conflict, ack.StatusCode);
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.Equal("InMatch", list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode)
+        Assert.Equal("InMatch", list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode))
             .GetProperty("status").GetString());
         var pool = await ServerTest.SendWithKeyAsync(client, HttpMethod.Get,
             "/api/server-instances/pool?requestedCapacity=8", ServerTest.ServerKey, payload: null);
@@ -292,7 +292,7 @@ public sealed class CFReviewFixTests
 
         // Returning 状态下携带错误 matchId 的 ack 不得命中幂等快路径
         var badAck = await ServerTest.Authorized(client, guestToken)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId = Guid.NewGuid().ToString("N") });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId = Guid.NewGuid().ToString("N") });
         Assert.Equal(HttpStatusCode.Conflict, badAck.StatusCode);
     }
 
@@ -324,15 +324,15 @@ public sealed class CFReviewFixTests
         });
         Assert.Equal(HttpStatusCode.OK, report.StatusCode);
         var listAfterReport = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.Equal("Returning", listAfterReport!.Single(r => r.GetProperty("roomCode").GetString() == roomCode)
+        Assert.Equal("Returning", listAfterReport!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode))
             .GetProperty("status").GetString());
 
         // 全员 ack → 200（ReturnedAtUtc 落库），但状态保持 Returning——ack 不得代替真实断线事实（F1）
         var ackHost = await ServerTest.Authorized(client, hostToken)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId = firstMatchId });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId = firstMatchId });
         Assert.Equal(HttpStatusCode.OK, ackHost.StatusCode);
         var ackGuest = await ServerTest.Authorized(client, guestToken)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId = firstMatchId });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId = firstMatchId });
         Assert.Equal(HttpStatusCode.OK, ackGuest.StatusCode);
         var detailAfterAck = await GetDetailAsync(client, hostToken, roomCode);
         Assert.Equal("Returning", detailAfterAck.GetProperty("room").GetProperty("status").GetString());
@@ -354,7 +354,7 @@ public sealed class CFReviewFixTests
 
         // 迟到的第三次 ack（已回 Waiting）幂等安全
         var lateAck = await ServerTest.Authorized(client, guestToken)
-            .PostAsJsonAsync($"/api/rooms/{roomCode}/return", new { matchId = firstMatchId });
+            .PostAsJsonAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode)}/return", new { matchId = firstMatchId });
         Assert.Equal(HttpStatusCode.OK, lateAck.StatusCode);
 
         // 多局复用：A03/R1 实例退役后须 DS 重臂心跳（Ready+0）权威回池，再开第二局

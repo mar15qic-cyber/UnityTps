@@ -12,6 +12,8 @@ namespace Game.UI
     public sealed class HotUpdateManifest
     {
         public string version = "0";
+        public string releaseId = "";
+        public string protocolId = "";
         public string minClientVersion = "0.0.0";
         public HotUpdateFileEntry[] files = Array.Empty<HotUpdateFileEntry>();
 

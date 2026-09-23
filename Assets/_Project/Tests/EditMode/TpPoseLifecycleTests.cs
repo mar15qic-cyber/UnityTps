@@ -37,6 +37,8 @@ namespace Game.Gameplay.Tests
             public int RecoverCalls;
             public Transform DirtyOnFreeze;
 
+            public bool DeathPoseComplete => true;
+            public void PlayDeathPose(float elapsedSeconds) => FreezePoseForDeath();
             public void FreezePoseForDeath()
             {
                 FreezeCalls++;

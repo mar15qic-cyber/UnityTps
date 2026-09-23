@@ -77,8 +77,6 @@ namespace Game.Gameplay.Tests
                 if (e != null && e.isSuppressor) flagged.Add(e.itemId);
             Assert.That(flagged, Is.EquivalentTo(new[]
             {
-                "attach.lpw.muffler.01",   // 紧凑消音器（手枪/SMG）
-                "attach.lpw.muffler.02",   // 重型消音器（步枪/霰弹）
                 "attach.lpfp.muffler.01",  // 经典消音器（原生武器）
                 "attach.rifle.muzzle",     // 通行证步枪消音器
                 "attach.pistol.muzzle",    // 通行证手枪消音器

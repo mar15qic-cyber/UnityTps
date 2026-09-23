@@ -55,6 +55,12 @@ namespace Game.Gameplay.Menu
         /// ESC 键路由（唯一入口）。返回是否消费了该键（消费后调用方不得再把它当游戏输入）。
         /// 优先级：重绑取消 &gt; 弹窗返回 &gt; 页面返回 &gt; 菜单开合。
         /// </summary>
+        public void ResetForNewSession()
+        {
+            State = GameplayMenuState.Gameplay;
+            LockReason = GameplayMenuLockReason.None;
+        }
+
         public bool TryConsumeEscape()
         {
             switch (State)

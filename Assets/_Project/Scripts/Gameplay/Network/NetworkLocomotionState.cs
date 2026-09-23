@@ -55,7 +55,7 @@ namespace Game.Gameplay.Network
             ? _gaitPhase.Value
             : _locomotor != null ? _locomotor.GaitPhase : 0f;
         public float HorizontalSpeed => UseRemoteState
-            ? _moveInput.Value.magnitude * 3.44f // 近似步速（TP 动画只需走/跑分档，不需要精确值）
+            ? _moveInput.Value.magnitude * (_state.Value == LocomotionState.Sprint ? 3.8f : 1.58f)
             : _locomotor != null ? _locomotor.HorizontalSpeed : 0f;
     }
 }

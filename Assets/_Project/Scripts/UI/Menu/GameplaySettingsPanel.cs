@@ -17,7 +17,10 @@ namespace Game.UI.Menu
     {
         private GameplayMenuView _owner;
         private Slider _master, _music, _sfx, _sens;
-        private TMP_Text _adsLabel, _fsLabel;
+        private TMP_Text _adsLabel, _leanLabel, _fsLabel, _reticleStyleLabel, _reticleColorLabel;
+        private RawImage _reticlePreview;
+        private Button _reticleColorButton;
+        private NativeScopeReticleCatalog _reticleCatalog;
         private TextMeshProUGUI _resLabel, _capLabel; // Stepper 的 out 形参类型
         private int _resIndex, _capIndex;
         private readonly Button[] _keyButtons = new Button[SettingsKeyMap.Bindings.Length];
@@ -40,13 +43,13 @@ namespace Game.UI.Menu
             BuildGraphicsCard(rootRect, new Vector2(0.68f, 0.10f), new Vector2(1f, 0.84f));
 
             // 底部操作行（恢复默认 / 取消 / 应用）
-            UIMenuKit.MenuButton(rootRect, "Defaults", "恢复默认", new Color(0.16f, 0.21f, 0.28f),
+            UIMenuKit.MenuButton(rootRect, "Defaults", "恢复默认", UITheme.CardSurfaceAlt,
                 new Vector2(0f, 0f), new Vector2(0.18f, 0.075f))
                 .onClick.AddListener(() => { _controllerRef?.ResetSettingsToDefaults(); Refresh(_controllerRef); });
-            UIMenuKit.MenuButton(rootRect, "Cancel", "取消（回滚）", new Color(0.16f, 0.21f, 0.28f),
+            UIMenuKit.MenuButton(rootRect, "Cancel", "取消（回滚）", UITheme.CardSurfaceAlt,
                 new Vector2(0.20f, 0f), new Vector2(0.38f, 0.075f))
                 .onClick.AddListener(() => _controllerRef?.CancelSettings());
-            UIMenuKit.MenuButton(rootRect, "Apply", "应用并保存", new Color(1f, 0.27f, 0.33f),
+            UIMenuKit.MenuButton(rootRect, "Apply", "应用并保存", UITheme.AccentPrimary,
                 new Vector2(0.82f, 0f), new Vector2(1f, 0.075f))
                 .onClick.AddListener(() =>
                 {
@@ -57,7 +60,7 @@ namespace Game.UI.Menu
 
         private void BuildAudioCard(Transform parent, Vector2 min, Vector2 max)
         {
-            var card = UIMenuKit.Panel("AudioCard", parent, new Color(0.10f, 0.13f, 0.19f, 0.96f), min, max);
+            var card = UIMenuKit.Panel("AudioCard", parent, UITheme.BackgroundPanel, min, max);
             UIMenuKit.Caption(card.transform, "音量与灵敏度（即时生效）", new Vector2(0.08f, 0.905f), new Vector2(0.95f, 0.965f), TextBright());
 
             _master = UIMenuKit.LabeledSlider(card.transform, "Master", "主音量",
@@ -80,7 +83,7 @@ namespace Game.UI.Menu
 
         private void BuildKeybindCard(Transform parent, Vector2 min, Vector2 max)
         {
-            var card = UIMenuKit.Panel("KeybindCard", parent, new Color(0.10f, 0.13f, 0.19f, 0.96f), min, max);
+            var card = UIMenuKit.Panel("KeybindCard", parent, UITheme.BackgroundPanel, min, max);
             UIMenuKit.Caption(card.transform, "键位（点击重设 · Esc 取消）", new Vector2(0.06f, 0.905f), new Vector2(0.96f, 0.965f), TextBright());
 
             // 可滚动视口（11 项绑定行高固定像素，超出卡片即滚动——键位增多不溢出）
@@ -124,14 +127,14 @@ namespace Game.UI.Menu
 
                 var captured = b;
                 var keyBtn = UIMenuKit.MenuButton(row.transform, "Key_" + b.action, string.Empty,
-                    new Color(0.16f, 0.21f, 0.28f), new Vector2(0.48f, 0.10f), new Vector2(0.76f, 0.90f));
+                    UITheme.CardSurfaceAlt, new Vector2(0.48f, 0.10f), new Vector2(0.76f, 0.90f));
                 keyBtn.onClick.AddListener(() => _controllerRef?.RequestBeginRebind(captured.action));
                 _keyButtons[i] = keyBtn;
                 _keyLabels[i] = keyBtn.GetComponentInChildren<TMP_Text>();
                 _owner.RegisterKeyRow(i, captured.action, keyBtn, _keyLabels[i]);
 
                 UIMenuKit.MenuButton(row.transform, "Reset_" + b.action, "默认",
-                    new Color(0.16f, 0.21f, 0.28f), new Vector2(0.79f, 0.10f), new Vector2(0.97f, 0.90f))
+                    UITheme.CardSurfaceAlt, new Vector2(0.79f, 0.10f), new Vector2(0.97f, 0.90f))
                     .onClick.AddListener(() =>
                     {
                         if (_controllerRef?.Draft == null) return;
@@ -152,20 +155,20 @@ namespace Game.UI.Menu
 
         private void BuildGraphicsCard(Transform parent, Vector2 min, Vector2 max)
         {
-            var card = UIMenuKit.Panel("GraphicsCard", parent, new Color(0.10f, 0.13f, 0.19f, 0.96f), min, max);
-            UIMenuKit.Caption(card.transform, "画质（应用后生效）", new Vector2(0.08f, 0.90f), new Vector2(0.95f, 0.97f), TextBright());
+            var card = UIMenuKit.Panel("GraphicsCard", parent, UITheme.BackgroundPanel, min, max);
+            UIMenuKit.Caption(card.transform, "画质与瞄具", new Vector2(0.08f, 0.92f), new Vector2(0.95f, 0.98f), TextBright());
 
             // 分辨率 stepper
             UITypography.Text("ResLabel", card.transform, "分辨率", UITheme.FontCaption + 1, TextDim(),
-                new Vector2(0.08f, 0.84f), new Vector2(0.95f, 0.89f), TextAlignmentOptions.Left);
-            UIComponents.Stepper("ResStepper", card.transform, new Vector2(0.08f, 0.72f), new Vector2(0.94f, 0.82f),
+                new Vector2(0.08f, 0.84f), new Vector2(0.95f, 0.90f), TextAlignmentOptions.Left);
+            UIComponents.Stepper("ResStepper", card.transform, new Vector2(0.08f, 0.74f), new Vector2(0.94f, 0.83f),
                 out var resPrev, out var resNext, out _resLabel);
             resPrev.onClick.AddListener(() => { StepOption(ref _resIndex, SettingsModel.SupportedResolutions.Length, -1); RefreshOptionLabels(); });
             resNext.onClick.AddListener(() => { StepOption(ref _resIndex, SettingsModel.SupportedResolutions.Length, +1); RefreshOptionLabels(); });
 
             // 全屏开关
-            var fsBtn = UIMenuKit.MenuButton(card.transform, "Fullscreen", string.Empty, new Color(0.16f, 0.21f, 0.28f),
-                new Vector2(0.08f, 0.56f), new Vector2(0.94f, 0.66f));
+            var fsBtn = UIMenuKit.MenuButton(card.transform, "Fullscreen", string.Empty, UITheme.CardSurfaceAlt,
+                new Vector2(0.08f, 0.63f), new Vector2(0.94f, 0.72f));
             _fsLabel = fsBtn.GetComponentInChildren<TMP_Text>();
             fsBtn.onClick.AddListener(() =>
             {
@@ -176,15 +179,15 @@ namespace Game.UI.Menu
 
             // 帧率上限 stepper
             UITypography.Text("CapLabel", card.transform, "帧率上限", UITheme.FontCaption + 1, TextDim(),
-                new Vector2(0.08f, 0.44f), new Vector2(0.95f, 0.49f), TextAlignmentOptions.Left);
-            UIComponents.Stepper("CapStepper", card.transform, new Vector2(0.08f, 0.32f), new Vector2(0.94f, 0.42f),
+                new Vector2(0.08f, 0.55f), new Vector2(0.95f, 0.61f), TextAlignmentOptions.Left);
+            UIComponents.Stepper("CapStepper", card.transform, new Vector2(0.08f, 0.45f), new Vector2(0.94f, 0.54f),
                 out var capPrev, out var capNext, out _capLabel);
             capPrev.onClick.AddListener(() => { StepOption(ref _capIndex, SettingsModel.FrameCapOptions.Length, -1); RefreshOptionLabels(); });
             capNext.onClick.AddListener(() => { StepOption(ref _capIndex, SettingsModel.FrameCapOptions.Length, +1); RefreshOptionLabels(); });
 
             // ADS 输入模式
-            var adsBtn = UIMenuKit.MenuButton(card.transform, "AdsMode", string.Empty, new Color(0.16f, 0.21f, 0.28f),
-                new Vector2(0.08f, 0.14f), new Vector2(0.94f, 0.24f));
+            var adsBtn = UIMenuKit.MenuButton(card.transform, "AdsMode", string.Empty, UITheme.CardSurfaceAlt,
+                new Vector2(0.08f, 0.34f), new Vector2(0.94f, 0.43f));
             _adsLabel = adsBtn.GetComponentInChildren<TMP_Text>();
             adsBtn.onClick.AddListener(() =>
             {
@@ -193,6 +196,49 @@ namespace Game.UI.Menu
                 AdsInputMode.Toggle = _controllerRef.Draft.AdsToggleMode; // 即时生效（取消时 RestoreLive 回写捕获值）
                 RefreshOptionLabels();
             });
+
+            var leanBtn = UIMenuKit.MenuButton(card.transform, "LeanMode", string.Empty,
+                UITheme.CardSurfaceAlt, new Vector2(0.08f, 0.26f), new Vector2(0.94f, 0.33f));
+            _leanLabel = leanBtn.GetComponentInChildren<TMP_Text>();
+            leanBtn.onClick.AddListener(() =>
+            {
+                if (_controllerRef?.Draft == null) return;
+                _controllerRef.Draft.LeanToggleMode = !_controllerRef.Draft.LeanToggleMode;
+                LeanInputMode.SetLive(_controllerRef.Draft.LeanToggleMode);
+                RefreshOptionLabels();
+            });
+
+            var styleBtn = UIMenuKit.MenuButton(card.transform, "ReticleStyle", string.Empty,
+                UITheme.CardSurfaceAlt, new Vector2(0.08f, 0.17f), new Vector2(0.94f, 0.24f));
+            _reticleStyleLabel = styleBtn.GetComponentInChildren<TMP_Text>();
+            styleBtn.onClick.AddListener(() =>
+            {
+                var draft = _controllerRef?.Draft;
+                if (draft == null) return;
+                draft.ReticleStyle = (OpticReticleStyle)(((int)draft.ReticleStyle + 1) % SettingsModel.ReticleStyleCount);
+                draft.ReticleColor = SettingsModel.NormalizeReticleColor(draft.ReticleStyle, draft.ReticleColor);
+                SettingsRuntime.SetReticleLive(draft.ReticleStyle, draft.ReticleColor);
+                RefreshOptionLabels();
+            });
+
+            var colorBtn = UIMenuKit.MenuButton(card.transform, "ReticleColor", string.Empty,
+                UITheme.CardSurfaceAlt, new Vector2(0.08f, 0.08f), new Vector2(0.94f, 0.15f));
+            _reticleColorLabel = colorBtn.GetComponentInChildren<TMP_Text>();
+            _reticleColorButton = colorBtn;
+            colorBtn.onClick.AddListener(() =>
+            {
+                var draft = _controllerRef?.Draft;
+                if (draft == null) return;
+                draft.ReticleColor = SettingsModel.NextReticleColor(draft.ReticleStyle, draft.ReticleColor);
+                SettingsRuntime.SetReticleLive(draft.ReticleStyle, draft.ReticleColor);
+                RefreshOptionLabels();
+            });
+            var preview = new GameObject("NativeReticlePreview", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            preview.transform.SetParent(styleBtn.transform, false);
+            _reticlePreview = preview.GetComponent<RawImage>();
+            _reticlePreview.raycastTarget = false;
+            _reticlePreview.rectTransform.anchorMin = _reticlePreview.rectTransform.anchorMax = new Vector2(.90f, .5f);
+            _reticlePreview.rectTransform.sizeDelta = new Vector2(48f, 48f);
         }
 
         // ---- 绑定与刷新 ----
@@ -240,6 +286,19 @@ namespace Game.UI.Menu
             if (_capLabel != null) _capLabel.text = SettingsModel.FormatFrameCap(SettingsModel.FrameCapOptions[_capIndex]);
             if (_fsLabel != null) _fsLabel.text = draft.Fullscreen ? "全屏：开" : "全屏：关";
             if (_adsLabel != null) _adsLabel.text = "开镜方式：" + (draft.AdsToggleMode ? "切换" : "长按");
+            if (_leanLabel != null) _leanLabel.text = "探头方式：" + (draft.LeanToggleMode ? "切换" : "长按");
+            if (_reticleStyleLabel != null) _reticleStyleLabel.text = "LPFP 准星：" + SettingsModel.FormatReticleStyle(draft.ReticleStyle);
+            var nativeColor = SettingsModel.NormalizeReticleColor(draft.ReticleStyle, draft.ReticleColor);
+            bool fixedColor = SettingsModel.ReticleColors(draft.ReticleStyle).Count == 1;
+            if (_reticleColorLabel != null) _reticleColorLabel.text = "原生颜色：" + SettingsModel.FormatReticleColor(nativeColor) + (fixedColor ? "（固定）" : "");
+            if (_reticleColorButton != null) _reticleColorButton.interactable = !fixedColor;
+            if (_reticleCatalog == null) _reticleCatalog = NativeScopeReticleCatalog.Load();
+            if (_reticlePreview != null && _reticleCatalog != null)
+            {
+                _reticlePreview.texture = _reticleCatalog.Find(draft.ReticleStyle, nativeColor)?.texture;
+                _reticlePreview.material = _reticleCatalog.AdditiveMaterial;
+                _reticlePreview.color = Color.white;
+            }
         }
 
         private void RefreshLabels()
@@ -250,11 +309,11 @@ namespace Game.UI.Menu
                 var b = SettingsKeyMap.Bindings[i];
                 bool capturing = _controllerRef != null && _controllerRef.RebindAction == b.action;
                 _keyLabels[i].text = capturing ? "按任意键…" : SettingsKeyMap.DisplayName(SettingsKeyMap.Get(b.action));
-                _keyLabels[i].color = capturing ? new Color(1f, 0.27f, 0.33f) : new Color(0.96f, 0.97f, 0.98f);
+                _keyLabels[i].color = capturing ? UITheme.AccentPrimary : UITheme.TextPrimary;
             }
         }
 
-        private static Color TextDim() => new Color(0.60f, 0.66f, 0.73f);
-        private static Color TextBright() => new Color(0.96f, 0.97f, 0.98f);
+        private static Color TextDim() => UITheme.TextMuted;
+        private static Color TextBright() => UITheme.TextPrimary;
     }
 }

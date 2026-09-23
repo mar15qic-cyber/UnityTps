@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "message": "Code executed successfully.",
+  "data": {
+    "result": {
+      "result": "Succeeded",
+      "errors": 0,
+      "warnings": [
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\WeaponHudView.cs(49,50): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\WeaponHudView.cs(50,44): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\CrosshairPresenter.cs(29,50): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\CrosshairPresenter.cs(30,46): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\CrosshairPresenter.cs(31,52): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\WeaponAudioView.cs(42,50): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'",
+        "Assets\\_Project\\Scripts\\Presentation\\HUD\\WeaponAudioView.cs(43,44): warning CS0618: 'Object.FindObjectOfType<T>()' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'"
+      ],
+      "playing": false,
+      "scene": "Assets/_Project/Scenes/Arena.unity",
+      "dirty": false
+    },
+    "compiler": "codedom"
+  }
+}

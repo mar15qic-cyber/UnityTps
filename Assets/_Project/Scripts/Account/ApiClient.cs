@@ -12,7 +12,7 @@ using UnityEngine;
 namespace Game.Account
 {
 
-public sealed class ApiClient : IApiClient, IDisposable
+public sealed partial class ApiClient : IApiClient, IDisposable
 {
     private readonly string baseUrl;
     private readonly int timeoutSeconds;
@@ -21,6 +21,11 @@ public sealed class ApiClient : IApiClient, IDisposable
     private readonly object operationGate = new object();
     private string token;
     private bool disposed;
+    public event Action<string> SessionRejected;
+
+    public static bool IsCurrentSessionRejection(int status, string path, string sentToken, string currentToken)
+        => status == 401 && !string.IsNullOrEmpty(sentToken) && sentToken == currentToken
+            && !path.StartsWith("/api/auth/", StringComparison.Ordinal);
 
     public ApiClient(ApiClientConfig config)
     {
@@ -53,8 +58,6 @@ public sealed class ApiClient : IApiClient, IDisposable
     public Task<ApiResult<PlayerProfileDto>> GetProfileAsync(CancellationToken cancellationToken = default) =>
         SendAsync<PlayerProfileDto>("profile-get", "GET", "/api/profile", null, cancellationToken);
 
-    public Task<ApiResult<PlayerProfileDto>> UpdateUpgradesAsync(UpgradeRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<PlayerProfileDto>("profile-upgrades", "PUT", "/api/profile/upgrades", request, cancellationToken);
 
     public Task<ApiResult<LoadoutDto>> GetLoadoutAsync(CancellationToken cancellationToken = default) =>
         SendAsync<LoadoutDto>("loadout-get", "GET", "/api/loadout", null, cancellationToken);
@@ -86,8 +89,6 @@ public sealed class ApiClient : IApiClient, IDisposable
     public Task<ApiResult<UserSettingsDto>> PutUserSettingsAsync(SaveSettingsRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<UserSettingsDto>("user-settings-update", "PUT", "/api/settings", request, cancellationToken);
 
-    public Task<ApiResult<MatchResultDto>> SubmitMatchAsync(MatchSubmissionRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<MatchResultDto>("match-submit", "POST", "/api/matches", request, cancellationToken);
 
     // ---- 战绩历史（2026-09-17 热更试点 P3）：大厅战绩页数据源 ----
 
@@ -100,35 +101,39 @@ public sealed class ApiClient : IApiClient, IDisposable
     public Task<ApiResult<RoomSnapshotDto>> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<RoomSnapshotDto>("room-create", "POST", "/api/rooms", request, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> JoinRoomAsync(string roomCode, string teamId = null, string clientProtocolId = null, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-join-" + Key(roomCode),
-            "POST", "/api/rooms/" + Path(roomCode) + "/join",
+    public Task<ApiResult<RoomSnapshotDto>> JoinRoomByCodeAsync(string code, string protocol, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-join-code", "POST", "/api/rooms/join-by-code",
+            new JoinRoomByCodeRequest { roomCode = code, clientProtocolId = protocol }, cancellationToken);
+
+    public Task<ApiResult<RoomSnapshotDto>> JoinRoomAsync(string roomId, string teamId = null, string clientProtocolId = null, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-join-" + Key(roomId),
+            "POST", "/api/rooms/" + Path(roomId) + "/join",
             new RoomJoinRequest { teamId = teamId, clientProtocolId = clientProtocolId }, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> GetRoomDetailAsync(string roomCode, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-detail-" + Key(roomCode), "GET", "/api/rooms/" + Path(roomCode), null, cancellationToken);
+    public Task<ApiResult<RoomSnapshotDto>> GetRoomDetailAsync(string roomId, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-detail-" + Key(roomId), "GET", "/api/rooms/" + Path(roomId), null, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> SetRoomTeamAsync(string roomCode, string teamId, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-team-" + Key(roomCode), "POST", "/api/rooms/" + Path(roomCode) + "/team",
+    public Task<ApiResult<RoomSnapshotDto>> SetRoomTeamAsync(string roomId, string teamId, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-team-" + Key(roomId), "POST", "/api/rooms/" + Path(roomId) + "/team",
             new RoomTeamRequest { teamId = teamId }, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> SetRoomReadyAsync(string roomCode, bool isReady, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-ready-" + Key(roomCode), "POST", "/api/rooms/" + Path(roomCode) + "/ready",
+    public Task<ApiResult<RoomSnapshotDto>> SetRoomReadyAsync(string roomId, bool isReady, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-ready-" + Key(roomId), "POST", "/api/rooms/" + Path(roomId) + "/ready",
             new RoomReadyRequest { isReady = isReady }, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> UpdateRoomSettingsAsync(string roomCode, RoomSettingsRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-settings-" + Key(roomCode), "POST", "/api/rooms/" + Path(roomCode) + "/settings", request, cancellationToken);
+    public Task<ApiResult<RoomSnapshotDto>> UpdateRoomSettingsAsync(string roomId, RoomSettingsRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-settings-" + Key(roomId), "POST", "/api/rooms/" + Path(roomId) + "/settings", request, cancellationToken);
 
-    public Task<ApiResult<StartMatchDto>> StartRoomMatchAsync(string roomCode, CancellationToken cancellationToken = default) =>
-        SendAsync<StartMatchDto>("room-start-" + Key(roomCode), "POST", "/api/rooms/" + Path(roomCode) + "/start", null, cancellationToken);
+    public Task<ApiResult<StartMatchDto>> StartRoomMatchAsync(string roomId, CancellationToken cancellationToken = default) =>
+        SendAsync<StartMatchDto>("room-start-" + Key(roomId), "POST", "/api/rooms/" + Path(roomId) + "/start", null, cancellationToken);
 
-    public Task<ApiResult<RoomSnapshotDto>> ReturnRoomAsync(string roomCode, string matchId, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomSnapshotDto>("room-return-" + Key(roomCode), "POST", "/api/rooms/" + Path(roomCode) + "/return",
+    public Task<ApiResult<RoomSnapshotDto>> ReturnRoomAsync(string roomId, string matchId, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomSnapshotDto>("room-return-" + Key(roomId), "POST", "/api/rooms/" + Path(roomId) + "/return",
             new RoomReturnRequest { matchId = matchId }, cancellationToken);
 
-    public Task<ApiResult<RoomMatchResultViewDto>> GetRoomMatchResultAsync(string roomCode, string matchId, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomMatchResultViewDto>("room-result-" + Key(roomCode) + "-" + Key(matchId),
-            "GET", "/api/rooms/" + Path(roomCode) + "/match-result?matchId=" + Uri.EscapeDataString(matchId ?? string.Empty), null, cancellationToken);
+    public Task<ApiResult<RoomMatchResultViewDto>> GetRoomMatchResultAsync(string roomId, string matchId, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomMatchResultViewDto>("room-result-" + Key(roomId) + "-" + Key(matchId),
+            "GET", "/api/rooms/" + Path(roomId) + "/match-result?matchId=" + Uri.EscapeDataString(matchId ?? string.Empty), null, cancellationToken);
 
     public Task<ApiResult<MapCatalogDto[]>> ListMapsAsync(CancellationToken cancellationToken = default) =>
         SendAsync<MapCatalogDto[]>("maps-list", "GET", "/api/maps", null, cancellationToken);
@@ -144,15 +149,33 @@ public sealed class ApiClient : IApiClient, IDisposable
 
     // ---- 房间聊天 HTTP 传输（Docs/27 §8：Waiting/Starting/Returning；InMatch 收发均 409 走 Owner RPC）----
 
-    public Task<ApiResult<RoomChatMessageDto>> SendRoomChatAsync(string roomCode, RoomChatSendRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomChatMessageDto>("room-chat-send-" + Key(roomCode) + "-" + Key(request?.clientMessageId),
-            "POST", "/api/rooms/" + Path(roomCode) + "/chat", request, cancellationToken);
+    public Task<ApiResult<RoomChatMessageDto>> SendRoomChatAsync(string roomId, RoomChatSendRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomChatMessageDto>("room-chat-send-" + Key(roomId) + "-" + Key(request?.clientMessageId),
+            "POST", "/api/rooms/" + Path(roomId) + "/chat", request, cancellationToken);
 
-    public Task<ApiResult<RoomChatFeedDto>> FetchRoomChatAsync(string roomCode, ulong after, CancellationToken cancellationToken = default) =>
-        SendAsync<RoomChatFeedDto>("room-chat-fetch-" + Key(roomCode),
-            "GET", "/api/rooms/" + Path(roomCode) + "/chat?after=" + after, null, cancellationToken);
+    public Task<ApiResult<RoomChatFeedDto>> FetchRoomChatAsync(string roomId, ulong after, CancellationToken cancellationToken = default) =>
+        SendAsync<RoomChatFeedDto>("room-chat-fetch-" + Key(roomId),
+            "GET", "/api/rooms/" + Path(roomId) + "/chat?after=" + after, null, cancellationToken);
 
-    private static string Path(string roomCode) => Uri.EscapeDataString((roomCode ?? string.Empty).Trim());
+    // ---- 好友（2026-09-20 需求2）----
+
+    public Task<ApiResult<FriendListDto>> GetFriendsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<FriendListDto>("friends-list", "GET", "/api/friends", null, cancellationToken);
+
+    public Task<ApiResult<FriendRequestEntryDto>> SendFriendRequestAsync(string query, CancellationToken cancellationToken = default) =>
+        SendAsync<FriendRequestEntryDto>("friends-send", "POST", "/api/friends/requests",
+            new FriendSendRequest { query = query }, cancellationToken);
+
+    public Task<ApiResult<object>> AcceptFriendRequestAsync(long requestId, CancellationToken cancellationToken = default) =>
+        SendAsync<object>("friends-accept-" + requestId, "POST", "/api/friends/requests/" + requestId + "/accept", null, cancellationToken);
+
+    public Task<ApiResult<object>> RemoveFriendRequestAsync(long requestId, CancellationToken cancellationToken = default) =>
+        SendAsync<object>("friends-request-remove-" + requestId, "DELETE", "/api/friends/requests/" + requestId, null, cancellationToken);
+
+    public Task<ApiResult<object>> RemoveFriendAsync(long friendUserId, CancellationToken cancellationToken = default) =>
+        SendAsync<object>("friends-remove-" + friendUserId, "DELETE", "/api/friends/" + friendUserId, null, cancellationToken);
+
+    private static string Path(string roomId) => Uri.EscapeDataString((roomId ?? string.Empty).Trim());
 
     private static string Key(string value) => Uri.EscapeDataString((value ?? string.Empty).Trim()).Replace('.', '_');
 
@@ -166,14 +189,15 @@ public sealed class ApiClient : IApiClient, IDisposable
         }
 
         var targetUrl = baseUrl + path;
+        var sentToken = token;
         var stopwatch = Stopwatch.StartNew();
         try
         {
             using var request = new HttpRequestMessage(new HttpMethod(method), targetUrl);
             if (payload != null)
                 request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-            if (!string.IsNullOrWhiteSpace(token))
-                request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+            if (!string.IsNullOrWhiteSpace(sentToken))
+                request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + sentToken);
 
             // F10：HttpClient(UseProxy=false) 直连。超时由 HttpClient.Timeout 统一承担
             //（到期抛 OperationCanceledException，下方与用户取消分流），不再需要显式计时器赛跑。
@@ -181,6 +205,8 @@ public sealed class ApiClient : IApiClient, IDisposable
 
             var text = await response.Content.ReadAsStringAsync();
             var status = (int)response.StatusCode;
+            if (IsCurrentSessionRejection(status, path, sentToken, token))
+                SessionRejected?.Invoke(sentToken);
             if (response.IsSuccessStatusCode)
             {
                 try

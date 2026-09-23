@@ -34,6 +34,25 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
     /// <summary>Returning→Waiting 宽限（Docs/27 v1 §3）。</summary>
     public TimeSpan ReturningTimeout => options.ReturningTimeout;
 
+    public async Task EnterMaintenanceAsync(string instanceId, CancellationToken ct)
+    {
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var tx = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct) : null;
+            var row = await db.ServerInstances.SingleOrDefaultAsync(x => x.InstanceId == instanceId, ct)
+                ?? throw new ApiException(404, ApiErrorCodes.ServerInstanceNotFound, "实例未注册");
+            if (row.CurrentPlayers != 0 || row.RoomCode != null || row.State is not ("Ready" or "Offline" or "Maintenance"))
+                throw new ApiException(409, "MAP_BUSY", "地图仍有对局，不能切换版本");
+            row.State = "Maintenance";
+            row.Version++;
+            await db.SaveChangesAsync(ct);
+            if (tx != null) await tx.CommitAsync(ct);
+        });
+    }
+
     /// <summary>注册（幂等 upsert）：新实例直接 Ready；重注册时保留仍存活的房间绑定（服务器快速重启场景）。</summary>
     public async Task<ServerInstanceRegisterDto> RegisterAsync(ServerInstanceRegisterRequest request, CancellationToken cancellationToken)
     {
@@ -145,6 +164,8 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                     .SingleOrDefaultAsync(x => x.InstanceId == instanceId, cancellationToken)
                     ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ServerInstanceNotFound, "实例未注册");
 
+                if (instance.State == "Maintenance")
+                    throw new ApiException(409, "INSTANCE_MAINTENANCE", "实例正在更新，旧心跳不能恢复入场");
                 // 存活证明先落库：无论转换是否合法，TTL 都要刷新
                 instance.LastHeartbeatUtc = DateTime.UtcNow;
                 instance.CurrentPlayers = request.CurrentPlayers;
@@ -337,6 +358,11 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                     if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
                     return Invalid(); // 实例已解绑或被重新分配给其他房间
                 }
+                if (await db.Users.AnyAsync(u => u.Id == ticket.UserId && u.Disabled, cancellationToken))
+                {
+                    if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
+                    return Invalid();
+                }
                 var member = room.Members.FirstOrDefault(m => m.UserId == ticket.UserId);
                 if (member is null)
                 {
@@ -417,7 +443,7 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
         var instances = rows.Select(x => new ServerInstanceDiagnosticDto(
             x.InstanceId, x.State, x.RoomCode, x.CurrentPlayers, x.Capacity,
             (int)Math.Max(0, (now - x.LastHeartbeatUtc).TotalSeconds), x.LastHeartbeatUtc >= cutoff,
-            x.ProtocolId, x.BuildVersion))
+            x.ProtocolId, x.BuildVersion, x.MapId, x.Address, x.Port))
             .ToArray();
         return new ServerInstancePoolDto(SummarizePool(instances, requestedCapacity, expectedProtocol), instances);
     }

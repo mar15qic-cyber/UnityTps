@@ -22,9 +22,12 @@ namespace Game.Gameplay.Settings
         public float SfxVolume;
         public float Sensitivity;
         public bool AdsToggleMode;
+        public bool LeanToggleMode;
         public (int w, int h) Resolution;
         public bool Fullscreen;
         public int FrameCap;
+        public OpticReticleStyle ReticleStyle;
+        public OpticReticleColor ReticleColor;
 
         /// <summary>键位草稿：动作 → 当前生效键（含未持久化的临时重绑）。</summary>
         public readonly Dictionary<SettingsKeyMap.Action, Key> Keys = new();
@@ -35,6 +38,9 @@ namespace Game.Gameplay.Settings
         private readonly Dictionary<SettingsKeyMap.Action, Key> _capturedKeys = new();
         private float _capMaster, _capMusic, _capSfx, _capSensitivity;
         private bool _capAds;
+        private bool _capLean;
+        private OpticReticleStyle _capReticleStyle;
+        private OpticReticleColor _capReticleColor;
 
         /// <summary>从当前生效值捕获（SettingsRuntime 实时值 + SettingsKeyMap 当前映射）。</summary>
         public static SettingsDraft CaptureFromCurrent()
@@ -46,9 +52,12 @@ namespace Game.Gameplay.Settings
                 SfxVolume = SettingsRuntime.SfxVolume,
                 Sensitivity = SettingsRuntime.Sensitivity,
                 AdsToggleMode = AdsInputMode.Toggle,
+                LeanToggleMode = LeanInputMode.Toggle,
                 Resolution = SettingsModel.Resolution,
                 Fullscreen = SettingsModel.Fullscreen,
                 FrameCap = SettingsModel.FrameCap,
+                ReticleStyle = SettingsRuntime.ReticleStyle,
+                ReticleColor = SettingsRuntime.ReticleColor,
             };
             foreach (var b in SettingsKeyMap.Bindings)
                 draft.Keys[b.action] = SettingsKeyMap.Get(b.action);
@@ -65,6 +74,9 @@ namespace Game.Gameplay.Settings
             _capSfx = SfxVolume;
             _capSensitivity = Sensitivity;
             _capAds = AdsToggleMode;
+            _capLean = LeanToggleMode;
+            _capReticleStyle = ReticleStyle;
+            _capReticleColor = ReticleColor;
             _hasCapture = true;
         }
 
@@ -78,9 +90,12 @@ namespace Game.Gameplay.Settings
                 SfxVolume = SettingsModel.DefaultSfxVolume,
                 Sensitivity = SettingsModel.DefaultSensitivity,
                 AdsToggleMode = false,
+                LeanToggleMode = false,
                 Resolution = (1920, 1080),
                 Fullscreen = true,
                 FrameCap = 60,
+                ReticleStyle = SettingsModel.DefaultOpticReticleStyle,
+                ReticleColor = SettingsModel.DefaultOpticReticleColor,
             };
             foreach (var b in SettingsKeyMap.Bindings)
                 draft.Keys[b.action] = b.defaultKey;
@@ -96,9 +111,12 @@ namespace Game.Gameplay.Settings
             SfxVolume = defaults.SfxVolume;
             Sensitivity = defaults.Sensitivity;
             AdsToggleMode = defaults.AdsToggleMode;
+            LeanToggleMode = defaults.LeanToggleMode;
             Resolution = defaults.Resolution;
             Fullscreen = defaults.Fullscreen;
             FrameCap = defaults.FrameCap;
+            ReticleStyle = defaults.ReticleStyle;
+            ReticleColor = defaults.ReticleColor;
             Keys.Clear();
             foreach (var kv in defaults.Keys) Keys[kv.Key] = kv.Value;
         }
@@ -114,9 +132,12 @@ namespace Game.Gameplay.Settings
             SettingsModel.SfxVolume = SfxVolume;
             SettingsModel.Sensitivity = Sensitivity;
             AdsInputMode.Toggle = AdsToggleMode;
+            LeanInputMode.Toggle = LeanToggleMode;
             SettingsModel.Resolution = Resolution;
             SettingsModel.Fullscreen = Fullscreen;
             SettingsModel.FrameCap = FrameCap;
+            SettingsModel.ReticleStyle = ReticleStyle;
+            SettingsModel.ReticleColor = ReticleColor;
             foreach (var b in SettingsKeyMap.Bindings)
             {
                 // 无条件持久写：预览阶段已非持久改缓存，这里统一落盘（值相同重复写无害）
@@ -143,6 +164,8 @@ namespace Game.Gameplay.Settings
             SettingsRuntime.SetLive(SensitivityTarget.Sfx, _capSfx);
             SettingsRuntime.SetLive(SensitivityTarget.Sensitivity, _capSensitivity);
             AdsInputMode.Toggle = _capAds;
+            LeanInputMode.SetLive(_capLean);
+            SettingsRuntime.SetReticleLive(_capReticleStyle, _capReticleColor);
             foreach (var b in SettingsKeyMap.Bindings)
             {
                 var key = _capturedKeys.TryGetValue(b.action, out var k) ? k : b.defaultKey;
@@ -165,6 +188,8 @@ namespace Game.Gameplay.Settings
             SettingsRuntime.SetLive(SensitivityTarget.Sfx, SfxVolume);
             SettingsRuntime.SetLive(SensitivityTarget.Sensitivity, Sensitivity);
             AdsInputMode.Toggle = AdsToggleMode;
+            LeanInputMode.SetLive(LeanToggleMode);
+            SettingsRuntime.SetReticleLive(ReticleStyle, ReticleColor);
             foreach (var b in SettingsKeyMap.Bindings)
             {
                 var key = Keys.TryGetValue(b.action, out var k) ? k : b.defaultKey;

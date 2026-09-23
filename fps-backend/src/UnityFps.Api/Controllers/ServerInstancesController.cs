@@ -12,6 +12,12 @@ namespace UnityFps.Api.Controllers;
 [ApiController, AllowAnonymous, RequireServerKey, Route("api/server-instances")]
 public sealed class ServerInstancesController(ServerInstanceService instances, RoomService rooms) : ControllerBase
 {
+    [HttpPost("{instanceId}/maintenance")]
+    public async Task<IActionResult> Maintenance(string instanceId, CancellationToken cancellationToken)
+    {
+        await instances.EnterMaintenanceAsync(instanceId, cancellationToken);
+        return NoContent();
+    }
     [HttpPost("register")]
     public Task<ServerInstanceRegisterDto> Register(ServerInstanceRegisterRequest request, CancellationToken cancellationToken) =>
         instances.RegisterAsync(request, cancellationToken);

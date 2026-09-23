@@ -25,6 +25,8 @@ namespace Game.Presentation.Camera
         private float deathElapsed;
         private Vector3 standingPosition;
         private float standingDutch;
+        private Transform leanWeaponRoot;
+        private Game.Gameplay.Movement.Locomotor locomotor;
 
         /// <summary>倒地视角参数：相机降到该局部高度并侧倾，历时 DeathFallSeconds。</summary>
         private const float DeathFallY = 0.25f;
@@ -39,12 +41,33 @@ namespace Game.Presentation.Camera
             if (cinemachineCamera == null) cinemachineCamera = GetComponentInChildren<CinemachineCamera>();
             if (aimState == null) aimState = GetComponentInParent<PlayerAimState>();
             combat = GetComponentInParent<NetworkCombatAuthority>();
+            locomotor = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
+            if (cinemachineCamera != null && cinemachineCamera.GetComponent<CmFPCameraLean>() == null)
+                cinemachineCamera.gameObject.AddComponent<CmFPCameraLean>();
+            var weaponRoot = transform.Find("FP_Weapon_Root");
+            if (weaponRoot != null)
+            {
+                leanWeaponRoot = transform.Find("LeanWeaponRoot");
+                if (leanWeaponRoot == null)
+                {
+                    leanWeaponRoot = new GameObject("LeanWeaponRoot").transform;
+                    leanWeaponRoot.SetParent(transform, false);
+                }
+                weaponRoot.SetParent(leanWeaponRoot, false);
+            }
         }
 
         private void Update()
         {
             if (cinemachineCamera == null) return;
             UpdateDeathView();
+            if (leanWeaponRoot != null)
+            {
+                float lean = !deathActive && locomotor != null ? locomotor.Lean.Amount : 0f;
+                leanWeaponRoot.localPosition = Vector3.right * (lean * Game.Gameplay.Player.LeanProfile.EyeSideMeters);
+                leanWeaponRoot.localRotation = Quaternion.AngleAxis(
+                    -lean * Game.Gameplay.Player.LeanProfile.MaxCameraRollDegrees, Vector3.forward);
+            }
             var lens = cinemachineCamera.Lens;
             lens.FieldOfView = deathActive ? hipFov : aimState != null ? aimState.CurrentFov : hipFov;
             if (deathActive)

@@ -15,7 +15,7 @@ namespace Game.Gameplay.Tests
     public sealed class OpticAimContextTests
     {
         private static AttachmentAssetEntry Optic(OpticAimTier tier, float fov = 0f)
-            => new AttachmentAssetEntry { itemId = "attach.test.optic", slot = AttachmentSlotType.Optic, aimTier = tier, adsFovOverride = fov };
+            => new AttachmentAssetEntry { itemId = "attach.lpfp.optic.01", slot = AttachmentSlotType.Optic, aimTier = tier, adsFovOverride = fov };
 
         [Test]
         public void Resolve_EquippedOpticOverridesBuiltIn()
@@ -23,7 +23,7 @@ namespace Game.Gameplay.Tests
             var builtIn = new BuiltInOpticDefinition { opticId = "builtin.sniper", aimTier = OpticAimTier.HighZoom, adsFovOverride = 12f };
             var resolved = OpticAimContext.Resolve(new List<AttachmentAssetEntry> { Optic(OpticAimTier.Holo, 0f) }, builtIn);
             Assert.AreEqual(OpticAimTier.Holo, resolved.Tier);
-            Assert.AreEqual("attach.test.optic", resolved.ItemId);
+            Assert.AreEqual("attach.lpfp.optic.01", resolved.ItemId);
         }
 
         [Test]
@@ -50,9 +50,9 @@ namespace Game.Gameplay.Tests
         [Test]
         public void FromEquipped_OpticWithTier_PickedWithFovOverride()
         {
-            var ctx = OpticAimContext.FromEquipped(new List<AttachmentAssetEntry> { Muzzle(), Optic(OpticAimTier.LowZoom, 22f) });
+            var ctx = OpticAimContext.FromEquipped(new List<AttachmentAssetEntry> { Muzzle(), Optic(OpticAimTier.LowZoom, 18f) });
             Assert.AreEqual(OpticAimTier.LowZoom, ctx.Tier);
-            Assert.AreEqual(22f, ctx.AdsFovOverride);
+            Assert.AreEqual(18f, ctx.AdsFovOverride);
         }
 
         [Test]
@@ -66,7 +66,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void EffectiveAdsFov_OverrideWins_ZeroFallsBack()
         {
-            Assert.AreEqual(22f, new OpticAimContext(OpticAimTier.LowZoom, 22f).EffectiveAdsFov(50f));
+            Assert.AreEqual(18f, new OpticAimContext(OpticAimTier.LowZoom, 18f).EffectiveAdsFov(50f));
             Assert.AreEqual(50f, new OpticAimContext(OpticAimTier.RedDot, 0f).EffectiveAdsFov(50f));
             Assert.AreEqual(50f, OpticAimContext.None.EffectiveAdsFov(50f));
         }
@@ -74,23 +74,23 @@ namespace Game.Gameplay.Tests
         [Test]
         public void EvaluateCurrentFov_EndpointsAndClamp()
         {
-            Assert.AreEqual(60f, AdsFovMath.EvaluateCurrentFov(60f, 22f, 0f), 1e-4f);
-            Assert.AreEqual(22f, AdsFovMath.EvaluateCurrentFov(60f, 22f, 1f), 1e-4f);
-            Assert.AreEqual(41f, AdsFovMath.EvaluateCurrentFov(60f, 22f, 0.5f), 1e-4f);
+            Assert.AreEqual(60f, AdsFovMath.EvaluateCurrentFov(60f, 18f, 0f), 1e-4f);
+            Assert.AreEqual(18f, AdsFovMath.EvaluateCurrentFov(60f, 18f, 1f), 1e-4f);
+            Assert.AreEqual(39f, AdsFovMath.EvaluateCurrentFov(60f, 18f, 0.5f), 1e-4f);
             // ads01 超界钳制（与 Mathf.Lerp 旧行为对齐：旧代码未钳，但 Ads01 由 MoveTowards 保证 [0,1]，钳制为防御）
-            Assert.AreEqual(22f, AdsFovMath.EvaluateCurrentFov(60f, 22f, 2f), 1e-4f);
+            Assert.AreEqual(18f, AdsFovMath.EvaluateCurrentFov(60f, 18f, 2f), 1e-4f);
         }
 
         [Test]
         public void SensitivityScale_HipIsOne_ZoomSlowsDown()
         {
             Assert.AreEqual(1f, AdsFovMath.SensitivityScale(60f, 60f), 1e-4f);
-            // 60° → 22°（4x 档）：tan(11°)/tan(30°) ≈ 0.3367
-            float scale4x = AdsFovMath.SensitivityScale(60f, 22f);
-            Assert.AreEqual(Mathf.Tan(11f * Mathf.Deg2Rad) / Mathf.Tan(30f * Mathf.Deg2Rad), scale4x, 1e-4f);
+            // 60° → 18°（LPFP 低倍档）：tan(9°)/tan(30°)
+            float scaleLowZoom = AdsFovMath.SensitivityScale(60f, 18f);
+            Assert.AreEqual(Mathf.Tan(9f * Mathf.Deg2Rad) / Mathf.Tan(30f * Mathf.Deg2Rad), scaleLowZoom, 1e-4f);
             // 60° → 12°（高倍档）≈ 0.182，比 4x 更慢；单调性
             float scale8x = AdsFovMath.SensitivityScale(60f, 12f);
-            Assert.Less(scale8x, scale4x);
+            Assert.Less(scale8x, scaleLowZoom);
             Assert.Greater(scale8x, 0.05f);
             // 配置异常（currentFov > hipFov）不变快
             Assert.AreEqual(1f, AdsFovMath.SensitivityScale(60f, 90f));
@@ -104,18 +104,18 @@ namespace Game.Gameplay.Tests
             Assert.NotNull(catalog, "配件目录缺失");
             var expected = new Dictionary<string, float>
             {
-                { "attach.lpw.optic.04", 28f },   // 4 倍战术瞄准镜（低倍统一 28°）
-                { "attach.lpw.optic.07", 12f },   // 高倍狙击镜
-                { "attach.lpw.optic.08", 12f },   // 远射狙击镜
-                { "attach.lpfp.optic.01", 28f },  // 3 倍战术瞄镜
+                { "attach.lpfp.optic.01", 18f },
+                { "attach.rifle.optic", 0f },
+                { "attach.lpfp.optic.03", 18f },
+                { "attach.lpfp.optic.02", 0f },
             };
             foreach (var kv in expected)
             {
                 var entry = catalog.Find(kv.Key);
                 Assert.NotNull(entry, $"{kv.Key} 缺失");
                 Assert.AreEqual(kv.Value, entry.adsFovOverride, $"{kv.Key} FOV 覆盖");
-                Assert.That(entry.aimTier == OpticAimTier.LowZoom || entry.aimTier == OpticAimTier.HighZoom,
-                    $"{kv.Key} 变焦档必须在 LowZoom/HighZoom");
+                var expectedTier = kv.Value > 1f ? OpticAimTier.LowZoom : OpticAimTier.Holo;
+                Assert.AreEqual(expectedTier, entry.aimTier, $"{kv.Key} 瞄具档位");
             }
             foreach (var e in catalog.Entries)
             {

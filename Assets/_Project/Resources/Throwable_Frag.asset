@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ede26462bfdb17e40a6651d93bb12a5f, type: 3}
+  m_Name: Throwable_Frag
+  m_EditorClassIdentifier: 
+  Type: 0
+  InitialCount: 1
+  ModelPrefab: {fileID: 1081414821777434, guid: 3787b5496720cc047adf116541f946b0, type: 3}
+  EffectPrefab: {fileID: 7864243877881126424, guid: cd106bea26e44894ea7dcabb1367433a, type: 3}
+  ThrowClip: {fileID: 8300000, guid: a640cc6972f037f4ca8f590635bb4f2a, type: 3}
+  ImpactClip: {fileID: 8300000, guid: 89b4957f2e6ee4740adfdccd422b9262, type: 3}
+  DetonateClip: {fileID: 8300000, guid: dd0264e11df5d694fbe924abc3e80301, type: 3}
+  FuseSeconds: 1.75
+  Radius: 3.5
+  EffectSeconds: 0.75
+  ForwardSpeed: 12
+  UpwardSpeed: 2
+  InheritedHorizontalVelocity: 0.3
+  Mass: 0.38
+  AirDrag: 0.02
+  Bounciness: 0.55
+  DynamicFriction: 0.32
+  RollStopSpeed: 0.18
+  FragMaxDamage: 100
+  FlashStrength: 0
+  SmokeDensity: 0

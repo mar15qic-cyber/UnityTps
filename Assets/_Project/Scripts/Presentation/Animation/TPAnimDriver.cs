@@ -1,7 +1,9 @@
 using Animancer;
 using Game.Gameplay.Action;
+using Game.Gameplay.Combat;
 using Game.Gameplay.Animation;
 using Game.Gameplay.Movement;
+using Game.Gameplay.Network;
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
 using UnityEngine;
@@ -38,6 +40,14 @@ namespace Game.Presentation.Animation
         private AnimancerComponent _animancer;
         private TpLocomotionSet _locomotionClips;
         private TpActionSet _actionClips;
+        private TpThrowClips _throwClips;
+        private TpThrowAnimationCatalog _throwCatalog;
+        private ThrowableController _throwables;
+        private TPWeaponMeshSwapper _weaponSwapper;
+        private GameObject _heldThrowable;
+        private ThrowableType _heldThrowableType;
+        private uint _throwPoseSequence;
+        private ThrowablePosePhase _throwPosePhase;
         private CartesianMixerState _walkMixer;
         private CartesianMixerState _runMixer;
         private LocomotionState _currentState = (LocomotionState)(-1);
@@ -48,6 +58,9 @@ namespace Game.Presentation.Animation
 
         private void Awake()
         {
+            _throwables = GetComponentInParent<ThrowableController>();
+            _weaponSwapper = GetComponent<TPWeaponMeshSwapper>();
+            _throwCatalog = Resources.Load<TpThrowAnimationCatalog>("TpThrowAnimationCatalog");
             _animancer = GetComponent<AnimancerComponent>();
             _animancer.Animator.applyRootMotion = false;
             _animancer.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -111,12 +124,14 @@ namespace Game.Presentation.Animation
 
         private void Start()
         {
+            if (_poseFrozenForDeath) return;
             LoadClips();
             ApplyState(true);
         }
 
         private void OnDisable()
         {
+            ClearThrowableView();
             if (controller == null) return;
             controller.OnShotFired -= HandleShot;
             controller.OnDryFire -= HandleDryFire;
@@ -128,7 +143,12 @@ namespace Game.Presentation.Animation
 
         private void Update()
         {
-            if (_poseFrozenForDeath) return; // 死亡期间姿态由 Gameplay 冻结：本驱动器不得写图
+            if (_poseFrozenForDeath)
+            {
+                if (_deathState != null && _deathState.Time >= _deathState.Length)
+                { _deathState.Time = _deathState.Length; _deathState.Speed = 0; }
+                return;
+            } // // 死亡期间姿态由 Gameplay 冻结：本驱动器不得写图
             if (_remoteSource == null && _localSource == null) return;
             // _needsReapply：复活/池化重启用后状态值可能仍是 Idle（与缓存相同），旧实现在这里
             // 什么都不做 → 图保持停止、模型停在 Rebind 骨架姿态（实机"重生陷地"）。
@@ -137,11 +157,13 @@ namespace Game.Presentation.Animation
                 _needsReapply = false;
                 ApplyState(false);
             }
+            UpdateThrowableView();
             UpdateMixerParametersAndPhase();
         }
 
         private void ApplyState(bool immediate)
         {
+            if (_poseFrozenForDeath) return;
             if (_remoteSource == null && _localSource == null) return;
             var previousState = _currentState;
             _currentState = SourceLocomotionState;
@@ -243,6 +265,7 @@ namespace Game.Presentation.Animation
 
         private void HandleWeaponEquipped(WeaponDefinition _)
         {
+            if (_poseFrozenForDeath) return;
             LoadClips();
             FadeOutActionLayer();
             ApplyState(false);
@@ -266,6 +289,7 @@ namespace Game.Presentation.Animation
             _clipSource = controller.Definition;
             _locomotionClips = controller.Definition.ThirdPersonLocomotion;
             _actionClips = controller.Definition.ThirdPersonActions;
+            _throwClips = _throwCatalog != null ? _throwCatalog.For(controller.Definition) : default;
 
             _walkMixer = BuildDirectionalMixer(
                 _locomotionClips.WalkForward, _locomotionClips.WalkForwardRight, _locomotionClips.WalkRight,
@@ -317,7 +341,7 @@ namespace Game.Presentation.Animation
 
         private void HandleShot(WeaponShot _)
         {
-            if (!_actionClipsReady || _actionClips.Fire == null) return;
+            if (_poseFrozenForDeath || !_actionClipsReady || _actionClips.Fire == null) return;
             var state = _animancer.Layers[ActionLayer].Play(_actionClips.Fire, fireFadeSeconds, FadeMode.FromStart);
             state.Events(this).OnEnd = FadeOutActionLayer;
         }
@@ -326,7 +350,7 @@ namespace Game.Presentation.Animation
 
         private void HandleReloadStarted()
         {
-            if (!_actionClipsReady || controller?.Runtime == null) return;
+            if (_poseFrozenForDeath || !_actionClipsReady || controller?.Runtime == null) return;
             AnimationClip clip = controller.Runtime.CurrentAmmo == 0
                 ? _actionClips.ReloadOutOfAmmo
                 : _actionClips.ReloadAmmoLeft;
@@ -343,7 +367,122 @@ namespace Game.Presentation.Animation
 
         private void FadeOutActionLayer()
         {
+            if (_poseFrozenForDeath) return;
             _animancer.Layers[ActionLayer].StartFade(0f, layerFadeOutSeconds);
+        }
+
+        private void UpdateThrowableView()
+        {
+            if (_throwables == null) return;
+            var pose = _throwables.Presentation;
+            var authority = GetComponentInParent<NetworkCombatAuthority>();
+            if (authority != null && pose.LifeEpoch != authority.LifeEpochForPresentation)
+            {
+                ClearThrowableView();
+                return;
+            }
+            if (pose.Sequence == _throwPoseSequence && pose.Phase == _throwPosePhase) return;
+            _throwPoseSequence = pose.Sequence;
+            _throwPosePhase = pose.Phase;
+            if (pose.Phase == ThrowablePosePhase.None)
+            {
+                ClearThrowableView();
+                return;
+            }
+            if (pose.Phase == ThrowablePosePhase.Canceled)
+            {
+                HideHeldThrowable();
+                var state = PlayThrowClip(_throwClips.Cancel);
+                if (state != null) state.Events(this).OnEnd = () =>
+                {
+                    if (_throwPosePhase == ThrowablePosePhase.Canceled)
+                        _weaponSwapper?.SetThrowableHidden(false);
+                };
+                else _weaponSwapper?.SetThrowableHidden(false);
+                return;
+            }
+            _weaponSwapper?.SetThrowableHidden(true);
+            if (pose.Phase == ThrowablePosePhase.Released)
+            {
+                HideHeldThrowable();
+                var state = PlayThrowClip(_throwClips.Release);
+                if (state != null) state.Time = Mathf.Clamp(ElapsedPoseSeconds(pose), 0f, state.Length);
+                return;
+            }
+            EnsureHeldThrowable(pose.Type);
+            if (pose.Phase == ThrowablePosePhase.Selected) PlayThrowHold();
+            else if (pose.Phase == ThrowablePosePhase.Started)
+            {
+                var state = PlayThrowClip(_throwClips.Start);
+                if (state != null)
+                {
+                    float releaseDelay = Mathf.Max(.01f, _throwables.ReleaseDelaySeconds);
+                    float elapsed = ElapsedPoseSeconds(pose);
+                    state.Time = Mathf.Clamp(elapsed / releaseDelay * state.Length, 0f, state.Length);
+                    state.Speed = state.Length / releaseDelay;
+                    state.Events(this).OnEnd = () =>
+                    {
+                        if (_throwPosePhase == ThrowablePosePhase.Started) PlayThrowHold();
+                    };
+                }
+            }
+        }
+
+        private static float ElapsedPoseSeconds(ThrowablePoseState pose)
+        {
+            double displayedTick = ObserverTimeline.Ready ? ObserverTimeline.PresentedTick
+                : FishNet.InstanceFinder.TimeManager != null ? FishNet.InstanceFinder.TimeManager.Tick : pose.StartTick;
+            int rate = FishNet.InstanceFinder.TimeManager != null
+                ? (int)FishNet.InstanceFinder.TimeManager.TickRate : 30;
+            return pose.StartTick > 0 && displayedTick >= pose.StartTick
+                ? (float)((displayedTick - pose.StartTick) / Mathf.Max(1, rate)) : 0f;
+        }
+
+        private AnimancerState PlayThrowClip(AnimationClip clip)
+        {
+            if (clip == null || _poseFrozenForDeath || _animancer == null) return null;
+            return _animancer.Layers[ActionLayer].Play(clip, actionFadeSeconds, FadeMode.FromStart);
+        }
+
+        private void PlayThrowHold()
+        {
+            var state = PlayThrowClip(_throwClips.Pose);
+            if (state != null) { state.Time = state.Length * .5f; state.Speed = 0f; }
+        }
+
+        private void EnsureHeldThrowable(ThrowableType type)
+        {
+            if (_heldThrowable != null && _heldThrowableType == type)
+            {
+                _heldThrowable.SetActive(true);
+                return;
+            }
+            if (_heldThrowable != null) Destroy(_heldThrowable);
+            _heldThrowable = null;
+            var definition = Resources.Load<ThrowableCatalog>("ThrowableCatalog")?.Get(type);
+            var hand = _animancer != null ? _animancer.Animator.GetBoneTransform(HumanBodyBones.RightHand) : null;
+            if (hand == null || definition?.ModelPrefab == null) return;
+            _heldThrowable = Instantiate(definition.ModelPrefab, hand, false);
+            _heldThrowableType = type;
+            _heldThrowable.name = "TP_HeldThrowable";
+            _heldThrowable.transform.localPosition = new Vector3(0f, .035f, 0f);
+            foreach (var item in _heldThrowable.GetComponentsInChildren<Transform>(true)) item.gameObject.layer = hand.gameObject.layer;
+            foreach (var collider in _heldThrowable.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+            foreach (var body in _heldThrowable.GetComponentsInChildren<Rigidbody>(true))
+            { body.isKinematic = true; body.detectCollisions = false; }
+        }
+
+        private void HideHeldThrowable()
+        {
+            if (_heldThrowable != null) _heldThrowable.SetActive(false);
+        }
+
+        private void ClearThrowableView()
+        {
+            _weaponSwapper?.SetThrowableHidden(false);
+            if (_heldThrowable != null) Destroy(_heldThrowable);
+            _heldThrowable = null;
+            _throwPosePhase = ThrowablePosePhase.None;
         }
 
         // ---- 2026-09-18 审计 §4：TP 死亡/复活生命周期（IThirdPersonPoseLifecycle 实现）----
@@ -389,13 +528,30 @@ namespace Game.Presentation.Animation
         /// 模型停在 Rebind 出来的骨架姿态上（实机"重生陷地"）。同 FPWeaponAnimator 的结论：
         /// 停用模拟不了冻结，暂停图才既保持姿态又不丢状态。
         /// </summary>
-        public void FreezePoseForDeath()
+        private AnimancerState _deathState;
+        public bool DeathPoseComplete => _deathState == null || _deathState.Time >= _deathState.Length;
+        public void FreezePoseForDeath() => PlayDeathPose(0f);
+
+        public void PlayDeathPose(float elapsedSeconds)
         {
-            if (_poseFrozenForDeath) return; // 幂等：重复/乱序的死亡广播不二次冻结
+            if (_poseFrozenForDeath) return;
+            ClearThrowableView();
             _poseFrozenForDeath = true;
             if (_animancer == null) return;
-            _animancer.Layers[ActionLayer].Weight = 0f; // 动作层立即归零，复活不残留 Fire/Reload
-            if (_animancer.IsGraphInitialized) _animancer.Graph.PauseGraph();
+            _animancer.Animator.applyRootMotion = false;
+            _animancer.Layers[ActionLayer].Weight = 0f;
+            var clip = Resources.Load<AnimationClip>("UI/TPDeath");
+            if (clip == null)
+            {
+                Debug.LogError("Missing UI/TPDeath death animation", this);
+                if (_animancer.IsGraphInitialized) _animancer.Graph.PauseGraph();
+                return;
+            }
+            _animancer.Graph.UnpauseGraph();
+            _deathState = _animancer.Layers[LocomotionLayer].Play(clip, 0.08f);
+            _deathState.Time = Mathf.Clamp(elapsedSeconds, 0, clip.length);
+            _deathState.Speed = elapsedSeconds >= clip.length ? 0 : 1;
+            _animancer.Evaluate(0f);
         }
 
         /// <summary>
@@ -405,8 +561,10 @@ namespace Game.Presentation.Animation
         /// </summary>
         public void RecoverPoseAfterRespawn()
         {
+            ClearThrowableView();
             bool wasFrozen = _poseFrozenForDeath;
             _poseFrozenForDeath = false;
+            _deathState = null;
             ResetTransientAnimationState();
             if (_animancer == null) return;
             if (wasFrozen && _animancer.IsGraphInitialized) _animancer.Graph.UnpauseGraph();

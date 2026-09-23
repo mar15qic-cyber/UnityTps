@@ -41,6 +41,23 @@ namespace Game.Gameplay.Tests
             => new WeaponFireContext(ads01: 0f, horizontalSpeed01: speed01, isSprinting: sprint, isGrounded: grounded, isCrouching: false);
 
         [Test]
+        public void MovementSpreadResponse_ReducesWalkPenalty_ButKeepsFullSprintPenalty()
+        {
+            const float normalWalkSpeed = 1.58f;
+            const float sprintReferenceSpeed = 3.44f;
+
+            float walk01 = WeaponFireContextProvider.ComputeMovementSpread01(normalWalkSpeed, sprintReferenceSpeed);
+            float expected = Mathf.Pow(normalWalkSpeed / sprintReferenceSpeed, 2f);
+
+            Assert.That(walk01, Is.EqualTo(expected).Within(0.0001f));
+            Assert.That(walk01, Is.LessThan(0.25f),
+                "正常 W 行走不应立即吃到接近一半的最大移动散布");
+            Assert.That(WeaponFireContextProvider.ComputeMovementSpread01(sprintReferenceSpeed, sprintReferenceSpeed),
+                Is.EqualTo(1f).Within(0.0001f), "冲刺仍应保留完整移动散布惩罚");
+            Assert.That(WeaponFireContextProvider.ComputeMovementSpread01(-1f, sprintReferenceSpeed), Is.Zero);
+        }
+
+        [Test]
         public void Idle_LessThan_Walk_LessThan_Sprint()
         {
             var s = MakeResolved();

@@ -110,7 +110,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Rewind_FutureRequest_ClampsToCurrentSnapshot()
+        public void Rewind_FutureRequest_IsRejected()
         {
             var (manager, root, colliders) = BuildHarness();
             var hitbox = colliders[0].transform;
@@ -120,7 +120,7 @@ namespace Game.Gameplay.Tests
             manager.Capture(2);
 
             // 请求超前于当前：裁剪到当前最新快照（tick 2），不产生未来命中
-            Assert.That(manager.TryBeginRewind(9999), Is.True);
+            Assert.That(manager.TryBeginRewind(9999), Is.False);
             Assert.That(hitbox.position, Is.EqualTo(new Vector3(8f, 0f, 0f)).Within(1e-4));
             manager.EndRewind();
 
@@ -154,13 +154,12 @@ namespace Game.Gameplay.Tests
             }
             int window = manager.RewindWindowTicks;
 
-            // 回滚到 tick 1（远超窗口）：裁剪到窗口内最老可用快照，而非失败或无限补偿
-            Assert.That(manager.TryBeginRewind(1), Is.True);
-            float applied = hitbox.position.x;
+            Assert.That(manager.TryBeginRewind(1), Is.False, "Old requests cannot consume storage margin");
+            Assert.That(manager.TryBeginRewind(23), Is.False, "7 ticks at 30Hz exceeds 200ms");
+            Assert.That(manager.TryBeginRewind(24), Is.True);
+            Assert.That(hitbox.position.x, Is.EqualTo(24));
             manager.EndRewind();
-            Assert.That(applied, Is.GreaterThanOrEqualTo(30f - window),
-                "应用的是窗口内最老可用快照");
-            Assert.That(applied, Is.LessThanOrEqualTo(30f));
+            Assert.That(hitbox.position.x, Is.EqualTo(30));
         }
 
         [Test]

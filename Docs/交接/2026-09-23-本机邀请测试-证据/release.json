@@ -1,0 +1,11 @@
+{
+  "zipEntries": 692,
+  "protocolId": "fps-net-v13",
+  "externalAcceptance": "未验证",
+  "sealedFiles": 1522,
+  "verified": true,
+  "zipSha256": "B00CC1DF49FE606B5674F440DBCE853FD82E0E41B75FDF0F3F8E48BBDECADDD5",
+  "inputDigest": "e3f48610c26d0471f6cd8ef1f478d086ec93f75d90e2c8b9cfe36c5e6dedf886",
+  "zipBytes": 162532781,
+  "releaseId": "private-test-01"
+}

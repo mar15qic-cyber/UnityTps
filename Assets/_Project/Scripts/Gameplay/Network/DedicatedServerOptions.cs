@@ -86,7 +86,7 @@ namespace Game.Gameplay.Network
 
             bool hasDedicatedArg = TryGetFlag(args, ArgDedicatedServer);
             string instanceId = GetValue(args, ArgInstanceId) ?? string.Empty;
-            string serverKey = GetValue(args, ArgServerKey) ?? string.Empty;
+            string serverKey = GetValue(args, ArgServerKey) ?? Environment.GetEnvironmentVariable("FPS_SERVER_KEY") ?? string.Empty;
 
             // ① 模式判定（三通道，按优先级短路）
             if (isUnityServerDefine)

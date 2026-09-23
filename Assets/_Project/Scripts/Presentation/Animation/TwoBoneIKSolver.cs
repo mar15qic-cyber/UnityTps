@@ -7,7 +7,7 @@ namespace Game.Presentation.Animation
     /// The current animation supplies the bend plane, so authored elbow motion is
     /// preserved while the wrist is corrected to a weapon-specific target.
     /// </summary>
-    internal static class TwoBoneIKSolver
+    public static class TwoBoneIKSolver
     {
         public static void Solve(
             Transform upperArm,

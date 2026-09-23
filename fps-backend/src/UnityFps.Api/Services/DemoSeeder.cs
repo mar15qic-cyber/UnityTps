@@ -21,7 +21,7 @@ public static class DemoSeeder
             NormalizedUsername = normalized,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
             CreatedAtUtc = DateTime.UtcNow,
-            Profile = new PlayerProfile { SkillPoints = 6, UpdatedAtUtc = DateTime.UtcNow },
+            Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
             Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
             Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };

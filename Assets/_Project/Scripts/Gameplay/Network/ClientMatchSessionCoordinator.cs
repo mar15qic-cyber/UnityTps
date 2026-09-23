@@ -43,6 +43,7 @@ namespace Game.Gameplay.Network
         private float _nextOwnerPollRealtime;
         private float _sceneReadyAtRealtime;
         private NetworkLaunchContext.ClientLaunch _activeLaunch;
+        private bool _awaitingPreviousStopEvent;
 
         /// <summary>当前会话核心（只读探测；null = 无协调器宿主）。</summary>
         public static ClientMatchSessionCore CurrentSession => _instance != null ? _instance._core : null;
@@ -108,6 +109,7 @@ namespace Game.Gameplay.Network
                 return;
             }
             _activeLaunch = launch;
+            _awaitingPreviousStopEvent = false;
             _sceneReadyAtRealtime = Time.realtimeSinceStartup;
             Debug.Log($"[ClientSession] BEGIN gen={launch.Generation} match={launch.MatchId} scene={sceneName} "
                 + $"endpoint={launch.ServerAddress}:{launch.ServerPort} protocol={GameProtocolIdentity.ProtocolId}");
@@ -159,7 +161,7 @@ namespace Game.Gameplay.Network
             {
                 case ClientSessionPhase.SceneReady:
                     if (_nm == null) return; // ResolveManager 已报告失败
-                    if (!_nm.IsClientStarted)
+                    if (CanBeginConnection(_nm.IsClientStarted, _awaitingPreviousStopEvent))
                     {
                         var launch = _activeLaunch;
                         _activeLaunch = null; // 票据已交认证器（一次性会话）：协调器不保留明文
@@ -170,8 +172,14 @@ namespace Game.Gameplay.Network
                     // 此处兜底异常滞留；不 Kill 服务器/Host 进程状态）
                     if (Time.realtimeSinceStartup - _sceneReadyAtRealtime > OldConnectionStopWaitSeconds)
                     {
-                        Debug.LogWarning("[ClientSession] 上一连接未在期限内 Stopped：主动 StopConnection 后继续本局");
-                        _nm.ClientManager.StopConnection();
+                        if (!_awaitingPreviousStopEvent)
+                        {
+                            // 标志必须先于 StopConnection：FishNet 的 Stopped 既可能同步也可能异步回调。
+                            // 未观察到该事件前绝不启动新连接，避免旧 Stopped 杀死刚进入 Connecting 的新局。
+                            _awaitingPreviousStopEvent = true;
+                            Debug.LogWarning("[ClientSession] 上一连接未在期限内 Stopped：主动 StopConnection，并等待 Stopped 屏障");
+                            _nm.ClientManager.StopConnection();
+                        }
                     }
                     break;
 
@@ -200,9 +208,11 @@ namespace Game.Gameplay.Network
             if (launch == null) return;
 
             // P0-B §3.2：新会话开启前的跨局残留复位（全清单，与各组件 OnEnable 语义同源）
+            Gameplay.Menu.GameplayInputGate.ResetAll();
             var lifecycle = _nm.GetComponent<MatchLifecycle>();
             if (lifecycle == null) lifecycle = _nm.gameObject.AddComponent<MatchLifecycle>();
             lifecycle.ResetMirrorState(); // 内含 MatchExitState.Reset()
+            Gameplay.Menu.GameplayMenuController.BeginSession(launch.Generation);
 
             var watcher = _nm.GetComponent<MatchConnectionWatcher>();
             if (watcher == null) watcher = _nm.gameObject.AddComponent<MatchConnectionWatcher>();
@@ -272,6 +282,13 @@ namespace Game.Gameplay.Network
             }
             if (args.ConnectionState != LocalConnectionState.Stopped) return;
 
+            if (_core.Phase == ClientSessionPhase.SceneReady && _awaitingPreviousStopEvent)
+            {
+                _awaitingPreviousStopEvent = false;
+                Debug.Log($"[ClientSession] PREVIOUS_STOP_CONFIRMED gen={_core.Generation}——允许启动本局连接");
+                return;
+            }
+
             // 本会话连接阶段（Connecting/Connected）断线 = 未认证断线；
             // 已认证后（Authenticated/OwnerReady/Playing）断线 = 正常收场（对局中断线 UI 归
             // MatchConnectionWatcher 既有链路）；SceneReady 阶段的 Stopped 属于上一局连接的
@@ -291,6 +308,10 @@ namespace Game.Gameplay.Network
                 Debug.LogWarning($"[ClientSession] ENDED_BY_DISCONNECT gen={_core.Generation} phase={phaseAtEvent}");
             }
         }
+
+        /// <summary>旧连接 Stopped 屏障：仅 IsClientStarted=false 不足以证明其迟到事件已经送达。</summary>
+        public static bool CanBeginConnection(bool isClientStarted, bool awaitingPreviousStopEvent)
+            => !isClientStarted && !awaitingPreviousStopEvent;
 
         // ---- 失败/收场 ----
 

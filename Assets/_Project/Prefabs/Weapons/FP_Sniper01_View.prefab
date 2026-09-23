@@ -88,7 +88,7 @@ Transform:
   m_GameObject: {fileID: 6235084699770860263}
   serializedVersion: 2
   m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: -0.001072613, y: 0.2738966, z: 0.10473905}
+  m_LocalPosition: {x: -0.001072613, y: 0.2778966, z: 0.10473905}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -444,6 +444,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
+  nearSegmentLength: 1.2
   maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
@@ -454,6 +455,7 @@ MonoBehaviour:
   sightReference: {fileID: 2388870766294426008}
   alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
+  reconcileThresholdMeters: 0.35
 --- !u!4 &2925572873735534632 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400068, guid: b3236689d20e81b4493519925058781a, type: 3}

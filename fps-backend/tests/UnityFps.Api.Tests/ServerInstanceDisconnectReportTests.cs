@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -92,7 +92,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         var instanceId = (await ServerTest.RegisterInstanceAsync(client)).GetProperty("instanceId").GetString()!;
         var (hostToken, hostName) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
         _ = instanceId;
 
         // 绑定 roomCode != 上报 roomCode → 409，成员不受影响（Waiting 房未绑定实例同样拒绝认领）
@@ -103,7 +103,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         Assert.Equal("SERVER_INSTANCE_STATE_CONFLICT", problem.RootElement.GetProperty("code").GetString());
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode);
+        var room = list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
         Assert.Equal(hostName, room.GetProperty("leaderUsername").GetString());
     }
@@ -125,7 +125,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         var instanceId = (await ServerTest.RegisterInstanceAsync(client)).GetProperty("instanceId").GetString()!;
         var (roomCode, hostToken, guestToken, start) = await ServerTest.CreateStartedRoomAsync(client);
         var hostName = (await client.GetFromJsonAsync<JsonElement[]>("/api/rooms"))!
-            .Single(r => r.GetProperty("roomCode").GetString() == roomCode).GetProperty("leaderUsername").GetString();
+            .Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode)).GetProperty("leaderUsername").GetString();
         var guestId = GetUserIdFromToken(guestToken);
 
         // 普通成员掉线：200 + 权威事实（Reserved/1——绑定保留），仅该成员移除，房间/leader/实例绑定保持
@@ -133,7 +133,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         await AssertDisconnectFactsAsync(first, roomCode, remainingPlayers: 1, instanceState: "Reserved");
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode);
+        var room = list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
         Assert.Equal(1, room.GetProperty("joinedPlayers").GetInt32());
         Assert.Equal(hostName, room.GetProperty("leaderUsername").GetString());
 
@@ -141,7 +141,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         var repeat = await ReportDisconnectAsync(client, instanceId, new { roomCode, userId = guestId.ToString() });
         await AssertDisconnectFactsAsync(repeat, roomCode, remainingPlayers: 1, instanceState: "Reserved");
         var listAfterRepeat = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.Equal(1, listAfterRepeat!.Single(r => r.GetProperty("roomCode").GetString() == roomCode)
+        Assert.Equal(1, listAfterRepeat!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode))
             .GetProperty("joinedPlayers").GetInt32());
 
         // 掉线成员已不是房间成员：其票据不可再消费；留房者的票据不受影响（对照）
@@ -159,7 +159,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         var instanceId = (await ServerTest.RegisterInstanceAsync(client)).GetProperty("instanceId").GetString()!;
         var (hostToken, _) = await ServerTest.RegisterUserAsync(client);
         var snapshot = await ServerTest.CreateRoomAsync(client, hostToken);
-        var roomCode = snapshot.GetProperty("room").GetProperty("roomCode").GetString()!;
+        var roomCode = ServerTest.HostRoomCode(snapshot.GetProperty("room"));
 
         // 两名客人先于开局加入（Starting 拒绝新成员，成员必须在 Waiting 期进齐）
         var (bToken, bName) = await ServerTest.RegisterUserAsync(client);
@@ -175,7 +175,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
         await AssertDisconnectFactsAsync(report, roomCode, remainingPlayers: 2, instanceState: "Reserved");
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        var room = list!.Single(r => r.GetProperty("roomCode").GetString() == roomCode);
+        var room = list!.Single(r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
         Assert.Equal(2, room.GetProperty("joinedPlayers").GetInt32());
         Assert.Equal(bName, room.GetProperty("leaderUsername").GetString());
 
@@ -209,7 +209,7 @@ public sealed class ServerInstanceDisconnectReportTests : IClassFixture<ServerAp
 
         // 房间已删除
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/rooms");
-        Assert.DoesNotContain(list!, r => r.GetProperty("roomCode").GetString() == roomCode);
+        Assert.DoesNotContain(list!, r => r.GetProperty("roomId").GetInt64() == ServerTest.PublicRoomId(roomCode));
 
         // R1/A03 三段式第二段：释放许可 ≠ 数据库已回池——实例保持 Draining（旧绑定保留），
         // 心跳过期前绝不可被新房间租用（防止 DS 旧连接未清时被复用）。

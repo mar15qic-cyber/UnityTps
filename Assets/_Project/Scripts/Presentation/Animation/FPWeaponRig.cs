@@ -10,6 +10,7 @@ namespace Game.Presentation.Animation
     /// 实例（收旧枪 → 交换点换实例并播出枪 → 完成收尾）。视图实例自带
     /// FPWeaponAnimator/WeaponView，激活即接管表现。
     /// </summary>
+    [DefaultExecutionOrder(25)]
     public sealed class FPWeaponRig : MonoBehaviour, Game.Gameplay.Weapon.IWeaponPresentationGate
     {
         [SerializeField] private Arsenal arsenal;
@@ -31,6 +32,15 @@ namespace Game.Presentation.Animation
         private Game.Presentation.Camera.FPWeaponMotion _weaponMotion;
 
         public GameObject ActiveView => _activeView;
+        private UnityEngine.Camera _aimCamera;
+
+        private void LateUpdate()
+        {
+            if (controller == null) return;
+            if (_aimCamera == null) _aimCamera = GetComponentInParent<UnityEngine.Camera>();
+            if (_aimCamera != null && _aimCamera.isActiveAndEnabled)
+                controller.SetPresentedAim(_aimCamera.transform.position, _aimCamera.transform.forward);
+        }
         /// <summary>镜内遮罩原因是否生效（语义收窄：只代表 ScopeOverlay，不再代表"任意隐藏"）。</summary>
         public bool IsScopedViewmodelHidden => _visibility.HasReason(FPViewHideReason.ScopeOverlay);
         public event System.Action<GameObject> OnActiveViewChanged;
@@ -47,6 +57,10 @@ namespace Game.Presentation.Animation
             if (arsenal == null) arsenal = GetComponentInParent<Arsenal>();
             if (controller == null) controller = GetComponentInParent<WeaponController>();
             if (viewRoot == null) viewRoot = transform;
+            // Scene-authored FP views are legacy debris: the rig owns every view
+            // instance and will instantiate/cache it from WeaponDefinition. Keep
+            // an authored WeaponView from rendering beside the owned view.
+            PurgeUnmanagedSerializedViews();
             // R4 审计修复：实体镜唯一挂载入口（幂等；Dedicated 构建内不挂载）——此前 PhysicalScopeView
             // 只有类定义没有任何运行时挂载路径，正式玩家永远不会启用实体镜表现
             Game.Presentation.Camera.PhysicalScopeView.EnsureMounted(this);
@@ -116,6 +130,7 @@ namespace Game.Presentation.Animation
 
         private void ShowView(WeaponDefinition definition, bool playDraw)
         {
+            PurgeUnmanagedSerializedViews();
             if (definition == null || definition == _activeDefinition) return;
             var next = GetOrCreateView(definition);
             if (next == null) return;
@@ -125,6 +140,7 @@ namespace Game.Presentation.Animation
 
             _activeView = next;
             _activeDefinition = definition;
+            DeactivateUnmanagedViewsExcept(next);
             _activeView.SetActive(true);
             ApplyPersistedAttachments(_activeView, definition);
             // 审计 §3.3-3：切枪/换视图都要把新视图的 Renderer 纳入受控基线（死亡原因持续继承，
@@ -171,12 +187,16 @@ namespace Game.Presentation.Animation
                         entries.Add(entry);
             }
 
+            AttachmentCompatibilityPolicy.RemoveUnsupported(definition, entries);
+
             attachments.ApplyAttachments(
                 entries.Count > 0 ? AttachmentAssetCatalog.LoadOrDefault() : null, weaponItemId, entries);
             // 双相机架构：世界相机剔除层 8/9，武器相机仅渲染 FirstPersonView(9)——配件 prefab 层为 0，
             // 不同步会被武器相机剔除（对齐 TP 侧同步循环与管线 SetLayerRecursive 约定）。
             var fpLayer = LayerMask.NameToLayer("FirstPersonView");
             if (fpLayer < 0) fpLayer = view.layer;
+            foreach (var socket in view.GetComponentsInChildren<AttachmentSocket>(true))
+                SetLayerRecursive(socket.transform, fpLayer);
             foreach (var spawned in attachments.Spawned)
                 if (spawned != null) SetLayerRecursive(spawned.transform, fpLayer);
             // 审计 §3.3-3：动态挂上的配件 Renderer 也必须进受控基线（否则配件不参与原因合成，
@@ -187,6 +207,7 @@ namespace Game.Presentation.Animation
                         _visibility.Register(renderer);
             if (controller != null && controller.IsInitialized)
                 controller.SetAttachments(entries);   // 装备期重算：含加长弹匣的弹容量重建
+
         }
 
         /// <summary>联网权威附件解析（Gate A-2）：快照在位返回 true（含权威空装配），由
@@ -290,9 +311,49 @@ namespace Game.Presentation.Animation
             view.transform.localPosition = Vector3.zero;
             view.transform.localRotation = Quaternion.identity;
             view.name = prefab.name;
+            var fpLayer = LayerMask.NameToLayer("FirstPersonView");
+            if (fpLayer >= 0) SetLayerRecursive(view.transform, fpLayer);
             _views[definition] = view;
             view.SetActive(false);
             return view;
+        }
+
+        /// <summary>
+        /// Removes only direct-child WeaponViews that are not present in the rig's
+        /// runtime cache. A cached inactive view is always retained, so repeated
+        /// ShowView calls cannot delete a legitimate switch-cache entry.
+        /// </summary>
+        private void PurgeUnmanagedSerializedViews()
+        {
+            if (viewRoot == null) return;
+            var candidates = viewRoot.GetComponentsInChildren<Game.Presentation.Weapon.WeaponView>(true);
+            foreach (var candidate in candidates)
+            {
+                if (candidate == null || candidate.transform.parent != viewRoot) continue;
+                if (IsManagedView(candidate.gameObject)) continue;
+                Debug.LogWarning($"[FPWeaponRig] Removing unmanaged serialized FP view '{candidate.name}' from {viewRoot.name}.", this);
+                if (Application.isPlaying) Destroy(candidate.gameObject);
+                else DestroyImmediate(candidate.gameObject);
+            }
+        }
+
+        private void DeactivateUnmanagedViewsExcept(GameObject keep)
+        {
+            if (viewRoot == null) return;
+            foreach (var candidate in viewRoot.GetComponentsInChildren<Game.Presentation.Weapon.WeaponView>(true))
+            {
+                if (candidate == null || candidate.gameObject == keep
+                    || candidate.transform.parent != viewRoot) continue;
+                candidate.gameObject.SetActive(false);
+            }
+        }
+
+        private bool IsManagedView(GameObject candidate)
+        {
+            if (candidate == null) return false;
+            foreach (var managed in _views.Values)
+                if (managed == candidate) return true;
+            return false;
         }
     }
 }

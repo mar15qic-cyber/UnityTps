@@ -1,0 +1,15 @@
+{
+  "job": "8a0a8a7804bc41b491d1d52d53156bae",
+  "passed": 53,
+  "failed": 0,
+  "skipped": 0,
+  "groups": [
+    "TacticalLobbyAssetTests",
+    "TpPoseLifecycleTests",
+    "DeathVisualGroundingTests",
+    "MenuSessionResetTests",
+    "LobbyWaitingRoomButtonTests",
+    "MatchReturnSequenceTests",
+    "LobbyLoadoutInteractionTests"
+  ]
+}

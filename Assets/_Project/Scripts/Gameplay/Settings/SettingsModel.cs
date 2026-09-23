@@ -4,6 +4,10 @@ using UnityEngine;
 
 namespace Game.Gameplay.Settings
 {
+    public enum OpticReticleStyle { Dot = 0, CircleDot = 1, Chevron = 2, Diamond = 3, ThreePost = 4 }
+    // Preserve stored IDs; legacy tinted colors migrate to an available native texture.
+    public enum OpticReticleColor { Red = 0, Green = 1, Cyan = 2, White = 3, Blue = 4, Orange = 5 }
+
     /// <summary>
     /// 设置数据模型与本地持久化（PlayerPrefs）。逻辑与 UI 分离，EditMode 可直测。
     /// 覆盖：Master/Music/SFX 三层音量、鼠标灵敏度、分辨率、锁帧；键位映射见 SettingsKeyMap。
@@ -22,6 +26,8 @@ namespace Game.Gameplay.Settings
         public const string ResolutionKey = "unityfps.settings.resolution";   // "WxH"
         public const string FullscreenKey = "unityfps.settings.fullscreen";   // 0/1
         public const string FrameCapKey = "unityfps.settings.framecap";       // -1/30/60/120/144/240
+        public const string OpticReticleStyleKey = "unityfps.settings.opticReticle.style";
+        public const string OpticReticleColorKey = "unityfps.settings.opticReticle.color";
 
         public static readonly (int w, int h)[] SupportedResolutions =
         {
@@ -36,6 +42,8 @@ namespace Game.Gameplay.Settings
         public const float DefaultMusicVolume = 1f;
         public const float DefaultSfxVolume = 1f;
         public const float DefaultSensitivity = 1f;
+        public const OpticReticleStyle DefaultOpticReticleStyle = OpticReticleStyle.Dot;
+        public const OpticReticleColor DefaultOpticReticleColor = OpticReticleColor.Red;
 
         public static float MasterVolume
         {
@@ -82,6 +90,78 @@ namespace Game.Gameplay.Settings
             get => PlayerPrefs.GetInt(FrameCapKey, 60);
             set => PlayerPrefs.SetInt(FrameCapKey, value);
         }
+
+        public static OpticReticleStyle ReticleStyle
+        {
+            get => NormalizeReticleStyle((OpticReticleStyle)PlayerPrefs.GetInt(OpticReticleStyleKey,
+                (int)DefaultOpticReticleStyle));
+            set => PlayerPrefs.SetInt(OpticReticleStyleKey, (int)NormalizeReticleStyle(value));
+        }
+
+        public static OpticReticleColor ReticleColor
+        {
+            get => NormalizeReticleColor(ReticleStyle, (OpticReticleColor)PlayerPrefs.GetInt(OpticReticleColorKey,
+                (int)DefaultOpticReticleColor));
+            set => PlayerPrefs.SetInt(OpticReticleColorKey, (int)NormalizeReticleColor(ReticleStyle, value));
+        }
+
+        public const int ReticleStyleCount = 5;
+        public static OpticReticleStyle NormalizeReticleStyle(OpticReticleStyle style)
+            => (int)style >= 0 && (int)style < ReticleStyleCount ? style : DefaultOpticReticleStyle;
+
+        private static readonly OpticReticleColor[] RedOnly = { OpticReticleColor.Red };
+        private static readonly OpticReticleColor[] BlueOnly = { OpticReticleColor.Blue };
+        private static readonly OpticReticleColor[] RedBlue = { OpticReticleColor.Red, OpticReticleColor.Blue };
+        private static readonly OpticReticleColor[] RedBlueOrange = { OpticReticleColor.Red, OpticReticleColor.Blue, OpticReticleColor.Orange };
+        public static System.Collections.Generic.IReadOnlyList<OpticReticleColor> ReticleColors(OpticReticleStyle style)
+            => style switch { OpticReticleStyle.Chevron => RedBlue, OpticReticleStyle.Diamond => RedBlueOrange,
+                OpticReticleStyle.ThreePost => BlueOnly, _ => RedOnly };
+
+        public static OpticReticleColor NormalizeReticleColor(OpticReticleStyle style, OpticReticleColor color)
+        {
+            if (color == OpticReticleColor.Cyan) color = OpticReticleColor.Blue;
+            var available = ReticleColors(NormalizeReticleStyle(style));
+            foreach (var option in available) if (option == color) return color;
+            return available[0];
+        }
+
+        public static OpticReticleColor NextReticleColor(OpticReticleStyle style, OpticReticleColor color)
+        {
+            var available = ReticleColors(style);
+            color = NormalizeReticleColor(style, color);
+            for (int i = 0; i < available.Count; i++)
+                if (available[i] == color) return available[(i + 1) % available.Count];
+            return available[0];
+        }
+
+        public static string FormatReticleStyle(OpticReticleStyle style) => style switch
+        {
+            OpticReticleStyle.CircleDot => "圆环点",
+            OpticReticleStyle.Chevron => "箭头",
+            OpticReticleStyle.Diamond => "菱形框",
+            OpticReticleStyle.ThreePost => "三线点",
+            _ => "单点",
+        };
+
+        public static string FormatReticleColor(OpticReticleColor color) => color switch
+        {
+            OpticReticleColor.Green => "绿色",
+            OpticReticleColor.Cyan => "青色",
+            OpticReticleColor.White => "白色",
+            OpticReticleColor.Blue => "蓝色",
+            OpticReticleColor.Orange => "橙色",
+            _ => "红色",
+        };
+
+        public static Color ResolveReticleColor(OpticReticleColor color) => color switch
+        {
+            OpticReticleColor.Green => new Color(0.20f, 1f, 0.24f, 1f),
+            OpticReticleColor.Cyan => new Color(0.12f, 0.92f, 1f, 1f),
+            OpticReticleColor.White => new Color(1f, 1f, 1f, 1f),
+            OpticReticleColor.Blue => new Color(0f, .5f, 1f, 1f),
+            OpticReticleColor.Orange => new Color(1f, .5f, 0f, 1f),
+            _ => new Color(1f, 0.12f, 0.045f, 1f),
+        };
 
         public static (int w, int h) ParseResolution(string raw, (int w, int h) fallback)
         {

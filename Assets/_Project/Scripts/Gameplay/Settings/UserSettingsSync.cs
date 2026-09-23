@@ -19,6 +19,7 @@ namespace Game.Gameplay.Settings
         public const string KeySfxVolume = "volume.sfx";
         public const string KeySensitivity = "input.sensitivity";
         public const string KeyAdsToggle = "input.ads.toggle";
+        public const string KeyLeanToggle = "input.lean.toggle";
 
         private static string KeyOf(SettingsKeyMap.Action action) => "key." + action.ToString().ToLowerInvariant();
 
@@ -32,6 +33,7 @@ namespace Game.Gameplay.Settings
                 [KeySfxVolume] = SettingsModel.SfxVolume.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
                 [KeySensitivity] = SettingsModel.Sensitivity.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
                 [KeyAdsToggle] = AdsInputMode.Toggle ? "1" : "0",
+                [KeyLeanToggle] = LeanInputMode.Toggle ? "1" : "0",
             };
             foreach (var binding in SettingsKeyMap.Bindings)
                 payload[KeyOf(binding.action)] = SettingsKeyMap.Get(binding.action).ToString();
@@ -51,6 +53,8 @@ namespace Game.Gameplay.Settings
             if (TryFloat(values, KeySensitivity, out v)) SettingsModel.Sensitivity = v;
             if (values.TryGetValue(KeyAdsToggle, out var adsRaw) && (adsRaw == "0" || adsRaw == "1"))
                 AdsInputMode.Toggle = adsRaw == "1";
+            if (values.TryGetValue(KeyLeanToggle, out var leanRaw) && (leanRaw == "0" || leanRaw == "1"))
+                LeanInputMode.Toggle = leanRaw == "1";
             foreach (var binding in SettingsKeyMap.Bindings)
             {
                 if (!values.TryGetValue(KeyOf(binding.action), out var keyRaw)) continue;

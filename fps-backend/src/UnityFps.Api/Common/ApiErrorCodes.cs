@@ -7,8 +7,6 @@ public static class ApiErrorCodes
     public const string InvalidCredentials = "AUTH_INVALID_CREDENTIALS";
     public const string Unauthorized = "AUTH_UNAUTHORIZED";
     public const string InvalidWeapon = "LOADOUT_INVALID_WEAPON";
-    public const string InvalidUpgrade = "UPGRADE_INVALID_TARGET";
-    public const string InsufficientPoints = "UPGRADE_INSUFFICIENT_POINTS";
     public const string ItemNotFound = "SHOP_ITEM_NOT_FOUND";
     public const string ItemDisabled = "SHOP_ITEM_DISABLED";
     public const string LevelLocked = "SHOP_LEVEL_LOCKED";
@@ -60,4 +58,12 @@ public static class ApiErrorCodes
     public const string TicketExpired = "TICKET_EXPIRED";
     public const string TicketReplayed = "TICKET_REPLAYED";
     public const string TicketInstanceMismatch = "TICKET_INSTANCE_MISMATCH";
+
+    // ---- 好友系统（2026-09-20 需求2）----
+    public const string FriendQueryInvalid = "FRIEND_QUERY_INVALID";
+    public const string FriendNotFound = "FRIEND_NOT_FOUND";
+    public const string FriendSelf = "FRIEND_SELF";
+    public const string AlreadyFriends = "FRIEND_ALREADY_FRIENDS";
+    public const string FriendRequestExists = "FRIEND_REQUEST_EXISTS";
+    public const string FriendRequestNotFound = "FRIEND_REQUEST_NOT_FOUND";
 }

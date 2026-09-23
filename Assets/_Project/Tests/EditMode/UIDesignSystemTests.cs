@@ -48,7 +48,7 @@ namespace Game.Gameplay.Tests
             Assert.That(UITheme.FontBody, Is.GreaterThan(UITheme.FontCaption));
             Assert.That(UITheme.RadiusPanel, Is.GreaterThan(UITheme.BorderWidth));
             Assert.That(UITheme.BorderWidth, Is.GreaterThan(0f));
-            Assert.That(UITheme.ButtonDepth, Is.GreaterThan(0f));
+            Assert.That(UITheme.ButtonDepth, Is.EqualTo(0f));
             Assert.That(UITheme.PageFadeSeconds, Is.InRange(0.05f, 1f));
         }
 
@@ -108,7 +108,7 @@ namespace Game.Gameplay.Tests
             Assert.That(label, Is.Not.Null);
             Assert.That(label.text, Is.EqualTo("开始战斗"));
             Assert.That(label.color, Is.EqualTo(UITheme.TextOnAccent));
-            Assert.That(depth.GetComponent<Image>().color, Is.EqualTo(UITheme.ButtonShadow));
+            Assert.That(depth.GetComponent<Image>().color, Is.EqualTo(Color.clear));
             var faceRect = face.GetComponent<RectTransform>();
             Assert.That(faceRect.offsetMin.y, Is.EqualTo(UITheme.ButtonDepth));
         }

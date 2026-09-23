@@ -71,6 +71,11 @@ namespace Game.Presentation.Camera
 
         /// <summary>满 ADS 判定阈值：达到即冻结瞄准解（aim_in 已适配过渡窗，到高位即静态）。</summary>
         private const float FullAdsSolveFreeze = 0.9995f;
+        /// <summary>满 ADS 入境后给 aim 动画留下完整起始段的最短观察窗口。
+        /// 过早在第一段静止帧冻结会把 SCAR/手枪锁在动画起点；无动画的武器
+        /// 也必须经过同样的时间窗后才允许稳定门通过。</summary>
+        private const float FullAdsMinimumSolveSeconds = 0.4f;
+        private const int OpticPoseStableFramesRequired = 6;
 
         /// <summary>对位解输出边界门：viewmodel 根的合法对位偏移远小于此值，
         /// 超界即视为链路污染产物并拒收（冻结语义下坏解会被永久锁定）。</summary>
@@ -110,6 +115,16 @@ namespace Game.Presentation.Camera
         private bool _opticAimSolveActive;          // 光轴眼点解生效（Legacy 动态机瞄枢轴层必须让位，
                                                     // 否则后瞄对中会拖拽已被光轴解对齐的枪根）
         private int _alignmentCalibrationVersion = -1; // 校准数据版本失效键（校准窗口改表即重解）
+        private string _opticPoseStabilityKey;
+        private Vector3 _lastOpticEyeRoot;
+        private Vector3 _lastOpticAxisRoot;
+        private Vector3 _lastOpticUpRoot;
+        private Vector3 _lastOpticWindowRoot;
+        private int _opticPoseStableFrames;
+        private bool _hasLastOpticPose;
+        private bool _opticPoseConverged;
+        private bool _opticPoseMovementObserved;
+        private float _fullAdsSolveElapsed;
 
         private void Awake()
         {
@@ -209,6 +224,21 @@ namespace Game.Presentation.Camera
             _opticAimSolveActive = false;
             _alignmentCalibrationVersion = -1;
             _lastAdsBlend = 0f;
+            ResetOpticPoseStability();
+        }
+
+        private void ResetOpticPoseStability()
+        {
+            _opticPoseStabilityKey = null;
+            _lastOpticEyeRoot = Vector3.zero;
+            _lastOpticAxisRoot = Vector3.zero;
+            _lastOpticUpRoot = Vector3.zero;
+            _lastOpticWindowRoot = Vector3.zero;
+            _opticPoseStableFrames = 0;
+            _hasLastOpticPose = false;
+            _opticPoseConverged = false;
+            _opticPoseMovementObserved = false;
+            _fullAdsSolveElapsed = 0f;
         }
 
         private void LateUpdate()
@@ -312,8 +342,27 @@ namespace Game.Presentation.Camera
             bool calibrationChanged = calibrationVersion != _alignmentCalibrationVersion;
             bool transitioning = adsBlend < FullAdsSolveFreeze;
             bool enteringFullAds = adsBlend >= FullAdsSolveFreeze && _lastAdsBlend < FullAdsSolveFreeze;
+            if (adsBlend < FullAdsSolveFreeze || enteringFullAds)
+            {
+                _fullAdsSolveElapsed = 0f;
+                _opticPoseMovementObserved = false;
+            }
+            else
+                _fullAdsSolveElapsed += dt;
+            if (definitionChanged || viewChanged || opticChanged)
+                ResetOpticPoseStability();
+            if (adsBlend < FullAdsSolveFreeze)
+                _opticPoseConverged = false;
+            bool poseStableForFreeze = adsBlend >= FullAdsSolveFreeze
+                && UpdateOpticPoseStability(activeView, opticId);
+            bool minimumFullAdsWindowElapsed = _fullAdsSolveElapsed >= FullAdsMinimumSolveSeconds;
+            bool poseMayFreeze = poseStableForFreeze && minimumFullAdsWindowElapsed
+                && (_opticPoseMovementObserved || minimumFullAdsWindowElapsed);
+            if (poseMayFreeze)
+                _opticPoseConverged = true;
+            bool convergingFullAds = adsBlend >= FullAdsSolveFreeze && !_opticPoseConverged;
             if (adsBlend > 0f && (transitioning || enteringFullAds || definitionChanged || viewChanged
-                || opticChanged || calibrationChanged))
+                || opticChanged || calibrationChanged || convergingFullAds))
             {
                 ComputeAimAlignmentPose(activeView, activeProfile, preSharedRotation,
                     out Vector3 solvedPosition, out Quaternion solvedRotation, out bool opticSolveActive);
@@ -379,6 +428,23 @@ namespace Game.Presentation.Camera
                     + _recoilPosition * recoilScale;
                 Quaternion finalRotation = preSharedRotation
                     * Quaternion.Euler(_recoilRotation * recoilScale);
+                // The frozen ADS baseline does not include the current fire animation or
+                // presentation recoil. Keep basic glass centered after both, without feeding
+                // this correction back into the cache or changing arm depth / gameplay aim.
+                if (_opticAimSolveActive && adsBlend > .9f && _viewCamera != null
+                    && _weapon != null && (_weapon.CurrentOpticAim.Tier == OpticAimTier.RedDot
+                        || _weapon.CurrentOpticAim.Tier == OpticAimTier.Holo)
+                    && TryResolveOpticAimRoot(activeView, out _, out _, out _, out _,
+                        out var finalWindowRoot, out _, out _, out bool finalHasWindow) && finalHasWindow)
+                {
+                    Vector3 windowWorld = transform.parent.TransformPoint(finalPosition
+                        + finalRotation * Vector3.Scale(transform.localScale, finalWindowRoot));
+                    var projection = CameraProjection.From(_viewCamera);
+                    Vector3 correction = OpticAimGeometry.CenterWindowOnAimRay(windowWorld, projection);
+                    if (IsFinite(correction) && correction.magnitude <= MaxAlignmentOffset)
+                        finalPosition += transform.parent.InverseTransformVector(correction)
+                            * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.9f, 1f, adsBlend));
+                }
                 if (IsFinite(finalPosition) && IsFinite(finalRotation))
                 {
                     transform.localPosition = finalPosition;
@@ -386,6 +452,56 @@ namespace Game.Presentation.Camera
                 }
             }
             _lastAdsBlend = adsBlend;
+        }
+
+        private bool UpdateOpticPoseStability(WeaponView view, string opticId)
+        {
+            if (view == null || _weapon == null || string.IsNullOrEmpty(opticId))
+            {
+                ResetOpticPoseStability();
+                return false;
+            }
+
+            var key = view.GetInstanceID() + "|"
+                + (_weapon.Definition != null ? _weapon.Definition.CatalogItemId : string.Empty)
+                + "|" + opticId;
+            if (!string.Equals(key, _opticPoseStabilityKey, System.StringComparison.Ordinal))
+            {
+                _opticPoseStabilityKey = key;
+                _opticPoseStableFrames = 0;
+                _hasLastOpticPose = false;
+                _opticPoseConverged = false;
+            }
+
+            if (!TryResolveOpticAimRoot(view, out var eyeRoot, out var axisRoot, out var upRoot,
+                    out _, out var windowRoot, out _, out _, out _))
+            {
+                _opticPoseStableFrames = 0;
+                _hasLastOpticPose = false;
+                _opticPoseConverged = false;
+                return false;
+            }
+
+            bool samePose = _hasLastOpticPose
+                && Vector3.Distance(_lastOpticEyeRoot, eyeRoot) <= 0.0001f
+                && Vector3.Distance(_lastOpticAxisRoot, axisRoot) <= 0.0001f
+                && Vector3.Distance(_lastOpticUpRoot, upRoot) <= 0.0001f
+                && Vector3.Distance(_lastOpticWindowRoot, windowRoot) <= 0.0001f;
+            bool poseMoved = _hasLastOpticPose && (
+                Vector3.Distance(_lastOpticEyeRoot, eyeRoot) > 0.0005f
+                || Vector3.Distance(_lastOpticAxisRoot, axisRoot) > 0.0005f
+                || Vector3.Distance(_lastOpticUpRoot, upRoot) > 0.0005f
+                || Vector3.Distance(_lastOpticWindowRoot, windowRoot) > 0.0005f);
+            if (poseMoved) _opticPoseMovementObserved = true;
+            _opticPoseStableFrames = samePose
+                ? Mathf.Min(_opticPoseStableFrames + 1, OpticPoseStableFramesRequired)
+                : 0;
+            _lastOpticEyeRoot = eyeRoot;
+            _lastOpticAxisRoot = axisRoot;
+            _lastOpticUpRoot = upRoot;
+            _lastOpticWindowRoot = windowRoot;
+            _hasLastOpticPose = true;
+            return _opticPoseStableFrames >= OpticPoseStableFramesRequired;
         }
 
         /// <summary>ADS 对位姿态（Docs/18 §12 实机审计修订）。
@@ -423,7 +539,9 @@ namespace Game.Presentation.Camera
             // 镜窗又远又小（参考图一现象）。完整解把眼点送到 FP 相机、光轴对齐稳定相机前向、
             // 滚转对齐相机 up，眼距与镜窗尺寸由校准数据直接决定（与分划投影共用 OpticAimGeometry 语义）。
             // 无记录时 TryResolveOpticAimRoot 返回 false，下方机瞄全部分支原样执行（零行为变化）。
-            if (TryResolveOpticAimRoot(view, out Vector3 opticEyeRoot, out Vector3 opticAxisRoot, out Vector3 opticUpRoot))
+            if (TryResolveOpticAimRoot(view, out Vector3 opticEyeRoot, out Vector3 opticAxisRoot,
+                    out Vector3 opticUpRoot, out bool hasExplicitAxis, out Vector3 windowRoot,
+                    out float windowHalfHeight, out float targetViewportHeight, out bool hasWindow))
             {
                 if (_anchoredDualPoseV2)
                 {
@@ -441,13 +559,43 @@ namespace Game.Presentation.Camera
                     return;
                 }
 
+                // 空 axisFrontPoint 只代表历史 tier 眼点，绝不是测得的光轴。旧实现把 socket -X
+                // 猜成完整光轴并在满 ADS 突然旋转 SCAR，直接把 553 镜体甩出视口（2026-09-20
+                // 29s 视频确证）。无明确轴时仍以完整 3D 眼点平移靠近相机，但保留作者旋转；
+                // 只有逐组合测得 axis/front 才允许完整转轴解。
+                if (!hasExplicitAxis)
+                {
+                    // 目标来自逐组合光学校准；旧行目标为 0 时回退历史 33%。只有镜窗几何
+                    // 可用时走构图解；极端残缺资产仍保留眼点平移降级，不在这里猜测新旋转。
+                    localPosition = hasWindow
+                        ? OpticAimGeometry.SolveWindowFramingLocalPosition(windowRoot, camParent,
+                            windowHalfHeight, _viewCamera.fieldOfView,
+                            targetViewportHeight > 0.01f ? targetViewportHeight : 0.33f)
+                        : OpticAimGeometry.SolveAimLocalPosition(Quaternion.identity, opticEyeRoot, camParent);
+                    localPosition = PreserveAnimatedArmDepth(localPosition, _animationAds);
+                    localRotation = Quaternion.identity;
+                    opticSolveActive = true;
+                    return;
+                }
+
                 // 目标帧 = 父系 (前向 +Z, 上 +Y)；解 = source 帧的逆（OpticAimGeometry 纯数学，
                 // 固定点性质由 EditMode 测试锁定：应用后眼点=camParent、光轴=+Z，与相机旋转无关）。
                 Quaternion solvedRotation = OpticAimGeometry.SolveAimLocalRotation(opticAxisRoot, opticUpRoot);
                 if (!IsFinite(solvedRotation)) return;
                 Vector3 rotatedEyeParent = solvedRotation * opticEyeRoot;
                 if (!IsFinite(rotatedEyeParent)) return;
-                localPosition = OpticAimGeometry.SolveAimLocalPosition(solvedRotation, opticEyeRoot, camParent);
+                // Full-axis rotation and window framing are separate constraints. The
+                // eye point establishes the optical frame, while the authored window
+                // half-height/target determines eye relief and screen occupancy. The
+                // old path always solved the eye onto the camera and silently ignored
+                // windowRoot/targetViewportHeight, pushing every explicit optic into
+                // the near clip. Mount/socket data stays untouched here.
+                localPosition = hasWindow
+                    ? OpticAimGeometry.SolveWindowFramingLocalPosition(solvedRotation, windowRoot, camParent,
+                        windowHalfHeight, _viewCamera.fieldOfView,
+                        targetViewportHeight > 0.01f ? targetViewportHeight : 0.33f)
+                    : OpticAimGeometry.SolveAimLocalPosition(solvedRotation, opticEyeRoot, camParent);
+                localPosition = PreserveAnimatedArmDepth(localPosition, _animationAds);
                 localRotation = solvedRotation;
                 opticSolveActive = true;
                 return;
@@ -518,15 +666,34 @@ namespace Game.Presentation.Camera
             localPosition = new Vector3(camParent.x - markerOffsetParent.x, camParent.y - markerOffsetParent.y, 0f);
         }
 
+        /// <summary>
+        /// 传统 LPFP aim 动画把枪和双臂烘焙在同一个根节点。镜窗构图解可以修正 X/Y，
+        /// 但若把其 Z 眼距也写到这个共享根上，会把整套手臂从机瞄基线向前推 20～36cm，
+        /// 造成 ADS 后端露空/穿模。动画枪的纵深必须与无镜 ADS 保持同一基线；非动画枪和
+        /// 独立枪层 V2 仍使用完整光学 Z 解。
+        /// </summary>
+        internal static Vector3 PreserveAnimatedArmDepth(Vector3 opticalSolve, bool animationAds)
+        {
+            if (animationAds) opticalSolve.z = 0f;
+            return opticalSolve;
+        }
+
         /// <summary>解析当前瞄具的光轴瞄准数据（全部光学档位 + 校准表有记录 + 视图有 Optic 挂点），
         /// 折算到 root 局部系：眼点坐标、光轴方向（眼点→目标，默认挂点前向 -X）、滚转参考 up。
         /// 眼点/方向定义在挂点局部系（-X=前向/+Y=上），随挂点/枪身姿态走，与对位写入无反馈回路。</summary>
         private bool TryResolveOpticAimRoot(WeaponView view,
-            out Vector3 eyeRoot, out Vector3 axisRoot, out Vector3 upRoot)
+            out Vector3 eyeRoot, out Vector3 axisRoot, out Vector3 upRoot, out bool hasExplicitAxis,
+            out Vector3 windowRoot, out float windowHalfHeight, out float targetViewportHeight,
+            out bool hasWindow)
         {
             eyeRoot = default;
             axisRoot = default;
             upRoot = default;
+            hasExplicitAxis = false;
+            windowRoot = default;
+            windowHalfHeight = 0f;
+            targetViewportHeight = 0f;
+            hasWindow = false;
             if (view == null || _weapon == null || _weapon.Definition == null) return false;
             var ctx = _weapon.CurrentOpticAim;
             if (ctx.ItemId == null) return false;
@@ -544,12 +711,34 @@ namespace Game.Presentation.Camera
                 WarnOpticFallback(ctx, "缺少眼点校准");
                 return false;
             }
+            hasExplicitAxis = OpticAimGeometry.CanUseFullAxisSolve(data);
             var attachments = view.GetComponent<WeaponAttachmentView>();
             var socket = attachments != null ? attachments.GetSocketTransform(AttachmentSlotType.Optic) : null;
             if (socket == null)
             {
                 WarnOpticFallback(ctx, "视图缺少 Attach_Optic 挂点");
                 return false;
+            }
+            if (ctx.IsPhysicalScope && attachments.TryGetPhysicalScopeAim(ctx.ItemId, out var apertureAim))
+            {
+                data = apertureAim;
+                hasExplicitAxis = true;
+            }
+            // 真实生产视图里已装配的 Att_* renderer 是空 axis 历史数据唯一可靠的构图输入。
+            // 先优先正式 window 行，缺失才按当前镜体 bounds 近似；二者都在 socket 局部系。
+            if (data.HasWindow)
+            {
+                windowRoot = transform.InverseTransformPoint(socket.TransformPoint(data.WindowCenterLocal));
+                windowHalfHeight = data.WindowHalfHeightMeters;
+                targetViewportHeight = data.TargetViewportHeight;
+                hasWindow = windowHalfHeight > 0.001f;
+            }
+            else if (OpticAimGeometry.TryApproximateWindowFromRenderers(socket, out var centerLocal,
+                         out _, out var halfHeight))
+            {
+                windowRoot = transform.InverseTransformPoint(socket.TransformPoint(centerLocal));
+                windowHalfHeight = halfHeight;
+                hasWindow = windowHalfHeight > 0.001f;
             }
             Vector3 eyeWorld = socket.TransformPoint(data.EyePointLocal);
             Vector3 axisWorld = socket.TransformDirection(data.AxisDirectionLocal);

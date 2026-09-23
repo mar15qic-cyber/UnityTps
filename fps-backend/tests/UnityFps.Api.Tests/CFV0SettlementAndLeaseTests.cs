@@ -177,7 +177,7 @@ public sealed class CFV0SettlementAndLeaseTests
         var (guestToken2, _) = await ServerTest.RegisterUserAsync(client);
         await ServerTest.JoinRoomAsync(client, guestToken2, roomCode2);
         await ServerTest.ReadyAsync(client, guestToken2, roomCode2);
-        var blocked = await ServerTest.Authorized(client, hostToken2).PostAsync($"/api/rooms/{roomCode2}/start", null);
+        var blocked = await ServerTest.Authorized(client, hostToken2).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode2)}/start", null);
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
         using (var problem = JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()))
             Assert.Equal(ApiErrorCodes.NoServerAvailable, problem.RootElement.GetProperty("code").GetString());
@@ -200,7 +200,7 @@ public sealed class CFV0SettlementAndLeaseTests
         scopeReady.Dispose();
 
         // 回池后同实例复用：新开局租到同一实例
-        var restarted = await ServerTest.Authorized(client, hostToken2).PostAsync($"/api/rooms/{roomCode2}/start", null);
+        var restarted = await ServerTest.Authorized(client, hostToken2).PostAsync($"/api/rooms/{ServerTest.PublicRoomId(roomCode2)}/start", null);
         Assert.Equal(HttpStatusCode.OK, restarted.StatusCode);
         var (dbReused, scopeReused) = await OpenDbAsync(isolated);
         var room2 = await dbReused.GameRooms.AsNoTracking().SingleAsync(x => x.RoomCode == roomCode2);
@@ -209,7 +209,7 @@ public sealed class CFV0SettlementAndLeaseTests
     }
 
     [Fact]
-    public async Task A04_ClientSubmissionWithRoomMatchIdIsRejected409_ForBothModes()
+    public async Task A04_RetiredClientSubmissionCannotAwardEitherMode()
     {
         foreach (var mode in new[] { "TDM", "KillRace" })
         {
@@ -225,9 +225,9 @@ public sealed class CFV0SettlementAndLeaseTests
                 matchId,
                 teamId = "Red",
             });
-            Assert.Equal(HttpStatusCode.Conflict, submission.StatusCode);
+            Assert.Equal(HttpStatusCode.Gone, submission.StatusCode);
             using var problem = JsonDocument.Parse(await submission.Content.ReadAsStringAsync());
-            Assert.Equal(ApiErrorCodes.RoomStateConflict, problem.RootElement.GetProperty("code").GetString());
+            Assert.Equal("PLAYER_SETTLEMENT_RETIRED", problem.RootElement.GetProperty("code").GetString());
         }
     }
 }

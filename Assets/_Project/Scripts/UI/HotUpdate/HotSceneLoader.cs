@@ -74,16 +74,15 @@ namespace Game.UI
         /// <summary>bundle 场景是否已就绪（文件存在于当前热更目录）。</summary>
         public static bool IsBundleReady(string sceneName)
         {
-            var root = HotUpdateRuntime.HotFilesRoot;
-            if (string.IsNullOrEmpty(root) || string.IsNullOrWhiteSpace(sceneName)) return false;
-            return File.Exists(Path.Combine(root, "maps", sceneName + ".bundle"));
+            var path = MapContentUpdater.FindBundle(sceneName);
+            return path != null && File.Exists(path);
         }
 
         /// <summary>加载 bundle 场景（Single）。返回 false = 文件缺失/加载失败（调用方 fail closed）。</summary>
         public static async Task<bool> TryLoadBundleSceneAsync(string sceneName, Action<float> onProgress)
         {
             if (!IsBundleReady(sceneName)) return false;
-            var path = Path.Combine(HotUpdateRuntime.HotFilesRoot, "maps", sceneName + ".bundle");
+            var path = MapContentUpdater.FindBundle(sceneName);
             try
             {
                 if (loadedMapBundle != null)
@@ -97,7 +96,13 @@ namespace Game.UI
                 }
                 if (loadedMapBundle == null)
                 {
-                    loadedMapBundle = AssetBundle.LoadFromFile(path);
+                    var bundleRequest = AssetBundle.LoadFromFileAsync(path);
+                    while (!bundleRequest.isDone)
+                    {
+                        onProgress?.Invoke(bundleRequest.progress * .2f);
+                        await Task.Yield();
+                    }
+                    loadedMapBundle = bundleRequest.assetBundle;
                     if (loadedMapBundle == null)
                     {
                         Debug.LogError("[HotUpdate] map bundle load failed: " + path);
@@ -113,7 +118,7 @@ namespace Game.UI
                 }
                 while (!op.isDone)
                 {
-                    onProgress?.Invoke(Mathf.Clamp01(op.progress / 0.9f));
+                    onProgress?.Invoke(.2f + Mathf.Clamp01(op.progress / 0.9f) * .8f);
                     await Task.Yield();
                 }
                 return true;

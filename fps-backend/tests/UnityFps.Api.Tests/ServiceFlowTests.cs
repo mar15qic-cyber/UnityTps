@@ -21,7 +21,7 @@ public sealed class ServiceFlowTests
         Assert.Equal(1, session.Loadout.Version);
         Assert.Equal(CatalogSeeder.InitialCoins, session.Coins);
         Assert.Equal(3, await db.InventoryItems.CountAsync());
-        Assert.Equal(0, session.Profile.SkillPoints);
+        Assert.Null(typeof(PlayerProfileDto).GetProperty("SkillPoints"));
         var pass = await db.PlayerPasses.SingleAsync();
         Assert.Equal(PassSeeder.SeasonId, pass.SeasonId);
         Assert.Equal(1, pass.PassLevel);
@@ -29,17 +29,17 @@ public sealed class ServiceFlowTests
     }
 
     [Fact]
-    public async Task UpgradeIsIdempotentAndConsumesOnlyIncrementalCost()
+    public async Task ProfileReadPreservesProgressionWithoutAttributeUpgrades()
     {
         await using var db = CreateDb();
-        var user = AddUser(db, "demo", skillPoints: 6);
-        var service = new ProfileService(db, new DemoProgressionRules());
-
-        var first = await service.UpgradeAsync(user.Id, new UpgradeRequest { UpDamage = 2, UpAmmoCap = 0, UpMaxHealth = 0 }, CancellationToken.None);
-        var second = await service.UpgradeAsync(user.Id, new UpgradeRequest { UpDamage = 2, UpAmmoCap = 0, UpMaxHealth = 0 }, CancellationToken.None);
-
-        Assert.Equal(3, first.SkillPoints);
-        Assert.Equal(3, second.SkillPoints);
+        var user = AddUser(db, "demo", 6);
+        user.Profile!.Level = 8; user.Profile.Xp = 45;
+        await db.SaveChangesAsync();
+        var dto = await new ProfileService(db, new DemoProgressionRules()).GetAsync(user.Id, CancellationToken.None);
+        Assert.Equal(8, dto.Level); Assert.Equal(45, dto.Xp);
+        Assert.Equal(CatalogSeeder.InitialCoins, dto.Coins);
+        Assert.Null(typeof(PlayerProfile).GetProperty("UpDamage"));
+        Assert.Null(typeof(ProfileService).GetMethod("UpgradeAsync"));
     }
 
     private static AppDbContext CreateDb()
@@ -58,7 +58,7 @@ public sealed class ServiceFlowTests
             NormalizedUsername = username.ToUpperInvariant(),
             PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
-            Profile = new PlayerProfile { SkillPoints = skillPoints, UpdatedAtUtc = DateTime.UtcNow },
+            Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
             Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
             Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };

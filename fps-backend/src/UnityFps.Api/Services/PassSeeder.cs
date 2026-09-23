@@ -13,15 +13,13 @@ public static class PassSeeder
     public const string SeasonId = "S1";
 
     /// <summary>
-    /// S1 奖励轨附件目录项（两把已验证武器的 3×2 配件）。IsImplemented=false：
-    /// 可经通行证获得并入库存，但装配适配由 F 线（Docs/19）回填后才可装备——诚实呈现边界。
+    /// S1 奖励轨附件目录项（保留步枪 Scope_02 及枪口/弹匣；旧手枪瞄具已下线）。
     /// </summary>
     private static readonly (string ItemId, string SlotType, string DisplayName, string AssetKey)[] AttachmentCatalog =
     [
         ("attach.rifle.optic", "Optic", "步枪光学瞄具", "attach/rifle/optic"),
         ("attach.rifle.muzzle", "Muzzle", "步枪消音器", "attach/rifle/muzzle"),
         ("attach.rifle.magazine", "Magazine", "步枪加长弹匣", "attach/rifle/magazine"),
-        ("attach.pistol.optic", "Optic", "手枪光学瞄具", "attach/pistol/optic"),
         ("attach.pistol.muzzle", "Muzzle", "手枪消音器", "attach/pistol/muzzle"),
         ("attach.pistol.magazine", "Magazine", "手枪加长弹匣", "attach/pistol/magazine"),
     ];
@@ -36,7 +34,7 @@ public static class PassSeeder
         ("Coins", null, 300),                                  // 5
         ("Attachment", "attach.rifle.magazine", 0),            // 6
         ("Coins", null, 400),                                  // 7
-        ("Attachment", "attach.pistol.optic", 0),              // 8
+        ("Removed", null, 0),                                   // 8：旧 attach.pistol.optic 已删除，保留等级空洞
         ("Coins", null, 400),                                  // 9
         ("Attachment", "attach.pistol.muzzle", 0),             // 10
         ("Coins", null, 500),                                  // 11
@@ -93,12 +91,14 @@ public static class PassSeeder
                     ItemId = itemId, ItemType = "Attachment", SlotType = slotType, Category = "Attachment",
                     DisplayName = displayName, Description = "通行证奖励配件；装配适配由配件系统后续开放",
                     AssetKey = assetKey, PriceCoins = 0, UnlockLevel = 1, IsActive = true,
-                    IsImplemented = false, CalibrationKey = "pending", AcquisitionSource = "PassReward"
+                    IsImplemented = itemId == "attach.rifle.optic", CalibrationKey = itemId == "attach.rifle.optic" ? "socket-v2" : "pending", AcquisitionSource = "PassReward"
                 });
             else
             {
                 item.SlotType = slotType; item.DisplayName = displayName; item.AssetKey = assetKey;
-                item.IsImplemented = false; item.AcquisitionSource = "PassReward";
+                item.IsImplemented = itemId == "attach.rifle.optic";
+                item.CalibrationKey = itemId == "attach.rifle.optic" ? "socket-v2" : "pending";
+                item.AcquisitionSource = "PassReward";
             }
         }
     }
@@ -115,9 +115,16 @@ public static class PassSeeder
         var existing = await db.PassRewards
             .Where(x => x.SeasonId == SeasonId)
             .ToDictionaryAsync(x => x.PassLevel, ct);
+        // S1 level 8 的旧手枪瞄具奖励已下线；按等级清理历史 grant，避免重登后再次发放。
+        var removedLevel8 = await db.PassRewardGrants
+            .Where(x => x.SeasonId == SeasonId && x.PassLevel == 8)
+            .ToListAsync(ct);
+        if (removedLevel8.Count > 0) db.PassRewardGrants.RemoveRange(removedLevel8);
+        if (existing.TryGetValue(8, out var removedReward)) db.PassRewards.Remove(removedReward);
         for (var level = 1; level <= S1Rewards.Length; level++)
         {
             var (rewardType, itemId, coins) = S1Rewards[level - 1];
+            if (rewardType == "Removed") continue;
             if (!existing.TryGetValue(level, out var row))
                 db.PassRewards.Add(new PassReward
                 {

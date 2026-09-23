@@ -28,6 +28,8 @@ namespace Game.UI
         /// 其外层容器由构建器命名为 Btn_N，按名字 Find 找不到 → 按钮对房主永久不可见（2026-09-15 实测）。</summary>
         private Button waitingStartButton;
         private string waitingRoomCode;
+        private TMP_Text waitingCodeText;
+        private Button waitingCopyCode;
         private bool waitingReturnAckSent;
         /// <summary>上局结果补刷新剩余次数（R5：结算查询超限仍 Pending 时，等待房间页有界重拉）。</summary>
         private int waitingResultRefreshLeft;
@@ -37,19 +39,21 @@ namespace Game.UI
         {
             if (!session.IsAuthenticated) { Navigate(LobbyPage.Login); return; }
             var room = session.Room;
-            if (room == null || string.IsNullOrWhiteSpace(room.RoomCode)) { Navigate(LobbyPage.Lobby); return; }
+            if (room == null || string.IsNullOrWhiteSpace(room.RoomId)) { Navigate(LobbyPage.Lobby); return; }
             SetBackground(UIArt.KeyBackgroundLobby);
             SetNavigationVisible(false); // 房间是独立全屏流程，离开必须显式退房
-            waitingRoomCode = room.RoomCode;
+            waitingRoomCode = room.RoomId;
             waitingReturnAckSent = false;
 
             var root = PageRoot("WaitingRoomPage");
             StyledText(root, "等待房间", UITheme.FontHero, UITheme.TextPrimary,
                 new Vector2(0.03f, 0.86f), new Vector2(0.4f, 0.97f), TextAlignmentOptions.Left, FontStyles.Bold);
-            StyledText(root, waitingRoomCode, 64, UITheme.AccentPrimary,
-                new Vector2(0.40f, 0.83f), new Vector2(0.75f, 0.98f), TextAlignmentOptions.Center, FontStyles.Bold);
-            StyledText(root, "把房间码告诉好友即可加入", UITheme.FontCaption, UITheme.TextMuted,
-                new Vector2(0.75f, 0.88f), new Vector2(0.98f, 0.93f), TextAlignmentOptions.Left);
+            waitingCodeText = StyledText(root, "", UITheme.FontCardTitle, UITheme.AccentPrimary,
+                new Vector2(0.40f, 0.87f), new Vector2(0.65f, 0.96f));
+            waitingCopyCode = StyledButton(root, "复制房间码", UIComponents.ButtonKind.Secondary,
+                new Vector2(0.64f, 0.88f), new Vector2(0.74f, 0.95f),
+                () => { if (session.Room?.IsHost == true) GUIUtility.systemCopyBuffer = session.Room.RoomCode ?? ""; });
+            UIComponents.SetVisible(waitingCopyCode, false);
             waitingStateText = StyledText(root, "同步中…", UITheme.FontCardTitle, UITheme.AccentSecondary,
                 new Vector2(0.75f, 0.82f), new Vector2(0.98f, 0.88f), TextAlignmentOptions.Left, FontStyles.Bold);
             waitingRulesText = StyledText(root, string.Empty, UITheme.FontBody, UITheme.TextMuted,
@@ -82,7 +86,8 @@ namespace Game.UI
                 new Vector2(0.08f, 0.76f), new Vector2(0.92f, 0.87f), OnWaitingReadyClicked);
             // 首轮 detail 回来前不知道自己的身份（房主不显示准备）→ 两个动作按钮先隐藏，
             // 由 UpdateWaitingUi 按权威快照显隐（避免建房后 1~2s 内房主看到"准备/开始比赛"错态）
-            waitingActionButton.gameObject.SetActive(false);
+            // 显隐必须走 SetVisible（切根节点）：对 Face gameObject 直接 SetActive 会留下近黑阴影层
+            UIComponents.SetVisible(waitingActionButton, false);
             StyledButton(actionPanel.transform, "加入红队", UIComponents.ButtonKind.Secondary,
                 new Vector2(0.08f, 0.62f), new Vector2(0.48f, 0.73f), () => _ = ChangeTeamAsync(TeamId.Red));
             StyledButton(actionPanel.transform, "加入蓝队", UIComponents.ButtonKind.Secondary,
@@ -97,13 +102,16 @@ namespace Game.UI
                 new Vector2(0.08f, 0.13f), new Vector2(0.92f, 0.24f), () => _ = OnWaitingStartClicked());
             startButton.name = "Btn_StartMatch";
             waitingStartButton = startButton;
-            startButton.gameObject.SetActive(false); // 同准备按钮：仅房主 + Waiting 时由快照开启
+            UIComponents.SetVisible(startButton, false); // 同准备按钮：仅房主 + Waiting 时由快照开启
             StyledButton(actionPanel.transform, "离开房间", UIComponents.ButtonKind.Danger,
                 new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.11f), () => _ = LeaveWaitingRoomAsync());
 
+            StyledButton(root, "好友消息 / 邀请", UIComponents.ButtonKind.Secondary,
+                new Vector2(.73f,.23f),new Vector2(.98f,.31f),()=>SocialWindow.Open(canvas.GetComponent<Canvas>()));
             PlayEnter(root.gameObject);
             // C4/I2：等待房间聊天（HTTP 传输；同画布挂载，离开房间时 StopAndClear 清空）
             Chat.ChatController.EnsureRunning(canvas != null ? canvas.GetComponent<Canvas>() : null, api, session);
+            canvas?.GetComponentInChildren<Chat.ChatHudView>()?.SetMenuLayout();
             _ = RunWaitingRoomLoopAsync(waitingRoomCode, pageCts.Token);
         }
 
@@ -148,7 +156,7 @@ namespace Game.UI
                 // 战斗连接出现（房主 start 后的 Starting，或 InMatch 重连）→ 唯一进战场路径
                 if (snapshot.connection != null)
                 {
-                    var entered = await EnterBattleAsync(snapshot.connection, snapshot.room.roomCode);
+                    var entered = await EnterBattleAsync(snapshot.connection, snapshot.room.roomId.ToString());
                     if (!entered)
                     {
                         // 票据校验失败不进战场：清掉上下文，留在等待页由下一轮轮询重新取票
@@ -382,6 +390,9 @@ namespace Game.UI
             if (waitingTeamsRoot == null || waitingStateText == null) return;
             var room = snapshot.room;
             var selfUserId = snapshot.you?.userId ?? 0;
+            bool host = System.Array.Exists(snapshot.members ?? System.Array.Empty<RoomMemberDto>(), m => m.userId == selfUserId && m.isLeader);
+            if (waitingCodeText != null) waitingCodeText.text = host ? (room.roomCode ?? "") : "";
+            if (waitingCopyCode != null) UIComponents.SetVisible(waitingCopyCode, host && !string.IsNullOrEmpty(room.roomCode));
 
             waitingStateText.text = room.status switch
             {
@@ -412,13 +423,17 @@ namespace Game.UI
                 if (waitingActionButton != null)
                 {
                     bool running = room.status == RoomStatus.Starting || room.status == RoomStatus.InMatch;
-                    waitingActionButton.gameObject.SetActive(running || (!session.Room.IsHost && room.status == RoomStatus.Waiting));
-                    waitingActionButton.GetComponentInChildren<TMP_Text>().text = running ? "进入比赛" : session.Room.IsReady ? "取消准备" : "准备";
+                    UIComponents.SetVisible(waitingActionButton, running || (!session.Room.IsHost && room.status == RoomStatus.Waiting));
+                    // includeInactive 必须为 true：按钮整体隐藏后（根节点 inactive）默认搜索返回 null，
+                    // 旧代码此处 NRE → 房主轮询循环在首个快照后静默死亡（开始比赛永远点不亮）
+                    var actionLabel = waitingActionButton.GetComponentInChildren<TMP_Text>(true);
+                    if (actionLabel != null)
+                        actionLabel.text = running ? "进入比赛" : session.Room.IsReady ? "取消准备" : "准备";
                     waitingActionButton.interactable = !waitingJoinPending;
                 }
                 // 开始比赛：仅房主 + Waiting（直接引用按钮——按名字 Find 命中不到 Face 子对象）
                 if (waitingStartButton != null)
-                    waitingStartButton.gameObject.SetActive(session.Room.IsHost && room.status == RoomStatus.Waiting);
+                    UIComponents.SetVisible(waitingStartButton, session.Room.IsHost && room.status == RoomStatus.Waiting);
             }
         }
 

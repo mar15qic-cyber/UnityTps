@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Game.Account;
+using Game.Gameplay.Weapon;
 using Game.Gameplay.Settings;
 using TMPro;
 using UnityEngine;
@@ -19,31 +20,6 @@ namespace Game.UI
     /// </summary>
     public sealed partial class LobbyPresenter
     {
-        // ---------- Mission ----------
-
-        private void RenderMission()
-        {
-            SetBackground(UIArt.KeyBackgroundLobby);
-            var root = PageRoot("MissionPage");
-            var page = root.transform;
-            StyledText(page, "任务 / 地图", UITheme.FontPageTitle, UITheme.TextPrimary,
-                new Vector2(0.02f, 0.88f), new Vector2(0.6f, 0.98f), TextAlignmentOptions.Left, FontStyles.Bold).name = "PageTitle";
-
-            var card = StyledPanel("MapCard", page, UITheme.CardSurface, new Vector2(0.02f, 0.28f), new Vector2(0.60f, 0.78f));
-            StyledText(card.transform, "村庄 · 训练行动", UITheme.FontCardTitle + 4, UITheme.TextPrimary,
-                new Vector2(0.07f, 0.72f), new Vector2(0.93f, 0.90f), TextAlignmentOptions.Left, FontStyles.Bold).name = "MapTitle";
-            StyledText(card.transform, "当前可用：本地 Gameplay\n服务器结算：通过 ClientMatchId 幂等提交 XP 与金币\n在线匹配：尚未接入", UITheme.FontBody, UITheme.TextMuted,
-                new Vector2(0.07f, 0.30f), new Vector2(0.93f, 0.68f), TextAlignmentOptions.Left);
-            UIComponents.Badge("ModeBadge", card.transform, "LOCAL", UITheme.AccentInfo,
-                new Vector2(0.07f, 0.10f), new Vector2(0.28f, 0.22f));
-
-            StyledButton(page, "开始本地任务", UIComponents.ButtonKind.Primary,
-                new Vector2(0.66f, 0.52f), new Vector2(0.95f, 0.68f), StartGameplay);
-            StyledButton(page, "返回大厅", UIComponents.ButtonKind.Secondary,
-                new Vector2(0.66f, 0.36f), new Vector2(0.95f, 0.49f), () => Navigate(LobbyPage.Lobby));
-            PlayEnter(root.gameObject);
-        }
-
         // ---------- Catalog (Armory / Shop) ----------
 
         private void LoadCatalogAndRender(bool shop, CancellationToken token) => _ = LoadCatalogAsync(shop, token);
@@ -100,92 +76,9 @@ namespace Game.UI
             RenderError(ApiErrorMessages.ToUserMessage(failed), () => Navigate(shop ? LobbyPage.Shop : LobbyPage.Armory));
         }
 
-        private void RenderCatalog(bool shop)
-        {
-            ClearBody();
-            SetBackground(UIArt.KeyBackgroundLobby);
-            var root = PageRoot(shop ? "ShopPage" : "ArmoryPage");
-            var page = root.transform;
-            StyledText(page, shop ? "商城" : "仓库", UITheme.FontPageTitle, UITheme.TextPrimary,
-                new Vector2(0.02f, 0.90f), new Vector2(0.4f, 0.99f), TextAlignmentOptions.Left, FontStyles.Bold).name = "PageTitle";
-            UIComponents.Badge("CoinsBadge", page, $"COINS {cachedCatalog?.coins ?? cachedInventory?.coins ?? 0:N0}", UITheme.AccentPrimary,
-                new Vector2(0.72f, 0.905f), new Vector2(0.97f, 0.975f));
+        private void RenderCatalog(bool shop) => RenderTacticalCatalog(shop);
 
-            var filters = new[] { "Rifle", "Pistol", "Shotgun", "Smg", "Sniper" };
-            for (var i = 0; i < filters.Length; i++)
-            {
-                var key = filters[i];
-                var label = key == "Rifle" ? "步枪" : key == "Pistol" ? "手枪" : key == "Shotgun" ? "霰弹枪" : key == "Smg" ? "冲锋枪" : "狙击枪";
-                var x0 = 0.02f + i * 0.135f;
-                var selected = catalogFilter == key;
-                var filterButton = StyledButton(page, label, selected ? UIComponents.ButtonKind.Primary : UIComponents.ButtonKind.Secondary,
-                    new Vector2(x0, 0.83f), new Vector2(x0 + 0.12f, 0.885f), () => { catalogFilter = key; RenderCatalog(shop); });
-                filterButton.GetComponentInChildren<TMP_Text>().fontSize = UITheme.FontCaption;
-            }
 
-            // 商城只列 Shop 行；仓库列全集（含 Initial 初始武器——2026-09-07 修复：
-            // 目录端点曾按 Shop 过滤导致 AK/M4 不在仓库、无法进入枪匠页改装）
-            var lpfpItems = (cachedCatalog?.items ?? Array.Empty<CatalogItemDto>()).Where(IsLpfpWeaponItem);
-            var items = (shop ? lpfpItems.Where(x => x.acquisitionSource == "Shop") : lpfpItems)
-                .Where(x => GetCategory(x.itemId) == catalogFilter).ToArray();
-            if (items.Length == 0)
-            {
-                StyledText(page, "暂无目录数据", UITheme.FontCardTitle, UITheme.TextMuted,
-                    new Vector2(0.1f, 0.45f), new Vector2(0.9f, 0.58f));
-                StyledButton(page, "重试", UIComponents.ButtonKind.Info,
-                    new Vector2(0.4f, 0.32f), new Vector2(0.6f, 0.41f), () => Navigate(shop ? LobbyPage.Shop : LobbyPage.Armory));
-                PlayEnter(root.gameObject);
-                return;
-            }
-            for (var i = 0; i < items.Length; i++) CreateWeaponCard(page, items[i], shop, i, items.Length);
-            PlayEnter(root.gameObject);
-        }
-
-        private void CreateWeaponCard(Transform parent, CatalogItemDto item, bool shop, int index, int count)
-        {
-            const int columns = 3;
-            var rows = Mathf.CeilToInt(count / (float)columns);
-            var col = index % columns;
-            var row = index / columns;
-            var x0 = 0.02f + col * 0.325f;
-            var x1 = x0 + 0.305f;
-            var y1 = 0.79f - row * (0.72f / Mathf.Max(1, rows));
-            var y0 = y1 - 0.20f;
-
-            var card = StyledPanel("WeaponCard_" + item.itemId, parent,
-                item.isOwned ? UITheme.CardSurface : UITheme.BackgroundPanel, new Vector2(x0, y0), new Vector2(x1, y1));
-            var stats = weaponAssets.FindStats(item.itemId);
-            var level = cachedCatalog?.level ?? session.Profile?.level ?? 0;
-            var coins = cachedCatalog?.coins ?? cachedInventory?.coins ?? 0;
-
-            StyledText(card.transform, item.displayName, UITheme.FontBody, item.isOwned ? UITheme.TextPrimary : UITheme.TextMuted,
-                new Vector2(0.05f, 0.80f), new Vector2(0.95f, 0.95f), TextAlignmentOptions.Left, FontStyles.Bold).name = "CardName";
-
-            var stateText = item.isOwned ? "已拥有" : item.unlockLevel > level
-                ? $"等级 {item.unlockLevel} 解锁" : item.priceCoins > coins
-                ? $"金币不足 · {item.priceCoins:N0}" : $"{item.priceCoins:N0} COINS";
-            var stateColor = item.isOwned ? UITheme.AccentSecondary : item.unlockLevel > level || item.priceCoins > coins ? UITheme.TextMuted : UITheme.AccentPrimary;
-            UIComponents.Badge("State", card.transform, stateText, stateColor,
-                new Vector2(0.05f, 0.62f), new Vector2(0.60f, 0.77f));
-            StyledText(card.transform, $"伤害 {stats.damage:0}   射速 {stats.roundsPerMinute:0}\n弹容 {stats.magazineSize:0}   后坐 {stats.recoil:0.##}",
-                UITheme.FontCaption, UITheme.TextMuted, new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.60f), TextAlignmentOptions.Left).name = "CardStats";
-
-            var previewButton = UIComponents.Button("Preview_" + item.itemId, card.transform, "预览", UIComponents.ButtonKind.Info,
-                new Vector2(0.05f, 0.06f), new Vector2(shop && !item.isOwned ? 0.47f : 0.95f, 0.24f));
-            previewButton.onClick.AddListener(() =>
-            {
-                selectedWeapon = item;
-                detailsFromShop = shop;
-                Navigate(LobbyPage.WeaponDetails);
-            });
-            if (shop && !item.isOwned)
-            {
-                var buyButton = UIComponents.Button("Buy_" + item.itemId, card.transform, "购买", UIComponents.ButtonKind.Primary,
-                    new Vector2(0.52f, 0.06f), new Vector2(0.95f, 0.24f));
-                buyButton.onClick.AddListener(() => _ = PurchaseAsync(item));
-                buyButton.interactable = item.isActive && item.isImplemented && item.unlockLevel <= level && item.priceCoins <= coins;
-            }
-        }
 
         private static string GetCategory(string itemId)
         {
@@ -217,106 +110,11 @@ namespace Game.UI
             ("Sniper", "狙击枪"), ("Shotgun", "霰弹枪"), ("Pistol", "手枪"),
         };
         private string armoryFilter = "All";
-        private int armoryPage;
-        private const int ArmoryPageSize = 12; // 4 列 × 3 行
 
-        private void RenderArmoryPage()
-        {
-            ClearBody();
-            SetBackground(UIArt.KeyBackgroundLobby);
-            var root = PageRoot("ArmoryPage");
-            var page = root.transform;
-            StyledText(page, "仓库", UITheme.FontPageTitle, UITheme.TextPrimary,
-                new Vector2(0.02f, 0.90f), new Vector2(0.4f, 0.99f), TextAlignmentOptions.Left, FontStyles.Bold).name = "PageTitle";
-            UIComponents.Badge("CoinsBadge", page, $"COINS {cachedCatalog?.coins ?? cachedInventory?.coins ?? 0:N0}", UITheme.AccentPrimary,
-                new Vector2(0.72f, 0.905f), new Vector2(0.97f, 0.975f));
-
-            // 左列类型标签（CF 仓库侧栏；本地过滤，不重拉 API）
-            var tabY = 0.80f;
-            foreach (var (key, label) in ArmoryTabs)
-            {
-                var captured = key;
-                var tab = UIComponents.NavPill("ArmoryTab_" + key, page, label,
-                    new Vector2(0.02f, tabY - 0.055f), new Vector2(0.145f, tabY + 0.01f));
-                UIComponents.SetNavPillSelected(tab, armoryFilter == key);
-                tab.onClick.AddListener(() => { armoryFilter = captured; armoryPage = 0; RenderArmoryPage(); });
-                tabY -= 0.075f;
-            }
-
-            // 数据：仅已拥有的 LPFP 武器（含初始三枪——目录契约 2026-09-07 已保证 Initial 行在仓库可见）
-            var owned = (cachedCatalog?.items ?? Array.Empty<CatalogItemDto>())
-                .Where(x => x.isOwned && IsLpfpWeaponItem(x))
-                .Where(x => armoryFilter == "All" || GetCategory(x.itemId) == armoryFilter)
-                .ToArray();
-
-            if (owned.Length == 0)
-            {
-                StyledText(page, armoryFilter == "All" ? "暂无可展示武器" : "该分类下暂无已拥有武器",
-                    UITheme.FontCardTitle, UITheme.TextMuted, new Vector2(0.16f, 0.45f), new Vector2(0.98f, 0.58f));
-                PlayEnter(root.gameObject);
-                return;
-            }
-
-            var pages = Mathf.Max(1, Mathf.CeilToInt(owned.Length / (float)ArmoryPageSize));
-            armoryPage = Mathf.Clamp(armoryPage, 0, pages - 1);
-            var pageItems = owned.Skip(armoryPage * ArmoryPageSize).Take(ArmoryPageSize).ToArray();
-            for (var i = 0; i < pageItems.Length; i++) CreateArmoryCard(page, pageItems[i], i);
-
-            if (pages > 1)
-            {
-                var prev = StyledButton(page, "上一页", UIComponents.ButtonKind.Secondary,
-                    new Vector2(0.38f, 0.015f), new Vector2(0.47f, 0.075f), () => { armoryPage--; RenderArmoryPage(); });
-                prev.interactable = armoryPage > 0;
-                StyledText(page, $"{armoryPage + 1}/{pages}", UITheme.FontCaption, UITheme.TextMuted,
-                    new Vector2(0.48f, 0.02f), new Vector2(0.54f, 0.07f));
-                var next = StyledButton(page, "下一页", UIComponents.ButtonKind.Secondary,
-                    new Vector2(0.55f, 0.015f), new Vector2(0.64f, 0.075f), () => { armoryPage++; RenderArmoryPage(); });
-                next.interactable = armoryPage < pages - 1;
-            }
-
-            PlayEnter(root.gameObject);
-            // 装备角标需要服务器配装；未加载时补拉一次（失败静默）
-            if (session.Loadout == null && api != null && pageCts != null) _ = EnsureLoadoutCachedAsync(pageCts.Token);
-        }
+        private void RenderArmoryPage() => RenderTacticalCatalog(false);
 
         /// <summary>仓库大网格卡片（4 列；点击「配件改装」进枪匠，未适配配件的武器落详情页）。</summary>
-        private void CreateArmoryCard(Transform parent, CatalogItemDto item, int index)
-        {
-            const int columns = 4;
-            const float cellW = 0.19375f, cellH = 0.26f, gapX = 0.015f, gapY = 0.02f;
-            var col = index % columns;
-            var row = index / columns;
-            var x0 = 0.16f + col * (cellW + gapX);
-            var x1 = x0 + cellW;
-            var y1 = 0.86f - row * (cellH + gapY);
-            var y0 = y1 - cellH;
 
-            var card = StyledPanel("WeaponCard_" + item.itemId, parent, UITheme.CardSurface, new Vector2(x0, y0), new Vector2(x1, y1));
-            var stats = weaponAssets.FindStats(item.itemId);
-            weaponAssets.TryGet(item.itemId, out var asset);
-
-            StyledText(card.transform, item.displayName, UITheme.FontBody, UITheme.TextPrimary,
-                new Vector2(0.05f, 0.86f), new Vector2(0.95f, 0.98f), TextAlignmentOptions.Left, FontStyles.Bold).name = "CardName";
-            UIComponents.Badge("TypeBadge", card.transform, CategoryLabel(GetCategory(item.itemId)), UITheme.AccentInfo,
-                new Vector2(0.05f, 0.70f), new Vector2(0.45f, 0.84f));
-
-            var loadout = session.Loadout;
-            if (loadout != null && (item.itemId == loadout.primaryWeaponId || item.itemId == loadout.secondaryWeaponId))
-                UIComponents.Badge("EquippedBadge", card.transform, "已装备", UITheme.AccentSecondary,
-                    new Vector2(0.50f, 0.70f), new Vector2(0.95f, 0.84f));
-
-            StyledText(card.transform, $"伤害 {stats.damage:0}   射速 {stats.roundsPerMinute:0}\n弹容 {stats.magazineSize:0}   后坐 {stats.recoil:0.##}",
-                UITheme.FontCaption, UITheme.TextMuted, new Vector2(0.05f, 0.34f), new Vector2(0.95f, 0.68f), TextAlignmentOptions.Left).name = "CardStats";
-
-            var supportsAttachments = asset != null && asset.supportsVerifiedAttachments;
-            var gunsmith = UIComponents.Button("Gunsmith_" + item.itemId, card.transform,
-                supportsAttachments ? "配件改装" : "查看详情", UIComponents.ButtonKind.Primary,
-                new Vector2(0.05f, 0.06f), new Vector2(0.63f, 0.28f));
-            gunsmith.onClick.AddListener(() => OpenGunsmithFromArmory(item));
-            var details = UIComponents.Button("Details_" + item.itemId, card.transform, "详情", UIComponents.ButtonKind.Info,
-                new Vector2(0.67f, 0.06f), new Vector2(0.95f, 0.28f));
-            details.onClick.AddListener(() => { selectedWeapon = item; detailsFromShop = false; Navigate(LobbyPage.WeaponDetails); });
-        }
 
         /// <summary>仓库点击枪械的统一入口（用户拍板 2026-09-16：进该枪枪匠页；未适配配件→详情页）。</summary>
         private void OpenGunsmithFromArmory(CatalogItemDto item)
@@ -391,8 +189,6 @@ namespace Game.UI
             StyledText(chartPanel.transform, $"后坐力  {stats.recoil:0.##}", UITheme.FontCaption, UITheme.TextPrimary,
                 new Vector2(0.02f, 0.43f), new Vector2(0.40f, 0.55f), TextAlignmentOptions.Left);
 
-            StyledText(page, "业务 ID  " + selectedWeapon.itemId + "\n资源键  " + (asset?.assetKey ?? selectedWeapon.assetKey),
-                UITheme.FontCaption, UITheme.TextMuted, new Vector2(0.02f, 0.05f), new Vector2(0.40f, 0.13f), TextAlignmentOptions.Left);
 
             StyledButton(page, "重置视角", UIComponents.ButtonKind.Info, new Vector2(0.56f, 0.20f), new Vector2(0.75f, 0.29f), () =>
             {
@@ -430,6 +226,75 @@ namespace Game.UI
         private long gunsmithLoadoutVersion;
         private WeaponPreviewController gunsmithPreview;
 
+        /// <summary>
+        /// 枪匠的三类输入（服务器兼容矩阵、服务器配装、本地草稿）统一经过当前客户端目录
+        /// 和当前武器矩阵校验。后端/PlayerPrefs 旧数据即使仍在响应里，也不能进入 UI。
+        /// </summary>
+        private bool IsCurrentCompatibilityRow(AttachmentAssetCatalog catalog, string weaponId,
+            AttachmentCompatibilityDto row, bool requireImplemented)
+        {
+            if (row == null || row.weaponId != weaponId || string.IsNullOrWhiteSpace(row.attachmentId)
+                || string.IsNullOrWhiteSpace(row.slotType)
+                || Game.Gameplay.Weapon.WeaponAttachmentStore.IsRetiredAttachmentId(row.attachmentId))
+                return false;
+            if (requireImplemented && !row.isImplemented) return false;
+            if (catalog == null || !catalog.TryGet(row.attachmentId, out var entry) || entry == null) return false;
+            if (!AttachmentCompatibilityPolicy.IsAllowed(weaponId, entry)) return false;
+            // M4A1/SCAR use a non-removable factory vertical grip. Keep this client-side
+            // guard even after the backend matrix is corrected so a stale server/database
+            // row can neither enter the picker nor restore an old underbarrel draft.
+            if (string.Equals(row.slotType, "Underbarrel", StringComparison.OrdinalIgnoreCase)
+                && weaponAssets != null
+                && weaponAssets.FindDefinition(weaponId)?.RifleHasVerticalGrip == true)
+                return false;
+            return string.Equals(entry.slot.ToString(), row.slotType, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool TryGetCurrentImplementedAttachment(AttachmentAssetCatalog catalog, string weaponId,
+            string slotType, string attachmentId, out AttachmentAssetEntry entry)
+        {
+            entry = null;
+            if (string.IsNullOrWhiteSpace(slotType) || string.IsNullOrWhiteSpace(attachmentId)
+                || Game.Gameplay.Weapon.WeaponAttachmentStore.IsRetiredAttachmentId(attachmentId)
+                || cachedCompatibility == null)
+                return false;
+            var row = cachedCompatibility.FirstOrDefault(x => x != null
+                && x.weaponId == weaponId
+                && x.slotType == slotType
+                && x.attachmentId == attachmentId
+                && x.isImplemented);
+            if (!IsCurrentCompatibilityRow(catalog, weaponId, row, requireImplemented: true)) return false;
+            return catalog.TryGet(attachmentId, out entry) && entry != null;
+        }
+
+        private void RemoveInvalidGunsmithSelections(AttachmentAssetCatalog catalog, string weaponId)
+        {
+            foreach (var pair in gunsmithSelections.ToArray())
+                if (!TryGetCurrentImplementedAttachment(catalog, weaponId, pair.Key, pair.Value, out _))
+                    gunsmithSelections.Remove(pair.Key);
+        }
+
+        private bool ApplyDraftIfValid(AttachmentAssetCatalog catalog, string weaponId,
+            Dictionary<string, string> draft)
+        {
+            if (!Game.Gameplay.Weapon.GunsmithDraftStore.TryLoad(weaponId, draft)) return false;
+            var valid = draft.Where(pair => TryGetCurrentImplementedAttachment(catalog, weaponId,
+                    pair.Key, pair.Value, out _)).ToArray();
+            draft.Clear();
+            if (valid.Length == 0)
+            {
+                // TryLoad already repaired retired IDs. A non-retired draft can still be
+                // stale for this weapon (or missing from the current compatibility matrix);
+                // remove it without replacing a valid server loadout.
+                Game.Gameplay.Weapon.GunsmithDraftStore.Clear(weaponId);
+                return false;
+            }
+            foreach (var pair in valid) draft[pair.Key] = pair.Value;
+            gunsmithSelections.Clear();
+            foreach (var pair in draft) gunsmithSelections[pair.Key] = pair.Value;
+            return true;
+        }
+
         private async Task RenderAttachmentsAsync()
         {
             if (!IsLpfpWeaponItem(selectedWeapon))
@@ -445,20 +310,31 @@ namespace Game.UI
             cachedCompatibility = compatibility.Data ?? Array.Empty<AttachmentCompatibilityDto>();
             cachedInventory = inventory.Data;
             gunsmithLoadoutVersion = loadout.Data.version;
+            var attachmentCatalog = Game.Gameplay.Weapon.AttachmentAssetCatalog.LoadOrDefault();
             // 恢复屏幕状态：服务器配装为底，本地草稿覆盖（草稿 = 最近一次离开页面时的所见）
             if (!gunsmithSelections.Any())
             {
                 gunsmithSelections.Clear();
                 var slotKey = selectedWeapon.slotType == "Secondary" ? "Secondary" : "Primary";
                 foreach (var row in loadout.Data.attachments ?? Array.Empty<LoadoutAttachmentDto>())
-                    if (row.weaponSlot == slotKey) gunsmithSelections[row.attachmentSlot] = row.attachmentItemId;
-                if (Game.Gameplay.Weapon.GunsmithDraftStore.TryLoad(selectedWeapon.itemId, gunsmithSelections))
+                    if (row.weaponSlot == slotKey
+                        && TryGetCurrentImplementedAttachment(attachmentCatalog, selectedWeapon.itemId,
+                            row.attachmentSlot, row.attachmentItemId, out _))
+                        gunsmithSelections[row.attachmentSlot] = row.attachmentItemId;
+                var draft = new Dictionary<string, string>();
+                var hadServerSelection = gunsmithSelections.Count > 0;
+                var draftApplied = ApplyDraftIfValid(attachmentCatalog, selectedWeapon.itemId, draft);
+                if (draftApplied)
                     status.text = "已恢复上次改装草稿（点「保存配置」写入服务器）";
+                else if (hadServerSelection)
+                    RemoveInvalidGunsmithSelections(attachmentCatalog, selectedWeapon.itemId);
             }
             else
             {
                 // 同一武器反复进出：草稿始终优先（最新屏幕状态）
-                Game.Gameplay.Weapon.GunsmithDraftStore.TryLoad(selectedWeapon.itemId, gunsmithSelections);
+                var draft = new Dictionary<string, string>();
+                var draftApplied = ApplyDraftIfValid(attachmentCatalog, selectedWeapon.itemId, draft);
+                if (!draftApplied) RemoveInvalidGunsmithSelections(attachmentCatalog, selectedWeapon.itemId);
             }
             BuildGunsmithPage();
         }
@@ -476,6 +352,7 @@ namespace Game.UI
             var owned = new HashSet<string>((cachedInventory.items ?? Array.Empty<InventoryItemDto>())
                 .Where(x => x.quantity > 0).Select(x => x.itemId), StringComparer.Ordinal);
             var attachmentCatalog = Game.Gameplay.Weapon.AttachmentAssetCatalog.LoadOrDefault();
+            RemoveInvalidGunsmithSelections(attachmentCatalog, selectedWeapon.itemId);
             string DisplayNameOf(string id) => attachmentCatalog.TryGet(id, out var e) ? e.displayName : id;
             long PriceOf(string id) => cachedCatalog?.items?.FirstOrDefault(x => x.itemId == id)?.priceCoins ?? 0;
 
@@ -508,7 +385,9 @@ namespace Game.UI
                 statBars[i] = AddGunsmithStatBar(statsPanel.transform, statNames[i], 0.60f - i * 0.155f);
 
             // —— 环绕槽位（左列 3 / 右列 2，点行内 + 号开抽屉）
-            var weaponCompat = cachedCompatibility.Where(x => x.weaponId == selectedWeapon.itemId).ToArray();
+            var weaponCompat = cachedCompatibility
+                .Where(x => IsCurrentCompatibilityRow(attachmentCatalog, selectedWeapon.itemId, x, requireImplemented: false))
+                .ToArray();
             float[] leftY = { 0.70f, 0.52f, 0.34f };      // Optic / Muzzle / Magazine
             float[] rightY = { 0.70f, 0.52f };            // Tactical / Underbarrel
             int leftIndex = 0, rightIndex = 0;
@@ -802,10 +681,12 @@ namespace Game.UI
             var selections = GunsmithSlots.Where(gunsmithSelections.ContainsKey)
                 .Select(slot => new AttachmentSelectionRequest { attachmentSlot = slot, attachmentItemId = gunsmithSelections[slot] })
                 .ToList();
+            if (!await SaveAttachmentsAsync(gunsmithLoadoutVersion, selections)) return;
 #if UNITY_EDITOR
-            SaveAttachmentCalibration();     // 位置校准与装配同一个入口（Scene 微调即被捕获）；方法体读编辑器预览实例，仅编辑器可编译
+            SaveAttachmentCalibration();
 #endif
-            await SaveAttachmentsAsync(gunsmithLoadoutVersion, selections);
+            var equipped = await api.GetLoadoutAsync(pageCts.Token);
+            if (equipped.Success && equipped.Data != null) session.ApplyLoadout(equipped.Data);
             // 保存成功后刷新版本号（SaveAttachmentsAsync 只在成功路径更新状态文本，这里补拉取）
             var loadout = await api.GetLoadoutAttachmentsAsync(pageCts.Token);
             if (loadout.Success) gunsmithLoadoutVersion = loadout.Data.version;
@@ -845,49 +726,6 @@ namespace Game.UI
             UnityEditor.AssetDatabase.SaveAssets();
         }
 #endif
-
-        // ---------- Upgrades ----------
-
-        private void RenderUpgrades()
-        {
-            if (!session.IsAuthenticated) { Navigate(LobbyPage.Login); return; }
-            SetBackground(UIArt.KeyBackgroundLobby);
-            var root = PageRoot("UpgradesPage");
-            var page = root.transform;
-            var profile = session.Profile;
-            StyledText(page, "能力升级", UITheme.FontPageTitle, UITheme.TextPrimary,
-                new Vector2(0.02f, 0.88f), new Vector2(0.6f, 0.98f), TextAlignmentOptions.Left, FontStyles.Bold).name = "PageTitle";
-            StyledText(page, "升级数据由服务器保存；本地只负责编辑待提交值。", UITheme.FontCaption + 2, UITheme.TextMuted,
-                new Vector2(0.02f, 0.83f), new Vector2(0.8f, 0.88f), TextAlignmentOptions.Left);
-
-            var up = profile?.upgrades ?? new UpgradeLevelsDto();
-            var damage = AddUpgradeRow(page, "伤害", up.upDamage, 0.62f);
-            var ammo = AddUpgradeRow(page, "弹容量", up.upAmmoCap, 0.46f);
-            var health = AddUpgradeRow(page, "最大生命", up.upMaxHealth, 0.30f);
-            StyledButton(page, "提交升级", UIComponents.ButtonKind.Primary, new Vector2(0.70f, 0.30f), new Vector2(0.95f, 0.44f), async () =>
-            {
-                var result = await api.UpdateUpgradesAsync(new UpgradeRequest { upDamage = damage(), upAmmoCap = ammo(), upMaxHealth = health() }, pageCts.Token);
-                if (result.Success) { session.ApplyProfile(result.Data); status.text = "升级已同步"; RenderUpgrades(); }
-                else status.text = ApiErrorMessages.ToUserMessage(result);
-            });
-            PlayEnter(root.gameObject);
-        }
-
-        private Func<int> AddUpgradeRow(Transform parent, string label, int value, float y)
-        {
-            var row = StyledPanel("Upgrade_" + label, parent, UITheme.CardSurface, new Vector2(0.05f, y), new Vector2(0.62f, y + 0.13f));
-            var valueText = StyledText(row.transform, label + "  " + value + "/5", UITheme.FontBody + 2, UITheme.TextPrimary,
-                new Vector2(0.05f, 0.2f), new Vector2(0.68f, 0.8f), TextAlignmentOptions.Left, FontStyles.Bold);
-            var current = value;
-            void Refresh() => valueText.text = label + "  " + current + "/5";
-            var minus = UIComponents.Button("Minus", row.transform, "?", UIComponents.ButtonKind.Danger,
-                new Vector2(0.74f, 0.12f), new Vector2(0.85f, 0.88f));
-            minus.onClick.AddListener(() => { current = Mathf.Max(0, current - 1); Refresh(); });
-            var plus = UIComponents.Button("Plus", row.transform, "+", UIComponents.ButtonKind.Primary,
-                new Vector2(0.88f, 0.12f), new Vector2(0.99f, 0.88f));
-            plus.onClick.AddListener(() => { current = Mathf.Min(5, current + 1); Refresh(); });
-            return () => current;
-        }
 
         // ---------- Settings (音量 / 键位 / 画质) ----------
         // 共享设置 Phase B 重构：数据与应用逻辑全部走 Gameplay.Settings 共享服务
@@ -941,6 +779,15 @@ namespace Game.UI
                     _settingsDraft.PreviewAllLive(); // 即时预览出厂值（应用前不落盘）
                     RenderSettings();
                 });
+            var performanceButton = StyledButton(page, MenuPerformanceView.Visible ? "性能信息：开" : "性能信息：关", UIComponents.ButtonKind.Secondary,
+                new Vector2(0.55f, 0.02f), new Vector2(0.75f, 0.12f), () => { });
+            performanceButton.onClick.AddListener(() =>
+            {
+                MenuPerformanceView.Visible = !MenuPerformanceView.Visible;
+                performanceButton.GetComponentInChildren<TMP_Text>().text = MenuPerformanceView.Visible ? "性能信息：开" : "性能信息：关";
+            });
+            if (Debug.isDebugBuild && HotPageRegistry.TryGet("hello", out _))
+                StyledButton(page, "开发演示", UIComponents.ButtonKind.Secondary, new Vector2(0.78f, 0.02f), new Vector2(0.98f, 0.12f), () => NavigateHot("hello"));
             PlayEnter(root.gameObject);
         }
 
@@ -1149,14 +996,14 @@ namespace Game.UI
         private void RenderGraphicsCard(Transform page, Vector2 min, Vector2 max)
         {
             var card = StyledPanel("GraphicsCard", page, UITheme.CardSurface, min, max);
-            StyledText(card.transform, "画质", UITheme.FontCardTitle, UITheme.TextPrimary,
+            StyledText(card.transform, "画质与瞄具", UITheme.FontCardTitle, UITheme.TextPrimary,
                 new Vector2(0.08f, 0.90f), new Vector2(0.92f, 0.98f), TextAlignmentOptions.Left, FontStyles.Bold);
             var draft = DraftOrNull;
 
             // 分辨率（应用后才应用；编辑器只保存不切分辨率——SettingsModel.ApplyResolution 内建判定）
             StyledText(card.transform, "分辨率", UITheme.FontBody, UITheme.TextMuted,
-                new Vector2(0.08f, 0.74f), new Vector2(0.92f, 0.82f), TextAlignmentOptions.Left);
-            UIComponents.Stepper("ResolutionStepper", card.transform, new Vector2(0.08f, 0.62f), new Vector2(0.92f, 0.72f),
+                new Vector2(0.08f, 0.82f), new Vector2(0.92f, 0.88f), TextAlignmentOptions.Left);
+            UIComponents.Stepper("ResolutionStepper", card.transform, new Vector2(0.08f, 0.72f), new Vector2(0.92f, 0.80f),
                 out var resPrev, out var resNext, out var resLabel);
             var resolutions = SettingsModel.SupportedResolutions;
             var resIndex = System.Math.Max(0, System.Array.IndexOf(resolutions, draft.Resolution));
@@ -1172,7 +1019,7 @@ namespace Game.UI
             // 全屏开关
             var fsBtn = UIComponents.Button("FullscreenToggle", card.transform,
                 draft.Fullscreen ? "全屏：开" : "全屏：关", UIComponents.ButtonKind.Info,
-                new Vector2(0.08f, 0.50f), new Vector2(0.92f, 0.60f));
+                new Vector2(0.08f, 0.61f), new Vector2(0.92f, 0.69f));
             fsBtn.onClick.AddListener(() =>
             {
                 draft.Fullscreen = !draft.Fullscreen;
@@ -1182,8 +1029,8 @@ namespace Game.UI
 
             // 帧率上限（应用后经 ApplyAll 生效）
             StyledText(card.transform, "帧率上限", UITheme.FontBody, UITheme.TextMuted,
-                new Vector2(0.08f, 0.40f), new Vector2(0.92f, 0.48f), TextAlignmentOptions.Left);
-            UIComponents.Stepper("FrameCapStepper", card.transform, new Vector2(0.08f, 0.28f), new Vector2(0.92f, 0.38f),
+                new Vector2(0.08f, 0.53f), new Vector2(0.92f, 0.59f), TextAlignmentOptions.Left);
+            UIComponents.Stepper("FrameCapStepper", card.transform, new Vector2(0.08f, 0.43f), new Vector2(0.92f, 0.51f),
                 out var capPrev, out var capNext, out var capLabel);
             var caps = SettingsModel.FrameCapOptions;
             var capIndex = System.Math.Max(0, System.Array.IndexOf(caps, draft.FrameCap));
@@ -1199,7 +1046,7 @@ namespace Game.UI
             // 开镜方式：长按（按住右键）/ 切换（点按右键开收镜）
             var adsBtn = UIComponents.Button("AdsModeToggle", card.transform,
                 "开镜方式：" + (draft.AdsToggleMode ? "切换" : "长按"), UIComponents.ButtonKind.Info,
-                new Vector2(0.08f, 0.14f), new Vector2(0.92f, 0.24f));
+                new Vector2(0.08f, 0.31f), new Vector2(0.92f, 0.39f));
             adsBtn.onClick.AddListener(() =>
             {
                 draft.AdsToggleMode = !draft.AdsToggleMode;
@@ -1207,6 +1054,40 @@ namespace Game.UI
                 var l = adsBtn.GetComponentInChildren<TMP_Text>();
                 if (l != null) l.text = "开镜方式：" + (draft.AdsToggleMode ? "切换" : "长按");
                 status.text = "开镜方式已设为「" + (draft.AdsToggleMode ? "切换" : "长按") + "」（应用后保存）";
+            });
+
+            var leanBtn = UIComponents.Button("LeanModeToggle", card.transform,
+                "探头方式：" + (draft.LeanToggleMode ? "切换" : "长按"), UIComponents.ButtonKind.Info,
+                new Vector2(0.08f, 0.26f), new Vector2(0.92f, 0.30f));
+            leanBtn.onClick.AddListener(() =>
+            {
+                draft.LeanToggleMode = !draft.LeanToggleMode;
+                LeanInputMode.SetLive(draft.LeanToggleMode);
+                var label = leanBtn.GetComponentInChildren<TMP_Text>();
+                if (label != null) label.text = "探头方式：" + (draft.LeanToggleMode ? "切换" : "长按");
+                status.text = "探头方式已设为「" + (draft.LeanToggleMode ? "切换" : "长按") + "」（应用后保存）";
+            });
+
+            var styleBtn = UIComponents.Button("ReticleStyle", card.transform,
+                "镜片准星：" + SettingsModel.FormatReticleStyle(draft.ReticleStyle), UIComponents.ButtonKind.Info,
+                new Vector2(0.08f, 0.17f), new Vector2(0.92f, 0.25f));
+            styleBtn.onClick.AddListener(() =>
+            {
+                draft.ReticleStyle = (OpticReticleStyle)(((int)draft.ReticleStyle + 1) % 3);
+                SettingsRuntime.SetReticleLive(draft.ReticleStyle, draft.ReticleColor);
+                var l = styleBtn.GetComponentInChildren<TMP_Text>();
+                if (l != null) l.text = "镜片准星：" + SettingsModel.FormatReticleStyle(draft.ReticleStyle);
+            });
+
+            var colorBtn = UIComponents.Button("ReticleColor", card.transform,
+                "准星颜色：" + SettingsModel.FormatReticleColor(draft.ReticleColor), UIComponents.ButtonKind.Info,
+                new Vector2(0.08f, 0.07f), new Vector2(0.92f, 0.15f));
+            colorBtn.onClick.AddListener(() =>
+            {
+                draft.ReticleColor = (OpticReticleColor)(((int)draft.ReticleColor + 1) % 4);
+                SettingsRuntime.SetReticleLive(draft.ReticleStyle, draft.ReticleColor);
+                var l = colorBtn.GetComponentInChildren<TMP_Text>();
+                if (l != null) l.text = "准星颜色：" + SettingsModel.FormatReticleColor(draft.ReticleColor);
             });
         }
     }

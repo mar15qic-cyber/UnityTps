@@ -50,11 +50,9 @@ public sealed class ProgressionRulesTests
     }
 
     [Fact]
-    public void LevelThresholdAndUpgradeCostAreDeterministic()
+    public void LevelThresholdRemainsDeterministic()
     {
         Assert.Equal(100, rules.GetXpToNextLevel(1));
         Assert.Equal(300, rules.GetXpToNextLevel(3));
-        Assert.Equal(1, rules.GetUpgradeCost("damage", 0));
-        Assert.Equal(5, rules.GetUpgradeCost("damage", 4));
     }
 }

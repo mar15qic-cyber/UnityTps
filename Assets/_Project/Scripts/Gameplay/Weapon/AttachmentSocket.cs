@@ -12,7 +12,9 @@ namespace Game.Gameplay.Weapon
     public sealed class AttachmentSocket : MonoBehaviour
     {
         [SerializeField] private AttachmentSlotType slot = AttachmentSlotType.Optic;
+        [SerializeField] private bool geometryVerified;
 
         public AttachmentSlotType Slot => slot;
+        public bool GeometryVerified => geometryVerified;
     }
 }

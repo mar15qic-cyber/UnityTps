@@ -17,55 +17,59 @@ public sealed class RoomsController(RoomService rooms, RoomChatService chat) : C
         StatusCode(StatusCodes.Status201Created, await rooms.CreateAsync(AuthService.GetUserId(User), request, cancellationToken));
 
     [HttpGet]
-    public Task<IReadOnlyList<GameRoomDto>> List(CancellationToken cancellationToken) => rooms.ListAsync(cancellationToken);
+    public async Task<IReadOnlyList<GameRoomDto>> List(CancellationToken cancellationToken) => await rooms.ListAsync(cancellationToken);
 
-    [HttpGet("{roomCode}")]
-    public Task<RoomSnapshotDto> Detail(string roomCode, CancellationToken cancellationToken) =>
-        rooms.GetDetailAsync(AuthService.GetUserId(User), roomCode, cancellationToken);
+    [HttpPost("join-by-code")]
+    public Task<RoomSnapshotDto> JoinByCode(JoinRoomByCodeRequest request, CancellationToken ct) =>
+        rooms.JoinAsync(AuthService.GetUserId(User), request.RoomCode, request.TeamId, request.ClientProtocolId, ct);
 
-    [HttpPost("{roomCode}/join")]
-    public Task<RoomSnapshotDto> Join(string roomCode, [FromBody] RoomJoinRequest? request, CancellationToken cancellationToken) =>
-        rooms.JoinAsync(AuthService.GetUserId(User), roomCode, request?.TeamId, request?.ClientProtocolId, cancellationToken);
+    [HttpGet("{roomId:long}")]
+    public async Task<RoomSnapshotDto> Detail(long roomId, CancellationToken cancellationToken) =>
+        await rooms.GetDetailAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), cancellationToken);
 
-    [HttpPost("{roomCode}/team")]
-    public Task<RoomSnapshotDto> SetTeam(string roomCode, RoomTeamRequest request, CancellationToken cancellationToken) =>
-        rooms.SetTeamAsync(AuthService.GetUserId(User), roomCode, request.TeamId?.Trim(), cancellationToken);
+    [HttpPost("{roomId:long}/join")]
+    public async Task<RoomSnapshotDto> Join(long roomId, [FromBody] RoomJoinRequest? request, CancellationToken cancellationToken) =>
+        await rooms.JoinAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), request?.TeamId, request?.ClientProtocolId, cancellationToken);
 
-    [HttpPost("{roomCode}/ready")]
-    public Task<RoomSnapshotDto> SetReady(string roomCode, RoomReadyRequest request, CancellationToken cancellationToken) =>
-        rooms.SetReadyAsync(AuthService.GetUserId(User), roomCode, request.IsReady, cancellationToken);
+    [HttpPost("{roomId:long}/team")]
+    public async Task<RoomSnapshotDto> SetTeam(long roomId, RoomTeamRequest request, CancellationToken cancellationToken) =>
+        await rooms.SetTeamAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), request.TeamId?.Trim(), cancellationToken);
 
-    [HttpPost("{roomCode}/settings")]
-    public Task<RoomSnapshotDto> UpdateSettings(string roomCode, RoomSettingsRequest request, CancellationToken cancellationToken) =>
-        rooms.UpdateSettingsAsync(AuthService.GetUserId(User), roomCode, request, cancellationToken);
+    [HttpPost("{roomId:long}/ready")]
+    public async Task<RoomSnapshotDto> SetReady(long roomId, RoomReadyRequest request, CancellationToken cancellationToken) =>
+        await rooms.SetReadyAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), request.IsReady, cancellationToken);
 
-    [HttpPost("{roomCode}/start")]
-    public Task<StartMatchDto> Start(string roomCode, CancellationToken cancellationToken) =>
-        rooms.StartAsync(AuthService.GetUserId(User), roomCode, cancellationToken);
+    [HttpPost("{roomId:long}/settings")]
+    public async Task<RoomSnapshotDto> UpdateSettings(long roomId, RoomSettingsRequest request, CancellationToken cancellationToken) =>
+        await rooms.UpdateSettingsAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), request, cancellationToken);
+
+    [HttpPost("{roomId:long}/start")]
+    public async Task<StartMatchDto> Start(long roomId, CancellationToken cancellationToken) =>
+        await rooms.StartAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), cancellationToken);
 
     /// <summary>返房 ack（Docs/27 §5.7）：退战斗不退房；Returning 后幂等返回快照。</summary>
-    [HttpPost("{roomCode}/return")]
-    public Task<RoomSnapshotDto> Return(string roomCode, RoomReturnRequest request, CancellationToken cancellationToken) =>
-        rooms.ReturnAsync(AuthService.GetUserId(User), roomCode, request.MatchId, cancellationToken);
+    [HttpPost("{roomId:long}/return")]
+    public async Task<RoomSnapshotDto> Return(long roomId, RoomReturnRequest request, CancellationToken cancellationToken) =>
+        await rooms.ReturnAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), request.MatchId, cancellationToken);
 
     /// <summary>终局结果查询（Docs/27 §7.3）：TDM 权威快照 / KillRace 聚合 / Pending。</summary>
-    [HttpGet("{roomCode}/match-result")]
-    public Task<RoomMatchResultViewDto> MatchResult(string roomCode, [FromQuery] string matchId, CancellationToken cancellationToken) =>
-        rooms.GetMatchResultAsync(AuthService.GetUserId(User), roomCode, matchId, cancellationToken);
+    [HttpGet("{roomId:long}/match-result")]
+    public async Task<RoomMatchResultViewDto> MatchResult(long roomId, [FromQuery] string matchId, CancellationToken cancellationToken) =>
+        await rooms.GetMatchResultAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), matchId, cancellationToken);
 
     /// <summary>发送聊天（Docs/27 §8.4）：等待房间/启动/返房走鉴权 HTTP；局内仅 Owner RPC（InMatch 调用被拒）。</summary>
-    [HttpPost("{roomCode}/chat")]
-    public async Task<ActionResult<ChatMessageDto>> SendChat(string roomCode, ChatSendRequest request, CancellationToken cancellationToken)
+    [HttpPost("{roomId:long}/chat")]
+    public async Task<ActionResult<ChatMessageDto>> SendChat(long roomId, ChatSendRequest request, CancellationToken cancellationToken)
     {
-        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), roomCode, allowSend: true, cancellationToken);
+        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), allowSend: true, cancellationToken);
         return Ok(chat.Send(room, member, request));
     }
 
     /// <summary>增量拉取聊天（seq 游标）；队聊在投递层过滤（Docs/27 §8.3）。</summary>
-    [HttpGet("{roomCode}/chat")]
-    public async Task<ActionResult<ChatFeedDto>> FetchChat(string roomCode, [FromQuery] ulong after = 0, CancellationToken cancellationToken = default)
+    [HttpGet("{roomId:long}/chat")]
+    public async Task<ActionResult<ChatFeedDto>> FetchChat(long roomId, [FromQuery] ulong after = 0, CancellationToken cancellationToken = default)
     {
-        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), roomCode, allowSend: false, cancellationToken);
+        var (room, member) = await rooms.GetChatContextAsync(AuthService.GetUserId(User), await rooms.ResolveInternalCodeAsync(roomId, cancellationToken), allowSend: false, cancellationToken);
         return Ok(chat.Fetch(room, member, after));
     }
 

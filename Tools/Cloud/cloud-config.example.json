@@ -1,0 +1,11 @@
+{
+  "releaseId": "invite-20260922-01",
+  "releaseRoot": "C:\\UnityFps\\releases\\invite-20260922-01",
+  "stateRoot": "C:\\UnityFps\\runtime",
+  "secretsFile": "C:\\UnityFps\\private\\cloud-secrets.json",
+  "apiListenUrl": "http://127.0.0.1:5080",
+  "dsBindAddress": "0.0.0.0",
+  "publicAddress": "REPLACE_WITH_PUBLIC_IP_OR_DNS",
+  "baseUdpPort": 7770,
+  "capacityPerMap": 8
+}

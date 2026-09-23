@@ -154,15 +154,15 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void RewindGate_SnapshotMissing_HonestlyPasses()
+        public void RewindGate_NetworkTargetSnapshotMissing_Rejects()
         {
-            // 目标未注册（无快照语境）：不拦截——快照能力缺失时维持既有即时判定语义
+            // 联网目标缺少历史时拒绝回溯伤害，不能按当前位姿假装历史命中
             _manager.UnregisterPlayer(_victimRoot.transform);
             _manager.Capture(1);
 
             var context = new LagCompRewindContext(1, true);
-            Assert.That(CombatResolver.PassesRewindLifeGate(_victimTarget, context, out string reason), Is.True);
-            Assert.That(reason, Is.Null);
+            Assert.That(CombatResolver.PassesRewindLifeGate(_victimTarget, context, out string reason), Is.False);
+            Assert.That(reason, Is.Not.Null);
         }
     }
 }

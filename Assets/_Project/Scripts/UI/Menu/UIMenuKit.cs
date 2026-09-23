@@ -26,7 +26,7 @@ namespace Game.UI.Menu
             => UITypography.Text("Caption", parent, value, UITheme.FontCaption + 1, color, min, max, TextAlignmentOptions.Left);
 
         public static void AccentBar(Transform parent, Vector2 min, Vector2 max, Color? color = null)
-            => Panel("AccentBar", parent, color ?? new Color(1f, 0.27f, 0.33f), min, max);
+            => Panel("AccentBar", parent, color ?? UITheme.AccentPrimary, min, max);
 
         /// <summary>左侧导航大按钮：根透明可点 + 红色选中条 + 大号标签。返回（按钮, 选中条, 标签）。</summary>
         public static (Button button, Image accent, TMP_Text label) NavButton(Transform parent, string name, string label,
@@ -47,7 +47,7 @@ namespace Game.UI.Menu
             colors.fadeDuration = 0.05f;
             button.colors = colors;
 
-            var bar = Panel("SelectedBar", root.transform, accent ?? new Color(1f, 0.27f, 0.33f),
+            var bar = Panel("SelectedBar", root.transform, accent ?? UITheme.AccentPrimary,
                 new Vector2(0f, 0.08f), new Vector2(0.045f, 0.92f));
             bar.GetComponent<Image>().raycastTarget = false;
 
@@ -63,12 +63,12 @@ namespace Game.UI.Menu
             var image = button.GetComponent<Image>();
             if (image != null) image.color = faceColor;
             var text = button.GetComponentInChildren<TMP_Text>();
-            if (text != null) text.color = TextBright();
+            if (text != null) text.color = UITheme.ContrastRatio(faceColor, UITheme.TextOnAccent) > UITheme.ContrastRatio(faceColor, UITheme.TextPrimary) ? UITheme.TextOnAccent : UITheme.TextPrimary;
             return button;
         }
 
-        private static Color TextBright() => new Color(0.96f, 0.97f, 0.98f);
-        private static Color TextDim() => new Color(0.60f, 0.66f, 0.73f);
+        private static Color TextBright() => UITheme.TextPrimary;
+        private static Color TextDim() => UITheme.TextMuted;
 
         /// <summary>滑杆行 + 上方小标题（设置页统一行式布局：标题占上 40%，滑杆占下 50%）。</summary>
         public static Slider LabeledSlider(Transform parent, string name, string label,

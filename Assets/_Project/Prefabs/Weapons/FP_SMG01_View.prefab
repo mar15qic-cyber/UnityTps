@@ -25,8 +25,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 845097499658663397}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: -0.00006783828, y: -0.06633133, z: 0.28810725}
+  m_LocalRotation: {x: 0.3359245, y: 0.33592358, z: -0.6222176, w: 0.62221813}
+  m_LocalPosition: {x: 0.014376434, y: 0.18706667, z: 0.2107498}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 3
+  geometryVerified: 1
 --- !u!1 &964968674331354674
 GameObject:
   m_ObjectHideFlags: 0
@@ -76,51 +77,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7937880123323832596}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &4098302792329698329
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1878866869298964958}
-  - component: {fileID: 4345389358800081501}
-  m_Layer: 0
-  m_Name: Attach_Underbarrel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1878866869298964958
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4098302792329698329}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: -0.00006775775, y: -0.09924875, z: 0.23794307}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 7937880123323832596}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4345389358800081501
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4098302792329698329}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 635650b3858518f4399d9f6765313884, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  slot: 4
 --- !u!1 &4698191262721720566
 GameObject:
   m_ObjectHideFlags: 0
@@ -177,8 +133,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8696285945113994993}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: 0.0000183207, y: 0.22066276, z: 0.30176476}
+  m_LocalRotation: {x: -0.20244016, y: 0.6775081, z: -0.20244046, w: 0.6775092}
+  m_LocalPosition: {x: 0.000018270184, y: 0.2456926, z: 0.33990893}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -197,6 +153,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 1
+  geometryVerified: 1
 --- !u!1 &9118415518425886409
 GameObject:
   m_ObjectHideFlags: 0
@@ -222,8 +179,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9118415518425886409}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
-  m_LocalPosition: {x: 0.000017665869, y: 0.14442877, z: 0.06503063}
+  m_LocalRotation: {x: -0.20244016, y: 0.6775081, z: -0.20244046, w: 0.6775092}
+  m_LocalPosition: {x: -0.0001087835, y: 0.13820651, z: 0.06938112}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -242,6 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 0
+  geometryVerified: 1
 --- !u!1001 &7937880123324220364
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -520,9 +478,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400088, guid: ee465ab9a24fe4949b0322fd28a3c579, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1413916535568089256}
-    - targetCorrespondingSourceObject: {fileID: 400088, guid: ee465ab9a24fe4949b0322fd28a3c579, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1878866869298964958}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: ee465ab9a24fe4949b0322fd28a3c579, type: 3}
       insertIndex: -1
@@ -614,6 +569,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   muzzle: {fileID: 5879890757994711998}
+  tracerMuzzleInsetMeters: 0.021
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

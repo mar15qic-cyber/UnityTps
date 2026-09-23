@@ -7,9 +7,8 @@ namespace Game.Core
     public interface IBalanceConfig
     {
         WeaponStat GetWeaponStat(string weaponId);          // damage/rpm/magSize/reloadTime/spread/adsFov...
-        int GetFinalDamage(string weaponId, int upDamageLv); // 伤害公式
+        int GetFinalDamage(string weaponId); // 伤害公式
         int GetXpForLevel(int level);                         // XP 曲线
-        int GetUpgradeCost(string statId, int currentLv);     // 升级消耗
     }
 
     /// <summary>武器静态数值（来自 Lua/JSON 配置，只读；严禁运行时状态）。

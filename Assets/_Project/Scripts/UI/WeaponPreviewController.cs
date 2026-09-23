@@ -21,6 +21,7 @@ namespace Game.UI
         private RawImage output;
         private GameObject stage;
         private GameObject modelRoot;
+        private GameObject modelPoseRoot;
         private GameObject modelInstance;
         private Camera previewCamera;
         private RenderTexture renderTexture;
@@ -42,14 +43,17 @@ namespace Game.UI
             stage = new GameObject("WeaponPreviewStage");
             modelRoot = new GameObject("WeaponPreviewModelRoot");
             modelRoot.transform.SetParent(stage.transform, false);
+            modelPoseRoot = new GameObject("WeaponPreviewPoseRoot");
+            modelPoseRoot.transform.SetParent(modelRoot.transform, false);
 
             if (prefab != null)
             {
-                modelInstance = Instantiate(prefab, modelRoot.transform);
+                modelInstance = Instantiate(prefab, modelPoseRoot.transform);
                 modelInstance.name = prefab.name + "_ShopPreview";
-                // 归零 prefab 根节点自带的位置/乱转,否则初始朝向与居中计算被 TP 预览姿态污染(Docs/20 修复)。
-                modelInstance.transform.localPosition = Vector3.zero;
-                modelInstance.transform.localRotation = Quaternion.identity;
+                // TP prefab root stores the authored hand-mounted pose used in Arena.
+                // Never zero it here: handgun/rifle families have different right-hand
+                // spaces. A separate pose root handles visual centering without mutating
+                // that authored local position/rotation/scale.
                 SetLayerRecursively(modelInstance, PreviewLayer);
                 FrameModel();
             }
@@ -91,8 +95,8 @@ namespace Game.UI
             if (!dragging || modelRoot == null) return;
             var delta = eventData.position - lastPointer;
             lastPointer = eventData.position;
-            yaw -= delta.x * 0.35f;
-            pitch = Mathf.Clamp(pitch + delta.y * 0.22f, -55f, 55f);
+            yaw = Mathf.Repeat(yaw - delta.x * 0.35f, 360f);
+            pitch = Mathf.Repeat(pitch + delta.y * 0.22f, 360f);
         }
 
         public void OnScroll(PointerEventData eventData)
@@ -114,7 +118,8 @@ namespace Game.UI
             if (renderers.Length == 0) return;
             var bounds = renderers[0].bounds;
             for (var i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
-            modelInstance.transform.localPosition = -bounds.center;
+            var centerInOrbitSpace = modelRoot.transform.InverseTransformPoint(bounds.center);
+            modelPoseRoot.transform.localPosition = -centerInOrbitSpace;
             var extent = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
             distance = Mathf.Clamp(Mathf.Max(extent * 2.8f, 0.8f), MinDistance, MaxDistance);
         }
@@ -134,7 +139,7 @@ namespace Game.UI
             cameraObject.transform.SetParent(stage.transform, false);
             previewCamera = cameraObject.AddComponent<Camera>();
             previewCamera.clearFlags = CameraClearFlags.SolidColor;
-            previewCamera.backgroundColor = new Color(0.015f, 0.055f, 0.11f, 1f);
+            previewCamera.backgroundColor = UITheme.BackgroundDeep;
             previewCamera.cullingMask = 1 << PreviewLayer;
             previewCamera.fieldOfView = 28f;
             previewCamera.nearClipPlane = 0.01f;
@@ -175,6 +180,7 @@ namespace Game.UI
             }
             if (output != null) output.texture = null;
             modelInstance = null;
+            modelPoseRoot = null;
             modelRoot = null;
             previewCamera = null;
         }
@@ -188,4 +194,3 @@ namespace Game.UI
         }
     }
 }
-
