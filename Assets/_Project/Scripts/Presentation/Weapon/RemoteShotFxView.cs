@@ -18,7 +18,9 @@ namespace Game.Presentation.Weapon
     public sealed class RemoteShotFxView : MonoBehaviour
     {
         private const int PoolSize = 64;
-        private const float TracerLifeSeconds = 0.08f;
+        // A 80 ms line expires between normal automatic rounds, and one late
+        // network packet then makes an otherwise continuous burst look interrupted.
+        private const float TracerLifeSeconds = 0.14f;
 
         private readonly LineRenderer[] _lines = new LineRenderer[PoolSize];
         private readonly float[] _timers = new float[PoolSize];

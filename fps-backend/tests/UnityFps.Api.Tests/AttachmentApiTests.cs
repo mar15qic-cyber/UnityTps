@@ -263,4 +263,39 @@ public sealed class AttachmentApiTests : IClassFixture<ApiFactory>
         Assert.DoesNotContain(cleaned.Attachments, x => x.AttachmentItemId == "attach.lpw.grip.01");
         Assert.Equal(versionBefore + 1, cleaned.Version);
     }
+
+    [Fact]
+    public async Task SniperMagazineMigrationPreservesOwnedAndEquippedOldMagazine()
+    {
+        var (_, userId) = await RegisterAndLoginAsync("snipermag");
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var loadout = await db.Loadouts.Include(x => x.Attachments).SingleAsync(x => x.UserId == userId);
+        loadout.PrimaryWeaponId = "weapon.sniper03";
+        db.InventoryItems.Add(new PlayerInventoryItem
+        {
+            UserId = userId, ItemId = "attach.rifle.magazine", Quantity = 1, AcquiredAtUtc = DateTime.UtcNow
+        });
+        loadout.Attachments.Add(new PlayerLoadoutAttachment
+        {
+            WeaponSlot = "Primary", AttachmentSlot = "Magazine", AttachmentItemId = "attach.rifle.magazine"
+        });
+        await db.SaveChangesAsync();
+
+        await AttachmentSystemSeeder.SeedAsync(db);
+        db.ChangeTracker.Clear();
+        await AttachmentSystemSeeder.SeedAsync(db); // idempotent on later boots
+        db.ChangeTracker.Clear();
+
+        var owned = await db.InventoryItems.Where(x => x.UserId == userId).ToListAsync();
+        Assert.Single(owned, x => x.ItemId == "attach.sniper.magazine");
+        Assert.Contains(owned, x => x.ItemId == "attach.rifle.magazine");
+        var migrated = await db.Loadouts.Include(x => x.Attachments).SingleAsync(x => x.UserId == userId);
+        Assert.Contains(migrated.Attachments, x => x.AttachmentItemId == "attach.sniper.magazine");
+        Assert.DoesNotContain(migrated.Attachments, x => x.AttachmentItemId == "attach.rifle.magazine");
+        Assert.True(await db.AttachmentCompat.AnyAsync(x => x.WeaponItemId == "weapon.sniper03"
+            && x.AttachmentItemId == "attach.sniper.magazine" && x.IsImplemented));
+        Assert.False(await db.AttachmentCompat.AnyAsync(x => x.WeaponItemId == "weapon.sniper03"
+            && x.AttachmentItemId == "attach.rifle.magazine"));
+    }
 }

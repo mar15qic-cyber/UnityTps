@@ -15,7 +15,7 @@ namespace Game.EditorTools
     /// ① 覆盖 16 把正式 LPFP 武器（不含 LPW）；
     /// ② 新增 FP Muzzle 位置误差检查——原厂 Muzzleflash Particles 的 weapon 骨局部位置
     ///    与正式 View 的 Muzzle 同空间比较（≤1cm），杜绝"同族照搬坐标"静默通过；
-    /// ③ 新增 TP Muzzle 位置检查——根局部空间贴枪模几何（z=前端 maxZ、y=主枪体 y 中点，≤2cm）；
+    /// ③ TP Muzzle 位置检查——根局部空间贴枪管前端（z=前端 maxZ、y=前端切片中点，≤2cm）；
     /// ④ 逐枪输出 PASS/FAIL 与位置/角度误差数值。
     /// 菜单触发：Tools/Weapon Muzzle Validator。
     /// </summary>
@@ -204,13 +204,17 @@ namespace Game.EditorTools
             if (body == null || body.sharedMesh == null) { errors.Add("TP 未找到主枪体 mesh"); return; }
 
             float yMin = float.MaxValue, yMax = float.MinValue;
+            float xMin = float.MaxValue, xMax = float.MinValue;
             foreach (var v in body.sharedMesh.vertices)
             {
-                float y = root.InverseTransformPoint(body.transform.TransformPoint(v)).y;
+                var point = root.InverseTransformPoint(body.transform.TransformPoint(v));
+                if (point.z < zMax - .0015f) continue;
+                float y = point.y;
                 if (y < yMin) yMin = y;
                 if (y > yMax) yMax = y;
+                xMin = Mathf.Min(xMin, point.x); xMax = Mathf.Max(xMax, point.x);
             }
-            var expected = new Vector3(0f, (yMin + yMax) * 0.5f, zMax);
+            var expected = new Vector3((xMin + xMax) * .5f, (yMin + yMax) * 0.5f, zMax);
             float dz = Mathf.Abs(muzzle.localPosition.z - zMax);
             float dy = Mathf.Abs(muzzle.localPosition.y - (yMin + yMax) * 0.5f);
             metrics.Add("TP dz=" + (dz * 1000f).ToString("F0") + "mm dy=" + (dy * 1000f).ToString("F0") + "mm");

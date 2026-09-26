@@ -52,6 +52,7 @@ namespace Game.Gameplay.Movement
         private CharacterController _cc;
         private InputReader _input;
         private WeaponController _weaponController;
+        private PlayerAimState _aimState;
         private MovementCommand _lastCommand;
         private Vector3 _horizontalVelocity;
         private float _groundSpeed;
@@ -85,14 +86,15 @@ namespace Game.Gameplay.Movement
         /// </summary>
         public Func<float> PitchProvider { get; set; }
 
-        private const float DefaultWalkSpeed = 1.58f;
-        private const float DefaultSprintSpeed = 3.8f;
+        private const float DefaultWalkSpeed = 1.68f;
+        private const float DefaultSprintSpeed = 4.0f;
 
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
             _input = GetComponentInParent<InputReader>();
             _weaponController = GetComponentInParent<WeaponController>();
+            _aimState = GetComponentInParent<PlayerAimState>();
             ResolveProfileFromWeapon(_weaponController != null ? _weaponController.Definition : null);
         }
 
@@ -124,6 +126,7 @@ namespace Game.Gameplay.Movement
                 ++_offlineTick);
 
             command.LeanIntent = _input.LeanIntent;
+            command.Ads01 = _aimState != null ? _aimState.Ads01 : 0f;
 
             Simulate(command, Time.deltaTime);
             if (_jumpConsumedThisStep) _input.ConsumeJump();
@@ -316,6 +319,12 @@ namespace Game.Gameplay.Movement
                 ? rootMotionProfile != null ? rootMotionProfile.SprintSpeed : DefaultSprintSpeed
                 : rootMotionProfile != null ? rootMotionProfile.WalkSpeed : DefaultWalkSpeed;
 
+            // Root-motion and fallback displacement both consume the same adjusted ground speed.
+            // ADS is blended by PlayerAimState, so the speed change follows the sight transition.
+            float adsRatio = _weaponController != null ? _weaponController.AdsGroundSpeedMultiplier : 1f;
+            float adsScale = Mathf.Lerp(1f, adsRatio, Mathf.Clamp01(command.Ads01));
+            canonicalSpeed *= adsScale;
+
             float response = canonicalSpeed >= _groundSpeed ? groundAcceleration : groundDeceleration;
             _groundSpeed = Mathf.MoveTowards(_groundSpeed, canonicalSpeed, response * deltaTime);
 
@@ -325,7 +334,9 @@ namespace Game.Gameplay.Movement
             {
                 localRootDelta = rootMotionProfile.EvaluateDelta(
                     gait, move, _gaitPhase, deltaTime, out _gaitPhase, out rootYaw);
-                localRootDelta *= canonicalSpeed > 0f ? _groundSpeed / canonicalSpeed : 0f;
+                float rawSpeed = gait == RootMotionGait.Sprint
+                    ? rootMotionProfile.SprintSpeed : rootMotionProfile.WalkSpeed;
+                localRootDelta *= rawSpeed > 0f ? _groundSpeed / rawSpeed : 0f;
             }
             else
             {

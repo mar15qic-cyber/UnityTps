@@ -20,7 +20,7 @@ public static class VideoFollowupContentRepair
     public static void BuildMapMetadata()
     {
         var entries = new List<MapRadarCatalog.Entry>();
-        foreach (var id in new[] { "arena", "map_01", "map_02", "map_03", "map_04" })
+        foreach (var id in new[] { "arena", "map_01", "map_02", "map_03", "map_04", "map_05" })
         {
             var name = GameMapCatalog.ResolveSceneName(id);
             var scene = EditorSceneManager.OpenPreviewScene("Assets/_Project/Scenes/" + name + ".unity");

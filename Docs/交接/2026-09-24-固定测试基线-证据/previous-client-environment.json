@@ -1,0 +1,10 @@
+{
+  "environmentId": "private-test",
+  "releaseId": "private-test-01",
+  "networkMode": "private-overlay",
+  "inviteOnly": true,
+  "zeroTierNetworkId": "743993800fd77ce1",
+  "hostOverlayAddress": "10.16.41.231",
+  "apiBaseUrl": "http://10.16.41.231:5081",
+  "hotUpdateBaseUrl": "http://10.16.41.231:5081/hotupdate"
+}

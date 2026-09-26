@@ -29,9 +29,9 @@ namespace Game.Gameplay.Weapon
             State = WeaponRuntimeState.Ready;
         }
 
-        internal bool TryConsumeRound()
+        internal bool TryConsumeRound(bool cadenceValidated = false)
         {
-            if (State != WeaponRuntimeState.Ready || CooldownRemaining > 0f || CurrentAmmo <= 0) return false;
+            if (State != WeaponRuntimeState.Ready || (!cadenceValidated && CooldownRemaining > 0f) || CurrentAmmo <= 0) return false;
             CurrentAmmo--;
             return true;
         }

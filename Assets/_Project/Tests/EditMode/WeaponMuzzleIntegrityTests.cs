@@ -156,7 +156,9 @@ namespace Game.Gameplay.Tests
                 float yMin = float.MaxValue, yMax = float.MinValue;
                 foreach (var v in body.sharedMesh.vertices)
                 {
-                    float y = root.InverseTransformPoint(body.transform.TransformPoint(v)).y;
+                    var point = root.InverseTransformPoint(body.transform.TransformPoint(v));
+                    if (point.z < zMax - .0015f) continue;
+                    float y = point.y;
                     if (y < yMin) yMin = y;
                     if (y > yMax) yMax = y;
                 }

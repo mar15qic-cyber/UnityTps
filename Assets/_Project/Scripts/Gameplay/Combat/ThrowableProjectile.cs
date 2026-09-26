@@ -105,7 +105,12 @@ namespace Game.Gameplay.Combat
         public override void OnStartClient()
         {
             _definition = _catalog.Get(_type.Value);
-            if (!IsServerInitialized) _body.isKinematic = true;
+            if (!IsServerInitialized)
+            {
+                _body.isKinematic = true;
+                _body.interpolation = RigidbodyInterpolation.None; // NetworkTransform owns remote interpolation.
+                _sphere.enabled = false; // Client proxy cannot collide against its own interpolated path.
+            }
             CreateVisual();
             if (_detonated.Value) CreateEffect(_effectPosition.Value);
         }

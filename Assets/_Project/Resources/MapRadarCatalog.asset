@@ -20,21 +20,26 @@ MonoBehaviour:
     halfHeight: 17.4
   - sceneName: Map_Stackyard
     image: {fileID: 21300000, guid: a9427ed5c4767954095db6b2fe7cd4c8, type: 3}
-    cameraPosition: {x: 0, y: 92.31497, z: -65}
+    cameraPosition: {x: 0, y: 91.475, z: -65}
     cameraRotation: {x: 0.45525238, y: -0, z: -0, w: 0.89036244}
-    halfHeight: 22.039999
+    halfHeight: 18.56
   - sceneName: Map_Depot55
     image: {fileID: 21300000, guid: 6fd1c569866f4ff418e055645f31ce49, type: 3}
-    cameraPosition: {x: 0, y: 92.43997, z: -65}
+    cameraPosition: {x: 0, y: 91.675, z: -65}
     cameraRotation: {x: 0.45525238, y: -0, z: -0, w: 0.89036244}
-    halfHeight: 33.059998
+    halfHeight: 26.679998
   - sceneName: Map_Ridgeline
     image: {fileID: 21300000, guid: 0bfb097bea7efec40a45ab3d50c86fc5, type: 3}
-    cameraPosition: {x: 0, y: 92.43997, z: -65}
+    cameraPosition: {x: 0, y: 91.05, z: -65}
     cameraRotation: {x: 0.45525238, y: -0, z: -0, w: 0.89036244}
-    halfHeight: 53.359997
+    halfHeight: 19.72
   - sceneName: Map_TrainingYard
     image: {fileID: 21300000, guid: d974be8c4cc6e3948a040e003cccfedd, type: 3}
-    cameraPosition: {x: 0, y: 92.31497, z: -65}
+    cameraPosition: {x: 0, y: 91.225, z: -65}
     cameraRotation: {x: 0.45525238, y: -0, z: -0, w: 0.89036244}
-    halfHeight: 22.039999
+    halfHeight: 17.4
+  - sceneName: Map_NightRelay
+    image: {fileID: 21300000, guid: f4c29a2993cbe054489503631f94480e, type: 3}
+    cameraPosition: {x: 0, y: 95.25, z: -65}
+    cameraRotation: {x: 0.45525238, y: -0, z: -0, w: 0.89036244}
+    halfHeight: 29

@@ -20,7 +20,7 @@ namespace Game.Tests.EditMode
                 machine.TryResume();
             }
         }
-        [TestCase("Arena")][TestCase("Map_Stackyard")][TestCase("Map_Depot55")][TestCase("Map_Ridgeline")][TestCase("Map_TrainingYard")]
+        [TestCase("Arena")][TestCase("Map_Stackyard")][TestCase("Map_Depot55")][TestCase("Map_Ridgeline")][TestCase("Map_TrainingYard")][TestCase("Map_NightRelay")]
         public void EveryRegisteredBattleMapSupportsMenu(string scene) => Assert.That(GameMapCatalog.IsGameplayScene(scene),Is.True);
         [TestCase("Lobby")][TestCase("Login")]
         public void NonBattleScenesDoNotMountMenu(string scene) => Assert.That(GameMapCatalog.IsGameplayScene(scene),Is.False);

@@ -21,6 +21,15 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void RosterTeamNormalization_OnlyCanonicalTeamsCanScore()
+        {
+            Assert.That(MatchRules.NormalizeRosterTeam(MatchRules.TeamRed),Is.EqualTo(MatchRules.TeamRed));
+            Assert.That(MatchRules.NormalizeRosterTeam(MatchRules.TeamBlue),Is.EqualTo(MatchRules.TeamBlue));
+            Assert.That(MatchRules.NormalizeRosterTeam("Red "),Is.EqualTo(MatchRules.TeamNone));
+            Assert.That(MatchRules.NormalizeRosterTeam(null),Is.EqualTo(MatchRules.TeamNone));
+        }
+
+        [Test]
         public void TeamWinner_Timeout_ComparesScores()
         {
             Assert.That(MatchRules.EvaluateTeamWinner(58, 60, 100, timedOut: true), Is.EqualTo(MatchRules.TeamBlue));

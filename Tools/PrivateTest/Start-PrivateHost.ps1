@@ -6,6 +6,7 @@ if ($adapter.Count -ne 1) { throw 'Host overlay address is not assigned. Join an
 $net=Get-NetAdapter -InterfaceIndex $adapter[0].InterfaceIndex
 if ($net.InterfaceDescription -notmatch 'ZeroTier') { throw 'Configured address is not on the ZeroTier interface.' }
 if ($CheckOnly) { & "$PSScriptRoot/../Cloud/Start-CloudServer.ps1" -ConfigPath $ConfigPath -CheckOnly; exit }
+& "$PSScriptRoot/Initialize-BaseMapCatalog.ps1" -ConfigPath $ConfigPath
 & "$PSScriptRoot/../Cloud/Start-CloudServer.ps1" -ConfigPath $ConfigPath
 if (-not $?) { throw 'Private server startup failed.' }
 & "$PSScriptRoot/Restart-AdditionalMaps.ps1" -ConfigPath $ConfigPath

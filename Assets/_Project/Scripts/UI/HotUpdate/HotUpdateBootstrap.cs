@@ -48,7 +48,7 @@ namespace Game.UI
             try
             {
                 var release = Game.Core.ClientReleaseEnvironment.Current;
-                if (release?.inviteOnly == true) urlOverride = release.hotUpdateBaseUrl;
+                if (release?.RequiresReleaseValidation == true) urlOverride = release.hotUpdateBaseUrl;
                 else if (string.IsNullOrEmpty(urlOverride)) urlOverride = ResolveUrlOverride();
                 if (string.Equals(urlOverride, "off", StringComparison.OrdinalIgnoreCase))
                 {
@@ -82,7 +82,7 @@ namespace Game.UI
                 }
                 // F18：清单结构整体校验（版本严格单段纯数字/路径消毒/size/hash/重复路径）——
                 // 校验失败视同坏 manifest，整包拒绝，不做任何下载。
-                if (release?.inviteOnly == true && remote.releaseId != release.releaseId)
+                if (release?.RequiresReleaseValidation == true && remote.releaseId != release.releaseId)
                 {
                     result.Kind = "release-mismatch";
                     result.Error = "Client and hot-update release identities differ";

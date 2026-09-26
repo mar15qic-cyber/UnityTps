@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 04:55:59Z" end-time="2026-09-26 04:56:01Z" duration="1.5100453">
+  <test-suite type="TestSuite" id="1000" name="UnityFps" fullname="UnityFps" runstate="Runnable" testcasecount="1361" result="Passed" start-time="2026-09-26 04:55:59Z" end-time="2026-09-26 04:56:01Z" duration="1.510045" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="2571" name="Game.Gameplay.Tests.dll" fullname="E:/UnityProject/UnityFpsLowPoly/Library/ScriptAssemblies/Game.Gameplay.Tests.dll" runstate="Runnable" testcasecount="1360" result="Passed" start-time="2026-09-26 04:55:59Z" end-time="2026-09-26 04:56:01Z" duration="1.310522" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="49172" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="2572" name="Game" fullname="Game" runstate="Runnable" testcasecount="1360" result="Passed" start-time="2026-09-26 04:56:00Z" end-time="2026-09-26 04:56:01Z" duration="1.118056" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2577" name="Gameplay" fullname="Game.Gameplay" runstate="Runnable" testcasecount="1297" result="Passed" start-time="2026-09-26 04:56:00Z" end-time="2026-09-26 04:56:01Z" duration="0.887382" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="2578" name="Tests" fullname="Game.Gameplay.Tests" runstate="Runnable" testcasecount="1297" result="Passed" start-time="2026-09-26 04:56:00Z" end-time="2026-09-26 04:56:01Z" duration="0.692613" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="2337" name="TPGripPoseValidationTests" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 04:56:00Z" end-time="2026-09-26 04:56:01Z" duration="0.475160" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="ParameterizedMethod" id="2342" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 04:56:00Z" end-time="2026-09-26 04:56:01Z" duration="0.366088" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2339" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-60.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-60.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="1826801297" result="Passed" start-time="2026-09-26 04:56:01Z" end-time="2026-09-26 04:56:01Z" duration="0.095146" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2340" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(0.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(0.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="964183378" result="Passed" start-time="2026-09-26 04:56:01Z" end-time="2026-09-26 04:56:01Z" duration="0.078252" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2341" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(60.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(60.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="231645669" result="Passed" start-time="2026-09-26 04:56:01Z" end-time="2026-09-26 04:56:01Z" duration="0.079849" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="2338" name="RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" methodname="RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="2073436405" result="Passed" start-time="2026-09-26 04:56:01Z" end-time="2026-09-26 04:56:01Z" duration="0.000870" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2343" name="UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" methodname="UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="1004756454" result="Passed" start-time="2026-09-26 04:56:01Z" end-time="2026-09-26 04:56:01Z" duration="0.005955" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/陈琪/AppData/LocalLow/DefaultCompany/UnityFps\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

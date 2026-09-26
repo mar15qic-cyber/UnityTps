@@ -579,6 +579,8 @@ MonoBehaviour:
   controller: {fileID: 0}
   muzzle: {fileID: 2813087978186293443}
   tracerMuzzleInsetMeters: 0.034
+  hasCalibratedBarrelTip: 1
+  barrelTipMuzzleLocal: {x: 0.00041113235, y: -0.0009375457, z: -0.044065725}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

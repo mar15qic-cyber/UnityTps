@@ -411,6 +411,11 @@ namespace Game.UI
         /// <summary>建房：成功后进入等待房间页（快照无 connection）。失败清上下文留在大厅。</summary>
         private async Task StartOnlineCreateAsync(CreateRoomRequest request)
         {
+            if (request != null && HotMapCatalog.TryGetSceneName(request.mapId, out var requestedScene)
+                && HotSceneLoader.IsBundleScene(requestedScene)
+                && (!HotMapCatalog.TryGet(request.mapId, out var publishedMap)
+                    || string.IsNullOrWhiteSpace(publishedMap.contentHash)))
+            { status.text = "这张热更地图尚未发布与服务器匹配的版本，请等待地图更新"; return; }
             if (request != null && HotMapCatalog.TryGet(request.mapId, out var selectedMap)
                 && (selectedMap.availability == "preparing" || !string.IsNullOrEmpty(selectedMap.contentHash) && !HotSceneLoader.IsBundleReady(selectedMap.sceneName)))
             { status.text = "地图尚未准备好，请等待服务器就绪或完成地图下载"; return; }
@@ -506,6 +511,14 @@ namespace Game.UI
             {
                 RoomConnectionGate.Sanitize(connection);
                 status.text = $"无法进入战场：房间地图未知（{roomMapId}），请更新客户端";
+                return false;
+            }
+            if (HotSceneLoader.IsBundleScene(sceneName)
+                && (!HotMapCatalog.TryGet(roomMapId, out var publishedMap)
+                    || string.IsNullOrWhiteSpace(publishedMap.contentHash)))
+            {
+                RoomConnectionGate.Sanitize(connection);
+                status.text = "无法进入战场：服务器尚未发布这张热更地图的内容校验值";
                 return false;
             }
             if (HotSceneLoader.IsBundleScene(sceneName) && !HotSceneLoader.IsBundleReady(sceneName))

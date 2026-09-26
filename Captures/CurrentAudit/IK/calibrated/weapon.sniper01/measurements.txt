@@ -1,0 +1,19 @@
+item=weapon.sniper01 name=M24 SWS clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.00800, -0.07800, 0.16000)
+targetRotation=(-0.38806, 0.49447, 0.40893, -0.66157)
+requestedPitch=0 muzzlePitch=0.000
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(-0.00800, -0.07800, 0.16000)
+LeftThumbProximal=(-0.03423, -0.06594, 0.20635)
+LeftIndexProximal=(-0.02468, -0.03772, 0.27106)
+LeftMiddleProximal=(0.02080, -0.03313, 0.26118)
+LeftMiddleIntermediate=(0.01764, -0.00339, 0.26461)
+LeftMiddleDistal=(0.00966, 0.01446, 0.24104)
+mesh=TP_Weapon_Sniper_01 min=(-0.02487, -0.11761, -0.49520) max=(0.02405, 0.04111, 0.82898)
+mesh=sniper_01_bipod_leg_left min=(-0.09838, -0.20101, 0.26165) max=(-0.00024, -0.01323, 0.30459)
+mesh=sniper_01_bipod_leg_right min=(-0.00058, -0.20101, 0.26165) max=(0.09757, -0.01323, 0.30459)
+mesh=sniper_01_scope min=(-0.02796, 0.03280, -0.23051) max=(0.02715, 0.14910, 0.14288)
+mesh=sniper_01_slider min=(-0.01193, -0.02210, -0.19144) max=(0.03627, 0.03216, -0.02219)

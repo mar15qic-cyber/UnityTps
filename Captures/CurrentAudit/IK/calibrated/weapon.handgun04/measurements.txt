@@ -1,0 +1,20 @@
+item=weapon.handgun04 name=HK P30 clip=idle@handgun_tpc
+beforeWrist=(-0.06393, -0.14015, -0.00526)
+beforeRotation=(0.12644, -0.61095, -0.64319, 0.44392)
+target=(-0.06704, -0.08821, -0.07079)
+targetRotation=(0.12644, -0.61095, -0.64319, 0.44392)
+requestedPitch=0 muzzlePitch=0.000
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(-0.06704, -0.08821, -0.07079)
+LeftThumbProximal=(-0.07301, -0.05924, -0.02489)
+LeftIndexProximal=(-0.04271, -0.04650, 0.03832)
+LeftMiddleProximal=(-0.01011, -0.07837, 0.02791)
+LeftMiddleIntermediate=(0.01397, -0.06156, 0.03454)
+LeftMiddleDistal=(0.03027, -0.04160, 0.01800)
+mesh=TP_Weapon_Handgun_04 min=(-0.01472, -0.10833, -0.08171) max=(0.01472, 0.03397, 0.13127)
+mesh=Handgun_04_Hammer min=(-0.00456, -0.00111, -0.08177) max=(0.00456, 0.02955, -0.05553)
+mesh=Handgun_04_Mag min=(-0.01060, -0.10803, -0.07004) max=(0.01060, -0.00511, -0.00747)
+mesh=Handgun_04_Slider min=(-0.01304, -0.00139, -0.07676) max=(0.01304, 0.03533, 0.12915)
+mesh=Handgun_04_Iron_Sights min=(-0.00876, 0.03001, -0.05803) max=(0.00876, 0.04022, 0.11817)
+mesh=OpticMountAdapter min=(-0.01100, 0.02953, -0.03400) max=(0.01100, 0.03833, 0.07400)

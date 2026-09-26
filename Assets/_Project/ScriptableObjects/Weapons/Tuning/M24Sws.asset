@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: M24Sws
+  m_EditorClassIdentifier: 
+  WeaponId: sniper.01
+  Stat:
+    Damage: 75
+    Rpm: 45
+    MagSize: 5
+    ReserveAmmo: 25
+    ReloadTime: 3
+    Spread: 0.05
+    MaxRange: 300
+    AdsFov: 20
+    Recoil:
+      PitchDeg: 1.75
+      YawDeg: 0.2
+      FirstShotMultiplier: 1
+      Accumulation: 1
+      MaxAccumulation: 1
+      RecoveryDelay: 0.35
+      RecoverySpeed: 2.6
+      SpringFrequency: 7
+      SpringDamping: 0.8
+      ShakePositionAmplitude: 0.8
+      ViewModelKickBack: 0.09
+      ViewModelKickPitch: 8
+      AdsRecoilMultiplier: 0.9
+    Accuracy:
+      BaseHipSpread: 0.05
+      BaseAdsSpread: 0.02
+      MovementSpreadMax: 3
+      SprintSpreadExtra: 4
+      AirborneSpreadExtra: 4
+      ShotBloomPerShot: 0.6
+      MaxBloom: 1.5
+      BloomRecoveryDelay: 0.3
+      BloomRecoverySpeed: 2.5
+    Ballistic:
+      PelletCount: 1
+      PelletSpread: 0
+  AdsGroundSpeedMultiplier: 0.96
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

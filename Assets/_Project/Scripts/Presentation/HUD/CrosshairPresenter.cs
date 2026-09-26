@@ -1,5 +1,7 @@
 using Game.Gameplay.Player;
 using Game.Gameplay.Weapon;
+using Game.Gameplay.Network;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Presentation.HUD
@@ -23,6 +25,8 @@ namespace Game.Presentation.HUD
         public CrosshairModel Model { get; } = new();
 
         private UnityEngine.Camera _mainCam;   // Game.Presentation.Camera 命名空间遮蔽 UnityEngine.Camera，全限定
+        private NetworkCombatAuthority _ownerAuthority;
+        private readonly System.Collections.Generic.HashSet<ulong> _confirmedShots = new();
 
         private void Awake()
         {
@@ -34,16 +38,30 @@ namespace Game.Presentation.HUD
         private void OnEnable()
         {
             if (controller != null) controller.OnShotFired += HandleShot;
+            if (_ownerAuthority != null) _ownerAuthority.OnShotConfirmed += HandleShotConfirmed;
         }
 
         private void OnDisable()
         {
             if (controller != null) controller.OnShotFired -= HandleShot;
+            if (_ownerAuthority != null) _ownerAuthority.OnShotConfirmed -= HandleShotConfirmed;
         }
 
         private void HandleShot(WeaponShot shot)
         {
-            if (shot.Result.Damaged) Model.HitMarkerRemaining = config != null ? config.HitMarkerSeconds : 0.25f;
+            // Online remote owners wait for measured server damage; host/offline shots are authoritative here.
+            if (_ownerAuthority == null || _ownerAuthority.IsServerInitialized)
+            {
+                bool damaged = shot.Result.DamageAmount > 0;
+                bool headshot = damaged && shot.Result.BodyRegion == HitBodyRegion.Head;
+                if (shot.Pellets != null)
+                    foreach (var pellet in shot.Pellets)
+                    {
+                        damaged |= pellet.DamageAmount > 0;
+                        headshot |= pellet.DamageAmount > 0 && pellet.BodyRegion == HitBodyRegion.Head;
+                    }
+                if (damaged) ShowHitMarker(headshot);
+            }
             if (debugGap)
                 Debug.Log($"[Crosshair] shot#{shot.ShotIndex} spread={Model.LastSpreadDegrees:F2}° " +
                           $"physGap={Model.TargetGap:F1}px display={Model.CurrentGap:F1}px", this);
@@ -80,10 +98,34 @@ namespace Game.Presentation.HUD
                 var ownerStateView = state.GetComponentInChildren<PlayerStateView>(true);
                 if (ownerController == null) continue; // 玩家对象尚未完全装配，下轮重扫
                 _netWeaponState = state;
+                var authority = state.GetComponent<NetworkCombatAuthority>();
+                if (_ownerAuthority != authority)
+                {
+                    if (_ownerAuthority != null) _ownerAuthority.OnShotConfirmed -= HandleShotConfirmed;
+                    _ownerAuthority = authority;
+                    if (_ownerAuthority != null && isActiveAndEnabled)
+                        _ownerAuthority.OnShotConfirmed += HandleShotConfirmed;
+                }
                 Rebind(ownerController, ownerAim, ownerStateView);
                 Debug.Log("[CrosshairPresenter] 准星已重绑到联网 Owner 玩家（在线模式 authored 玩家不参与）", this);
                 return;
             }
+        }
+
+        private void HandleShotConfirmed(RemoteShotPresentation shot, bool accepted)
+        {
+            if (!accepted || shot.DamageAmount <= 0 || _ownerAuthority == null
+                || shot.LifeEpoch != _ownerAuthority.LifeEpochForPresentation) return;
+            ulong key = ((ulong)shot.LifeEpoch << 32) | shot.ShotRequestId;
+            if (!_confirmedShots.Add(key)) return;
+            if (_confirmedShots.Count > 256) _confirmedShots.Clear();
+            ShowHitMarker(shot.BodyRegion == HitBodyRegion.Head);
+        }
+
+        private void ShowHitMarker(bool headshot)
+        {
+            Model.HitMarkerRemaining = config != null ? config.HitMarkerSeconds : .25f;
+            Model.HitMarkerHeadshot = headshot;
         }
 
         /// <summary>重绑准星数据源（internal=测试接缝）：换绑控制器并精确迁移开火事件订阅。</summary>

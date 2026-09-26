@@ -173,6 +173,50 @@ namespace Game.Gameplay.Tests
             }
         }
 
+        [Test]
+        public void OwnerTracerUsesInstalledMuzzleDeviceAperture()
+        {
+            var root = new GameObject("MuzzleDeviceTest");
+            WeaponView view = null;
+            try
+            {
+                var marker = new GameObject("Muzzle").transform;
+                marker.SetParent(root.transform);
+                marker.localPosition = new Vector3(0, 0, .3f);
+                var socket = new GameObject("Attach_Muzzle");
+                socket.transform.SetParent(root.transform);
+                socket.transform.localPosition = new Vector3(0, 0, .28f);
+                var component = socket.AddComponent<AttachmentSocket>();
+                Set(component, "slot", AttachmentSlotType.Muzzle);
+                var device = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                device.name = "Att_test_suppressor";
+                device.transform.SetParent(socket.transform);
+                device.transform.localPosition = new Vector3(0, 0, .13f);
+                device.transform.localScale = new Vector3(.08f, .08f, .3f);
+                root.AddComponent<WeaponAttachmentView>();
+                view = root.AddComponent<WeaponView>();
+                Set(view, "muzzle", marker);
+                var method = typeof(WeaponView).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Single(m => m.Name == "ResolveTracerStart" && m.GetParameters().Length == 1);
+                var start = (Vector3)method.Invoke(view, new object[] { Vector3.zero });
+                Assert.That(start.z, Is.GreaterThan(.52f), "visible suppressor tip extends past the original muzzle marker");
+                Object.DestroyImmediate(device);
+                start = (Vector3)method.Invoke(view, new object[] { Vector3.zero });
+                Assert.That(start.z, Is.EqualTo(marker.position.z).Within(.001f));
+            }
+            finally
+            {
+                if (view != null)
+                {
+                    var field = typeof(WeaponView).GetField("_tracerMaterial", BindingFlags.Instance | BindingFlags.NonPublic);
+                    var material = field.GetValue(view) as Material;
+                    field.SetValue(view, null);
+                    if (material != null) Object.DestroyImmediate(material);
+                }
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private static void Set(object obj, string field, object value)
             => obj.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(obj, value);
         private static void Invoke(object obj, string method, params object[] args)

@@ -47,7 +47,9 @@ namespace Game.Gameplay.Combat
         private int[] _offlineCounts;
         private uint _throwGeneration;
         private bool _holdRequested;
+        private float _holdStartedAt;
         public bool IsHolding => IsEquipped && _holdRequested;
+        public float HoldProgress => IsHolding ? Mathf.Clamp01((Time.time - _holdStartedAt) / .36f) : 0f;
         public bool IsEquipped { get; private set; }
         public ThrowableType SelectedType { get; private set; }
         public event System.Action OnSelectionChanged;
@@ -164,7 +166,7 @@ namespace Game.Gameplay.Combat
             if (_input.SelectThrowablePressed) SelectNext();
             else if (IsEquipped && !IsThrowing)
             {
-                if (_input.FirePressed) _holdRequested = true;
+                if (_input.FirePressed) { _holdRequested = true; _holdStartedAt = Time.time; }
                 if (_holdRequested && !_input.FireHeld)
                 { _holdRequested = false; TryThrow(SelectedType); }
             }
@@ -227,25 +229,28 @@ namespace Game.Gameplay.Combat
                 || MatchLifecycle.InputFrozen || !IsPlayablePhase(FishNetLifecycleGuard.IsNetworkActive(), MatchLifecycle.Phase)
                 || Count(type) <= 0) return;
             if (!_actions.TryStart(PlayerActionType.GrenadeThrow, _catalog.ThrowActionSeconds)) return;
+            // Capture the player's sightline at release, before the authored throw animation
+            // moves the camera or the network RPC crosses a tick boundary.
+            Vector3 requestedDirection = _weapon != null ? _weapon.AimDirection.normalized : transform.forward;
             if (!FishNetLifecycleGuard.IsNetworkActive() || NetworkObject != null && NetworkObject.IsServerInitialized)
                 SetPose(ThrowablePosePhase.Started, type, CurrentTick);
             OnLocalThrowStarted?.Invoke(type);
             if (!FishNetLifecycleGuard.IsNetworkActive())
             {
-                StartCoroutine(ReleaseAfterDelay(type, false, ++_throwGeneration));
+                StartCoroutine(ReleaseAfterDelay(type, false, ++_throwGeneration, requestedDirection));
                 return;
             }
             if (NetworkObject == null || !NetworkObject.IsSpawned) return;
             if (NetworkObject.IsServerInitialized)
-                StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration));
+                StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration, requestedDirection));
             else
-                ServerRequestThrow(type, ++_nextRequest);
+                ServerRequestThrow(type, ++_nextRequest, requestedDirection);
         }
 
         public event System.Action<ThrowableType> OnLocalThrowStarted;
 
         [ServerRpc(RequireOwnership = true)]
-        private void ServerRequestThrow(ThrowableType type, uint requestId)
+        private void ServerRequestThrow(ThrowableType type, uint requestId, Vector3 requestedDirection)
         {
             if (!IsNextRequest(_lastRequest, requestId)) return;
             _lastRequest = requestId;
@@ -255,7 +260,12 @@ namespace Game.Gameplay.Combat
                 || _actions == null || !_actions.TryStart(PlayerActionType.GrenadeThrow, _catalog.ThrowActionSeconds))
                 return;
             SetPose(ThrowablePosePhase.Started, type, CurrentTick);
-            StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration));
+            Vector3 serverDirection = _weapon != null ? _weapon.AimDirection.normalized : transform.forward;
+            // Allow ordinary view replication delay, but never trust arbitrary client vectors.
+            Vector3 direction = requestedDirection.sqrMagnitude > .9f && requestedDirection.sqrMagnitude < 1.1f
+                && Vector3.Dot(serverDirection, requestedDirection) > .75f
+                ? requestedDirection.normalized : serverDirection;
+            StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration, direction));
         }
 
         public static bool IsNextRequest(uint lastRequest, uint requestId)
@@ -264,7 +274,7 @@ namespace Game.Gameplay.Combat
         public static bool IsPlayablePhase(bool networkActive, MatchPhase phase)
             => networkActive ? phase == MatchPhase.InProgress : phase != MatchPhase.Ended;
 
-        private IEnumerator ReleaseAfterDelay(ThrowableType type, bool networked, uint generation)
+        private IEnumerator ReleaseAfterDelay(ThrowableType type, bool networked, uint generation, Vector3 requestedDirection)
         {
             yield return new WaitForSeconds(_catalog.ReleaseDelaySeconds);
             if (generation != _throwGeneration || _actions == null || _actions.CurrentAction != PlayerActionType.GrenadeThrow
@@ -272,7 +282,7 @@ namespace Game.Gameplay.Combat
                 || !IsPlayablePhase(networked, MatchLifecycle.Phase)
                 || Count(type) <= 0) yield break;
             var definition = _catalog.Get(type);
-            Vector3 direction = _weapon != null ? _weapon.AimDirection.normalized : transform.forward;
+            Vector3 direction = requestedDirection;
             Vector3 origin = _weapon != null ? _weapon.AimOrigin : transform.position + Vector3.up * 1.5f;
             var locomotor = GetComponent<Locomotor>();
             float lean = locomotor != null ? locomotor.Lean.Amount : 0f;
@@ -302,7 +312,20 @@ namespace Game.Gameplay.Combat
                 yield break;
             }
             var horizontal = _locomotor != null ? _locomotor.CaptureSnapshot().HorizontalVelocity : Vector3.zero;
-            Vector3 velocity = direction * definition.ForwardSpeed + Vector3.up * definition.UpwardSpeed
+            // Use the actual spawn point for the ballistic line. The old code aimed the
+            // velocity from the camera while spawning 55 cm ahead and 13 cm lower.
+            Vector3 target = origin + direction * 30f;
+            var aimHits = Physics.RaycastAll(origin, direction, 30f, ~0, QueryTriggerInteraction.Ignore);
+            System.Array.Sort(aimHits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var hit in aimHits)
+            {
+                if (hit.collider.transform.IsChildOf(transform)) continue;
+                target = hit.point;
+                break;
+            }
+            Vector3 travel = target - release;
+            Vector3 launchDirection = travel.sqrMagnitude > 1f ? travel.normalized : direction;
+            Vector3 velocity = launchDirection * definition.ForwardSpeed + Vector3.up * definition.UpwardSpeed
                 + horizontal * definition.InheritedHorizontalVelocity;
             if (networked)
             {

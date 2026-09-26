@@ -16,7 +16,7 @@ namespace Game.EditorTools
             Directory.CreateDirectory("Logs"); File.WriteAllText("Logs/PrivateInvitationBuild.status", "running");
             try
             {
-                var scenes = new[] { "Arena", "Map_Stackyard", "Map_Depot55", "Map_Ridgeline", "Map_TrainingYard" }
+                var scenes = new[] { "Arena", "Map_Stackyard", "Map_Depot55", "Map_Ridgeline", "Map_TrainingYard", "Map_NightRelay" }
                     .Select(n => "Assets/_Project/Scenes/" + n + ".unity").ToArray();
                 var output = "Builds/PrivateInvitationServer";
                 Directory.CreateDirectory(output);

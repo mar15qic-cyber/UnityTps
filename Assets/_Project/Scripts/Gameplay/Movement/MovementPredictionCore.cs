@@ -12,8 +12,9 @@ namespace Game.Gameplay.Movement
     {
         /// <summary>客户端单帧最大模拟步数：有限 catch-up，超出积压直接丢弃（禁无限追帧卡死）。</summary>
         public const int ClientMaxCatchUpSteps = 5;
-        /// <summary>输入批量上传周期（客户端模拟 tick 数；30Hz 下≈15Hz 批次）。</summary>
-        public const int ClientBatchSendEveryTicks = 2;
+        /// <summary>每个客户端模拟 tick 上行一次。旧 2-tick 批次使服务器交替停步/追两步，
+        /// 虽然观察快照每 tick 发送，权威位置本身仍只有约 15Hz 的更新。</summary>
+        public const int ClientBatchSendEveryTicks = 1;
         /// <summary>单批最多重传的未确认输入条数（丢包冗余上限）。</summary>
         public const int ClientBatchMaxCommands = 12;
         /// <summary>客户端预测历史容量（命令+预测快照环形缓冲）。</summary>

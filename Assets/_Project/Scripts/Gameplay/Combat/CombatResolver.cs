@@ -1,5 +1,7 @@
+using Game.Core;
 using Game.Gameplay.Health;
 using Game.Gameplay.Network;
+using Game.Gameplay.Weapon;
 using UnityEngine;
 
 namespace Game.Gameplay.Combat
@@ -11,17 +13,21 @@ namespace Game.Gameplay.Combat
         public readonly Vector3 Point;
         public readonly Vector3 Normal;
         public readonly DamageableTarget Target;
+        public readonly HitBodyRegion BodyRegion;
+        public readonly int DamageAmount;
         /// <summary>被跳过的 shooter 自身碰撞体数（诊断/测试：拖尾异常时确认是否踩到自身）。</summary>
         public readonly int SelfHitsSkipped;
 
         public HitscanResult(bool hit, bool damaged, Vector3 point, Vector3 normal, DamageableTarget target,
-            int selfHitsSkipped = 0)
+            int selfHitsSkipped = 0, HitBodyRegion bodyRegion = HitBodyRegion.Torso, int damageAmount = 0)
         {
             Hit = hit;
             Damaged = damaged;
             Point = point;
             Normal = normal;
             Target = target;
+            BodyRegion = bodyRegion;
+            DamageAmount = damageAmount;
             SelfHitsSkipped = selfHitsSkipped;
         }
     }
@@ -33,6 +39,7 @@ namespace Game.Gameplay.Combat
         public readonly Vector3 Point;
         public readonly Vector3 Normal;
         public readonly DamageableTarget Target;
+        public readonly HitBodyRegion BodyRegion;
         public readonly float Distance;
         public readonly int SelfHitsSkipped;
         // 2026-09-16 审计 §6.1：落点必须能追到具体碰撞体（旧诊断只有坐标，X=9.82 无法命名），
@@ -42,12 +49,14 @@ namespace Game.Gameplay.Combat
         public readonly int OwnerObjectId;
 
         public GeometryHit(bool hit, Vector3 point, Vector3 normal, DamageableTarget target, float distance,
-            int selfHitsSkipped, string colliderName = null, int layer = -1, int ownerObjectId = -1)
+            int selfHitsSkipped, string colliderName = null, int layer = -1, int ownerObjectId = -1,
+            HitBodyRegion bodyRegion = HitBodyRegion.Torso)
         {
             Hit = hit;
             Point = point;
             Normal = normal;
             Target = target;
+            BodyRegion = bodyRegion;
             Distance = distance;
             SelfHitsSkipped = selfHitsSkipped;
             ColliderName = colliderName;
@@ -217,8 +226,11 @@ namespace Game.Gameplay.Combat
                 // C3/Q04 TDM 友伤过滤（Docs/26 §2.4）：同队命中按阻挡处理——友军身体吸收子弹（射线截断）但不掉血
                 if (IsFriendlyBlocked(ignoreRoot, geometry.Target))
                     return new HitscanResult(true, false, geometry.Point, geometry.Normal, geometry.Target, geometry.SelfHitsSkipped);
-                geometry.Target.ApplyDamage(damage, geometry.Point, direction.normalized, attributionSource);
-                return new HitscanResult(true, true, geometry.Point, geometry.Normal, geometry.Target, geometry.SelfHitsSkipped);
+                int dealt = geometry.Target.ApplyDamageMeasured(ScaledDamage(damage, geometry.BodyRegion, ignoreRoot),
+                    geometry.Point, direction.normalized, attributionSource, geometry.BodyRegion,
+                    WeaponIdOf(ignoreRoot));
+                return new HitscanResult(true, dealt > 0, geometry.Point, geometry.Normal, geometry.Target,
+                    geometry.SelfHitsSkipped, geometry.BodyRegion, dealt);
             }
 
             return geometry.Hit
@@ -299,8 +311,10 @@ namespace Game.Gameplay.Combat
                 }
                 else
                 {
-                    final.Target.ApplyDamage(damage, final.Point, dir, attributionSource);
-                    result = new HitscanResult(true, true, final.Point, final.Normal, final.Target, final.SelfHitsSkipped);
+                    int dealt = final.Target.ApplyDamageMeasured(ScaledDamage(damage, final.BodyRegion, ignoreRoot),
+                        final.Point, dir, attributionSource, final.BodyRegion, WeaponIdOf(ignoreRoot));
+                    result = new HitscanResult(true, dealt > 0, final.Point, final.Normal, final.Target,
+                        final.SelfHitsSkipped, final.BodyRegion, dealt);
                 }
             }
             else if (final.Hit)
@@ -349,6 +363,10 @@ namespace Game.Gameplay.Combat
                     layerMask, ignoreRoot).Hit;
         }
 
+        internal GeometryHit ProbeDisplayedShot(Vector3 origin, Vector3 direction, float maxRange,
+            int layerMask, Transform ignoreRoot)
+            => ResolveGeometry(origin, direction, maxRange, layerMask, ignoreRoot);
+
         private GeometryHit ResolveGeometry(
             Vector3 origin, Vector3 direction, float maxRange, int layerMask, Transform ignoreRoot)
         {
@@ -380,7 +398,12 @@ namespace Game.Gameplay.Combat
                     movementSkipped++;
                     continue;
                 }
-                if (best < 0 || _hits[i].distance < _hits[best].distance) best = i;
+                // Neck/limb overlap: choose the higher-priority region within 3 cm of the nearest surface.
+                // The choice must not depend on RaycastNonAlloc's collider enumeration order.
+                if (best < 0 || _hits[i].distance < _hits[best].distance - .03f
+                    || (collider.transform.root == _hits[best].collider.transform.root
+                        && Mathf.Abs(_hits[i].distance - _hits[best].distance) <= .03f
+                        && RegionPriority(_hits[i].collider) > RegionPriority(_hits[best].collider))) best = i;
             }
             LastSegmentMovementSkipped = movementSkipped;
 
@@ -445,7 +468,30 @@ namespace Game.Gameplay.Combat
             return new GeometryHit(hit, hitInfo.point, hitInfo.normal, target, hitInfo.distance, selfSkipped,
                 collider != null ? collider.name : null,
                 collider != null ? collider.gameObject.layer : -1,
-                ownerObjectId);
+                ownerObjectId,
+                collider != null && collider.TryGetComponent<HitVolumeTag>(out var tag)
+                    ? tag.BodyRegion : HitBodyRegion.Torso);
+        }
+
+        private static int RegionPriority(Collider collider)
+        {
+            var tag = collider != null ? collider.GetComponent<HitVolumeTag>() : null;
+            if (tag == null || tag.Role != HitVolumeRole.DamageSurface) return 0;
+            return tag.BodyRegion == HitBodyRegion.Head ? 4 : tag.BodyRegion == HitBodyRegion.Arm ? 3
+                : tag.BodyRegion == HitBodyRegion.Leg ? 2 : 1;
+        }
+
+        private static int ScaledDamage(int baseDamage, HitBodyRegion region, Transform shooterRoot)
+        {
+            var weapon = shooterRoot != null ? shooterRoot.GetComponentInChildren<WeaponController>(true) : null;
+            var multipliers = weapon != null ? weapon.CurrentHitRegionMultipliers : HitRegionMultipliers.Standard;
+            return Mathf.Max(1, Mathf.RoundToInt(baseDamage * multipliers.For(region)));
+        }
+
+        private static string WeaponIdOf(Transform shooterRoot)
+        {
+            var weapon = shooterRoot != null ? shooterRoot.GetComponentInChildren<WeaponController>(true) : null;
+            return weapon != null && weapon.Definition != null ? weapon.Definition.WeaponId : string.Empty;
         }
 
         /// <summary>同根归属回退（审计 §5.1）：最近命中不可归属时，在同一根的其余命中里取最近的

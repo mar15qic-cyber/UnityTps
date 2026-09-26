@@ -106,7 +106,8 @@ namespace Game.Gameplay.Network
         /// <summary>由 PlayerSpawner.Spawns（公开字段）构建红蓝槽位表（场景出生点变更时可在 OnEnable 重跑）。</summary>
         public void RebuildSlots()
         {
-            var spawns = _spawner != null ? _spawner.Spawns : null;
+            var spawns = SceneSpawnPoints.Current();
+            if (spawns.Length == 0) spawns = _spawner != null ? _spawner.Spawns : null;
             if (spawns == null || spawns.Length == 0)
             {
                 _redSlots = System.Array.Empty<TeamSpawnDirectory.SpawnSlot>();
@@ -145,6 +146,8 @@ namespace Game.Gameplay.Network
             if (!asServer || !_takeoverActive || _networkManager == null || !_networkManager.IsServerStarted)
                 return; // 客户端实例/离线：零介入
 
+            RebuildSlots(); // map transitions can leave PlayerSpawner with old-scene references
+
             string team = ResolveTeam(_networkManager, connection);
             var slots = team == MatchRules.TeamRed ? _redSlots
                 : team == MatchRules.TeamBlue ? _blueSlots
@@ -180,6 +183,7 @@ namespace Game.Gameplay.Network
 
             // 关键顺序：位置/朝向作为实例化参数进入 Spawn；ServerManager.Spawn 内部
             // 随即 RebuildObservers/WriteSpawn，首个序列化姿态因此已经是队伍槽位。
+            position = SpawnGrounding.Align(position, _playerPrefab.GetComponent<CharacterController>());
             NetworkObject nob = _networkManager.GetPooledInstantiated(
                 _playerPrefab, position, rotation, true);
             _networkManager.ServerManager.Spawn(nob, connection);

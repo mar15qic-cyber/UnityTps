@@ -16,7 +16,7 @@ namespace Game.EditorTools
             try
             {
                 var clients = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
-                var servers = new[] { "Arena", "Map_Stackyard", "Map_Depot55", "Map_Ridgeline", "Map_TrainingYard" }
+                var servers = new[] { "Arena", "Map_Stackyard", "Map_Depot55", "Map_Ridgeline", "Map_TrainingYard", "Map_NightRelay" }
                     .Select(s => "Assets/_Project/Scenes/" + s + ".unity").ToArray();
                 BuildOne(servers, StandaloneBuildSubtarget.Server, "Server", "UnityFpsDedicatedServer.exe");
                 BuildOne(clients, StandaloneBuildSubtarget.Player, "Client", "UnityFpsClient.exe");

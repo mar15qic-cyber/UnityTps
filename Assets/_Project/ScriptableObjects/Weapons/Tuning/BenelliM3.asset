@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: BenelliM3
+  m_EditorClassIdentifier: 
+  WeaponId: shotgun.01
+  Stat:
+    Damage: 60
+    Rpm: 90
+    MagSize: 6
+    ReserveAmmo: 36
+    ReloadTime: 2.8
+    Spread: 3.5
+    MaxRange: 40
+    AdsFov: 55
+    Recoil:
+      PitchDeg: 2.3
+      YawDeg: 0.55
+      FirstShotMultiplier: 1
+      Accumulation: 1
+      MaxAccumulation: 1
+      RecoveryDelay: 0.3
+      RecoverySpeed: 2.8
+      SpringFrequency: 7
+      SpringDamping: 0.8
+      ShakePositionAmplitude: 0.7
+      ViewModelKickBack: 0.08
+      ViewModelKickPitch: 7
+      AdsRecoilMultiplier: 0.85
+    Accuracy:
+      BaseHipSpread: 3.5
+      BaseAdsSpread: 1.5
+      MovementSpreadMax: 2.5
+      SprintSpreadExtra: 3
+      AirborneSpreadExtra: 3
+      ShotBloomPerShot: 0.8
+      MaxBloom: 2
+      BloomRecoveryDelay: 0.25
+      BloomRecoverySpeed: 3
+    Ballistic:
+      PelletCount: 9
+      PelletSpread: 3
+  AdsGroundSpeedMultiplier: 0.84
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

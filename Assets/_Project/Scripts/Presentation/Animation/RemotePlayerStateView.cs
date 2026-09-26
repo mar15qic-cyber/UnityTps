@@ -12,6 +12,7 @@ namespace Game.Presentation.Animation
     /// </summary>
     public interface ITpLocomotionSource
     {
+        bool HasPresentedPose { get; }
         LocomotionState LocomotionState { get; }
         Vector2 MoveInput { get; }
         float HorizontalSpeed { get; }
@@ -29,16 +30,29 @@ namespace Game.Presentation.Animation
     public sealed class RemotePlayerStateView : MonoBehaviour, ITpLocomotionSource
     {
         [SerializeField] private NetworkLocomotionState networkState;
+        private PlayerNetworkAdapter _adapter;
+        public bool HasPresentedPose => _adapter != null && _adapter.TryGetPresentedPose(out _);
+
+        private bool Presented(out ObserverPose pose)
+        {
+            pose = default;
+            return _adapter != null && _adapter.TryGetPresentedPose(out pose);
+        }
 
         public LocomotionState LocomotionState =>
-            networkState != null ? networkState.State : LocomotionState.Idle;
-        public Vector2 MoveInput => networkState != null ? networkState.MoveInput : Vector2.zero;
-        public float HorizontalSpeed => networkState != null ? networkState.HorizontalSpeed : 0f;
-        public float GaitPhase => networkState != null ? networkState.GaitPhase : 0f;
+            Presented(out var pose) ? pose.LocomotionState
+            : networkState != null ? networkState.State : LocomotionState.Idle;
+        public Vector2 MoveInput => Presented(out var pose) ? pose.MoveInput
+            : networkState != null ? networkState.MoveInput : Vector2.zero;
+        public float HorizontalSpeed => Presented(out var pose) ? pose.HorizontalSpeed
+            : networkState != null ? networkState.HorizontalSpeed : 0f;
+        public float GaitPhase => Presented(out var pose) ? pose.GaitPhase
+            : networkState != null ? networkState.GaitPhase : 0f;
 
         private void Awake()
         {
             if (networkState == null) networkState = GetComponentInParent<NetworkLocomotionState>();
+            _adapter = GetComponentInParent<PlayerNetworkAdapter>();
         }
     }
 }

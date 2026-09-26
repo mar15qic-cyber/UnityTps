@@ -178,6 +178,11 @@ namespace Game.Presentation.Animation
             if (controller == null) return;
             if (_throwables != null && (_throwables.IsEquipped || _throwPlaying))
             {
+                if (!_throwPlaying && _throwState != null && _clips.ThrowGrenade != null)
+                {
+                    float prepared = Mathf.SmoothStep(.18f, .35f, _throwables.HoldProgress);
+                    _throwState.Time = _clips.ThrowGrenade.length * prepared;
+                }
                 if (_throwPlaying && _heldThrowable != null && Time.time - _throwStartedAt >= _throwables.ReleaseDelaySeconds)
                     _heldThrowable.SetActive(false);
                 if (!_throwables.IsEquipped && !_throwables.IsThrowing) HandleThrowableSelection();
@@ -557,7 +562,7 @@ namespace Game.Presentation.Animation
             StopArmFeedback(0f);
             if (_clips.ThrowGrenade == null) return;
             _throwState = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
-            _throwState.Time = _clips.ThrowGrenade.length * 0.35f;
+            _throwState.Time = _clips.ThrowGrenade.length * 0.18f;
             _throwState.Speed = 0f;
             var hand = transform.Find("Armature/arm_L/lower_arm_L/hand_L");
             if (hand != null && _throwables.SelectedDefinition != null)
@@ -617,16 +622,19 @@ namespace Game.Presentation.Animation
             _throwStartedAt = Time.time;
             _aimFsm.ResetToHip();
             StopArmFeedback(actionFadeSeconds);
+            float heldFraction = _throwState != null && _clips.ThrowGrenade.length > 0f
+                ? Mathf.Clamp((float)(_throwState.Time / _clips.ThrowGrenade.length), .18f, .35f) : .18f;
             var state = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
             if (_throwables.ThrowActionSeconds <= 0f)
             {
                 Debug.LogError("[FPWeaponAnimator] throw action duration missing", this);
                 return;
             }
-            // Selection already raised the grenade to this pose. Replaying the wind-up
-            // from frame zero makes a click pull the hand back before it can release.
-            state.Time = _clips.ThrowGrenade.length * .35f;
-            state.Speed = _clips.ThrowGrenade.length * .65f / _throwables.ThrowActionSeconds;
+            // Continue from the hold pose so a short click and a fully prepared throw
+            // both move forward through the same authored animation without snapping.
+            state.Time = _clips.ThrowGrenade.length * heldFraction;
+            state.Speed = _clips.ThrowGrenade.length * (1f - heldFraction) / _throwables.ThrowActionSeconds;
+            _throwState = state;
             state.Events(this).OnEnd = () => { if (_throwables != null) _throwables.Unequip(); HandleThrowableSelection(); };
         }
 

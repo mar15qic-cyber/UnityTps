@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: BarrettM82
+  m_EditorClassIdentifier: 
+  WeaponId: sniper.02
+  Stat:
+    Damage: 90
+    Rpm: 35
+    MagSize: 5
+    ReserveAmmo: 25
+    ReloadTime: 3.2
+    Spread: 0.03
+    MaxRange: 350
+    AdsFov: 15
+    Recoil:
+      PitchDeg: 3.4
+      YawDeg: 0.28
+      FirstShotMultiplier: 1
+      Accumulation: 1
+      MaxAccumulation: 1
+      RecoveryDelay: 0.35
+      RecoverySpeed: 1.8
+      SpringFrequency: 7
+      SpringDamping: 0.8
+      ShakePositionAmplitude: 0.8
+      ViewModelKickBack: 0.1
+      ViewModelKickPitch: 8.5
+      AdsRecoilMultiplier: 0.95
+    Accuracy:
+      BaseHipSpread: 0.03
+      BaseAdsSpread: 0.01
+      MovementSpreadMax: 3
+      SprintSpreadExtra: 4
+      AirborneSpreadExtra: 4
+      ShotBloomPerShot: 0.6
+      MaxBloom: 1.5
+      BloomRecoveryDelay: 0.3
+      BloomRecoverySpeed: 2.5
+    Ballistic:
+      PelletCount: 1
+      PelletSpread: 0
+  AdsGroundSpeedMultiplier: 0.58
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

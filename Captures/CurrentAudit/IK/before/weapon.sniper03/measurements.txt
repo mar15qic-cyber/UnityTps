@@ -1,0 +1,18 @@
+item=weapon.sniper03 name=Dragunov clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.00041, -0.03825, 0.36551)
+targetRotation=(0.00000, 0.00000, 0.00000, 1.00000)
+wristErrorMm=125.294
+wristAngleError=0.000
+LeftHand=(-0.04678, -0.03650, 0.24913)
+LeftThumbProximal=(-0.04694, 0.00631, 0.28302)
+LeftIndexProximal=(-0.04956, 0.07749, 0.28424)
+LeftMiddleProximal=(-0.04911, 0.07725, 0.23748)
+LeftMiddleIntermediate=(-0.07601, 0.09074, 0.23802)
+LeftMiddleDistal=(-0.10187, 0.07435, 0.23889)
+mesh=TP_Weapon_Sniper_03 min=(-0.02752, -0.14553, -0.47600) max=(0.03147, 0.02303, 0.83633)
+mesh=Sniper_03_Iron_Sights min=(-0.00902, -0.02154, 0.10654) max=(0.01107, 0.04691, 0.73785)
+mesh=Sniper_03_Mag min=(-0.01429, -0.15095, -0.02998) max=(0.01743, -0.03196, 0.07117)
+mesh=Sniper_03_Scope min=(-0.04893, -0.04604, -0.27732) max=(0.04441, 0.10679, 0.09150)
+mesh=Sniper_03_Slider min=(0.00676, -0.01348, -0.02642) max=(0.04643, 0.01396, 0.10813)

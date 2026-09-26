@@ -1,9 +1,9 @@
-param([Parameter(Mandatory)][string]$ConfigPath)
+﻿param([Parameter(Mandatory)][string]$ConfigPath)
 . "$PSScriptRoot/Private.Common.ps1"
 $c=Read-PrivateConfig $ConfigPath;$s=Read-CloudSecrets $c
 $stateFile=Join-Path $c.stateRoot 'processes.json'
 if(-not(Test-Path $stateFile)){return}
-$records=@(Get-Content $stateFile -Raw | ConvertFrom-Json)
+$records=@(Get-Content $stateFile -Raw | ConvertFrom-Json | ForEach-Object { $_ })
 foreach($r in $records){
  if(-not($r.PSObject.Properties.Name -contains 'mapHash') -or (Test-ManagedProcess $r)){continue}
  if(Get-NetUDPEndpoint -LocalPort $r.mapPort -ErrorAction SilentlyContinue){throw 'Additional map UDP port occupied.'}

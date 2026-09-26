@@ -100,6 +100,7 @@ public static class AttachmentSystemSeeder
         ("attach.lpw.tactical.light", "Tactical", "战术手电",   "下挂照明模块",                   "lpw/tactical/light", 1500, 2, null),
         // 下挂
         ("attach.lpw.grip.01", "Underbarrel", "垂直前握把", "下挂垂直握把；提升操控稳定性", "lpw/grip/01", 3000, 6, null),
+        ("attach.sniper.magazine", "Magazine", "狙击枪加长弹匣", "狙击枪专用；弹容量 +3", "sniper/magazine", 2200, 4, null),
     ];
 
     /// <summary>家族 × 枪口消音器放行（紧凑=手枪/SMG；重型=步枪/霰弹；经典=仅原生枪）.</summary>
@@ -116,6 +117,8 @@ public static class AttachmentSystemSeeder
     {
         await RemoveRetiredOpticsAsync(db, cancellationToken);
         await SeedConcreteCatalogAsync(db, cancellationToken);
+        await SaveSectionTolerantAsync(db, cancellationToken);
+        await MigrateSniperMagazineAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
         await SeedCompatMatrixAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
@@ -222,6 +225,40 @@ public static class AttachmentSystemSeeder
         }
     }
 
+    /// <summary>Existing rifle-mag owners keep access to sniper magazine; equipped sniper rows are remapped.</summary>
+    private static async Task MigrateSniperMagazineAsync(AppDbContext db, CancellationToken ct)
+    {
+        const string oldId = "attach.rifle.magazine";
+        const string newId = "attach.sniper.magazine";
+        var oldOwners = await db.InventoryItems.Where(x => x.ItemId == oldId).ToListAsync(ct);
+        var newOwners = (await db.InventoryItems.Where(x => x.ItemId == newId)
+            .Select(x => x.UserId).ToListAsync(ct)).ToHashSet();
+        foreach (var owner in oldOwners)
+            if (newOwners.Add(owner.UserId))
+                db.InventoryItems.Add(new PlayerInventoryItem
+                {
+                    UserId = owner.UserId, ItemId = newId, Quantity = 1,
+                    AcquiredAtUtc = DateTime.UtcNow
+                });
+        var loadouts = await db.Loadouts.Include(x => x.Attachments).ToListAsync(ct);
+        foreach (var loadout in loadouts)
+        {
+            bool changed = false;
+            foreach (var attachment in loadout.Attachments)
+            {
+                if (attachment.AttachmentItemId != oldId) continue;
+                string weaponId = string.Equals(attachment.WeaponSlot, "Secondary", StringComparison.OrdinalIgnoreCase)
+                    ? loadout.SecondaryWeaponId : loadout.PrimaryWeaponId;
+                if (!Guns.Any(x => x.WeaponId == weaponId && x.Class == WClass.Sniper)) continue;
+                attachment.AttachmentItemId = newId;
+                changed = true;
+            }
+            if (!changed) continue;
+            loadout.Version++;
+            loadout.UpdatedAtUtc = DateTime.UtcNow;
+        }
+    }
+
     private static IEnumerable<AttachmentCompat> BuildMatrix()
     {
         var tacticals = ConcreteCatalog.Where(x => x.SlotType == "Tactical").Select(x => x.ItemId).ToArray();
@@ -254,7 +291,9 @@ public static class AttachmentSystemSeeder
                     yield return Row(gun.WeaponId, grip, "Underbarrel");
 
             // 弹匣：纯数值（不改模型），全枪开放
-            yield return Row(gun.WeaponId, gun.Class == WClass.Pistol ? "attach.pistol.magazine" : "attach.rifle.magazine", "Magazine", calibration: "stat-only");
+            yield return Row(gun.WeaponId, gun.Class == WClass.Pistol ? "attach.pistol.magazine"
+                : gun.Class == WClass.Sniper ? "attach.sniper.magazine" : "attach.rifle.magazine",
+                "Magazine", calibration: "stat-only");
         }
     }
 

@@ -38,10 +38,9 @@ namespace Game.Gameplay.Weapon
     /// </summary>
     public sealed class WeaponRecoilState
     {
-        // 武器数据仍表达每发后坐；债务缩放是全局手感层，避免迁移旧资产后 30 发直接抬到天花板。
-        internal const float AimDebtScale = 0.45f;
-        internal const float MaxPitchDebtDeg = 12f;
-        internal const float MaxYawDebtDeg = 4f;
+        // Camera and FireRay consume this same unscaled recoil debt.
+        internal const float MaxPitchDebtDeg = 35f;
+        internal const float MaxYawDebtDeg = 12f;
 
         private readonly System.Random _random;
 
@@ -81,8 +80,8 @@ namespace Game.Gameplay.Weapon
                 shotIndex, first);
 
             _offset = new Vector2(
-                Mathf.Clamp(_offset.x + pitch * AimDebtScale, 0f, MaxPitchDebtDeg),
-                Mathf.Clamp(_offset.y + yaw * AimDebtScale, -MaxYawDebtDeg, MaxYawDebtDeg));
+                Mathf.Clamp(_offset.x + pitch, 0f, MaxPitchDebtDeg),
+                Mathf.Clamp(_offset.y + yaw, -MaxYawDebtDeg, MaxYawDebtDeg));
 
             ShotIndex = shotIndex;
             TimeSinceLastShot = 0f;

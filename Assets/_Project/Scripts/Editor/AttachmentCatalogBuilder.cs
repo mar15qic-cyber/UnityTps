@@ -18,7 +18,8 @@ namespace Game.EditorTools
         private const string AttachmentCatalogPath = "Assets/_Project/Resources/AttachmentAssetCatalog.asset";
         private const string CalibrationPath = "Assets/_Project/Resources/AttachmentCalibration.asset";
 
-        private static readonly Vector3 LpfpMountEuler = new Vector3(0f, -90f, 0f);   // LPFP 配件 +Z 长轴 → 挂点 -X 前向
+        private static readonly Vector3 LpfpMountEuler = new Vector3(0f, -90f, 0f);   // LPFP optical models +Z axis faces downrange.
+        private static readonly Vector3 SuppressorMountEuler = new Vector3(0f, 90f, 0f); // Silencer asset outlet is -Z; its threaded +Z end faces the barrel.
 
         private sealed class AttSpec
         {
@@ -58,7 +59,7 @@ namespace Game.EditorTools
         {
             // —— 枪口（3 个分族；2026-09-02 返工：12 个口径副本实为 2 形状×6 拷贝，砍掉重复）——
             Suppressor(A("attach.lpfp.muffler.01", "经典消音器", "经典制式消音器；适配原生武器", AttachmentSlotType.Muzzle,
-                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", LpfpMountEuler, MuzzleMods())),
+                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", SuppressorMountEuler, MuzzleMods())),
             // —— LPFP 正式四款基础瞄具（身份与 Scope_01..04 一一对应）——
             Aperture(ZoomFov(A("attach.lpfp.optic.01", "LPFP 低倍瞄具", "Scope_01；3x 低倍棱镜瞄具", AttachmentSlotType.Optic,
                 "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Scope_01.prefab", OpticAimTier.LowZoom, LpfpMountEuler,
@@ -91,12 +92,14 @@ namespace Game.EditorTools
                 }),
             // —— 通行证通用件（瞄具已并入上方四款正式 Scope 映射）——
             Suppressor(A("attach.rifle.muzzle", "步枪消音器", "通行证奖励；LPFP 原生消音器", AttachmentSlotType.Muzzle,
-                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", LpfpMountEuler, MuzzleMods())),
+                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", SuppressorMountEuler, MuzzleMods())),
             A("attach.rifle.magazine", "步枪加长弹匣", "通行证奖励；弹容量 +8", AttachmentSlotType.Magazine, null,
                 new[] { M(WeaponStatId.MagazineSize, ModifierOperation.Add, 8f) }),
             Suppressor(A("attach.pistol.muzzle", "手枪消音器", "通行证奖励；LPFP 原生消音器", AttachmentSlotType.Muzzle,
-                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", LpfpMountEuler, MuzzleMods())),
+                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", SuppressorMountEuler, MuzzleMods())),
             A("attach.pistol.magazine", "手枪加长弹匣", "通行证奖励；弹容量 +3", AttachmentSlotType.Magazine, null,
+                new[] { M(WeaponStatId.MagazineSize, ModifierOperation.Add, 3f) }),
+            A("attach.sniper.magazine", "狙击枪加长弹匣", "狙击枪专用；弹容量 +3", AttachmentSlotType.Magazine, null,
                 new[] { M(WeaponStatId.MagazineSize, ModifierOperation.Add, 3f) }),
         };
 

@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 0
+  geometryVerified: 0
 --- !u!1 &5864148334298207712
 GameObject:
   m_ObjectHideFlags: 0
@@ -70,7 +71,7 @@ Transform:
   m_GameObject: {fileID: 5864148334298207712}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00040784915, y: -0.038250808, z: 0.82897466}
+  m_LocalPosition: {x: -0.00040768273, y: 0.020584166, z: 0.82897484}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -100,8 +101,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6055953046026828353}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.0004078481, y: -0.03825085, z: 0.3655132}
+  m_LocalRotation: {x: -0.38806444, y: 0.49446964, z: 0.40893227, w: -0.66157407}
+  m_LocalPosition: {x: -0.008, y: -0.078, z: 0.16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -171,8 +172,30 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7660892277253500589}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6016695880098536639}
   m_SourcePrefab: {fileID: 100100000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
+--- !u!1 &7670982791927436342 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}
+  m_PrefabInstance: {fileID: 7670982791927534230}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6016695880098536639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7670982791927436342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177831118c5a366498ba02db4f7b048e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalWristFromGripCenter: {x: -0.0636, y: 0.0062, z: -0.0809}
+  verticalWristRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
 --- !u!4 &7670982791927924758 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: dcbc9ca070b3bd2409405ea576a77161, type: 3}

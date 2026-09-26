@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: Agram2000
+  m_EditorClassIdentifier: 
+  WeaponId: smg.02
+  Stat:
+    Damage: 20
+    Rpm: 780
+    MagSize: 30
+    ReserveAmmo: 150
+    ReloadTime: 1.9
+    Spread: 1.6
+    MaxRange: 95
+    AdsFov: 50
+    Recoil:
+      PitchDeg: 0.73
+      YawDeg: 0.42
+      FirstShotMultiplier: 1.15
+      Accumulation: 1.3
+      MaxAccumulation: 10
+      RecoveryDelay: 0.2
+      RecoverySpeed: 4.9
+      SpringFrequency: 12
+      SpringDamping: 0.7
+      ShakePositionAmplitude: 0.25
+      ViewModelKickBack: 0.028
+      ViewModelKickPitch: 2.6
+      AdsRecoilMultiplier: 0.83
+    Accuracy:
+      BaseHipSpread: 1.6
+      BaseAdsSpread: 0.45
+      MovementSpreadMax: 2
+      SprintSpreadExtra: 2.2
+      AirborneSpreadExtra: 2
+      ShotBloomPerShot: 0.15
+      MaxBloom: 2.8
+      BloomRecoveryDelay: 0.2
+      BloomRecoverySpeed: 4.5
+    Ballistic:
+      PelletCount: 1
+      PelletSpread: 0
+  AdsGroundSpeedMultiplier: 0.89
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

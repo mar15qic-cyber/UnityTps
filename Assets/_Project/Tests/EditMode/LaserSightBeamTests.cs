@@ -1,5 +1,7 @@
+using System.Linq;
 using Game.Gameplay.Weapon;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace Game.Gameplay.Tests
@@ -136,12 +138,33 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void LaserBeamBeginsAtThePhysicalEmitterFace()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/LowPolyWeapons/Prefabs/Attachments/Laser_01.prefab");
+            var socket = new GameObject("Socket");
+            var clone = Object.Instantiate(prefab, socket.transform);
+            try
+            {
+                var beam = clone.AddComponent<LaserSightBeam>();
+                beam.Setup();
+                var origin = (Vector3)typeof(LaserSightBeam).GetMethod("ResolveOrigin",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(beam, null);
+                var filter = clone.GetComponentInChildren<MeshFilter>();
+                var mesh = filter.sharedMesh;
+                var axis = LaserSightBeam.DeviceAxis(clone.transform);
+                var front = mesh.vertices.Max(v => Vector3.Dot(filter.transform.TransformPoint(v), axis));
+                Assert.That(front - Vector3.Dot(origin, axis), Is.LessThan(.0031f));
+                Assert.That(Vector3.Distance(origin, clone.transform.position), Is.GreaterThan(.015f));
+            }
+            finally { Object.DestroyImmediate(socket); }
+        }
+
+        [Test]
         public void Reapply_Laser_MountsExactlyOneBeam()
         {
             var (view, _) = BuildFakeWeapon();
             view.ApplyAttachments(null, "weapon.test", new[] { MakeLaserEntry() }, laserBeamEnabled: true);
-            UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
-                new System.Text.RegularExpressions.Regex("Destroy may not be called from edit mode"));
             view.ApplyAttachments(null, "weapon.test", new[] { MakeLaserEntry() }, laserBeamEnabled: true);
 
             Assert.That(view.Spawned.Count, Is.EqualTo(1));

@@ -4,10 +4,14 @@ New-Item -ItemType Directory -Path (Join-Path $root 'release/Api'),(Join-Path $r
 Set-Content -LiteralPath (Join-Path $root 'release/Api/UnityFps.Api.exe') -Value 'fixture-not-executable'
 Set-Content -LiteralPath (Join-Path $root 'release/Server/UnityFpsDedicatedServer.exe') -Value 'fixture-not-executable'
 Set-Content -LiteralPath (Join-Path $root 'release/Server/build-manifest.json') -Value '{"protocolId":"fixture-v8"}'
+# Exercise the BOM-less UTF-8 manifests written by PowerShell 7, read by Windows PowerShell 5.1.
+$launcherName=([string][char]0x5f00)+[char]0x59cb+[char]0x6e38+[char]0x620f+'.cmd'
+Set-Content -LiteralPath (Join-Path $root ('release/'+$launcherName)) -Value 'fixture-not-executable'
 $files=@(Get-ChildItem -LiteralPath (Join-Path $root 'release') -Recurse -File | ForEach-Object {
     @{path=$_.FullName.Substring((Join-Path $root 'release').Length+1);sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
 })
-@{releaseId='fixture';protocolId='fixture-v8';files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $root 'release/release-manifest.json')
+$manifestJson=@{releaseId='fixture';protocolId='fixture-v8';files=$files} | ConvertTo-Json -Depth 5
+[IO.File]::WriteAllText((Join-Path $root 'release/release-manifest.json'),$manifestJson,(New-Object Text.UTF8Encoding($false)))
 # Random disposable fixtures, no real credentials or database access.
 @{jwtSigningKey=[Guid]::NewGuid().ToString('N');serverKey=[Guid]::NewGuid().ToString('N');gameDb='unused'} |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root 'secrets.json')

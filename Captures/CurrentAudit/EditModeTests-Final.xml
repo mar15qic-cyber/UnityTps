@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="63" result="Passed" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 05:03:52Z" end-time="2026-09-26 05:03:59Z" duration="7.0327559">
+  <test-suite type="TestSuite" id="1000" name="UnityFps" fullname="UnityFps" runstate="Runnable" testcasecount="1363" result="Passed" start-time="2026-09-26 05:03:52Z" end-time="2026-09-26 05:03:59Z" duration="7.032756" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="2573" name="Game.Gameplay.Tests.dll" fullname="E:/UnityProject/UnityFpsLowPoly/Library/ScriptAssemblies/Game.Gameplay.Tests.dll" runstate="Runnable" testcasecount="1362" result="Passed" start-time="2026-09-26 05:03:55Z" end-time="2026-09-26 05:03:59Z" duration="3.974011" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="49172" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="2574" name="Game" fullname="Game" runstate="Runnable" testcasecount="1362" result="Passed" start-time="2026-09-26 05:03:56Z" end-time="2026-09-26 05:03:59Z" duration="3.423253" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2579" name="Gameplay" fullname="Game.Gameplay" runstate="Runnable" testcasecount="1299" result="Passed" start-time="2026-09-26 05:03:56Z" end-time="2026-09-26 05:03:59Z" duration="3.138348" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="2580" name="Tests" fullname="Game.Gameplay.Tests" runstate="Runnable" testcasecount="1299" result="Passed" start-time="2026-09-26 05:03:56Z" end-time="2026-09-26 05:03:59Z" duration="2.917944" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1163" name="BodyHitboxAlignmentTests" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" testcasecount="12" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.096165" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1173" name="Hitbox_HealsLegacySingleCollider_AndConfiguresBothCapsules" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_HealsLegacySingleCollider_AndConfiguresBothCapsules" methodname="Hitbox_HealsLegacySingleCollider_AndConfiguresBothCapsules" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1517829004" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.027240" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1165" name="Hitbox_Offset_FollowsBodyFacing_AndStillOnBody" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_Offset_FollowsBodyFacing_AndStillOnBody" methodname="Hitbox_Offset_FollowsBodyFacing_AndStillOnBody" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="744839191" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.009063" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1166" name="Hitbox_PinIsModelAnchored_AuthorBaseYawKeepsAuthorContract" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_PinIsModelAnchored_AuthorBaseYawKeepsAuthorContract" methodname="Hitbox_PinIsModelAnchored_AuthorBaseYawKeepsAuthorContract" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="361144929" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.002129" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1171" name="Hitbox_RerunDoesNotRebakeLivePose_CenterRidesBody" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_RerunDoesNotRebakeLivePose_CenterRidesBody" methodname="Hitbox_RerunDoesNotRebakeLivePose_CenterRidesBody" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="590329928" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.002573" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1172" name="Hitbox_SurvivesPooledReuseDuringDeathPose_NoTransientBakedIn" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_SurvivesPooledReuseDuringDeathPose_NoTransientBakedIn" methodname="Hitbox_SurvivesPooledReuseDuringDeathPose_NoTransientBakedIn" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1893366811" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.002595" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1164" name="Hitbox_WorldCenters_SitOnVisibleBody_NotLogicalRoot" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Hitbox_WorldCenters_SitOnVisibleBody_NotLogicalRoot" methodname="Hitbox_WorldCenters_SitOnVisibleBody_NotLogicalRoot" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="547581989" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.002016" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1167" name="HittableVolume_IsAnchoredOnVisibleBody_AirGapBehindAndFrontBothWithinProxyTolerance" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.HittableVolume_IsAnchoredOnVisibleBody_AirGapBehindAndFrontBothWithinProxyTolerance" methodname="HittableVolume_IsAnchoredOnVisibleBody_AirGapBehindAndFrontBothWithinProxyTolerance" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1199434562" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.003022" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1175" name="Lean_ShiftsExposedHeadAndUpperBody_ButKeepsLowerBodyFixed" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Lean_ShiftsExposedHeadAndUpperBody_ButKeepsLowerBodyFixed" methodname="Lean_ShiftsExposedHeadAndUpperBody_ButKeepsLowerBodyFixed" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="262145767" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.002968" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1169" name="RayBetweenLegs_DoesNotHitLowerTorso" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.RayBetweenLegs_DoesNotHitLowerTorso" methodname="RayBetweenLegs_DoesNotHitLowerTorso" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="2096475351" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001840" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1170" name="Raycasts_BesideHeadAndTorso_AirMisses_WithinSilhouetteHit" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Raycasts_BesideHeadAndTorso_AirMisses_WithinSilhouetteHit" methodname="Raycasts_BesideHeadAndTorso_AirMisses_WithinSilhouetteHit" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1868313799" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001875" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1168" name="Raycasts_LegTorsoHeadHit_AboveHeadMisses" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Raycasts_LegTorsoHeadHit_AboveHeadMisses" methodname="Raycasts_LegTorsoHeadHit_AboveHeadMisses" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1999219834" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001692" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+              <test-case id="1174" name="Raycasts_ShoulderSeamBand_HasFiniteOverlapWidth_HeadSideAirStillMisses" fullname="Game.Gameplay.Tests.BodyHitboxAlignmentTests.Raycasts_ShoulderSeamBand_HasFiniteOverlapWidth_HeadSideAirStillMisses" methodname="Raycasts_ShoulderSeamBand_HasFiniteOverlapWidth_HeadSideAirStillMisses" classname="Game.Gameplay.Tests.BodyHitboxAlignmentTests" runstate="Runnable" seed="1301828696" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001813" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Script PlayerNetworkAdapter on object ProbePlayer added a NetworkObject component to ProbePlayer.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2230" name="ServerShotCadenceTests" fullname="Game.Gameplay.Tests.ServerShotCadenceTests" classname="Game.Gameplay.Tests.ServerShotCadenceTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.061501" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2231" name="BatchedValidShots_ConsumeRoundsDespiteSameFrameCooldown" fullname="Game.Gameplay.Tests.ServerShotCadenceTests.BatchedValidShots_ConsumeRoundsDespiteSameFrameCooldown" methodname="BatchedValidShots_ConsumeRoundsDespiteSameFrameCooldown" classname="Game.Gameplay.Tests.ServerShotCadenceTests" runstate="Runnable" seed="1351223446" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001246" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2232" name="Cadence_RejectsReplayAndSustainedExcessFireRate" fullname="Game.Gameplay.Tests.ServerShotCadenceTests.Cadence_RejectsReplayAndSustainedExcessFireRate" methodname="Cadence_RejectsReplayAndSustainedExcessFireRate" classname="Game.Gameplay.Tests.ServerShotCadenceTests" runstate="Runnable" seed="398171799" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000239" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2233" name="QuantizedM4Cadence_PreservesFractionalInterval" fullname="Game.Gameplay.Tests.ServerShotCadenceTests.QuantizedM4Cadence_PreservesFractionalInterval" methodname="QuantizedM4Cadence_PreservesFractionalInterval" classname="Game.Gameplay.Tests.ServerShotCadenceTests" runstate="Runnable" seed="542462199" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000185" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2234" name="ValidatedCadence_CannotBypassReloadOrEmptyMagazine" fullname="Game.Gameplay.Tests.ServerShotCadenceTests.ValidatedCadence_CannotBypassReloadOrEmptyMagazine" methodname="ValidatedCadence_CannotBypassReloadOrEmptyMagazine" classname="Game.Gameplay.Tests.ServerShotCadenceTests" runstate="Runnable" seed="1596766364" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000388" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2310" name="TPAimDriverPrefabTests" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.022027" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2313" name="BoreCorrection_ClosesIdleBiasAndStaysBounded" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests.BoreCorrection_ClosesIdleBiasAndStaysBounded" methodname="BoreCorrection_ClosesIdleBiasAndStaysBounded" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" seed="1114759562" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001239" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2314" name="PlayerCapsule_ContainsAuthoredTorsoAtWall" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests.PlayerCapsule_ContainsAuthoredTorsoAtWall" methodname="PlayerCapsule_ContainsAuthoredTorsoAtWall" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" seed="218482445" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000892" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2312" name="PlayerPrefab_TpAimDriver_PitchWeightsAreSane" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests.PlayerPrefab_TpAimDriver_PitchWeightsAreSane" methodname="PlayerPrefab_TpAimDriver_PitchWeightsAreSane" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" seed="1877744614" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001342" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2311" name="PlayerPrefab_TpModel_HasEnabledTPAimDriver" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests.PlayerPrefab_TpModel_HasEnabledTPAimDriver" methodname="PlayerPrefab_TpModel_HasEnabledTPAimDriver" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" seed="362574988" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000341" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2315" name="PlayerPrefab_TpModelRig_ResolvesAimBones" fullname="Game.Gameplay.Tests.TPAimDriverPrefabTests.PlayerPrefab_TpModelRig_ResolvesAimBones" methodname="PlayerPrefab_TpModelRig_ResolvesAimBones" classname="Game.Gameplay.Tests.TPAimDriverPrefabTests" runstate="Runnable" seed="1249343126" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001327" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2316" name="TPGripIkTests" fullname="Game.Gameplay.Tests.TPGripIkTests" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.048230" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2329" name="FactoryGripRifles_RemoveStaleUnderbarrelAttachment" fullname="Game.Gameplay.Tests.TPGripIkTests.FactoryGripRifles_RemoveStaleUnderbarrelAttachment" methodname="FactoryGripRifles_RemoveStaleUnderbarrelAttachment" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="300010208" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.019301" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2320" name="GripAttachmentPrefab_ContainsLeftHandGripMarker" fullname="Game.Gameplay.Tests.TPGripIkTests.GripAttachmentPrefab_ContainsLeftHandGripMarker" methodname="GripAttachmentPrefab_ContainsLeftHandGripMarker" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1201108924" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000468" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="2336" name="HandgunTpPrefabs_UseCalibratedRootPose" fullname="Game.Gameplay.Tests.TPGripIkTests.HandgunTpPrefabs_UseCalibratedRootPose" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.003494" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2332" name="HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab, (0.01, 0.04, 0.05)))" fullname="Game.Gameplay.Tests.TPGripIkTests.HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_01.prefab, (0.01, 0.04, 0.05)))" methodname="HandgunTpPrefabs_UseCalibratedRootPose" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1142230381" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000782" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2333" name="HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab, (0.01, 0.03, 0.04)))" fullname="Game.Gameplay.Tests.TPGripIkTests.HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_02.prefab, (0.01, 0.03, 0.04)))" methodname="HandgunTpPrefabs_UseCalibratedRootPose" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="535904342" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000072" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2334" name="HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab, (0.01, 0.03, 0.04)))" fullname="Game.Gameplay.Tests.TPGripIkTests.HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_03.prefab, (0.01, 0.03, 0.04)))" methodname="HandgunTpPrefabs_UseCalibratedRootPose" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1263241649" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000057" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2335" name="HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab, (0.01, 0.03, 0.06)))" fullname="Game.Gameplay.Tests.TPGripIkTests.HandgunTpPrefabs_UseCalibratedRootPose((Assets/_Project/Prefabs/Weapons/TP_Weapon_Handgun_04.prefab, (0.01, 0.03, 0.06)))" methodname="HandgunTpPrefabs_UseCalibratedRootPose" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1418444818" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000056" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="2321" name="PlayerPrefab_MountsTpLeftHandIkOnTheWeaponFrameDriver" fullname="Game.Gameplay.Tests.TPGripIkTests.PlayerPrefab_MountsTpLeftHandIkOnTheWeaponFrameDriver" methodname="PlayerPrefab_MountsTpLeftHandIkOnTheWeaponFrameDriver" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1998440850" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000452" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2317" name="ResolveLeftHandTarget_NoAttachments_ReturnsWeaponBakedTarget" fullname="Game.Gameplay.Tests.TPGripIkTests.ResolveLeftHandTarget_NoAttachments_ReturnsWeaponBakedTarget" methodname="ResolveLeftHandTarget_NoAttachments_ReturnsWeaponBakedTarget" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1162697602" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000503" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2318" name="ResolveLeftHandTarget_SpawnedGripWithMarker_PrefersGripMarker" fullname="Game.Gameplay.Tests.TPGripIkTests.ResolveLeftHandTarget_SpawnedGripWithMarker_PrefersGripMarker" methodname="ResolveLeftHandTarget_SpawnedGripWithMarker_PrefersGripMarker" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="538573403" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.001210" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2319" name="ResolveLeftHandTarget_SpawnedWithoutMarker_FallsBackToWeaponTarget" fullname="Game.Gameplay.Tests.TPGripIkTests.ResolveLeftHandTarget_SpawnedWithoutMarker_FallsBackToWeaponTarget" methodname="ResolveLeftHandTarget_SpawnedWithoutMarker_FallsBackToWeaponTarget" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="516523636" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000361" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2328" name="RifleDefinitions_ResolveBuiltInGripFromLegacyAnimationFamily" fullname="Game.Gameplay.Tests.TPGripIkTests.RifleDefinitions_ResolveBuiltInGripFromLegacyAnimationFamily" methodname="RifleDefinitions_ResolveBuiltInGripFromLegacyAnimationFamily" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1170907067" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000613" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="2327" name="RifleTpPrefabs_BakeGripSpecificWristRotation" fullname="Game.Gameplay.Tests.TPGripIkTests.RifleTpPrefabs_BakeGripSpecificWristRotation" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.007724" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2324" name="RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab, (-0.01, -0.06, 0.08), 护木托持))" fullname="Game.Gameplay.Tests.TPGripIkTests.RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab, (-0.01, -0.06, 0.08), 护木托持))" methodname="RifleTpPrefabs_BakeGripSpecificWristRotation" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1558707229" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000977" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2325" name="RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab, (-0.06, -0.04, 0.13), M4A1 原厂垂直握把))" fullname="Game.Gameplay.Tests.TPGripIkTests.RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab, (-0.06, -0.04, 0.13), M4A1 原厂垂直握把))" methodname="RifleTpPrefabs_BakeGripSpecificWristRotation" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1347185506" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000086" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2326" name="RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab, (-0.06, -0.04, 0.10), SCAR 原厂垂直握把))" fullname="Game.Gameplay.Tests.TPGripIkTests.RifleTpPrefabs_BakeGripSpecificWristRotation((Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab, (-0.06, -0.04, 0.10), SCAR 原厂垂直握把))" methodname="RifleTpPrefabs_BakeGripSpecificWristRotation" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1754020656" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000072" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="2331" name="ShoulderReachAssist_ReachableHandguardLeavesShoulderUntouched" fullname="Game.Gameplay.Tests.TPGripIkTests.ShoulderReachAssist_ReachableHandguardLeavesShoulderUntouched" methodname="ShoulderReachAssist_ReachableHandguardLeavesShoulderUntouched" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1075223293" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000748" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2330" name="ShoulderReachAssist_UnreachableGripBecomesReachableWithinBound" fullname="Game.Gameplay.Tests.TPGripIkTests.ShoulderReachAssist_UnreachableGripBecomesReachableWithinBound" methodname="ShoulderReachAssist_UnreachableGripBecomesReachableWithinBound" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="991727305" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000651" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2322" name="TpWeaponSwapper_DrivesIkAfterAimInLateUpdate" fullname="Game.Gameplay.Tests.TPGripIkTests.TpWeaponSwapper_DrivesIkAfterAimInLateUpdate" methodname="TpWeaponSwapper_DrivesIkAfterAimInLateUpdate" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="1181702001" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.000564" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2323" name="TpWeaponSwapper_LateUpdateActuallyMovesWristToCurrentWeaponTarget" fullname="Game.Gameplay.Tests.TPGripIkTests.TpWeaponSwapper_LateUpdateActuallyMovesWristToCurrentWeaponTarget" methodname="TpWeaponSwapper_LateUpdateActuallyMovesWristToCurrentWeaponTarget" classname="Game.Gameplay.Tests.TPGripIkTests" runstate="Runnable" seed="182590753" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.004516" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2337" name="TPGripPoseValidationTests" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:59Z" duration="0.651746" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="ParameterizedMethod" id="2344" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:59Z" duration="0.630466" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2339" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-89.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-89.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="57340867" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.257308" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2340" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-60.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(-60.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="312093478" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:58Z" duration="0.093380" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2341" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(0.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(0.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="1348511022" result="Passed" start-time="2026-09-26 05:03:58Z" end-time="2026-09-26 05:03:59Z" duration="0.092251" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2342" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(60.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(60.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="37863097" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.090147" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2343" name="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(89.0f)" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch(89.0f)" methodname="AllPlayableWeapons_BattlePoseReachesGripAndMatchesCameraPitch" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="789118262" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.091637" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="2338" name="RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" methodname="RemoteReloadPose_ReleasesEvenWithoutOwnerCompletionEvent" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="1380208633" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000545" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2345" name="UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" fullname="Game.Gameplay.Tests.TPGripPoseValidationTests.UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" methodname="UziAttachedGrip_UsesWeaponWristFrameAndChangesSupportPose" classname="Game.Gameplay.Tests.TPGripPoseValidationTests" runstate="Runnable" seed="1176639040" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.012620" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2357" name="TPWeaponMountTests" fullname="Game.Gameplay.Tests.TPWeaponMountTests" classname="Game.Gameplay.Tests.TPWeaponMountTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.020586" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2358" name="AllSixteenProductionWeapons_HaveARealHandMountAndForwardMuzzle" fullname="Game.Gameplay.Tests.TPWeaponMountTests.AllSixteenProductionWeapons_HaveARealHandMountAndForwardMuzzle" methodname="AllSixteenProductionWeapons_HaveARealHandMountAndForwardMuzzle" classname="Game.Gameplay.Tests.TPWeaponMountTests" runstate="Runnable" seed="1976072394" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.003088" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2408" name="TracerScreenMatchTests" fullname="Game.Gameplay.Tests.TracerScreenMatchTests" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.023762" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2416" name="AimRayProjection_UsesWeaponAxisRatherThanAssumingScreenCenter" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.AimRayProjection_UsesWeaponAxisRatherThanAssumingScreenCenter" methodname="AimRayProjection_UsesWeaponAxisRatherThanAssumingScreenCenter" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1669553672" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.001527" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2412" name="MatchAcrossCameras_ClampsDepthIntoOverlayClipRange" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.MatchAcrossCameras_ClampsDepthIntoOverlayClipRange" methodname="MatchAcrossCameras_ClampsDepthIntoOverlayClipRange" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1185631050" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000819" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2410" name="MatchAcrossCameras_ConvergesToSameViewport_CrossFov" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.MatchAcrossCameras_ConvergesToSameViewport_CrossFov" methodname="MatchAcrossCameras_ConvergesToSameViewport_CrossFov" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="171379009" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000937" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2411" name="MatchAcrossCameras_RejectsPointBehindSourceCamera" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.MatchAcrossCameras_RejectsPointBehindSourceCamera" methodname="MatchAcrossCameras_RejectsPointBehindSourceCamera" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1518314770" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000215" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2413" name="MuzzleStart_ProjectsInsideOverlayView_DepthConsistent" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.MuzzleStart_ProjectsInsideOverlayView_DepthConsistent" methodname="MuzzleStart_ProjectsInsideOverlayView_DepthConsistent" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1139467070" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000318" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2409" name="ProjectViewportRoundtrip_RecoversWorldPoint" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.ProjectViewportRoundtrip_RecoversWorldPoint" methodname="ProjectViewportRoundtrip_RecoversWorldPoint" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1142918523" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000320" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2415" name="VisualTracerDirection_StillConvergesOnAuthoritativeEndpoint" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.VisualTracerDirection_StillConvergesOnAuthoritativeEndpoint" methodname="VisualTracerDirection_StillConvergesOnAuthoritativeEndpoint" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="1637303427" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000398" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2414" name="VisualTracerStart_ResamplesCurrentMuzzleAfterJumpMotion" fullname="Game.Gameplay.Tests.TracerScreenMatchTests.VisualTracerStart_ResamplesCurrentMuzzleAfterJumpMotion" methodname="VisualTracerStart_ResamplesCurrentMuzzleAfterJumpMotion" classname="Game.Gameplay.Tests.TracerScreenMatchTests" runstate="Runnable" seed="2030895829" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000596" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2513" name="WeaponMuzzleIntegrityTests" fullname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" classname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.224644" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2514" name="NewWeapons_FpMuzzle_MatchesFactoryFactoryBaseline" fullname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests.NewWeapons_FpMuzzle_MatchesFactoryFactoryBaseline" methodname="NewWeapons_FpMuzzle_MatchesFactoryFactoryBaseline" classname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" runstate="Runnable" seed="577334231" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.144934" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Problem detected while loading the contents of the Prefab file: 'Assets/Low Poly FPS Pack/Prefabs/Example_Prefabs/Arms/Sniper_03_Example_Prefab/Sniper_03_FPSController.prefab'.
+Check the following logs for more details.
+Component at index 3 could not be loaded when loading game object 'Scope_Render_Camera'. Removing it.
+]]></output>
+              </test-case>
+              <test-case id="2515" name="NewWeapons_FpMuzzle_NotCopiedFromFamilyPredecessor" fullname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests.NewWeapons_FpMuzzle_NotCopiedFromFamilyPredecessor" methodname="NewWeapons_FpMuzzle_NotCopiedFromFamilyPredecessor" classname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" runstate="Runnable" seed="748757752" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.053541" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Problem detected while loading the contents of the Prefab file: 'Assets/Low Poly FPS Pack/Prefabs/Example_Prefabs/Arms/Sniper_03_Example_Prefab/Sniper_03_FPSController.prefab'.
+Check the following logs for more details.
+Component at index 3 could not be loaded when loading game object 'Scope_Render_Camera'. Removing it.
+]]></output>
+              </test-case>
+              <test-case id="2516" name="NewWeapons_FpReferences_Complete" fullname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests.NewWeapons_FpReferences_Complete" methodname="NewWeapons_FpReferences_Complete" classname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" runstate="Runnable" seed="30458228" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.007276" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2517" name="NewWeapons_TpMuzzle_MatchesWeaponGeometry" fullname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests.NewWeapons_TpMuzzle_MatchesWeaponGeometry" methodname="NewWeapons_TpMuzzle_MatchesWeaponGeometry" classname="Game.Gameplay.Tests.WeaponMuzzleIntegrityTests" runstate="Runnable" seed="1126196061" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.008483" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="2534" name="WeaponRuntimeTests" fullname="Game.Gameplay.Tests.WeaponRuntimeTests" classname="Game.Gameplay.Tests.WeaponRuntimeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.026066" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2538" name="ActionTimer_Completes_AndSwitchCanInterruptReload" fullname="Game.Gameplay.Tests.WeaponRuntimeTests.ActionTimer_Completes_AndSwitchCanInterruptReload" methodname="ActionTimer_Completes_AndSwitchCanInterruptReload" classname="Game.Gameplay.Tests.WeaponRuntimeTests" runstate="Runnable" seed="1805731917" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.001645" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2535" name="Fire_ConsumesOneRound_AndCooldownGatesNextShot" fullname="Game.Gameplay.Tests.WeaponRuntimeTests.Fire_ConsumesOneRound_AndCooldownGatesNextShot" methodname="Fire_ConsumesOneRound_AndCooldownGatesNextShot" classname="Game.Gameplay.Tests.WeaponRuntimeTests" runstate="Runnable" seed="1075012392" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000369" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2537" name="InterruptedReload_DoesNotChangeAmmo" fullname="Game.Gameplay.Tests.WeaponRuntimeTests.InterruptedReload_DoesNotChangeAmmo" methodname="InterruptedReload_DoesNotChangeAmmo" classname="Game.Gameplay.Tests.WeaponRuntimeTests" runstate="Runnable" seed="1082524835" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000432" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2536" name="Reload_MovesOnlyRequiredAmmo_FromReserve" fullname="Game.Gameplay.Tests.WeaponRuntimeTests.Reload_MovesOnlyRequiredAmmo_FromReserve" methodname="Reload_MovesOnlyRequiredAmmo_FromReserve" classname="Game.Gameplay.Tests.WeaponRuntimeTests" runstate="Runnable" seed="1621607011" result="Passed" start-time="2026-09-26 05:03:59Z" end-time="2026-09-26 05:03:59Z" duration="0.000225" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/陈琪/AppData/LocalLow/DefaultCompany/UnityFps\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

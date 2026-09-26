@@ -49,20 +49,33 @@ namespace Game.Presentation.HUD
 
         private static MatchScoreboardView _active;
 
+        internal static string DisplayNameFor(string playerId)
+        {
+            var view = _active;
+            if (view != null && view._entries != null)
+                foreach (var entry in view._entries)
+                    if (entry.playerId == playerId && !string.IsNullOrWhiteSpace(entry.displayName))
+                        return entry.displayName;
+            return playerId;
+        }
+
         /// <summary>TDM 常驻 HUD 数据口（Docs/26 §2.4 红蓝总分/倒计时）：
         /// Phase 4 口径统一——优先读快照权威 redKills/blueKills（MatchLifecycle.AddTeamKill 单写者），
         /// 双零时回退按 entries 聚合个人击杀（旧载荷兼容）；仅团队模式且快照在位返回 true；
         /// 剩余秒数按快照接收时刻回推。离线/非团队 = false。</summary>
-        internal static bool TryGetTeamScores(out int redScore, out int blueScore, out int timeLeftSeconds)
+        internal static bool TryGetTeamScores(out int redScore, out int blueScore, out int timeLeftSeconds,
+            out int targetKills)
         {
             redScore = 0;
             blueScore = 0;
             timeLeftSeconds = -1;
+            targetKills = MatchRules.TargetKills;
             var view = _active;
             if (view == null || view._currentPayload == null || !view._currentPayload.IsTeamMode
                 || view._entries == null || view._entries.Length == 0) return false;
             redScore = Mathf.Max(0, view._currentPayload.redKills);
             blueScore = Mathf.Max(0, view._currentPayload.blueKills);
+            targetKills = Mathf.Max(1, view._currentPayload.killTarget);
             if (redScore == 0 && blueScore == 0)
             {
                 foreach (var entry in view._entries)

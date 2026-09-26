@@ -15,3 +15,12 @@ function Get-PrivatePool($c) {
     $s=Read-CloudSecrets $c
     Invoke-RestMethod ($c.apiListenUrl+'/api/server-instances/pool?requestedCapacity=2') -Headers @{'X-Server-Key'=$s.serverKey} -TimeoutSec 3
 }
+function Get-PrivateBusyInstances($Pool, $Records) {
+    # Historical tests and other hosts share the registry. Only this host's
+    # recorded DS processes participate in its drain decision. Keep stale owned
+    # busy records blocking: lost heartbeats are not proof that a match ended.
+    $ids=@($Records | Where-Object { $_.name -ne 'api' } | ForEach-Object { 'invite-'+$_.name })
+    @($Pool.instances | Where-Object {
+        $_.instanceId -in $ids -and ($_.currentPlayers -gt 0 -or $_.state -in @('InMatch','Reserved','Draining'))
+    })
+}

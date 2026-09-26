@@ -225,10 +225,20 @@ namespace Game.Presentation.Animation
             float phase;
             if (_remoteSource != null)
             {
-                bool sprint = SourceLocomotionState == LocomotionState.Sprint;
-                _remotePhase = RemoteGaitPhase.Advance(_remotePhase, Time.deltaTime, ResolveCycleSeconds(sprint));
-                _remotePhase = RemoteGaitPhase.CorrectToward(
-                    _remotePhase, SourceGaitPhase, RemotePhaseSnapThreshold, RemotePhasePullPerSecond, Time.deltaTime);
+                if (_remoteSource.HasPresentedPose)
+                {
+                    // Position, jump state and gait now share one rendered server tick.
+                    // Extrapolating the gait independently makes feet slide between
+                    // snapshots and visibly depart from the rewound server hitboxes.
+                    _remotePhase = SourceGaitPhase;
+                }
+                else
+                {
+                    bool sprint = SourceLocomotionState == LocomotionState.Sprint;
+                    _remotePhase = RemoteGaitPhase.Advance(_remotePhase, Time.deltaTime, ResolveCycleSeconds(sprint));
+                    _remotePhase = RemoteGaitPhase.CorrectToward(
+                        _remotePhase, SourceGaitPhase, RemotePhaseSnapThreshold, RemotePhasePullPerSecond, Time.deltaTime);
+                }
                 phase = _remotePhase;
             }
             else

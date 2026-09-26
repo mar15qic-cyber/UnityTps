@@ -22,12 +22,12 @@ namespace Game.Presentation.Animation
         [SerializeField, Min(1f)] private float aimDistance = 20f;
 
         [Header("Pitch 分配（上身各骨占比，总和≈1）")]
-        [SerializeField, Range(0f, 1f)] private float spineWeight = 0.30f;
-        [SerializeField, Range(0f, 1f)] private float chestWeight = 0.40f;
-        [SerializeField, Range(0f, 1f)] private float neckWeight = 0.15f;
-        [SerializeField, Range(0f, 1f)] private float headWeight = 0.15f;
-        [SerializeField, Range(0f, 90f)] private float maxPitchDegrees = 60f;
-        [SerializeField, Min(0f)] private float pitchSmoothSeconds = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float spineWeight = 0.40f;
+        [SerializeField, Range(0f, 1f)] private float chestWeight = 0.60f;
+        [SerializeField, Range(0f, 1f)] private float neckWeight = 0f;
+        [SerializeField, Range(0f, 1f)] private float headWeight = 0f;
+        [SerializeField, Range(0f, 90f)] private float maxPitchDegrees = 89f;
+        [SerializeField, Min(0f)] private float pitchSmoothSeconds;
 
         [Header("Yaw 残差（本地玩家为 0：Locomotor 已直接驱动根 Yaw；预留给远端表现）")]
         [SerializeField, Range(0f, 1f)] private float yawWeight = 0f;
@@ -42,16 +42,19 @@ namespace Game.Presentation.Animation
         private NetworkCombatAuthority _netAuthority;
         private PlayerNetworkAdapter _networkAdapter;
         private Game.Gameplay.Movement.Locomotor _locomotor;
+        private TPWeaponMeshSwapper _weaponSwapper;
         private float _pitch;
         private float _pitchVelocity;
         private readonly Quaternion[] _baseRotations = new Quaternion[4];
         private readonly Quaternion[] _appliedRotations = new Quaternion[4];
         private readonly bool[] _poseApplied = new bool[4];
+        private int _serverPoseFrame = -1;
 
         private void Awake()
         {
             _networkAdapter = GetComponentInParent<PlayerNetworkAdapter>();
             _locomotor = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
+            _weaponSwapper = GetComponentInChildren<TPWeaponMeshSwapper>(true);
             _animator = GetComponentInChildren<Animator>(true);
             if (_animator != null)
             {
@@ -63,6 +66,19 @@ namespace Game.Presentation.Animation
         }
 
         private void LateUpdate()
+        {
+            if (_serverPoseFrame != Time.frameCount) ApplyPoseFrame();
+        }
+
+        // The dedicated server samples lag-compensated hitboxes on its network tick,
+        // before ordinary LateUpdate. Pose the same bones at that capture point.
+        public void ApplyServerPoseNow()
+        {
+            ApplyPoseFrame();
+            _serverPoseFrame = Time.frameCount;
+        }
+
+        private void ApplyPoseFrame()
         {
             if (_animator == null || _spine == null) return;
 
@@ -81,7 +97,8 @@ namespace Game.Presentation.Animation
             Vector3 aimDir;
             if (_netAuthority != null && !_netAuthority.IsOwnerPlayer)
             {
-                aimDir = _netAuthority.AimDirectionWorld;
+                aimDir = _networkAdapter != null && _networkAdapter.TryGetPresentedAimDirection(out var presentedAim)
+                    ? presentedAim : _netAuthority.AimDirectionWorld;
                 if (aimDir.sqrMagnitude < 0.0001f) return;
             }
             else
@@ -89,16 +106,23 @@ namespace Game.Presentation.Animation
                 if (_camera == null) _camera = UnityEngine.Camera.main;
                 if (_camera == null) return;
                 // 目标瞄准方向（相机中心射线）
-                aimDir = (_camera.transform.position + _camera.transform.forward * aimDistance
-                    - (_chest != null ? _chest.position : transform.position)).normalized;
+                aimDir = _camera.transform.forward;
             }
+
+            ApplyDirectionalPose(aimDir, Time.deltaTime);
+        }
+
+        internal void ApplyDirectionalPose(Vector3 aimDir, float deltaTime)
+        {
+            if (_animator == null || _spine == null || aimDir.sqrMagnitude < .0001f) return;
+            aimDir.Normalize();
 
             // pitch：瞄准方向相对水平面的仰角（本地模型 yaw 已与相机一致，只需 pitch）
             float targetPitch = Mathf.Asin(Mathf.Clamp(aimDir.y, -1f, 1f)) * Mathf.Rad2Deg;
             targetPitch = Mathf.Clamp(targetPitch, -maxPitchDegrees, maxPitchDegrees);
             _pitch = pitchSmoothSeconds <= 0f
                 ? targetPitch
-                : Mathf.SmoothDamp(_pitch, targetPitch, ref _pitchVelocity, pitchSmoothSeconds, Mathf.Infinity, Time.deltaTime);
+                : Mathf.SmoothDamp(_pitch, targetPitch, ref _pitchVelocity, pitchSmoothSeconds, Mathf.Infinity, deltaTime);
 
             // yaw 残差（默认权重 0）
             Vector3 flatAim = new Vector3(aimDir.x, 0f, aimDir.z).normalized;
@@ -123,6 +147,47 @@ namespace Game.Presentation.Animation
             if (_chest != null) ApplyAim(_chest, 1, chestWeight, right, up, forward, _pitch, yawDelta, roll * .4f);
             if (_neck != null) ApplyAim(_neck, 2, neckWeight, right, up, forward, _pitch, yawDelta, -lean * 4f);
             if (_head != null) ApplyAim(_head, 3, headWeight, right, up, forward, _pitch, yawDelta, -lean * 4f);
+            AlignWeaponBore(right);
+        }
+
+        private void AlignWeaponBore(Vector3 right)
+        {
+            // The authored idle can point a held gun slightly down even when the
+            // camera is level. Measure the actual muzzle after the animated pose,
+            // then rotate the upper body (and its hands/head) to the same pitch.
+            // Keep the correction bounded so a broken/missing mount cannot twist
+            // the character through an implausible angle.
+            if (_weaponSwapper == null) _weaponSwapper = GetComponentInChildren<TPWeaponMeshSwapper>(true);
+            Transform muzzle = _weaponSwapper != null ? _weaponSwapper.CurrentMuzzle : null;
+            if (muzzle == null || _chest == null) return;
+            // Use a direction rotation instead of asin(y): beyond vertical the
+            // same asin value describes two different poses, which used to turn
+            // an 89-degree upward view farther backwards on each correction.
+            Vector3 desired = Quaternion.AngleAxis(-_pitch, right) * transform.root.forward;
+            Quaternion correction = BoreDirectionCorrection(muzzle.forward, desired);
+            float angle = Quaternion.Angle(Quaternion.identity, correction);
+            if (angle < .01f) return;
+            float upperSum = spineWeight + chestWeight;
+            if (upperSum < .001f) return;
+            ApplyBoreCorrection(_spine, 0, Quaternion.Slerp(Quaternion.identity, correction, spineWeight / upperSum));
+            ApplyBoreCorrection(_chest, 1, Quaternion.Slerp(Quaternion.identity, correction, chestWeight / upperSum));
+        }
+
+        internal static Quaternion BoreDirectionCorrection(Vector3 bore, Vector3 desired)
+        {
+            if (bore.sqrMagnitude < .0001f || desired.sqrMagnitude < .0001f) return Quaternion.identity;
+            var rotation = Quaternion.FromToRotation(bore, desired);
+            float angle = Quaternion.Angle(Quaternion.identity, rotation);
+            return angle < .001f ? Quaternion.identity
+                : Quaternion.Slerp(Quaternion.identity, rotation, Mathf.Min(1f, 20f / angle));
+        }
+
+        private void ApplyBoreCorrection(Transform bone, int index, Quaternion correction)
+        {
+            if (bone == null) return;
+            bone.rotation = correction * bone.rotation;
+            _appliedRotations[index] = bone.localRotation;
+            _poseApplied[index] = true;
         }
 
         /// <summary>清空俯仰平滑累计（死亡/复活边界，审计 D2）：复活后从当前瞄准重新收敛，

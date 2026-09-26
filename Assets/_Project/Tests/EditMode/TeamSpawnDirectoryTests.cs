@@ -40,6 +40,13 @@ namespace Game.Gameplay.Tests
             Assert.That(red.Count, Is.GreaterThanOrEqualTo(8), "每队槽位 ≥8（16 连接 = 每队 8 人）");
             Assert.That(blue.Count, Is.GreaterThanOrEqualTo(8));
 
+            // The four authored spawn markers are used before overflow offsets.
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.That(red[i].Position, Is.EqualTo(ArenaLikeSpawns()[i]));
+                Assert.That(blue[i].Position, Is.EqualTo(ArenaLikeSpawns()[i + 4]));
+            }
+
             // 槽位两两不重合（占位偏移网格生效）
             for (int i = 0; i < red.Count; i++)
                 for (int j = i + 1; j < red.Count; j++)
@@ -79,11 +86,11 @@ namespace Game.Gameplay.Tests
             var blue = new List<TeamSpawnDirectory.SpawnSlot>();
             TeamSpawnDirectory.BuildTeamSlots(ArenaLikeSpawns(), null, red, blue);
             var slots = red.ToArray();
-            // 首槽附近站着一名玩家（<8m 排除半径）：安全选点必须跳过它
+            // 首槽附近站着一名玩家：占位安全距离为 1.5m，跳过当前点。
             var occupied = new[] { slots[0].Position + new Vector3(1f, 0f, 0f) };
             int picked = TeamSpawnDirectory.PickTeamSlot(slots, occupied, 0, out _);
             Assert.That(Vector3.Distance(slots[picked].Position, occupied[0]),
-                Is.GreaterThanOrEqualTo(MatchRules.SpawnExclusionRadiusMeters));
+                Is.GreaterThanOrEqualTo(1.5f));
         }
 
         [Test]

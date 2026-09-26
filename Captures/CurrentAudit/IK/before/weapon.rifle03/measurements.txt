@@ -1,0 +1,18 @@
+item=weapon.rifle03 name=FN SCAR clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(0.00020, -0.06330, 0.14450)
+targetRotation=(0.07524, 0.62405, 0.75696, -0.17864)
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(0.00020, -0.06330, 0.14450)
+LeftThumbProximal=(0.01226, -0.03708, 0.19085)
+LeftIndexProximal=(0.04048, -0.04662, 0.25556)
+LeftMiddleProximal=(0.04507, -0.09210, 0.24568)
+LeftMiddleIntermediate=(0.07481, -0.08894, 0.24911)
+LeftMiddleDistal=(0.09266, -0.08096, 0.22554)
+mesh=TP_Weapon_AssaultRifle_03 min=(-0.02069, -0.12615, -0.34751) max=(0.02081, 0.06468, 0.44315)
+mesh=assault_rifle_03_grip min=(-0.01547, -0.09893, 0.16201) max=(0.01569, 0.00227, 0.19318)
+mesh=assault_rifle_03_iron_sights min=(-0.01429, 0.04136, -0.13040) max=(0.01442, 0.10808, 0.28672)
+mesh=assault_rifle_03_mag min=(-0.01137, -0.13695, -0.00524) max=(0.01149, -0.01331, 0.06853)
+mesh=assault_rifle_03_slider min=(-0.03218, 0.01237, -0.02025) max=(0.01310, 0.05181, 0.13022)

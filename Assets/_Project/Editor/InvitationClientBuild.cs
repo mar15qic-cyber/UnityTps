@@ -22,19 +22,32 @@ namespace Game.EditorTools
         {
             var json = File.ReadAllText(path);
             var config = JsonUtility.FromJson<ClientReleaseEnvironment>(json);
-            if (config == null || !config.TryValidate(out _) || !config.inviteOnly)
+            if (config == null || !config.TryValidate(out _) || !config.RequiresReleaseValidation)
                 throw new InvalidOperationException("Invalid public invitation environment");
             var output = config.IsPrivateOverlay ? "Builds/PrivateInvitationClient" : "Builds/InvitationClient";
             Directory.CreateDirectory(output);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            var previousHttpOption = PlayerSettings.insecureHttpOption;
+            BuildReport report;
+            try
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
-                locationPathName = output + "/UnityFpsClient.exe",
-                target = BuildTarget.StandaloneWindows64,
-                subtarget = (int)StandaloneBuildSubtarget.Player,
-                extraScriptingDefines = new[] { config.IsPrivateOverlay ? "PRIVATE_INVITE_TEST" : "PUBLIC_INVITE_TEST" },
-                options = BuildOptions.None
-            });
+                // Private overlay endpoints are validated against the configured host IP.
+                // Release players otherwise reject HTTP before making any network request.
+                PlayerSettings.insecureHttpOption = config.IsPrivateOverlay
+                    ? InsecureHttpOption.AlwaysAllowed : InsecureHttpOption.NotAllowed;
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                    locationPathName = output + "/UnityFpsClient.exe",
+                    target = BuildTarget.StandaloneWindows64,
+                    subtarget = (int)StandaloneBuildSubtarget.Player,
+                    extraScriptingDefines = new[] { config.IsPrivateOverlay ? "PRIVATE_INVITE_TEST" : "PUBLIC_INVITE_TEST" },
+                    options = BuildOptions.None
+                });
+            }
+            finally
+            {
+                PlayerSettings.insecureHttpOption = previousHttpOption;
+            }
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException("Invitation build failed");
             // Serialize only public fields, never copy arbitrary properties from an operator's input file.
             File.WriteAllText(output + "/client-environment.json", JsonUtility.ToJson(config, true));

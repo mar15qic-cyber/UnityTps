@@ -22,6 +22,7 @@ namespace Game.Presentation.HUD
         public bool Visible = true;
         /// <summary>命中标记剩余秒数（>0 显示）。</summary>
         public float HitMarkerRemaining;
+        public bool HitMarkerHeadshot;
 
         /// <summary>脉冲回落（px/s·dt）。独立方法+显式 dt——EditMode 可直测（审计 §2）。</summary>
         public void TickPulse(float decayPxPerSec, float dt)

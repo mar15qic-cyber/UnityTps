@@ -23,7 +23,7 @@ namespace Game.UI
             {
             var release = Game.Core.ClientReleaseEnvironment.Current;
             var result = await HotUpdateBootstrap.CheckAndApplyAsync();
-            if (release?.inviteOnly == true && result.Kind != "applied" && result.Kind != "uptodate")
+            if (release?.RequiresReleaseValidation == true && result.Kind != "applied" && result.Kind != "uptodate")
                 throw new System.InvalidOperationException("热更新未就绪: " + result.Kind + "。请检查网络或联系测试组织者。");
             AppRoot.Ensure();
             if (!string.IsNullOrWhiteSpace(lobbySceneName) && SceneManager.GetActiveScene().name != lobbySceneName)

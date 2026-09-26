@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Gameplay.Movement;
 using UnityEngine;
 
 namespace Game.Gameplay.Network
@@ -11,6 +12,11 @@ namespace Game.Gameplay.Network
         public Vector3 Position;
         public Quaternion Rotation;
         public float LeanAmount;
+        public float PitchDegrees;
+        public LocomotionState LocomotionState;
+        public Vector2 MoveInput;
+        public float HorizontalSpeed;
+        public float GaitPhase;
     }
 
     /// <summary>One clock per client session; arrival time is never used as a snapshot timestamp.</summary>
@@ -20,7 +26,7 @@ namespace Game.Gameplay.Network
         private static double _arrival, _render;
         private static double _interval = 1.0 / 30;
         private static int _rate = 30;
-        public static double DelaySeconds => Math.Max(.05, Math.Min(.15, _interval * 2.1));
+        public static double DelaySeconds => Math.Max(.075, Math.Min(.15, _interval * 3.0));
         private static int _renderFrame = -1;
         private static double _presented;
         public static double PresentedTick => _presented > 0 ? _presented : RenderTick;
@@ -56,6 +62,64 @@ namespace Game.Gameplay.Network
         }
     }
 
+    /// <summary>Playback clock for one observed player. Owner acknowledgements and other
+    /// players' packets must not pull this character's render time past its own samples.</summary>
+    public sealed class ObserverPoseClock
+    {
+        private uint _latestTick;
+        private int _rate = 30;
+        private double _arrivalTime;
+        private double _lastSampleTime;
+        private double _renderTick;
+        private double _jitterSeconds;
+
+        public double DelaySeconds => Math.Max(3.0 / _rate,
+            Math.Min(.14, 3.0 / _rate + _jitterSeconds * 2.5));
+        public double RenderTick => _renderTick;
+
+        public void Reset()
+        {
+            _latestTick = 0;
+            _arrivalTime = _lastSampleTime = _renderTick = _jitterSeconds = 0;
+            _rate = 30;
+        }
+
+        public void Observe(uint tick, int rate, double arrivalTime)
+        {
+            if (tick <= _latestTick) return;
+            _rate = Math.Max(1, rate);
+            if (_latestTick > 0)
+            {
+                double expected = (tick - _latestTick) / (double)_rate;
+                double actual = Math.Max(0, arrivalTime - _arrivalTime);
+                _jitterSeconds = _jitterSeconds * .85 + Math.Abs(actual - expected) * .15;
+            }
+            _latestTick = tick;
+            _arrivalTime = arrivalTime;
+        }
+
+        public double Sample(double now)
+        {
+            if (_latestTick == 0) return 0;
+            double desired = _latestTick + Math.Max(0, now - _arrivalTime) * _rate
+                - DelaySeconds * _rate;
+            desired = Math.Max(1, Math.Min(_latestTick, desired));
+            if (_renderTick <= 0 || _latestTick - _renderTick > _rate * .5)
+            {
+                _renderTick = desired;
+            }
+            else if (desired > _renderTick)
+            {
+                // Lost or late packets should be caught up over render frames rather
+                // than advancing several simulation ticks in one displayed frame.
+                double elapsed = Math.Max(0, now - _lastSampleTime);
+                _renderTick = Math.Min(desired, _renderTick + elapsed * _rate * 1.35);
+            }
+            _lastSampleTime = now;
+            return _renderTick;
+        }
+    }
+
     public sealed class TimestampedPoseBuffer
     {
         private readonly List<ObserverPose> _samples = new(64);
@@ -88,6 +152,12 @@ namespace Game.Gameplay.Network
                 pose = a; pose.Position = Vector3.Lerp(a.Position, b.Position, t);
                 pose.Rotation = Quaternion.Slerp(a.Rotation, b.Rotation, t);
                 pose.LeanAmount = Mathf.Lerp(a.LeanAmount, b.LeanAmount, t);
+                pose.PitchDegrees = Mathf.LerpAngle(a.PitchDegrees, b.PitchDegrees, t);
+                pose.LocomotionState = t < .5f ? a.LocomotionState : b.LocomotionState;
+                pose.MoveInput = Vector2.Lerp(a.MoveInput, b.MoveInput, t);
+                pose.HorizontalSpeed = Mathf.Lerp(a.HorizontalSpeed, b.HorizontalSpeed, t);
+                pose.GaitPhase = Mathf.Repeat(a.GaitPhase
+                    + Mathf.DeltaAngle(a.GaitPhase * 360f, b.GaitPhase * 360f) / 360f * t, 1f);
                 ActualTick = tick; Starved = false; return true;
             }
             return false;

@@ -2,7 +2,7 @@
   "environmentId": "private-test",
   "releaseId": "private-test-01",
   "networkMode": "private-overlay",
-  "inviteOnly": true,
+  "inviteOnly": false,
   "zeroTierNetworkId": "REPLACE_WITH_NETWORK_ID",
   "hostOverlayAddress": "10.147.17.1",
   "apiBaseUrl": "http://10.147.17.1:5081",

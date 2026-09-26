@@ -2,6 +2,7 @@ using FishNet;
 using FishNet.Managing.Server;
 using FishNet.Transporting;
 using Game.Gameplay.Health;
+using Game.Core;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -66,6 +67,8 @@ namespace Game.Gameplay.Network
         /// _endedBroadcast 幂等闸保证每局恰一次；无订阅者（离线/F1 调试）零副作用。
         /// </summary>
         public static event System.Action<MatchEndedPayload> OnServerMatchResultReady;
+        /// <summary>Fired after Ended has fully returned to Idle; the dedicated server can announce Ready/0 immediately.</summary>
+        public static event System.Action OnServerRearmed;
 
         /// <summary>服务器侧把击杀计入击杀者队伍（TDM；KillRace/None 队不计）。</summary>
         public static void AddTeamKill(string killerTeam)
@@ -102,17 +105,25 @@ namespace Game.Gameplay.Network
         /// 数据源 = 认证档案 TeamId；缺失回退 None）。补入玩家重连/认证后同样由此覆盖。</summary>
         private void SyncPlayerTeams()
         {
-            var authenticator = InstanceFinder.NetworkManager != null
-                ? InstanceFinder.NetworkManager.GetComponent<JoinTicketAuthenticator>()
-                : null;
-            if (authenticator == null) return;
             foreach (var player in FindPlayersStatic())
-            {
-                var nob = player.NetworkObject;
-                if (nob?.Owner == null) continue;
-                if (!authenticator.AcceptedUsers.TryGetValue(nob.Owner.ClientId, out var profile)) continue;
-                player.ServerSetTeam(string.IsNullOrEmpty(profile.TeamId) ? MatchRules.TeamNone : profile.TeamId);
-            }
+                ServerSyncPlayerTeam(player);
+        }
+
+        /// <summary>Use the consumed roster identity at spawn and at kill time, including players
+        /// spawned after countdown. A stale/default SyncVar must never choose the scoring team.</summary>
+        public static string ServerSyncPlayerTeam(NetworkCombatAuthority player)
+        {
+            if (player == null) return MatchRules.TeamNone;
+            var manager = InstanceFinder.NetworkManager;
+            var authenticator = manager != null ? manager.GetComponent<JoinTicketAuthenticator>() : null;
+            var owner = player.NetworkObject != null ? player.NetworkObject.Owner : null;
+            if (authenticator == null || owner == null
+                || !authenticator.AcceptedUsers.TryGetValue(owner.ClientId, out var profile)
+                || profile == null)
+                return MatchRules.TeamNone;
+            string team = MatchRules.NormalizeRosterTeam(profile.TeamId);
+            player.ServerSetTeam(team);
+            return team;
         }
 
         /// <summary>比赛事件（倒计时/击杀/终局/离开），客户端镜像与 HUD（MatchHudView）共同消费。</summary>
@@ -138,6 +149,16 @@ namespace Game.Gameplay.Network
 
         private static readonly Dictionary<DamageableTarget, NetworkCombatAuthority> _hitRegistry =
             new Dictionary<DamageableTarget, NetworkCombatAuthority>();
+        private static readonly Dictionary<DamageableTarget, KillDetail> _hitDetails = new();
+
+        public readonly struct KillDetail
+        {
+            public readonly string WeaponId;
+            public readonly string WeaponName;
+            public readonly HitBodyRegion BodyRegion;
+            public KillDetail(string weaponId, string weaponName, HitBodyRegion bodyRegion)
+            { WeaponId = weaponId; WeaponName = weaponName; BodyRegion = bodyRegion; }
+        }
 
         // ---- 助攻登记（战绩面板）：被击杀者 → 近期对其造成伤害的射手（窗口 MatchRules.AssistWindowSeconds） ----
 
@@ -213,6 +234,23 @@ namespace Game.Gameplay.Network
         {
             public string killerId;
             public string victimId;
+            public string killerName;
+            public string victimName;
+            public string weaponId;
+            public string weaponName;
+            public bool headshot;
+            public uint victimLifeEpoch;
+            public uint killerLifeEpoch;
+            public string matchId;
+        }
+
+        [Serializable]
+        public sealed class MatchAssistPayload
+        {
+            public string assistantId;
+            public string victimName;
+            public uint victimLifeEpoch;
+            public string matchId;
         }
 
         /// <summary>PlayerLeft 事件载荷（&gt;2 人局仅移除；含离开者比分快照，despawn 前在服务器采集）。</summary>
@@ -250,6 +288,7 @@ namespace Game.Gameplay.Network
             RedScore = 0;
             BlueScore = 0;
             _hitRegistry.Clear();
+            _hitDetails.Clear();
             _assistRegistry.Clear();
             _snapshotTimer = 0f;
             _leaveGuard.Clear();
@@ -506,7 +545,7 @@ namespace Game.Gameplay.Network
             }
             if (stale != null)
             {
-                foreach (var key in stale) _hitRegistry.Remove(key);
+                foreach (var key in stale) { _hitRegistry.Remove(key); _hitDetails.Remove(key); }
             }
             // 助攻登记同步清理：该玩家的射手记录与其目标的登记一并移除
             List<DamageableTarget> staleAssists = null;
@@ -616,6 +655,7 @@ namespace Game.Gameplay.Network
 
             Phase = MatchPhase.Ended;
             _hitRegistry.Clear();
+            _hitDetails.Clear();
             _assistRegistry.Clear();
             // Day2 生命周期闭环（接管契约 §1.2）：终局即通知 Dedicated 侧记录旧局房间码快照并作废
             // 既有重臂证据——_endedBroadcast 幂等闸保证每局恰触发一次
@@ -692,12 +732,14 @@ namespace Game.Gameplay.Network
             _endedBroadcast = false;
             _leaveGuard.Clear();
             _hitRegistry.Clear();
+            _hitDetails.Clear();
             _assistRegistry.Clear();
             _pendingDeparture = null;
             _pendingDepartureDueRealtime = 0f;
             _relayHostStatic = null;
             _matchStartRealtime = 0f;
             Debug.Log("[MatchLifecycle] MATCH_REARMED（Ended 已复位为 Idle：旧局客户端全走、认证档案清空、后端权威已重新注册同步）");
+            OnServerRearmed?.Invoke();
         }
 
         /// <summary>
@@ -713,7 +755,8 @@ namespace Game.Gameplay.Network
         }
 
         // ---- 击杀归因（NetworkCombatAuthority 服务器事件调用） ----
-        public static void RegisterHit(NetworkCombatAuthority shooter, DamageableTarget target)
+        public static void RegisterHit(NetworkCombatAuthority shooter, DamageableTarget target,
+            HitBodyRegion bodyRegion = HitBodyRegion.Torso, string weaponId = null)
         {
             if (shooter == null || target == null) return;
             // F01（2026-09-19 审计）：登记入口从服务器专属事件（HandleServerShot）下沉到
@@ -723,6 +766,10 @@ namespace Game.Gameplay.Network
             var nob = shooter.NetworkObject;
             if (nob != null && !nob.IsServerInitialized) return;
             _hitRegistry[target] = shooter;
+            var definition = shooter.GetComponentInChildren<Game.Gameplay.Weapon.WeaponController>(true)?.Definition;
+            _hitDetails[target] = new KillDetail(weaponId,
+                !string.IsNullOrEmpty(weaponId) && definition != null && definition.WeaponId == weaponId
+                    ? definition.DisplayName : weaponId, bodyRegion);
             // 助攻登记：追加本次伤害射手并修剪窗口外记录（战绩面板）
             float now = Time.realtimeSinceStartup;
             if (!_assistRegistry.TryGetValue(target, out var records))
@@ -742,6 +789,7 @@ namespace Game.Gameplay.Network
         internal static void ClearAttributionForTests()
         {
             _hitRegistry.Clear();
+            _hitDetails.Clear();
             _assistRegistry.Clear();
         }
 
@@ -752,6 +800,16 @@ namespace Game.Gameplay.Network
             if (_hitRegistry.TryGetValue(victim, out var killer))
                 _hitRegistry.Remove(victim);
             return killer;
+        }
+
+        public static KillDetail ConsumeKillDetailOf(DamageableTarget victim)
+        {
+            if (victim != null && _hitDetails.TryGetValue(victim, out var detail))
+            {
+                _hitDetails.Remove(victim);
+                return detail;
+            }
+            return default;
         }
 
         /// <summary>
@@ -778,16 +836,36 @@ namespace Game.Gameplay.Network
         }
 
         /// <summary>广播击杀事件（服务器调用；payload：击杀者/被杀者 id + 武器）。</summary>
-        public static void BroadcastKill(NetworkCombatAuthority killer, NetworkCombatAuthority victim)
+        public static void BroadcastKill(NetworkCombatAuthority killer, NetworkCombatAuthority victim,
+            KillDetail detail = default)
         {
             var payload = JsonUtility.ToJson(new MatchKillPayload
             {
                 killerId = PlayerId(killer),
-                victimId = PlayerId(victim)
+                victimId = PlayerId(victim),
+                killerName = ResolveDisplayName(killer),
+                victimName = ResolveDisplayName(victim),
+                weaponId = detail.WeaponId,
+                weaponName = detail.WeaponName,
+                headshot = detail.BodyRegion == HitBodyRegion.Head,
+                victimLifeEpoch = victim != null ? victim.LifeEpochForPresentation : 0u,
+                killerLifeEpoch = killer != null ? killer.LifeEpochForPresentation : 0u,
+                matchId = ClientMatchId
             });
             RelayStatic(MatchEventKind.Kill, payload);
             // 比分变化 → 立即补发战绩快照（面板准实时；周期广播兜底其余字段）
             ServerBroadcastScoreboard();
+        }
+
+        public static void BroadcastAssist(NetworkCombatAuthority assistant, NetworkCombatAuthority victim)
+        {
+            RelayStatic(MatchEventKind.Assist, JsonUtility.ToJson(new MatchAssistPayload
+            {
+                assistantId = PlayerId(assistant),
+                victimName = ResolveDisplayName(victim),
+                victimLifeEpoch = victim != null ? victim.LifeEpochForPresentation : 0u,
+                matchId = ClientMatchId
+            }));
         }
 
         // ---- 战绩快照（Docs/23 P1-6 战绩面板，服务器唯一权威构建） ----
@@ -859,7 +937,7 @@ namespace Game.Gameplay.Network
         /// 显示名解析（服务器侧）：认证档案 Username → playerId 回退（kill feed / 终局载荷同源 id）。
         /// 客户端不该走此路径（AcceptedUsers 仅服务器填充）。
         /// </summary>
-        private static string ResolveDisplayName(NetworkCombatAuthority player)
+        internal static string ResolveDisplayName(NetworkCombatAuthority player)
         {
             var userId = PlayerId(player);
             var networkObject = player != null ? player.NetworkObject : null;

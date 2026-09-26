@@ -112,10 +112,11 @@ function Test-InstanceRegistered([string]$instanceId, [string]$logFile, [string]
 # Phase 8 map instance defs (stable ids across runs -> same compensation directories in the DS).
 function Get-MapDefs {
     @(
-        @{ id = "$InstanceId-map01"; port = $DsPort + 1; mapId = 'map_01' },
-        @{ id = "$InstanceId-map02"; port = $DsPort + 2; mapId = 'map_02' },
-        @{ id = "$InstanceId-map03"; port = $DsPort + 3; mapId = 'map_03' },
-        @{ id = "$InstanceId-map04"; port = $DsPort + 4; mapId = 'map_04' }
+        @{ id = "$InstanceId-map01"; port = $DsPort + 1; mapId = 'map_01'; capacity = 8 },
+        @{ id = "$InstanceId-map02"; port = $DsPort + 2; mapId = 'map_02'; capacity = 16 },
+        @{ id = "$InstanceId-map03"; port = $DsPort + 3; mapId = 'map_03'; capacity = 8 },
+        @{ id = "$InstanceId-map04"; port = $DsPort + 4; mapId = 'map_04'; capacity = 8 },
+        @{ id = "$InstanceId-map05"; port = $DsPort + 5; mapId = 'map_05'; capacity = 16 }
     )
 }
 
@@ -268,6 +269,47 @@ if ($CheckOnly) {
 }
 
 # ---- 3. execute: backend first (recovery), then control-plane key ------------
+$hotRoot = Join-Path $root 'fps-backend\src\UnityFps.Api\hotupdate'
+$hotManifestPath = Join-Path $hotRoot 'manifest.json'
+$hotMapHashes = @{}
+$hotMapCatalog = @()
+if (Test-Path -LiteralPath $hotManifestPath) {
+    $hotManifest = Get-Content -LiteralPath $hotManifestPath -Raw | ConvertFrom-Json
+    if ([string]$hotManifest.version -notmatch '^[1-9][0-9]*$') { Fail 'HOT_MAP_MANIFEST_INVALID' 'Invalid hotupdate version.' }
+    foreach ($spec in @(
+        @{ id = 'map_04'; scene = 'Map_TrainingYard'; display = 'Training Yard'; modes = @('TDM'); capacity = 8; groups = @('Red','Blue') },
+        @{ id = 'map_05'; scene = 'Map_NightRelay'; display = 'Night Relay'; modes = @('KillRace'); capacity = 16; groups = @('Red','Blue','FFA') }
+    )) {
+        $bundlePath = 'maps/' + $spec.scene.ToLowerInvariant() + '.bundle'
+        $entry = @($hotManifest.files | Where-Object { $_.path -eq $bundlePath }) | Select-Object -First 1
+        if (-not $entry) { continue }
+        $onDisk = Join-Path (Join-Path $hotRoot ([string]$hotManifest.version)) ($bundlePath.Replace('/', [IO.Path]::DirectorySeparatorChar))
+        if (-not (Test-Path -LiteralPath $onDisk) -or [string]$entry.hash -notmatch '^[a-fA-F0-9]{64}$' `
+            -or (Get-FileHash -LiteralPath $onDisk -Algorithm SHA256).Hash -ne [string]$entry.hash) {
+            Fail 'HOT_MAP_BUNDLE_INVALID' "Missing or mismatched $bundlePath for version $($hotManifest.version)."
+        }
+        $hotMapHashes[$spec.id] = ([string]$entry.hash).ToLowerInvariant()
+        $hotMapCatalog += [ordered]@{ mapId = $spec.id; displayName = $spec.display; sceneName = $spec.scene;
+            modes = $spec.modes; maxCapacity = $spec.capacity; spawnGroups = $spec.groups;
+            contentVersion = [string]$hotManifest.version; contentHash = $hotMapHashes[$spec.id] }
+    }
+}
+if ($AllMaps -and (-not $hotMapHashes.ContainsKey('map_04') -or -not $hotMapHashes.ContainsKey('map_05'))) {
+    Fail 'HOT_MAP_BUNDLE_MISSING' 'AllMaps requires published, verified bundles for map_04 and map_05.'
+}
+if ($dsAction -eq 'reused' -and [string]$prevState.contentHash -ne [string]$hotMapHashes[$MapId]) {
+    Fail 'DS_STALE_MAP_CONTENT' "The running main DS has an old map content hash. Stop it and rerun this launcher."
+}
+foreach ($entry in $mapPlan) {
+    if ($entry.action -ne 'reused') { continue }
+    $expectedHash = [string]$hotMapHashes[$entry.def.mapId]
+    if ([string]$entry.record.contentHash -ne $expectedHash -or [int]$entry.record.capacity -ne [int]$entry.def.capacity) {
+        Fail 'MAP_DS_STALE_CONTENT_OR_CAPACITY' "The running $($entry.def.mapId) DS has an old map hash or capacity. Stop it and rerun this launcher."
+    }
+}
+New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+$catalogPath = Join-Path $runtimeDir 'maps.json'
+ConvertTo-Json -InputObject @($hotMapCatalog) -Depth 8 | Set-Content -LiteralPath $catalogPath -Encoding UTF8
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $runLog = Join-Path $logRoot $stamp
 New-Item -ItemType Directory -Path $runLog -Force | Out-Null
@@ -276,10 +318,14 @@ $backendPid = 0
 if ($prevState -and $prevState.backendPid) { $backendPid = [int]$prevState.backendPid }
 if ($backendAction -eq 'start') {
     Write-Output "BACKEND_STARTING port=$BackendPort log=$runLog"
-    $argList = @('run', '--project', $backendCsproj, '--', "--ServerInstances:ServerKey=$key")
-    $api = Start-Process -FilePath 'dotnet' -ArgumentList $argList -WindowStyle Hidden `
-        -RedirectStandardOutput (Join-Path $runLog 'backend.out.log') `
-        -RedirectStandardError (Join-Path $runLog 'backend.err.log') -PassThru
+    $argList = @('run', '--no-restore', '--project', $backendCsproj, '--', "--ServerInstances:ServerKey=$key")
+    $previousCatalog = [Environment]::GetEnvironmentVariable('FPS_MAP_CATALOG', 'Process')
+    try {
+        [Environment]::SetEnvironmentVariable('FPS_MAP_CATALOG', $catalogPath, 'Process')
+        $api = Start-Process -FilePath 'dotnet' -ArgumentList $argList -WindowStyle Hidden `
+            -RedirectStandardOutput (Join-Path $runLog 'backend.out.log') `
+            -RedirectStandardError (Join-Path $runLog 'backend.err.log') -PassThru
+    } finally { [Environment]::SetEnvironmentVariable('FPS_MAP_CATALOG', $previousCatalog, 'Process') }
     $backendPid = $api.Id
     $ok = $false
     $healthTmp2 = Join-Path $env:TEMP ("usp-health2-" + [guid]::NewGuid().ToString('N') + ".tmp")
@@ -323,9 +369,13 @@ if ($dsAction -eq 'start') {
         '-serverKey', $key, '-buildVersion', 'local-dev', '-capacity', "$Capacity",
         '-mapId', $MapId,
         '-logFile', $serverLog)
-    $ds = Start-Process -FilePath $dsExe -ArgumentList $argList `
-        -RedirectStandardOutput (Join-Path $runLog 'server.out.log') `
-        -RedirectStandardError (Join-Path $runLog 'server.err.log') -PassThru
+    $previousMapHash = [Environment]::GetEnvironmentVariable('FPS_MAP_CONTENT_HASH', 'Process')
+    try {
+        [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $hotMapHashes[$MapId], 'Process')
+        $ds = Start-Process -FilePath $dsExe -ArgumentList $argList `
+            -RedirectStandardOutput (Join-Path $runLog 'server.out.log') `
+            -RedirectStandardError (Join-Path $runLog 'server.err.log') -PassThru
+    } finally { [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $previousMapHash, 'Process') }
     Write-Output "DS_STARTING pid=$($ds.Id) instance=$InstanceId port=$DsPort"
     $ready = $false
     $registered = $false
@@ -363,6 +413,7 @@ if ($AllMaps) {
         $mapRecords += [ordered]@{
             instanceId = $rec.instanceId; mapId = $rec.mapId; port = $rec.port; pid = $rec.pid
             exe = $rec.exe; logFile = $rec.logFile; registered = $true; reused = $true
+            capacity = $rec.capacity; contentHash = $rec.contentHash
         }
     }
     $started = @()
@@ -372,10 +423,14 @@ if ($AllMaps) {
         $mapArgs = @('-batchmode', '-nographics',
             '-dedicatedServer', '-instanceId', $def.id, '-port', "$($def.port)",
             '-publicAddress', '127.0.0.1', '-backendUrl', "http://127.0.0.1:$BackendPort",
-            '-serverKey', $key, '-buildVersion', 'local-dev', '-capacity', "$Capacity",
+            '-serverKey', $key, '-buildVersion', 'local-dev', '-capacity', "$($def.capacity)",
             '-mapId', $def.mapId,
             '-logFile', $mapLog)
-        $mapProc = Start-Process -FilePath $dsExe -ArgumentList $mapArgs -PassThru -WindowStyle Hidden
+        $previousMapHash = [Environment]::GetEnvironmentVariable('FPS_MAP_CONTENT_HASH', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $hotMapHashes[$def.mapId], 'Process')
+            $mapProc = Start-Process -FilePath $dsExe -ArgumentList $mapArgs -PassThru -WindowStyle Hidden
+        } finally { [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $previousMapHash, 'Process') }
         Write-Output "MAP_DS_STARTING pid=$($mapProc.Id) instance=$($def.id) map=$($def.mapId) port=$($def.port)"
         $started += [ordered]@{
             def = $def; pid = $mapProc.Id; logFile = $mapLog; registered = $false
@@ -399,6 +454,7 @@ if ($AllMaps) {
             $mapRecords += [ordered]@{
                 instanceId = $rec.def.id; mapId = $rec.def.mapId; port = $rec.def.port; pid = $rec.pid
                 exe = $dsExe; logFile = $rec.logFile; registered = $true; reused = $false
+                capacity = $rec.def.capacity; contentHash = $hotMapHashes[$rec.def.mapId]
             }
         } else {
             Write-Output ("MAP_DS_FAILED map=" + $rec.def.mapId + " pid=" + $rec.pid +
@@ -421,6 +477,7 @@ $state = [ordered]@{
     instanceId   = $InstanceId
     dsExe        = $dsExe
     logDir       = $mainLogDir
+    contentHash  = $hotMapHashes[$MapId]
 }
 $tmpState = $stateFile + '.tmp'
 $state | ConvertTo-Json | Set-Content -Path $tmpState -Encoding ASCII

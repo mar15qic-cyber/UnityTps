@@ -117,7 +117,7 @@ Transform:
   m_GameObject: {fileID: 6347546470652039105}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00015574633, y: -0.04121861, z: 0.4876853}
+  m_LocalPosition: {x: -0.00015580282, y: 0.031593174, z: 0.48768538}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -193,8 +193,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8989966765234527930}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0005755134, y: -0.021717334, z: 0.2542029}
+  m_LocalRotation: {x: -0.38806444, y: 0.49446964, z: 0.40893227, w: -0.66157407}
+  m_LocalPosition: {x: -0.008, y: -0.076, z: 0.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -282,10 +282,32 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: b6601157cf83efb418b2f9829eea7851, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4402806931504243720}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: b6601157cf83efb418b2f9829eea7851, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7416532855660577406}
   m_SourcePrefab: {fileID: 100100000, guid: b6601157cf83efb418b2f9829eea7851, type: 3}
 --- !u!4 &5225663059114807697 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: b6601157cf83efb418b2f9829eea7851, type: 3}
   m_PrefabInstance: {fileID: 5225663059114937105}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5225663059114905009 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100000, guid: b6601157cf83efb418b2f9829eea7851, type: 3}
+  m_PrefabInstance: {fileID: 5225663059114937105}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7416532855660577406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5225663059114905009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177831118c5a366498ba02db4f7b048e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalWristFromGripCenter: {x: -0.0636, y: 0.0062, z: -0.0809}
+  verticalWristRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}

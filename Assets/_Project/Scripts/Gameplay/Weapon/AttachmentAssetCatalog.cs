@@ -113,7 +113,7 @@ namespace Game.Gameplay.Weapon
         public float scopeApertureRadius;
         public GameObject prefab;          // null = 纯数值配件（弹匣），无模型不改枪械美术
         public string prefabPath;
-        [Tooltip("挂入挂点时的旋转校正（欧拉度）：LPW 配件恒等；LPFP 配件 (0,-90,0) 把 +Z 长轴对齐挂点 -X 前向")]
+        [Tooltip("挂入挂点时的旋转校正（欧拉度）：LPFP 光学配件 -90°；Silencer 出口在模型 -Z，使用 +90°")]
         public Vector3 mountEuler = Vector3.zero;
         [Tooltip("挂入挂点时的位置校正（配件局部系，由批量工具按包围盒自动计算：消音器尾端贴枪口/瞄具底面贴导轨/握把顶端贴护木）")]
         public Vector3 mountOffset = Vector3.zero;
@@ -121,7 +121,7 @@ namespace Game.Gameplay.Weapon
 
         public bool HasModel => prefab != null;
 
-        /// <summary>挂入挂点时的旋转校正（LPW 配件恒等；LPFP 配件 (0,-90,0) 把 +Z 长轴对齐挂点 -X 前向）.</summary>
+        /// <summary>挂入挂点时的旋转校正；不同模型的实际安装端须按几何轴向标定。</summary>
         public Quaternion MountRotation => Quaternion.Euler(mountEuler);
 
         /// <summary>导出为不可变修饰符（SourceId=itemId，可按源精确移除）.</summary>
@@ -155,6 +155,15 @@ namespace Game.Gameplay.Weapon
                     || weaponItemId == "weapon.smg05" || weaponItemId == "weapon.ak" || weaponItemId == "weapon.rifle03")) return false;
             bool pistol = weaponItemId == "weapon.service_pistol" || weaponItemId == "weapon.handgun02"
                 || weaponItemId == "weapon.handgun03" || weaponItemId == "weapon.handgun04";
+            bool sniper = weaponItemId != null && weaponItemId != "weapon.lpw.sniper.05"
+                && (weaponItemId.StartsWith("weapon.sniper", StringComparison.Ordinal)
+                    || weaponItemId.StartsWith("weapon.lpw.sniper", StringComparison.Ordinal));
+            if (entry.slot == AttachmentSlotType.Magazine)
+            {
+                if (sniper) return entry.itemId == "attach.sniper.magazine";
+                if (pistol) return entry.itemId == "attach.pistol.magazine";
+                if (entry.itemId == "attach.sniper.magazine" || entry.itemId == "attach.pistol.magazine") return false;
+            }
             return !pistol || entry.slot != AttachmentSlotType.Optic
                 || entry.itemId == "attach.lpfp.optic.01" || entry.itemId == "attach.lpfp.optic.03";
         }

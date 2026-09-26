@@ -78,6 +78,7 @@ namespace Game.Gameplay.Tests
         [TestCase("map_02")]
         [TestCase("map_03")]
         [TestCase("map_04")]
+        [TestCase("map_05")]
         public void RadarUsesChannelImageAndOriginalCameraProjection(string id)
         {
             var entry = Resources.Load<MapRadarCatalog>("MapRadarCatalog").Find(GameMapCatalog.ResolveSceneName(id));

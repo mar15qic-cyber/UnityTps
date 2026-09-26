@@ -43,7 +43,7 @@ namespace Game.Gameplay.Tests
         [Test]
         public void MovementSpreadResponse_ReducesWalkPenalty_ButKeepsFullSprintPenalty()
         {
-            const float normalWalkSpeed = 1.58f;
+            const float normalWalkSpeed = 1.68f;
             const float sprintReferenceSpeed = 3.44f;
 
             float walk01 = WeaponFireContextProvider.ComputeMovementSpread01(normalWalkSpeed, sprintReferenceSpeed);

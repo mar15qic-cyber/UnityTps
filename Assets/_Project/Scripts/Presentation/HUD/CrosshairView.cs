@@ -60,6 +60,9 @@ namespace Game.Presentation.HUD
             if (right != null) right.gameObject.SetActive(crosshairOn);
             if (centerDot != null) centerDot.gameObject.SetActive(crosshairOn && config.ShowCenterDot);
             if (hitMarker != null) hitMarker.gameObject.SetActive(m.HitMarkerRemaining > 0f);
+            if (hitMarker != null && m.HitMarkerRemaining > 0f)
+                foreach (var graphic in hitMarker.GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+                    graphic.color = m.HitMarkerHeadshot ? new Color32(255, 185, 78, 255) : Color.white;
             if (!crosshairOn) return;
 
             float canvasScale = _canvas != null ? Mathf.Max(0.0001f, _canvas.scaleFactor) : 1f;

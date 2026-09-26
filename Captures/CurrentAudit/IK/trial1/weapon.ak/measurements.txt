@@ -1,0 +1,18 @@
+item=weapon.ak name=M4A1 clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.05500, -0.02600, 0.10720)
+targetRotation=(0.07524, 0.62405, 0.75696, -0.17864)
+wristErrorMm=0.001
+wristAngleError=0.000
+LeftHand=(-0.05500, -0.02600, 0.10720)
+LeftThumbProximal=(-0.04294, 0.00022, 0.15355)
+LeftIndexProximal=(-0.01472, -0.00932, 0.21826)
+LeftMiddleProximal=(-0.01013, -0.05480, 0.20838)
+LeftMiddleIntermediate=(0.01961, -0.05164, 0.21181)
+LeftMiddleDistal=(0.03746, -0.04366, 0.18824)
+mesh=TP_Weapon_AssaultRifle_02 min=(-0.02986, -0.14164, -0.38488) max=(0.02917, 0.06082, 0.45997)
+mesh=assault_rifle_02_grip min=(-0.01656, -0.09879, 0.19470) max=(0.01585, 0.00646, 0.22712)
+mesh=assault_rifle_02_iron_sights min=(-0.01556, 0.03339, -0.10782) max=(0.01496, 0.10188, 0.35329)
+mesh=assault_rifle_02_mag min=(-0.01277, -0.18009, 0.00411) max=(0.01234, -0.03238, 0.09265)
+mesh=assault_rifle_02_slider min=(-0.01875, 0.01549, -0.12720) max=(0.01808, 0.05317, 0.07520)

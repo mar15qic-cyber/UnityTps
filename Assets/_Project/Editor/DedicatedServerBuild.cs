@@ -32,6 +32,7 @@ namespace Game.EditorTools
             "Assets/_Project/Scenes/Map_Depot55.unity",
             "Assets/_Project/Scenes/Map_Ridgeline.unity",
             "Assets/_Project/Scenes/Map_TrainingYard.unity",
+            "Assets/_Project/Scenes/Map_NightRelay.unity",
         };
 
         [MenuItem("Tools/Dedicated Server/Build Windows Server (Release)")]

@@ -70,9 +70,12 @@ namespace Game.Gameplay.Network
         private static void AppendSlots(List<int> indices, Vector3[] basePositions, Quaternion[] baseRotations,
             List<SpawnSlot> output)
         {
-            foreach (int baseIndex in indices)
+            // Use every authored point once before deriving overflow slots. Four players
+            // per side therefore occupy four fixed spawn markers rather than four offsets
+            // clustered around Spawn_0.
+            foreach (Vector2 offset in SlotOffsets)
             {
-                foreach (Vector2 offset in SlotOffsets)
+                foreach (int baseIndex in indices)
                 {
                     if (output.Count >= MaxSlotsPerTeam) return;
                     Vector3 basePosition = basePositions[baseIndex];
@@ -124,7 +127,7 @@ namespace Game.Gameplay.Network
                     farthestDistance = nearest;
                     farthest = index;
                 }
-                if (nearest >= MatchRules.SpawnExclusionRadiusMeters)
+                if (nearest >= 1.5f)
                 {
                     safe = index;
                     break; // 轮转序优先：第一个安全槽位即取（分配确定性 + 同帧多生成不重位）

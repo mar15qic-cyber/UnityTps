@@ -83,6 +83,28 @@ namespace Game.Gameplay.Tests
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
+        [TestCase("01"), TestCase("02"), TestCase("03"), TestCase("04"), TestCase("05")]
+        public void SmgTracerStartsAtInstalledSuppressorTip(string number)
+        {
+            var definition = Definitions().Single(x => x.name == "Day3_SMG" + number);
+            var root = PrefabUtility.LoadPrefabContents(AssetDatabase.GetAssetPath(definition.FirstPersonViewPrefab));
+            try
+            {
+                var attachments = root.AddComponent<WeaponAttachmentView>();
+                var catalog = AttachmentAssetCatalog.LoadOrDefault();
+                attachments.ApplyAttachments(catalog, definition.CatalogItemId,
+                    new[] { catalog.Find("attach.rifle.muzzle") });
+                Assert.That(attachments.Spawned.Count, Is.EqualTo(1));
+                var view = root.GetComponent<WeaponView>();
+                var method = typeof(WeaponView).GetMethods(Flags)
+                    .Single(m => m.Name == "ResolveTracerStart" && m.GetParameters().Length == 1);
+                var start = (Vector3)method.Invoke(view, new object[] { Vector3.zero });
+                Assert.That(Vector3.Dot(start - view.Muzzle.position, view.Muzzle.forward),
+                    Is.GreaterThan(.12f), definition.CatalogItemId + " still starts inside its suppressor");
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
         [TestCase("sniper.01")]
         [TestCase("sniper.03")]
         public void NonM82SnipersHaveNativeReloadAnimation(string weaponId)

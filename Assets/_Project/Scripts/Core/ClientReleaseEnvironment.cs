@@ -17,6 +17,7 @@ namespace Game.Core
         public string zeroTierNetworkId;
         public string hostOverlayAddress;
         public bool IsPrivateOverlay => networkMode == "private-overlay";
+        public bool RequiresReleaseValidation => inviteOnly || IsPrivateOverlay;
         private static ClientReleaseEnvironment _current;
         private static bool _loaded;
 
@@ -33,7 +34,7 @@ namespace Game.Core
                     throw new InvalidOperationException("RELEASE_CONFIG_MISSING: invitation release requires client-environment.json");
 #endif
 #if PRIVATE_INVITE_TEST
-                if (value == null || !value.inviteOnly || !value.IsPrivateOverlay)
+                if (value == null || !value.IsPrivateOverlay)
                     throw new InvalidOperationException("PRIVATE_RELEASE_CONFIG_REQUIRED");
 #endif
                 if (value != null && !value.TryValidate(out var error)) throw new InvalidOperationException(error);
@@ -49,7 +50,7 @@ namespace Game.Core
             if (!SafeId(environmentId) || !SafeId(releaseId)) return false;
             if (IsPrivateOverlay)
             {
-                if (!inviteOnly || !System.Text.RegularExpressions.Regex.IsMatch(zeroTierNetworkId ?? "", "^[0-9a-fA-F]{16}$")
+                if (!System.Text.RegularExpressions.Regex.IsMatch(zeroTierNetworkId ?? "", "^[0-9a-fA-F]{16}$")
                     || !IsPrivateIPv4(hostOverlayAddress)) return false;
                 foreach (var endpoint in new[] { apiBaseUrl, hotUpdateBaseUrl })
                     if (!ValidUrl(endpoint, false) || new Uri(endpoint).Host != hostOverlayAddress) return false;

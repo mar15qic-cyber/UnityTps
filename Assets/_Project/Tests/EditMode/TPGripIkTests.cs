@@ -39,11 +39,11 @@ namespace Game.Gameplay.Tests
         private static readonly (string Path, Vector3 Position, string Meaning)[] RifleGripTargets =
         {
             ("Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_01.prefab",
-                new Vector3(0.0002f, -0.0241f, 0.1242f), "护木自然握持"),
+                new Vector3(-.008f, -.055f, .075f), "护木托持"),
             ("Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_02.prefab",
-                new Vector3(-0.0003f, -0.0612f, 0.1772f), "M4A1 原厂垂直握把"),
+                new Vector3(-.064f, -.040f, .130f), "M4A1 原厂垂直握把"),
             ("Assets/_Project/Prefabs/Weapons/TP_Weapon_AssaultRifle_03.prefab",
-                new Vector3(0.0002f, -0.0633f, 0.1445f), "SCAR 原厂垂直握把"),
+                new Vector3(-.0635f, -.042f, .097f), "SCAR 原厂垂直握把"),
         };
 
         [Test]
@@ -180,7 +180,9 @@ namespace Game.Gameplay.Tests
             Assert.That(prefab, Is.Not.Null, $"步枪 TP prefab 缺失：{spec.Path}");
             var target = prefab.transform.Find("LeftHandTarget");
             Assert.That(target, Is.Not.Null, $"{spec.Path} 缺 LeftHandTarget");
-            Assert.That(Quaternion.Angle(target.localRotation, RifleNaturalWristRotation), Is.LessThan(0.2f),
+            var expectedRotation = spec.Path.EndsWith("AssaultRifle_01.prefab")
+                ? Quaternion.AngleAxis(90f, Vector3.forward) * RifleNaturalWristRotation : RifleNaturalWristRotation;
+            Assert.That(Quaternion.Angle(target.localRotation, expectedRotation), Is.LessThan(0.2f),
                 $"{spec.Path} 左手腕旋转未使用{spec.Meaning}");
             Assert.That(Vector3.Distance(target.localPosition, spec.Position), Is.LessThan(0.001f),
                 $"{spec.Path} 左手目标未落在{spec.Meaning}的实际接触位置");

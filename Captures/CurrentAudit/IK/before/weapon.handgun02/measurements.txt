@@ -1,0 +1,19 @@
+item=weapon.handgun02 name=Beretta M9 clip=idle@handgun_tpc
+beforeWrist=(-0.06387, -0.11931, -0.00139)
+beforeRotation=(0.12644, -0.61095, -0.64319, 0.44392)
+target=(0.00006, -0.01954, 0.06603)
+targetRotation=(0.00000, 0.00000, 0.00000, 1.00000)
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(0.00006, -0.01954, 0.06603)
+LeftThumbProximal=(-0.00011, 0.02327, 0.09992)
+LeftIndexProximal=(-0.00273, 0.09445, 0.10114)
+LeftMiddleProximal=(-0.00227, 0.09421, 0.05438)
+LeftMiddleIntermediate=(-0.02577, 0.11255, 0.05020)
+LeftMiddleDistal=(-0.05589, 0.10729, 0.04849)
+mesh=TP_Weapon_Handgun_02 min=(-0.01787, -0.08836, -0.07919) max=(0.01798, 0.04927, 0.14422)
+mesh=handgun_02_hammer min=(-0.00270, 0.02646, -0.06343) max=(0.00281, 0.05012, -0.04688)
+mesh=handgun_02_mag min=(-0.01102, -0.08960, -0.06346) max=(0.01113, 0.01837, -0.00370)
+mesh=handgun_02_slider min=(-0.01326, 0.01481, -0.06277) max=(0.01337, 0.05182, 0.13700)
+mesh=handgun_02_iron_sights min=(-0.00499, 0.04882, -0.04026) max=(0.00510, 0.05567, 0.13588)
+mesh=OpticMountAdapter min=(-0.01100, 0.04034, -0.04800) max=(0.01100, 0.05407, 0.06000)

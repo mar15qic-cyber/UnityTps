@@ -18,6 +18,7 @@ namespace Game.EditorTools
         private static readonly string[] HotMapScenes =
         {
             "Assets/_Project/Scenes/Map_TrainingYard.unity",
+            "Assets/_Project/Scenes/Map_NightRelay.unity",
         };
 
         [MenuItem("Tools/HotUpdate/Build Map Bundles")]

@@ -1,0 +1,18 @@
+item=weapon.m4 name=AK-47 clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(0.00023, -0.02405, 0.12420)
+targetRotation=(0.07524, 0.62405, 0.75696, -0.17864)
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(0.00023, -0.02405, 0.12420)
+LeftThumbProximal=(0.01229, 0.00217, 0.17055)
+LeftIndexProximal=(0.04052, -0.00738, 0.23526)
+LeftMiddleProximal=(0.04510, -0.05285, 0.22538)
+LeftMiddleIntermediate=(0.07484, -0.04970, 0.22881)
+LeftMiddleDistal=(0.09269, -0.04171, 0.20524)
+mesh=TP_Weapon_AssaultRifle_01 min=(-0.01895, -0.12269, -0.47501) max=(0.01941, 0.07459, 0.44686)
+mesh=assault_rifle_01_iron_sights min=(-0.01049, 0.00883, 0.02620) max=(0.00791, 0.08569, 0.41487)
+mesh=assault_rifle_01_mag min=(-0.01208, -0.19728, -0.07903) max=(0.00949, 0.00906, 0.07541)
+mesh=assault_rifle_01_slider min=(0.00171, 0.03628, -0.07187) max=(0.03537, 0.06162, 0.02682)
+mesh=OpticMountAdapter min=(-0.01100, 0.05125, -0.15900) max=(0.01100, 0.07025, -0.05100)

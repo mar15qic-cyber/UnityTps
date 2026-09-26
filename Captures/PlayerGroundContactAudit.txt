@@ -1,0 +1,15 @@
+root=(0.00, 0.15, 9.00) modelLocal=(0.00, 0.00, 0.34)
+ccBottom=0.0000 skin=0.0800
+LeftFoot localY=0.1347
+RightFoot localY=0.1347
+LeftToes localY=0.0424
+RightToes localY=0.0424
+renderer third_person_character: minY=-0.1091 active=True
+  bakedLowestVertexY=0.0001 vertices=8793
+renderer backpack: minY=0.8488 active=False
+renderer goggles: minY=1.5358 active=True
+  bakedLowestVertexY=1.5387 vertices=633
+renderer headset: minY=1.4632 active=True
+  bakedLowestVertexY=1.4640 vertices=712
+renderer helmet: minY=1.4336 active=True
+  bakedLowestVertexY=1.4467 vertices=1126

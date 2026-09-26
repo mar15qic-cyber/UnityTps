@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Game.Presentation.HUD
 {
     /// <summary>
-    /// 武器 HUD 总控（Docs/13 检查点 5，§9-12 拍板：弹药与操作提示随准心一并迁出 OnGUI）：
+    /// 武器 HUD 总控：弹药、武器图标与投掷准备反馈由 uGUI 显示。
     /// 订阅 WeaponController/Arsenal 事件 → 只写 uGUI Text（TMP 包未装，文本全英文用内置
     /// ugui 足够；Canvas 层级由编辑器脚本 CP5_HudBuilder 一次性构建）。
     /// 2026-09-18 实机问题9：弹药/武器名升级为运行时 TMP 簇（右下大弹药计数+武器名，
@@ -70,11 +70,11 @@ namespace Game.Presentation.HUD
             var cluster = new GameObject("WeaponHudCluster", typeof(RectTransform));
             cluster.transform.SetParent(canvas.transform, false);
             var clusterRect = (RectTransform)cluster.transform;
-            Stretch(clusterRect, 0.60f, 0.985f, 0.02f, 0.145f);
+            Stretch(clusterRect, 0.72f, 0.985f, 0.045f, 0.155f);
 
             var iconBack = new GameObject("WeaponIconBack", typeof(RectTransform), typeof(Image));
             iconBack.transform.SetParent(cluster.transform, false);
-            Stretch((RectTransform)iconBack.transform, 0f, 0.27f, 0.06f, 0.88f);
+            Stretch((RectTransform)iconBack.transform, 0f, 0.32f, 0.14f, 0.80f);
             iconBack.GetComponent<Image>().color = Color.clear;
             iconBack.GetComponent<Image>().raycastTarget = false;
             var iconGo = new GameObject("CurrentWeaponIcon", typeof(RectTransform), typeof(Image));
@@ -86,32 +86,15 @@ namespace Game.Presentation.HUD
 
             _weaponNameText = CreateTmpText("WeaponName", cluster.transform, "", 18, TextMuted,
                 TextAlignmentOptions.BottomRight);
-            Stretch(_weaponNameText.rectTransform, 0.27f, 1f, 0.66f, 1f);
+            Stretch(_weaponNameText.rectTransform, 0.34f, 1f, 0.66f, 1f);
             _ammoLine = CreateTmpText("AmmoLine", cluster.transform, "", 46, Color.white,
                 TextAlignmentOptions.BottomRight);
             // 右边界留 6% 内缩：贴边时 TMP 的最后一字形会被画布边缘切掉（实机 00:55 帧复现）
-            Stretch(_ammoLine.rectTransform, 0.27f, 0.94f, 0f, 0.70f);
+            Stretch(_ammoLine.rectTransform, 0.34f, 0.94f, 0f, 0.70f);
 
             if (ammoText != null) ammoText.gameObject.SetActive(false);
             if (weaponText != null) weaponText.gameObject.SetActive(false);
-            LayoutHintLine();
-        }
-
-        /// <summary>按键提示行重排（2026-09-18 实机 00:55：顶部文字互相压字）。
-        /// authored HintText 与 MatchHudView 的 ScoreBar（y 0.94..0.985）同带 → 提示串叠在
-        /// "RED xx / 08:22" 上。这里把它钉到比分行正下方的专用带，并关换行避免二次折行。
-        /// 与弹药簇同一运行时入口做，所有地图共用、不改场景文件。</summary>
-        private void LayoutHintLine()
-        {
-            if (hintText == null) return;
-            var rt = hintText.rectTransform;
-            rt.anchorMin = new Vector2(0.25f, 0.905f);
-            rt.anchorMax = new Vector2(0.75f, 0.935f);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            hintText.alignment = TextAnchor.MiddleCenter;
-            hintText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            hintText.verticalOverflow = VerticalWrapMode.Truncate;
+            if (hintText != null) hintText.gameObject.SetActive(false);
         }
 
         /// <summary>构建身份标签（2026-09-19 测试收口）：左上角常驻小字，显示本进程
@@ -212,7 +195,13 @@ namespace Game.Presentation.HUD
                 _showingThrowable = true;
                 if (_weaponIcon != null) _weaponIcon.enabled = false;
                 if (_weaponNameText != null) _weaponNameText.text = throwable.SelectedType.ToString().ToUpperInvariant();
-                if (_ammoLine != null) _ammoLine.text = $"<b>{throwable.Count(throwable.SelectedType):00}</b><size=20>  松开左键投掷</size>";
+                if (_ammoLine != null)
+                {
+                    string cue = throwable.IsThrowing ? "已投出"
+                        : throwable.IsHolding ? $"<color=#5BDCC3>准备 {throwable.HoldProgress * 100f:0}%</color>  松开投掷"
+                        : "按住左键准备";
+                    _ammoLine.text = $"<b>{throwable.Count(throwable.SelectedType):00}</b><size=19>  {cue}</size>";
+                }
                 return;
             }
             if (_showingThrowable) { _showingThrowable = false; Refresh(); }
@@ -309,13 +298,6 @@ namespace Game.Presentation.HUD
             RefreshWeaponIcon(controller.Definition);
             SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
                 controller.Runtime.State == WeaponRuntimeState.Reloading);
-            if (hintText != null)
-            {
-                // 3 is reserved for throwable selection in both online and debug arsenals.
-                string switchHint = arsenal != null && arsenal.SlotCount <= 2
-                    ? "1/2 / WHEEL SWITCH" : "WHEEL SWITCH";
-                hintText.text = "LMB FIRE    RMB ADS    R RELOAD    WASD RUN    SHIFT WALK    " + switchHint;
-            }
         }
 
         private void RefreshWeaponIcon(WeaponDefinition definition)

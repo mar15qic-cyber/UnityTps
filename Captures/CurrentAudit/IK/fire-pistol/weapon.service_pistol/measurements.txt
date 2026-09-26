@@ -1,0 +1,19 @@
+item=weapon.service_pistol name=Glock 17 clip=fire@handgun_tpc
+beforeWrist=(-0.06371, -0.12721, -0.01611)
+beforeRotation=(0.12423, -0.61062, -0.64465, 0.44287)
+target=(-0.06700, -0.07500, -0.08000)
+targetRotation=(0.12644, -0.61095, -0.64319, 0.44392)
+requestedPitch=-45 muzzlePitch=-45.000
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(-0.06700, -0.07500, -0.08000)
+LeftThumbProximal=(-0.07297, -0.04603, -0.03410)
+LeftIndexProximal=(-0.04268, -0.03330, 0.02910)
+LeftMiddleProximal=(-0.01008, -0.06516, 0.01870)
+LeftMiddleIntermediate=(0.01400, -0.04836, 0.02532)
+LeftMiddleDistal=(0.03031, -0.02839, 0.00879)
+mesh=TP_Weapon_Handgun_01 min=(-0.01386, -0.08778, -0.09501) max=(0.01391, 0.04559, 0.12812)
+mesh=handgun_01_mag min=(-0.01255, -0.09633, -0.08502) max=(0.01261, 0.01132, -0.00938)
+mesh=handgun_01_slider min=(-0.01267, 0.01034, -0.07303) max=(0.01273, 0.04702, 0.12491)
+mesh=handgun_01_iron_sights min=(-0.01067, 0.04439, -0.06818) max=(0.01073, 0.05163, 0.11875)
+mesh=OpticMountAdapter min=(-0.01100, 0.04354, -0.04800) max=(0.01100, 0.05002, 0.06000)

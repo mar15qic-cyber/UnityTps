@@ -209,6 +209,34 @@ public sealed class CFV0SettlementAndLeaseTests
     }
 
     [Fact]
+    public async Task NewRoomStartWaitsForThePreviousSoloServerToRearm()
+    {
+        var (instanceId, roomCode, _, matchId, roster, isolated) = await StartRoomWithInstanceAsync("TDM");
+        var client = isolated.CreateClient();
+        await ReportResultAsync(client, instanceId, BuildReport(matchId, "Red", roster));
+        foreach (var player in roster)
+        {
+            var exit = await ServerTest.SendWithKeyAsync(client, HttpMethod.Post,
+                $"/api/server-instances/{instanceId}/players/disconnect", ServerTest.ServerKey,
+                new { roomCode, userId = player.UserId });
+            Assert.Equal(HttpStatusCode.OK, exit.StatusCode);
+        }
+
+        var (newHost, _) = await ServerTest.RegisterUserAsync(client);
+        var nextRoom = (await ServerTest.CreateRoomAsync(client, newHost))
+            .GetProperty("room").GetProperty("roomCode").GetString()!;
+        var heartbeat = Task.Run(async () =>
+        {
+            await Task.Delay(400);
+            return await HeartbeatAsync(client, instanceId, InstanceState.Ready, null, 0);
+        });
+        var start = await ServerTest.Authorized(client, newHost)
+            .PostAsync($"/api/rooms/{ServerTest.PublicRoomId(nextRoom)}/start", null);
+        Assert.Equal(HttpStatusCode.NoContent, (await heartbeat).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, start.StatusCode);
+    }
+
+    [Fact]
     public async Task A04_RetiredClientSubmissionCannotAwardEitherMode()
     {
         foreach (var mode in new[] { "TDM", "KillRace" })

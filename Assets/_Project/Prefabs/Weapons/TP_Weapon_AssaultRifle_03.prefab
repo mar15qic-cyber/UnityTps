@@ -116,8 +116,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4359632217841405497}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
-  m_LocalPosition: {x: 0.0002, y: -0.0633, z: 0.1445}
+  m_LocalRotation: {x: 0.075239815, y: 0.6240458, z: 0.75696224, w: -0.17864472}
+  m_LocalPosition: {x: -0.0635, y: -0.042, z: 0.097}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -148,7 +148,7 @@ Transform:
   m_GameObject: {fileID: 4496152827529653755}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.00006160469, y: -0.030735435, z: 0.4431519}
+  m_LocalPosition: {x: 0.00006157905, y: 0.01901722, z: 0.44315195}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -270,10 +270,32 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1754329877770245552}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3399974974336340012}
   m_SourcePrefab: {fileID: 100100000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
 --- !u!4 &6531982378343332315 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
   m_PrefabInstance: {fileID: 6531982378343457627}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6531982378343359995 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100000, guid: 4f170a6873dfb404aa49cc4e00264b37, type: 3}
+  m_PrefabInstance: {fileID: 6531982378343457627}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3399974974336340012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6531982378343359995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177831118c5a366498ba02db4f7b048e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalWristFromGripCenter: {x: -0.0636, y: 0.0062, z: -0.0809}
+  verticalWristRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}

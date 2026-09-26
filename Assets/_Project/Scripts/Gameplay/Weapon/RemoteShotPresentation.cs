@@ -1,3 +1,4 @@
+using Game.Core;
 using Game.Gameplay.Combat;
 using UnityEngine;
 
@@ -23,6 +24,9 @@ namespace Game.Gameplay.Weapon
         public Vector3 FinalNormal;     // 主 Result.Normal
         public bool FinalHit;           // 主 Result.Hit
         public bool FinalHitCharacter;  // surface kind only; no client-side damage authority
+        public int DamageAmount;         // server-confirmed HP loss across the entire shot
+        public HitBodyRegion BodyRegion; // highest-priority damaged region in this shot
+        public uint LifeEpoch;           // shooter's generation; stale confirmations are discarded
         /// <summary>弹丸数（1=单发）。霰弹 &gt;1 时 PelletPoints/PelletHits 逐弹丸对应。</summary>
         public int PelletCount;
         public Vector3[] PelletPoints;  // null=单发
@@ -43,12 +47,16 @@ namespace Game.Gameplay.Weapon
                 FinalNormal = shot.Result.Normal,
                 FinalHit = shot.Result.Hit,
                 FinalHitCharacter = shot.Result.Target != null,
+                DamageAmount = shot.Result.DamageAmount,
+                BodyRegion = shot.Result.BodyRegion,
                 PelletCount = multi ? pellets.Length : 1,
                 PelletPoints = null,
                 PelletHits = null
             };
             if (multi)
             {
+                dto.DamageAmount = 0;
+                dto.BodyRegion = HitBodyRegion.Torso;
                 dto.PelletPoints = new Vector3[pellets.Length];
                 dto.PelletHits = new bool[pellets.Length];
                 dto.PelletNormals = new Vector3[pellets.Length];
@@ -59,6 +67,9 @@ namespace Game.Gameplay.Weapon
                     dto.PelletHits[i] = pellets[i].Hit;
                     dto.PelletNormals[i] = pellets[i].Normal;
                     dto.PelletCharacters[i] = pellets[i].Target != null;
+                    dto.DamageAmount += pellets[i].DamageAmount;
+                    if (pellets[i].DamageAmount > 0 && pellets[i].BodyRegion == HitBodyRegion.Head)
+                        dto.BodyRegion = HitBodyRegion.Head;
                 }
             }
             return dto;

@@ -70,6 +70,7 @@ namespace Game.Gameplay.Network
         private float _pendingYaw;
         private float _pendingPitch;
         private NetworkTransform _networkTransform;
+        private Game.Gameplay.Player.PlayerAimState _aimStateForMovement;
 
         // ---- 2026-09-15 渲染位置插值（Owner 表现层；模拟根/服务器权威/碰撞根不动）----
         private const string ViewOffsetNodeName = "ViewSmoothingRoot";
@@ -146,6 +147,7 @@ namespace Game.Gameplay.Network
             // 审计 2026-09-16 §6.2：快照必须携带基础俯仰（两端对账 + 重生/重基有明确基线）
             if (_locomotor != null) _locomotor.PitchProvider = CurrentPitch;
             _input = GetComponentInParent<InputReader>();
+            _aimStateForMovement = GetComponentInChildren<Game.Gameplay.Player.PlayerAimState>(true);
             _actions = GetComponentInParent<ActionSystem>();
             if (ownerOnlyComponents == null || ownerOnlyComponents.Length == 0)
                 ownerOnlyComponents = new Behaviour[] { _input };
@@ -274,14 +276,33 @@ namespace Game.Gameplay.Network
             // Pooled pre-lean objects may carry a second head collider on this node. Keep it
             // disabled; the separately movable child is the only active head damage surface.
             for (int i = 1; i < hitboxColliders.Length; i++) hitboxColliders[i].enabled = false;
-            ConfigureHitboxCapsule(hitboxColliders[0], new Vector3(0f, .525f, torsoHitboxCenter.z),
-                torsoHitboxRadius, 1.05f);
+            // Keep the lower torso above the thigh gap: the two leg capsules own the
+            // silhouette below the pelvis, so a ray between the legs cannot hit air.
+            ConfigureHitboxCapsule(hitboxColliders[0], new Vector3(0f, .78f, torsoHitboxCenter.z),
+                .24f, .48f);
             var upper = EnsureLeanHitboxChild(hitboxTransform, "UpperHitbox");
             var head = EnsureLeanHitboxChild(hitboxTransform, "HeadHitbox");
             ConfigureHitboxCapsule(upper.GetComponent<CapsuleCollider>(),
                 new Vector3(0f, 1f, torsoHitboxCenter.z), torsoHitboxRadius, 1f);
             ConfigureHitboxCapsule(head.GetComponent<CapsuleCollider>(), headHitboxCenter,
                 headHitboxRadius, headHitboxHeight);
+            // Separate limbs have their own damage regions and join the existing lag-comp collider list.
+            var leftArm = EnsureLeanHitboxChild(hitboxTransform, "LeftArmHitbox");
+            var rightArm = EnsureLeanHitboxChild(hitboxTransform, "RightArmHitbox");
+            var leftLeg = EnsureLeanHitboxChild(hitboxTransform, "LeftLegHitbox");
+            var rightLeg = EnsureLeanHitboxChild(hitboxTransform, "RightLegHitbox");
+            ConfigureHitboxCapsule(leftArm.GetComponent<CapsuleCollider>(), new Vector3(-.39f, 1.12f, torsoHitboxCenter.z), .11f, .58f);
+            ConfigureHitboxCapsule(rightArm.GetComponent<CapsuleCollider>(), new Vector3(.39f, 1.12f, torsoHitboxCenter.z), .11f, .58f);
+            ConfigureHitboxCapsule(leftLeg.GetComponent<CapsuleCollider>(), new Vector3(-.16f, .66f, torsoHitboxCenter.z), .13f, .58f);
+            ConfigureHitboxCapsule(rightLeg.GetComponent<CapsuleCollider>(), new Vector3(.16f, .66f, torsoHitboxCenter.z), .13f, .58f);
+            var leftCalf = EnsureLeanHitboxChild(hitboxTransform, "LeftCalfHitbox");
+            var rightCalf = EnsureLeanHitboxChild(hitboxTransform, "RightCalfHitbox");
+            var leftFoot = EnsureLeanHitboxChild(hitboxTransform, "LeftFootHitbox");
+            var rightFoot = EnsureLeanHitboxChild(hitboxTransform, "RightFootHitbox");
+            ConfigureHitboxCapsule(leftCalf.GetComponent<CapsuleCollider>(), new Vector3(-.16f, .27f, torsoHitboxCenter.z), .12f, .48f);
+            ConfigureHitboxCapsule(rightCalf.GetComponent<CapsuleCollider>(), new Vector3(.16f, .27f, torsoHitboxCenter.z), .12f, .48f);
+            ConfigureHitboxCapsule(leftFoot.GetComponent<CapsuleCollider>(), new Vector3(-.16f, .10f, torsoHitboxCenter.z + .12f), .105f, .21f);
+            ConfigureHitboxCapsule(rightFoot.GetComponent<CapsuleCollider>(), new Vector3(.16f, .10f, torsoHitboxCenter.z + .12f), .105f, .21f);
             // Day4 残余审计 P0-1（纵向契约，第五轮双胶囊表述）：躯干下端=脚底（y=0）、头上端=头顶
             // （y=1.80）、两胶囊在 y=1.40 无缝重叠（颈/肩不漏判）——纵向半身高不再由单一 center 表达，
             // 由 torso/head 两组参数直接给出；BodyHitboxAlignmentTests 的纵向断言锁这条。
@@ -316,7 +337,22 @@ namespace Game.Gameplay.Network
             Game.Gameplay.Combat.HitVolumeTag.Assign(
                 hitboxTransform.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
             Game.Gameplay.Combat.HitVolumeTag.Assign(upper.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
-            Game.Gameplay.Combat.HitVolumeTag.Assign(head.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(head.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Head);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(leftArm.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Arm);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(rightArm.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Arm);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(leftLeg.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(rightLeg.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(leftCalf.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(rightCalf.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(leftFoot.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            Game.Gameplay.Combat.HitVolumeTag.Assign(rightFoot.gameObject, Game.Gameplay.Combat.HitVolumeRole.DamageSurface, Game.Core.HitBodyRegion.Leg);
+            // Calibrate the animated rig once, while the volumes still occupy the authored
+            // upright silhouette. Reused pooled players retain these bone-relative offsets.
+            var follower = hitboxTransform.GetComponent<ArticulatedHitboxFollower>();
+            if (follower == null) follower = hitboxTransform.gameObject.AddComponent<ArticulatedHitboxFollower>();
+            follower.Bind(model.GetComponentInChildren<Animator>(true), LeanProfile.EyeSideMeters,
+                upper, head, leftArm, rightArm, leftLeg, rightLeg,
+                leftCalf, rightCalf, leftFoot, rightFoot);
             RefreshLeanHitboxes(_locomotor != null ? _locomotor.Lean.Amount : 0f);
             EnsureMovementBlockerRoles();
         }
@@ -339,10 +375,26 @@ namespace Game.Gameplay.Network
         {
             var parent = transform.Find("TP_Model/BodyHitbox");
             if (parent == null) return;
+            var articulated = parent.GetComponent<ArticulatedHitboxFollower>();
+            if (articulated != null && articulated.IsBound)
+            {
+                articulated.SetLean(amount);
+                return;
+            }
             var upper = parent.Find("UpperHitbox");
             var head = parent.Find("HeadHitbox");
             if (upper != null) upper.localPosition = Vector3.right * (amount * LeanProfile.EyeSideMeters * .45f);
             if (head != null) head.localPosition = Vector3.right * (amount * LeanProfile.EyeSideMeters);
+            var leftArm = parent.Find("LeftArmHitbox");
+            var rightArm = parent.Find("RightArmHitbox");
+            var leftLeg = parent.Find("LeftLegHitbox");
+            var rightLeg = parent.Find("RightLegHitbox");
+            Vector3 armLean = Vector3.right * (amount * LeanProfile.EyeSideMeters * .55f);
+            Vector3 legLean = Vector3.right * (amount * LeanProfile.EyeSideMeters * .15f);
+            if (leftArm != null) leftArm.localPosition = armLean;
+            if (rightArm != null) rightArm.localPosition = armLean;
+            if (leftLeg != null) leftLeg.localPosition = legLean;
+            if (rightLeg != null) rightLeg.localPosition = legLean;
         }
 
         /// <summary>受击体节点在模型系的常量钉扎（2026-09-19 第四/五轮）：把节点原点钉到
@@ -389,6 +441,9 @@ namespace Game.Gameplay.Network
         {
             if (IsOwner) ObserverTimeline.Reset();
             _timestampedPoses.Reset();
+            _poseClock.Reset();
+            _poseClockEpoch = 0;
+            _presentedPoseValid = false;
             bool isOwner = IsOwner;
             // Locomotor must not keep its serialized OfflineLocal Update path once networked.
             // Host is server-authoritative even though it is also the local owner.
@@ -836,6 +891,7 @@ namespace Game.Gameplay.Network
                     _pendingYaw, _pendingPitch, tick,
                     _serverLifeEpoch); // F14：上行输入以最新权威生命代际盖章
                 cmd.LeanIntent = _input != null ? _input.LeanIntent : (sbyte)0;
+                cmd.Ads01 = _aimStateForMovement != null ? _aimStateForMovement.Ads01 : 0f;
                 if (jump && _input != null) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -1017,6 +1073,7 @@ namespace Game.Gameplay.Network
                     _input.Move, _input.Sprint, hostJump, _pendingYaw, _pendingPitch, ++_hostSourceTick,
                     _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u); // F14：Host 本地即权威，直接读当前代际
                 hostCmd.LeanIntent = _input.LeanIntent;
+                hostCmd.Ads01 = _aimStateForMovement != null ? _aimStateForMovement.Ads01 : 0f;
                 if (hostJump) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
@@ -1033,7 +1090,10 @@ namespace Game.Gameplay.Network
             ObserversTimestampedPose(new ObserverPose { ServerTick = TimeManager.Tick,
                 LifeEpoch = _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u,
                 Position = transform.position, Rotation = transform.rotation,
-                LeanAmount = _locomotor != null ? _locomotor.Lean.Amount : 0f });
+                LeanAmount = _locomotor != null ? _locomotor.Lean.Amount : 0f,
+                PitchDegrees = CurrentPitch(),
+                LocomotionState = _locomotor.State, MoveInput = _locomotor.MoveInput,
+                HorizontalSpeed = _locomotor.HorizontalSpeed, GaitPhase = _locomotor.GaitPhase });
             if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "server-tick", serverTick = TimeManager.Tick,
                 frameMs = (Time.realtimeSinceStartupAsDouble - tickStarted) * 1000, queueDepth = _serverQueue.Count,
                 connection = (int)(_combatAuthority != null ? _combatAuthority.OwnerClientId : -1) });
@@ -1842,6 +1902,28 @@ namespace Game.Gameplay.Network
 
         private readonly RemoteVisualInterpolationBuffer _remoteVisualBuffer = new();
         private readonly TimestampedPoseBuffer _timestampedPoses = new();
+        private readonly ObserverPoseClock _poseClock = new();
+        private uint _poseClockEpoch;
+        private ObserverPose _presentedPose;
+        private bool _presentedPoseValid;
+        public bool TryGetPresentedPose(out ObserverPose pose)
+        {
+            pose = _presentedPose;
+            return _presentedPoseValid;
+        }
+        public bool TryGetPresentedTick(out double tick)
+        {
+            tick = _timestampedPoses.ActualTick;
+            return _presentedPoseValid && tick > 0;
+        }
+        public bool TryGetPresentedAimDirection(out Vector3 direction)
+        {
+            direction = default;
+            if (!_presentedPoseValid) return false;
+            direction = _presentedPose.Rotation * Quaternion.Euler(_presentedPose.PitchDegrees, 0f, 0f)
+                * Vector3.forward;
+            return true;
+        }
         private readonly Dictionary<uint, (uint epoch, uint serverTick, Vector3 origin, Vector3 direction,
             Vector3 muzzle, Vector3 bodyAnchor, WeaponFireContext context)> _serverAimHistory = new();
         private readonly Queue<uint> _serverAimOrder = new();
@@ -1891,7 +1973,15 @@ namespace Game.Gameplay.Network
         private void ObserversTimestampedPose(ObserverPose pose, FishNet.Transporting.Channel channel = FishNet.Transporting.Channel.Unreliable)
         {
             if (IsServerInitialized || !_timestampedPoses.Push(pose)) return;
-            ObserverTimeline.Observe(pose.ServerTick, TimeManager != null ? (int)TimeManager.TickRate : 30, Time.unscaledTimeAsDouble);
+            if (pose.LifeEpoch != _poseClockEpoch)
+            {
+                _poseClock.Reset();
+                _poseClockEpoch = pose.LifeEpoch;
+            }
+            int rate = TimeManager != null ? (int)TimeManager.TickRate : 30;
+            double arrival = Time.unscaledTimeAsDouble;
+            _poseClock.Observe(pose.ServerTick, rate, arrival);
+            ObserverTimeline.Observe(pose.ServerTick, rate, arrival);
         }
 
         /// <summary>
@@ -1914,8 +2004,10 @@ namespace Game.Gameplay.Network
 
             if (NetworkObject != null && IsClientInitialized && !IsServerInitialized)
             {
-                if (_timestampedPoses.Evaluate(ObserverTimeline.SampleForRendering(), out var pose))
+                if (_timestampedPoses.Evaluate(_poseClock.Sample(Time.unscaledTimeAsDouble), out var pose))
                 {
+                    _presentedPose = pose;
+                    _presentedPoseValid = true;
                     _remoteLeanAmount = pose.LeanAmount;
                     RefreshLeanHitboxes(_remoteLeanAmount);
                     _remoteVisualWorldPosition = pose.Position + pose.Rotation * _tpModelBaseLocalPosition;
@@ -1924,6 +2016,7 @@ namespace Game.Gameplay.Network
                     if (visual != null) visual.SetPositionAndRotation(_remoteVisualWorldPosition, _remoteVisualWorldRotation);
                     _remoteVisualValid = true;
                 }
+                else _presentedPoseValid = false;
                 return;
             }
             float now = TestRemoteVisualTime >= 0f ? TestRemoteVisualTime : Time.time;
@@ -1994,6 +2087,9 @@ namespace Game.Gameplay.Network
         {
             _remoteVisualValid = false;
             _remoteVisualBuffer.Reset();
+            _timestampedPoses.Reset();
+            _poseClock.Reset();
+            _presentedPoseValid = false;
         }
 
         /// <summary>DS 钉根（2026-09-18 问题6；EditMode 可直驱的测试接缝）：TP_Model 直接写到
@@ -2006,7 +2102,14 @@ namespace Game.Gameplay.Network
             Vector3 targetPosition = transform.TransformPoint(_tpModelBaseLocalPosition);
             Quaternion targetRotation = transform.rotation * _tpModelBaseLocalRotation;
             var serverModel = transform.Find(VisualModelNode);
-            if (serverModel != null) serverModel.SetPositionAndRotation(targetPosition, targetRotation);
+            if (serverModel != null)
+            {
+                serverModel.SetPositionAndRotation(targetPosition, targetRotation);
+                // Capture and rewind must see the same articulated pose as the rendered
+                // character. Apply the latest server pitch before sampling bone volumes.
+                serverModel.SendMessage("ApplyServerPoseNow", SendMessageOptions.DontRequireReceiver);
+                serverModel.Find("BodyHitbox")?.GetComponent<ArticulatedHitboxFollower>()?.SyncNow();
+            }
             _remoteVisualBuffer.Reset();
             _remoteVisualValid = false;
         }

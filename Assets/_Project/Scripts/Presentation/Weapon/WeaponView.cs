@@ -16,6 +16,8 @@ namespace Game.Presentation.Weapon
         [SerializeField] private Transform muzzle;
         [Tooltip("Native muzzle FX markers sit ahead of the barrel mesh. Pull only the owner tracer back to the visible bore; leave flash and hit geometry unchanged.")]
         [SerializeField, Min(0f)] private float tracerMuzzleInsetMeters;
+        [SerializeField] private bool hasCalibratedBarrelTip;
+        [SerializeField] private Vector3 barrelTipMuzzleLocal;
         [SerializeField] private Color tracerColor = new(1f, 0.78f, 0.15f, 1f);
         [SerializeField, Min(0.01f)] private float tracerDuration = 0.045f;
         [SerializeField, Min(0.01f)] private float muzzleFlashDuration = 0.035f;
@@ -92,6 +94,9 @@ namespace Game.Presentation.Weapon
         private float _flashTimer;
         private UnityEngine.Camera _worldCamera;
         private UnityEngine.Camera _fpCamera;
+        private Transform _cachedMuzzleAttachment;
+        private Vector3 _cachedAttachmentTipLocal;
+        private bool _cachedAttachmentTipValid;
         // OnShotFired 发生在 Update；Main/FP camera、玩家跳跃位移与 FPWeaponMotion 的最终
         // 渲染姿态在 LateUpdate 才稳定。这里只冻结权威终点，不冻结世界坐标枪口；绘制帧末
         // 从当前可见枪口重采样起点，避免跳跃/向前移动后曳光仍从开火前旧位置冒出。
@@ -169,14 +174,77 @@ namespace Game.Presentation.Weapon
                     UpdateTracerGeometry(segment, ResolveTracerStart());
             foreach (var tracer in _pendingTracers)
             {
-                Vector3 start = ResolveVisualTracerStart(muzzle, tracer.FallbackStart, tracerMuzzleInsetMeters);
+                Vector3 start = ResolveTracerStart(tracer.FallbackStart);
                 SpawnTracer(start, tracer.EndPoint, tracer.RequestId);
             }
             _pendingTracers.Clear();
         }
 
         private Vector3 ResolveTracerStart()
-            => ResolveVisualTracerStart(muzzle, transform.position, tracerMuzzleInsetMeters);
+            => ResolveTracerStart(transform.position);
+
+        private Vector3 ResolveTracerStart(Vector3 fallback)
+        {
+            Vector3 bareBore = hasCalibratedBarrelTip && muzzle != null
+                ? muzzle.TransformPoint(barrelTipMuzzleLocal)
+                : ResolveVisualTracerStart(muzzle, fallback, tracerMuzzleInsetMeters);
+            var attachmentView = GetComponent<WeaponAttachmentView>();
+            var socket = attachmentView != null ? attachmentView.GetSocketTransform(AttachmentSlotType.Muzzle) : null;
+            Transform attached = null;
+            if (socket != null)
+                foreach (Transform child in socket)
+                    if (child.name.StartsWith("Att_", System.StringComparison.Ordinal) && child.gameObject.activeInHierarchy)
+                    { attached = child; break; }
+            if (attached == null || muzzle == null) return bareBore;
+            if (attached != _cachedMuzzleAttachment)
+                CacheAttachmentTip(attached);
+            if (!_cachedAttachmentTipValid) return bareBore;
+            Vector3 tip = attached.TransformPoint(_cachedAttachmentTipLocal);
+            // A fitted suppressor or brake extends beyond the original animated muzzle marker.
+            // Fire from its visible aperture; retain the bare-bore point for cosmetic parts behind it.
+            return Vector3.Dot(tip - bareBore, muzzle.forward) > .005f ? tip : bareBore;
+        }
+
+        private void CacheAttachmentTip(Transform attached)
+        {
+            _cachedMuzzleAttachment = attached;
+            _cachedAttachmentTipValid = TryGetAttachmentTip(attached, muzzle, out _cachedAttachmentTipLocal);
+        }
+
+        internal static bool TryGetAttachmentTip(Transform attached, Transform muzzle, out Vector3 localTip)
+        {
+            localTip = default;
+            if (muzzle == null || attached == null) return false;
+            Vector3 axis = attached.InverseTransformDirection(muzzle.forward).normalized;
+            var vertices = new List<Vector3>();
+            foreach (var filter in attached.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh == null) continue;
+                if (filter.sharedMesh.isReadable)
+                    foreach (var vertex in filter.sharedMesh.vertices)
+                        vertices.Add(attached.InverseTransformPoint(filter.transform.TransformPoint(vertex)));
+                else
+                {
+                    var b = filter.sharedMesh.bounds;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var corner = b.center + Vector3.Scale(b.extents,
+                            new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                        vertices.Add(attached.InverseTransformPoint(filter.transform.TransformPoint(corner)));
+                    }
+                }
+            }
+            if (vertices.Count == 0) return false;
+            float front = float.NegativeInfinity;
+            foreach (var vertex in vertices) front = Mathf.Max(front, Vector3.Dot(vertex, axis));
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (var vertex in vertices)
+                if (Vector3.Dot(vertex, axis) >= front - .003f) { sum += vertex; count++; }
+            if (count == 0) return false;
+            localTip = sum / count;
+            return true;
+        }
 
         internal static Vector3 ResolveVisualTracerStart(Transform currentMuzzle, Vector3 fallback,
             float insetMeters = 0f)

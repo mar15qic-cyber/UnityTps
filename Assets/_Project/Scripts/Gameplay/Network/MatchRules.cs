@@ -58,6 +58,10 @@ namespace Game.Gameplay.Network
 
         /// <summary>对局模式字面值（Docs/27 §1；本地镜像）。</summary>
         public const string ModeTdm = "TDM";
+
+        /// <summary>Only the ticket roster's canonical team may award a TDM point.</summary>
+        public static string NormalizeRosterTeam(string teamId)
+            => teamId == TeamRed || teamId == TeamBlue ? teamId : TeamNone;
         public const string ModeKillRace = "KillRace";
 
         /// <summary>TDM 每队上限（Docs/27 §1：maxPlayers / 2；下限 1）。</summary>

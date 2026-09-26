@@ -158,7 +158,7 @@ Transform:
   m_GameObject: {fileID: 2204958433014284715}
   serializedVersion: 2
   m_LocalRotation: {x: -0.2862957, y: -0.000000769, z: -0.00000023, w: 0.9581413}
-  m_LocalPosition: {x: -0.00000011, y: 0.1234289, z: 0.1033583}
+  m_LocalPosition: {x: -0.0004, y: 0.1405, z: 0.1272}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -628,6 +628,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   muzzle: {fileID: 8774634089874407361}
+  tracerMuzzleInsetMeters: 0
+  hasCalibratedBarrelTip: 1
+  barrelTipMuzzleLocal: {x: 0.00039984728, y: -0.009461555, z: -0.030298833}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

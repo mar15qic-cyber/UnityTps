@@ -1,0 +1,20 @@
+item=weapon.smg03 name=UZI clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.06360, -0.07714, 0.05610)
+targetRotation=(0.07524, 0.62405, 0.75696, -0.17864)
+requestedPitch=0 muzzlePitch=0.000
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(-0.06360, -0.07714, 0.05610)
+LeftThumbProximal=(-0.05154, -0.05091, 0.10245)
+LeftIndexProximal=(-0.02332, -0.06046, 0.16716)
+LeftMiddleProximal=(-0.01873, -0.10594, 0.15728)
+LeftMiddleIntermediate=(0.01101, -0.10278, 0.16071)
+LeftMiddleDistal=(0.02886, -0.09479, 0.13714)
+mesh=TP_Weapon_SMG_03 min=(-0.02054, -0.10910, -0.18776) max=(0.02105, 0.05374, 0.29464)
+mesh=SMG_03_Iron_Sights min=(-0.01654, 0.03909, -0.15447) max=(0.01705, 0.07683, 0.19627)
+mesh=SMG_03_Mag min=(-0.01080, -0.17192, -0.02207) max=(0.01126, -0.01551, 0.01331)
+mesh=SMG_03_Slider min=(-0.01171, 0.01590, -0.03312) max=(0.01493, 0.06970, 0.12754)
+mesh=OpticMountAdapter min=(-0.01100, 0.04302, -0.12900) max=(0.01100, 0.05411, -0.02100)
+mesh=Att_attach.lpw.grip.01 min=(-0.01747, -0.15650, 0.10953) max=(0.01747, -0.01017, 0.16447)

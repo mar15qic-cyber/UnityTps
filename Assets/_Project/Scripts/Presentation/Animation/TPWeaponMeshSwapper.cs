@@ -171,11 +171,33 @@ namespace Game.Presentation.Animation
                 var view = _current.AddComponent<WeaponAttachmentView>();
                 view.ApplyAttachments(AttachmentAssetCatalog.LoadOrDefault(), weaponItemId, entries, laserBeamEnabled: false); // TP 视图非本地第一人称：不挂激光束
                 _attachmentView = view;
+                _current.GetComponent<TPGripPose>()?.CalibrateAttachmentTargets(view);
+                ResolveAttachmentMuzzle(view);
                 // 后挂入的配件不在上方层同步循环内，须补齐到身体层
                 foreach (var spawned in view.Spawned)
                     if (spawned != null)
                         foreach (var t in spawned.GetComponentsInChildren<Transform>(true))
                             t.gameObject.layer = bodyLayer;
+            }
+        }
+
+        private void ResolveAttachmentMuzzle(WeaponAttachmentView attachments)
+        {
+            if (CurrentMuzzle == null || attachments == null) return;
+            var socket = attachments.GetSocketTransform(AttachmentSlotType.Muzzle);
+            if (socket == null) return;
+            foreach (Transform child in socket)
+            {
+                if (!child.name.StartsWith("Att_", System.StringComparison.Ordinal) || !child.gameObject.activeInHierarchy) continue;
+                if (!Game.Presentation.Weapon.WeaponView.TryGetAttachmentTip(child, CurrentMuzzle, out var tip)) continue;
+                var worldTip = child.TransformPoint(tip);
+                if (Vector3.Dot(worldTip - CurrentMuzzle.position, CurrentMuzzle.forward) <= .005f) continue;
+                var marker = new GameObject("Runtime_TP_Muzzle").transform;
+                marker.SetParent(child, false);
+                marker.SetPositionAndRotation(worldTip, CurrentMuzzle.rotation);
+                marker.gameObject.layer = CurrentMuzzle.gameObject.layer;
+                CurrentMuzzle = marker;
+                break;
             }
         }
 

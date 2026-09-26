@@ -1,4 +1,5 @@
 using Game.Gameplay.Weapon;
+using Game.Gameplay.Network;
 using UnityEngine;
 
 namespace Game.Presentation.Animation
@@ -19,11 +20,13 @@ namespace Game.Presentation.Animation
         [SerializeField, Min(0.01f)] private float lightDuration = 0.05f;
 
         private Light _light;
+        private NetworkCombatAuthority _authority;
 
         private void Awake()
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
             if (swapper == null) swapper = GetComponentInParent<TPWeaponMeshSwapper>() ?? GetComponent<TPWeaponMeshSwapper>();
+            _authority = GetComponentInParent<NetworkCombatAuthority>();
             if (muzzleFlashPrefab == null)
                 muzzleFlashPrefab = Resources.Load<GameObject>("MuzzleFlash_LPFP");
             BuildLight();
@@ -33,11 +36,14 @@ namespace Game.Presentation.Animation
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
             if (controller != null) controller.OnShotFired += HandleShot;
+            if (_authority == null) _authority = GetComponentInParent<NetworkCombatAuthority>();
+            if (_authority != null) _authority.OnRemoteShot += HandleRemoteShot;
         }
 
         private void OnDisable()
         {
             if (controller != null) controller.OnShotFired -= HandleShot;
+            if (_authority != null) _authority.OnRemoteShot -= HandleRemoteShot;
         }
 
         private void Update()
@@ -47,7 +53,23 @@ namespace Game.Presentation.Animation
 
         private float _lightOffTime;
 
-        private void HandleShot(WeaponShot _) => SpawnMuzzleFlash();
+        private void HandleShot(WeaponShot _)
+        {
+            // ObserversFire also invokes OnShotFired for animation. Remote flash
+            // uses only the result event, so those two RPCs cannot double flash.
+            if (_authority != null && _authority.IsClientInitialized
+                && !_authority.IsOwnerPlayer && !_authority.IsServerInitialized) return;
+            SpawnMuzzleFlash();
+        }
+
+        private void HandleRemoteShot(RemoteShotPresentation _)
+        {
+            // Server and owner already present their own shot. An observer's local
+            // WeaponController never fires, so its TP flash must use the same
+            // authoritative per-shot event as the remote tracer.
+            if (_authority == null || _authority.IsOwnerPlayer || _authority.IsServerInitialized) return;
+            SpawnMuzzleFlash();
+        }
 
         private void SpawnMuzzleFlash()
         {

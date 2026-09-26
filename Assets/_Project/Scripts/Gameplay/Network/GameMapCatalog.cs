@@ -19,6 +19,7 @@ namespace Game.Gameplay.Network
             // map_04（Map_TrainingYard，2026-09-17 热更试点 P4）：客户端不进 EditorBuildSettings——
             // 走热更 bundle 双通道（HotSceneLoader）；本行供 DS 解析与客户端 /api/maps 缓存缺失兜底。
             ("map_04", "Map_TrainingYard"),
+            ("map_05", "Map_NightRelay"),
         };
 
         public static bool IsGameplayScene(string sceneName)

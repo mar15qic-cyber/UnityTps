@@ -107,6 +107,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 0
+  geometryVerified: 0
 --- !u!1001 &2925572873735135980
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -441,10 +442,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   muzzle: {fileID: 8882209764369626616}
+  tracerMuzzleInsetMeters: 0
+  hasCalibratedBarrelTip: 1
+  barrelTipMuzzleLocal: {x: -0.001055772, y: -0.0011721049, z: -0.032574054}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
-  nearSegmentLength: 1.2
   maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
@@ -455,7 +458,6 @@ MonoBehaviour:
   sightReference: {fileID: 2388870766294426008}
   alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
-  reconcileThresholdMeters: 0.35
 --- !u!4 &2925572873735534632 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400068, guid: b3236689d20e81b4493519925058781a, type: 3}

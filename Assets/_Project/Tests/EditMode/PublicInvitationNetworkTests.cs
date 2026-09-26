@@ -1,5 +1,6 @@
 using Game.Core;
 using Game.Gameplay.Network;
+using Game.Gameplay.Movement;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -54,6 +55,28 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void PresentedPoseInterpolatesMovementPitchAndLeanOnOneTimeline()
+        {
+            var buffer = new TimestampedPoseBuffer();
+            buffer.Push(new ObserverPose { ServerTick = 10, LifeEpoch = 1,
+                Position = Vector3.zero, Rotation = Quaternion.identity, LeanAmount = 0f,
+                PitchDegrees = -40f, LocomotionState = LocomotionState.Walk,
+                MoveInput = Vector2.zero, HorizontalSpeed = 0f, GaitPhase = .9f });
+            buffer.Push(new ObserverPose { ServerTick = 12, LifeEpoch = 1,
+                Position = Vector3.right * 2f, Rotation = Quaternion.identity, LeanAmount = 1f,
+                PitchDegrees = 20f, LocomotionState = LocomotionState.Jump,
+                MoveInput = Vector2.right, HorizontalSpeed = 3f, GaitPhase = .1f });
+            Assert.That(buffer.Evaluate(11, out var pose), Is.True);
+            Assert.That(pose.Position.x, Is.EqualTo(1f).Within(.001f));
+            Assert.That(pose.LeanAmount, Is.EqualTo(.5f).Within(.001f));
+            Assert.That(pose.PitchDegrees, Is.EqualTo(-10f).Within(.001f));
+            Assert.That(pose.MoveInput.x, Is.EqualTo(.5f).Within(.001f));
+            Assert.That(pose.HorizontalSpeed, Is.EqualTo(1.5f).Within(.001f));
+            Assert.That(pose.GaitPhase, Is.EqualTo(0f).Within(.001f));
+            Assert.That(pose.LocomotionState, Is.EqualTo(LocomotionState.Jump));
+        }
+
+        [Test]
         public void StationarySamplesAdvanceClockAndClockNeverReverses()
         {
             ObserverTimeline.Reset(); var b=new TimestampedPoseBuffer();
@@ -63,6 +86,33 @@ namespace Game.Gameplay.Tests
             ObserverTimeline.Observe(100,30,10); var t=ObserverTimeline.Evaluate(10.05);
             ObserverTimeline.Observe(99,30,11); Assert.That(ObserverTimeline.Evaluate(10.04), Is.GreaterThanOrEqualTo(t));
             ObserverTimeline.Reset();
+        }
+
+        [Test]
+        public void RemotePoseClockIsPerPlayerAndCatchesUpAcrossFrames()
+        {
+            var observed = new ObserverPoseClock();
+            var unrelated = new ObserverPoseClock();
+            observed.Observe(100, 30, 10);
+            double first = observed.Sample(10.02);
+            unrelated.Observe(200, 30, 10.03);
+            unrelated.Sample(10.04);
+            Assert.That(observed.RenderTick, Is.EqualTo(first),
+                "another player's newer tick must not advance this model");
+
+            observed.Observe(101, 30, 10.033333);
+            double moving = observed.Sample(10.05);
+            Assert.That(moving, Is.GreaterThan(first));
+            for (double frameTime = 10.058; frameTime < 10.15; frameTime += .008)
+                observed.Sample(frameTime);
+            double beforeBurst = observed.RenderTick;
+            observed.Observe(108, 30, 10.15); // a late burst of samples
+            double caughtUp = observed.Sample(10.158);
+            Assert.That(caughtUp, Is.GreaterThan(beforeBurst));
+            Assert.That(caughtUp - beforeBurst, Is.LessThan(.5),
+                "a delayed packet must not display several ticks in one frame");
+            observed.Reset();
+            Assert.That(observed.Sample(20), Is.Zero);
         }
 
         [Test]

@@ -1,3 +1,4 @@
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Gameplay.Combat
@@ -27,16 +28,20 @@ namespace Game.Gameplay.Combat
     public sealed class HitVolumeTag : MonoBehaviour
     {
         [SerializeField] private HitVolumeRole role;
+        [SerializeField] private HitBodyRegion bodyRegion;
 
         public HitVolumeRole Role => role;
+        public HitBodyRegion BodyRegion => bodyRegion;
 
         /// <summary>运行时装配入口（幂等：已存在则只校正角色，不重复添加）。</summary>
-        public static HitVolumeTag Assign(GameObject go, HitVolumeRole assigned)
+        public static HitVolumeTag Assign(GameObject go, HitVolumeRole assigned,
+            HitBodyRegion region = HitBodyRegion.Torso)
         {
             if (go == null) return null;
             var tag = go.GetComponent<HitVolumeTag>();
             if (tag == null) tag = go.AddComponent<HitVolumeTag>();
             tag.role = assigned;
+            tag.bodyRegion = region;
             return tag;
         }
     }

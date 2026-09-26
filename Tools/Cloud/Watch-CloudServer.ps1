@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$ConfigPath)
+﻿param([Parameter(Mandatory)][string]$ConfigPath)
 . "$PSScriptRoot/Cloud.Common.ps1"
 $c=Read-CloudConfig $ConfigPath
 # Run this supervisor as an at-startup Scheduled Task using a dedicated service account.
@@ -7,7 +7,7 @@ while ($true) {
     $state=Join-Path $c.stateRoot 'processes.json'
     $restart=-not (Test-Path -LiteralPath $state)
     if (-not $restart) {
-        $records=@(Get-Content -LiteralPath $state -Raw | ConvertFrom-Json)
+        $records=@(Get-Content -LiteralPath $state -Raw | ConvertFrom-Json | ForEach-Object { $_ })
         $restart=$records.Count -ne 6 -or @($records | Where-Object { -not (Test-ManagedProcess $_) }).Count -gt 0
     }
     if ($restart) {

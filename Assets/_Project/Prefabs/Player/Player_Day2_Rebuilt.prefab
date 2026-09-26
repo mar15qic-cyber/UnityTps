@@ -70,12 +70,12 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 1.8
-  m_Radius: 0.35
+  m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.4
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.9, z: 0}
+  m_Center: {x: 0, y: 0.98, z: 0.45}
 --- !u!114 &2494146238021465283
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1027,6 +1027,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 100002, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 100004, guid: 3a0fc50da26e55e49a89c167d5562115, type: 3}
       propertyPath: m_Layer
       value: 8
@@ -1421,12 +1425,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aimDistance: 20
-  spineWeight: 0.3
-  chestWeight: 0.4
-  neckWeight: 0.15
-  headWeight: 0.15
-  maxPitchDegrees: 60
-  pitchSmoothSeconds: 0.08
+  spineWeight: 0.4
+  chestWeight: 0.6
+  neckWeight: 0
+  headWeight: 0
+  maxPitchDegrees: 89
+  pitchSmoothSeconds: 0
   yawWeight: 0
   maxYawDegrees: 45
 --- !u!114 &1863378793081348325

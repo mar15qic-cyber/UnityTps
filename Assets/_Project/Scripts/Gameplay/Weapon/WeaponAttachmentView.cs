@@ -68,6 +68,7 @@ namespace Game.Gameplay.Weapon
         /// <summary>按槽位取挂点 Transform（瞄具眼点反查等校准路径用；无挂点=null）。</summary>
         public Transform GetSocketTransform(AttachmentSlotType slot)
         {
+            if (_sockets == null || _sockets.Length == 0) CacheSockets();
             var socket = FindSocket(slot);
             return socket != null ? socket.transform : null;
         }

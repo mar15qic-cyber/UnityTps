@@ -45,7 +45,11 @@ namespace Game.Gameplay.Network
         // v11: team radar sighting ServerRpc and team-only TargetRpc.
         // v12: movement command/snapshot lean state and observer lean pose.
         // v14: per-pellet surface normals and character flags for authoritative impact correction.
-        public const string ProtocolId = "fps-net-v14";
+        // v15: grenade throw RPC carries the owner's release sightline.
+        // v16: movement ADS sample and server-confirmed shot damage/region/life epoch.
+        // v17: articulated observer pose and authenticated player display name.
+        // v18: matched per-tick input cadence, per-player presentation and grounded spawn contract.
+        public const string ProtocolId = "fps-net-v18";
 
         /// <summary>协议不匹配的冻结错误码（DS 拒绝广播 + 后端入房筛选共用字面值）。</summary>
         public const string ProtocolMismatchCode = "PROTOCOL_MISMATCH";

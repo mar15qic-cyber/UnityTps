@@ -137,23 +137,30 @@ namespace Game.Gameplay.Weapon
             _line.enabled = true;
         }
 
-        /// <summary>光束起点：激光器模型网格包围盒中心（本地系缓存一次，随枪口摆动实时变换）。
-        /// 只认 Mesh/Skinned 网格——LineRenderer 的空 bounds 在世界原点，混入会把起点拉离枪身（实测事故）。</summary>
+        /// <summary>光束起点取器件沿发射轴的前端截面中心，随枪体姿态实时变换。
+        /// 网格中心在激光器壳体中段，会让光束看起来从枪身/瞄具附近射出。</summary>
         private Vector3 ResolveOrigin()
         {
             if (!_centerResolved)
             {
                 _centerResolved = true;
-                var renderers = GetComponentsInChildren<MeshRenderer>();
-                var skinned = GetComponentsInChildren<SkinnedMeshRenderer>();
-                if (renderers.Length + skinned.Length > 0)
+                var axis = transform.InverseTransformDirection(DeviceAxis(transform)).normalized;
+                var vertices = new System.Collections.Generic.List<Vector3>();
+                foreach (var filter in GetComponentsInChildren<MeshFilter>())
                 {
-                    var center = Vector3.zero;
-                    int total = 0;
-                    foreach (var r in renderers) { center += r.bounds.center; total++; }
-                    foreach (var r in skinned) { center += r.bounds.center; total++; }
-                    center /= total;
-                    _localCenter = transform.InverseTransformPoint(center);
+                    if (filter.sharedMesh == null) continue;
+                    foreach (var vertex in filter.sharedMesh.vertices)
+                        vertices.Add(transform.InverseTransformPoint(filter.transform.TransformPoint(vertex)));
+                }
+                if (vertices.Count > 0)
+                {
+                    float front = float.NegativeInfinity;
+                    foreach (var vertex in vertices) front = Mathf.Max(front, Vector3.Dot(vertex, axis));
+                    var sum = Vector3.zero;
+                    int count = 0;
+                    foreach (var vertex in vertices)
+                        if (Vector3.Dot(vertex, axis) >= front - .003f) { sum += vertex; count++; }
+                    _localCenter = count > 0 ? sum / count : Vector3.zero;
                 }
             }
             return transform.TransformPoint(_localCenter);

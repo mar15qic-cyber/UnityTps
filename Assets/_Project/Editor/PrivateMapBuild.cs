@@ -10,13 +10,25 @@ namespace Game.EditorTools
 {
     public static class PrivateMapBuild
     {
-        [Serializable] public sealed class Request { public string mapId; public string scenePath; public string version; public string displayName; }
+        [Serializable] public sealed class Request
+        {
+            public string mapId;
+            public string scenePath;
+            public string version;
+            public string displayName;
+            public string[] modes;
+            public int maxCapacity;
+        }
         public static void Build(string requestPath)
         {
             var r = JsonUtility.FromJson<Request>(File.ReadAllText(requestPath));
             if (!System.Text.RegularExpressions.Regex.IsMatch(r.mapId ?? "", "^[a-z0-9_]{1,32}$")
                 || !long.TryParse(r.version, out var v) || v <= 0 || !r.scenePath.StartsWith("Assets/_Project/Scenes/", StringComparison.Ordinal)
                 || r.scenePath.Contains("..") || !r.scenePath.EndsWith(".unity") || !File.Exists(r.scenePath)) throw new InvalidOperationException("Invalid map request");
+            if (r.modes != null && (r.modes.Length == 0 || r.modes.Any(m => m != "TDM" && m != "KillRace"))
+                || r.maxCapacity != 0 && r.maxCapacity != 2 && r.maxCapacity != 4 && r.maxCapacity != 8
+                    && r.maxCapacity != 12 && r.maxCapacity != 16)
+                throw new InvalidOperationException("Invalid map mode or capacity");
             var sceneName = Path.GetFileNameWithoutExtension(r.scenePath);
             if (!System.Text.RegularExpressions.Regex.IsMatch(sceneName, "^[a-zA-Z0-9_]{1,80}$")) throw new InvalidOperationException("Unsafe scene name");
             var output = "Builds/PrivateMaps/" + r.mapId + "/" + r.version;

@@ -7,7 +7,7 @@ namespace Game.Gameplay.Weapon
     /// 挂点坐标系约定（全局统一）：-X = 枪口方向（前向），+Y = 枪械上方向。
     /// 挂载父节点：LPW 枪 = LPW_Gun wrapper（与方案C 锚点同空间）；原生 FP = Armature/weapon 骨骼；
     /// 原生 TP = 视图根。配件 prefab 经 AttachmentAssetEntry.mountEuler 校正后挂入
-    /// （LPW 配件恒等；LPFP 配件 (0,-90,0) 将其 +Z 长轴对齐挂点 -X 前向）。
+    /// （配件依各自模型的安装端标定，例如 LPFP Silencer 为 +90°）。
     /// </summary>
     public sealed class AttachmentSocket : MonoBehaviour
     {

@@ -373,6 +373,7 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
     {
         var normalized = (roomCode ?? string.Empty).Trim().ToUpperInvariant();
         var strategy = db.Database.CreateExecutionStrategy();
+        var rearmDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(8);
         return await strategy.ExecuteAsync(async () =>
         {
             for (var attempt = 0; ; attempt++)
@@ -384,6 +385,18 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                 catch (DbUpdateException) when (attempt < 4)
                 {
                     db.ChangeTracker.Clear(); // 租用竞态：重跑后租用查询会跳过被抢占的实例
+                }
+                catch (ApiException ex) when (ex.Code == ApiErrorCodes.NoServerAvailable
+                    && DateTime.UtcNow < rearmDeadline)
+                {
+                    // A solo match may still be disconnecting or proving Ready/0 after
+                    // its room closes. Do not hold the transaction while waiting.
+                    db.ChangeTracker.Clear();
+                    var pool = await instances.GetPoolDiagnosticsAsync(0, cancellationToken);
+                    if (!pool.Instances.Any(x => x.Fresh && (x.State == InstanceState.Draining
+                        || (x.State == InstanceState.InMatch || x.State == InstanceState.Reserved)
+                        && x.CurrentPlayers <= 1))) throw;
+                    await Task.Delay(250, cancellationToken);
                 }
             }
         });

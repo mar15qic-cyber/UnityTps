@@ -1,0 +1,16 @@
+item=weapon.smg04 name=FN P90 clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(0.00067, -0.05307, 0.19276)
+targetRotation=(0.00000, 0.00000, 0.00000, 1.00000)
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(0.00067, -0.05307, 0.19276)
+LeftThumbProximal=(0.00050, -0.01025, 0.22665)
+LeftIndexProximal=(-0.00211, 0.06093, 0.22787)
+LeftMiddleProximal=(-0.00166, 0.06068, 0.18111)
+LeftMiddleIntermediate=(-0.02856, 0.07417, 0.18165)
+LeftMiddleDistal=(-0.05442, 0.05778, 0.18252)
+mesh=TP_Weapon_SMG_04 min=(-0.02370, -0.10518, -0.27953) max=(0.02372, 0.09037, 0.23108)
+mesh=SMG_04_Mag min=(-0.02449, 0.00771, -0.12632) max=(0.02450, 0.03790, 0.14507)
+mesh=SMG_04_Slider min=(-0.02157, -0.01551, 0.01336) max=(0.02159, -0.00088, 0.15519)

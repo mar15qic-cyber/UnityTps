@@ -84,6 +84,20 @@ namespace Game.Gameplay.Weapon
         public ActionSystem Actions => actionSystem;
         public bool IsInitialized => Runtime != null;
 
+        /// <summary>Use the actual observed target's rendered tick for rewind. Individual
+        /// observer buffers can lag the session clock by a packet or two under jitter.</summary>
+        internal double DisplayTickForShot(Vector3 origin, Vector3 direction, double fallbackTick)
+        {
+            if (combatResolver == null || Runtime == null || direction.sqrMagnitude < .0001f)
+                return fallbackTick;
+            var hit = combatResolver.ProbeDisplayedShot(origin, direction, Stat.MaxRange,
+                hitMask.value, transform.root);
+            var target = hit.Target != null ? hit.Target.GetComponentInParent<NetworkCombatAuthority>() : null;
+            var adapter = target != null ? target.GetComponent<PlayerNetworkAdapter>() : null;
+            return adapter != null && adapter.TryGetPresentedTick(out double tick)
+                ? tick : fallbackTick;
+        }
+
         /// <summary>当前装配是否含消音器（isSuppressor 配件）——WeaponAudioView 据此切换消音 Fire 池。</summary>
         public bool IsSuppressed
         {
@@ -105,6 +119,10 @@ namespace Game.Gameplay.Weapon
         public ResolvedWeaponStats Resolved { get; private set; }
         /// <summary>当前瞄准偏移（度；Pitch 向上为正、Yaw 向右为正）。CmFPCameraRecoil 回声与 FireRay 共用。</summary>
         public Vector2 CurrentRecoilOffset => _recoil.CurrentOffset;
+        public float AdsGroundSpeedMultiplier => _balance is DemoBalanceConfig config && definition != null
+            ? config.GetAdsGroundSpeedMultiplier(definition.WeaponId) : 1f;
+        public HitRegionMultipliers CurrentHitRegionMultipliers => _balance is DemoBalanceConfig config && definition != null
+            ? config.GetHitRegionMultipliers(definition.WeaponId) : HitRegionMultipliers.Standard;
         public Quaternion CurrentRecoilRotation => _recoil.OffsetRotation;
         /// <summary>权威射线原点：CameraPivot 头位。</summary>
         public Vector3 AimOrigin
@@ -148,6 +166,10 @@ namespace Game.Gameplay.Weapon
                && Runtime.State == WeaponRuntimeState.Ready
                && Runtime.CooldownRemaining <= 0f
                && Runtime.HasAmmo;
+
+        internal bool CanAttemptTimedServerFire
+            => Runtime != null && !actionSystem.IsBusy
+               && Runtime.State == WeaponRuntimeState.Ready && Runtime.HasAmmo;
 
         /// <summary>最近一次开火的权威几何证据（审计 §6.1；服务器侧有意义，离线/客户端为 default）。</summary>
         public Combat.FireEvidence LastFireEvidence
@@ -454,6 +476,7 @@ namespace Game.Gameplay.Weapon
         /// 按射击时刻快照比对目标生命代际/无敌态）；本地/离线调用省略（default = 无回溯语境）。
         /// </summary>
         private bool _serverAimOverride;
+        private bool _serverCadenceValidated;
         private Vector3? _serverMuzzleOverride, _serverBodyAnchorOverride;
         private Vector3 _serverAimOrigin, _serverAimDirection;
         private WeaponFireContext? _shotContextOverride;
@@ -471,15 +494,17 @@ namespace Game.Gameplay.Weapon
 
         internal bool TryFireWithServerSnapshot(Vector3 origin, Vector3 direction,
             WeaponFireContext fireContext, int seed, LagCompRewindContext context,
-            Vector3? historicalMuzzle = null, Vector3? historicalBodyAnchor = null)
+            Vector3? historicalMuzzle = null, Vector3? historicalBodyAnchor = null,
+            bool cadenceValidated = false)
         {
+            _serverCadenceValidated = cadenceValidated;
             _shotContextOverride = fireContext;
             _shotSeedOverride = seed;
             _serverMuzzleOverride = historicalMuzzle;
             _serverBodyAnchorOverride = historicalBodyAnchor;
             try { return TryFireWithServerAim(origin, direction, context); }
             finally { _shotContextOverride = null; _shotSeedOverride = null;
-                _serverMuzzleOverride = null; _serverBodyAnchorOverride = null; }
+                _serverMuzzleOverride = null; _serverBodyAnchorOverride = null; _serverCadenceValidated = false; }
         }
         internal bool IsPresentedOriginUnobstructed(Vector3 authoritativeOrigin, Vector3 displayedOrigin)
             => combatResolver != null && combatResolver.IsAimOriginUnobstructed(authoritativeOrigin,
@@ -495,7 +520,7 @@ namespace Game.Gameplay.Weapon
         public bool TryFire(LagCompRewindContext rewindContext = default)
         {
             if (Runtime == null || actionSystem.IsBusy) return false;
-            if (!Runtime.TryConsumeRound())
+            if (!Runtime.TryConsumeRound(_serverAimOverride && _serverCadenceValidated))
             {
                 if (!Runtime.HasAmmo) OnDryFire?.Invoke();
                 return false;
@@ -550,11 +575,13 @@ namespace Game.Gameplay.Weapon
                 for (int i = 0; i < pelletCount; i++)
                 {
                     Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread, shotRandom);
+                    // The shotgun's Damage is the total shell budget, not damage per pellet.
+                    int pelletDamage = Stat.Damage / pelletCount + (i < Stat.Damage % pelletCount ? 1 : 0);
                     pellets[i] = serverTwoStage
                         ? combatResolver.ResolveHitscanTwoStage(
-                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
+                            origin, dir, Stat.MaxRange, pelletDamage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
                         : combatResolver.ResolveHitscan(
-                            origin, dir, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, attributionSource);
+                            origin, dir, Stat.MaxRange, pelletDamage, hitMask.value, transform.root, attributionSource);
                     if (primary == null && pellets[i].Damaged) primary = pellets[i];
                     if (firstHit == null && pellets[i].Hit) firstHit = pellets[i];
                 }

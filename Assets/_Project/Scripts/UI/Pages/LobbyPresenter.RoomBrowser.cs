@@ -22,7 +22,7 @@ namespace Game.UI
             var map = HotMapCatalog.Cached.FirstOrDefault(m => m != null && m.mapId == id);
             if (map != null && !string.IsNullOrEmpty(map.contentHash) && !HotSceneLoader.IsBundleReady(map.sceneName)) return map.displayName + "（待下载）";
             if (map != null && map.availability == "preparing") return map.displayName + "（准备中）";
-            return !string.IsNullOrEmpty(map?.displayName) ? map.displayName : id switch { "arena"=>"Arena", "map_01"=>"Stackyard", "map_02"=>"Depot 55", "map_03"=>"Ridgeline", "map_04"=>"Training Yard", _=>id??"未知地图" };
+            return !string.IsNullOrEmpty(map?.displayName) ? map.displayName : id switch { "arena"=>"Arena", "map_01"=>"Stackyard", "map_02"=>"Depot 55", "map_03"=>"Ridgeline", "map_04"=>"Training Yard", "map_05"=>"Night Relay", _=>id??"未知地图" };
         }
         private static bool RoomCanJoin(GameRoomDto room) => room != null && room.status == "Waiting" && room.joinedPlayers < room.maxPlayers;
 
@@ -140,15 +140,31 @@ namespace Game.UI
         private void OpenCreateRoomDialog()
         {
             var panel=RoomDialog("创建房间");
-            var mode="TDM";var capacity=8;var maps=HotMapCatalog.Cached.Where(m=>m!=null).Select(m=>m.mapId).ToArray();
-            if(maps.Length==0)maps=new[]{"arena","map_01","map_02","map_03","map_04"};
+            string[] MapsForMode(string selectedMode)
+            {
+                var fromServer=HotMapCatalog.Cached.Where(m=>m!=null && m.modes!=null && m.modes.Contains(selectedMode))
+                    .Select(m=>m.mapId).ToArray();
+                if(fromServer.Length>0)return fromServer;
+                return selectedMode=="TDM" ? new[]{"arena","map_01","map_03","map_04"} : new[]{"arena","map_02","map_05"};
+            }
+            int MaxForMap(string id) => HotMapCatalog.TryGet(id,out var entry) && entry.maxCapacity>0
+                ? entry.maxCapacity : id=="map_01"||id=="map_03"||id=="map_04"?8:16;
+            var mode="TDM";var capacity=8;var maps=MapsForMode(mode);
             var mapIndex=0;Button modeButton=null,capacityButton=null,mapButton=null;
             modeButton=StyledButton(panel,"模式：团队竞技",UIComponents.ButtonKind.Secondary,new Vector2(.08f,.64f),new Vector2(.92f,.77f),()=>{
-                mode=mode=="TDM"?"KillRace":"TDM";modeButton.GetComponentInChildren<TMP_Text>().text="模式："+(mode=="TDM"?"团队竞技":"击杀竞赛");});
+                mode=mode=="TDM"?"KillRace":"TDM";maps=MapsForMode(mode);mapIndex=0;
+                capacity=Mathf.Min(capacity,MaxForMap(maps[mapIndex]));
+                modeButton.GetComponentInChildren<TMP_Text>().text="模式："+(mode=="TDM"?"团队竞技":"击杀竞赛");
+                mapButton.GetComponentInChildren<TMP_Text>().text="地图："+MapLabel(maps[mapIndex]);
+                capacityButton.GetComponentInChildren<TMP_Text>().text="人数："+capacity;});
             capacityButton=StyledButton(panel,"人数：8",UIComponents.ButtonKind.Secondary,new Vector2(.08f,.47f),new Vector2(.92f,.60f),()=>{
-                capacity=capacity==16?2:capacity==2?4:capacity==4?8:16;capacityButton.GetComponentInChildren<TMP_Text>().text="人数："+capacity;});
+                var choices=new[]{2,4,8,16}.Where(n=>n<=MaxForMap(maps[mapIndex])).ToArray();
+                capacity=choices[(Array.IndexOf(choices,capacity)+1)%choices.Length];
+                capacityButton.GetComponentInChildren<TMP_Text>().text="人数："+capacity;});
             mapButton=StyledButton(panel,"地图："+MapLabel(maps[0]),UIComponents.ButtonKind.Secondary,new Vector2(.08f,.30f),new Vector2(.92f,.43f),()=>{
-                mapIndex=(mapIndex+1)%maps.Length;mapButton.GetComponentInChildren<TMP_Text>().text="地图："+MapLabel(maps[mapIndex]);});
+                mapIndex=(mapIndex+1)%maps.Length;capacity=Mathf.Min(capacity,MaxForMap(maps[mapIndex]));
+                mapButton.GetComponentInChildren<TMP_Text>().text="地图："+MapLabel(maps[mapIndex]);
+                capacityButton.GetComponentInChildren<TMP_Text>().text="人数："+capacity;});
             StyledButton(panel,"创建并进入",UIComponents.ButtonKind.Primary,new Vector2(.51f,.08f),new Vector2(.92f,.22f),()=>{
                 CloseSocialModal();_=StartOnlineCreateAsync(new CreateRoomRequest{mode=mode,mapId=maps[mapIndex],maxPlayers=capacity,killTarget=mode=="KillRace"?20:100});});
         }

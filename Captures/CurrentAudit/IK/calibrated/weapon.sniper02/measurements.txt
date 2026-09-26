@@ -1,0 +1,22 @@
+item=weapon.sniper02 name=Barrett M82 clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.00800, -0.08500, 0.11000)
+targetRotation=(-0.38806, 0.49447, 0.40893, -0.66157)
+requestedPitch=0 muzzlePitch=0.000
+wristErrorMm=0.001
+wristAngleError=0.000
+LeftHand=(-0.00800, -0.08500, 0.11000)
+LeftThumbProximal=(-0.03422, -0.07294, 0.15635)
+LeftIndexProximal=(-0.02468, -0.04472, 0.22106)
+LeftMiddleProximal=(0.02080, -0.04013, 0.21118)
+LeftMiddleIntermediate=(0.01764, -0.01039, 0.21461)
+LeftMiddleDistal=(0.00966, 0.00746, 0.19104)
+mesh=TP_Weapon_Sniper_02 min=(-0.02727, -0.14300, -0.58400) max=(0.02923, 0.06141, 0.73541)
+mesh=sniper_02_bipod_leg_left min=(-0.10224, -0.23763, 0.21232) max=(-0.01197, -0.02868, 0.24613)
+mesh=sniper_02_bipod_leg_right min=(0.01393, -0.23763, 0.21232) max=(0.10420, -0.02868, 0.24613)
+mesh=sniper_02_handle min=(-0.03700, -0.05718, -0.05468) max=(0.00398, 0.06031, 0.10485)
+mesh=sniper_02_mag min=(-0.01411, -0.15010, -0.15753) max=(0.01606, -0.02489, -0.02068)
+mesh=sniper_02_muzzle_brake min=(-0.04160, -0.00331, 0.65146) max=(0.04355, 0.03144, 0.73083)
+mesh=sniper_02_scope min=(-0.02826, 0.04195, -0.28722) max=(0.03119, 0.15700, 0.02653)
+mesh=sniper_02_slider min=(0.00262, 0.00306, -0.24503) max=(0.05374, 0.03189, 0.00258)

@@ -68,7 +68,9 @@ namespace Game.Gameplay.Network
             var request = new TimedFireRequest { ShotId = shotRequestId,
                 InputTick = adapter != null ? adapter.LocalInputTick : 0,
                 LifeEpoch = adapter != null ? adapter.KnownLifeEpoch : 0,
-                DisplayTick = ObserverTimeline.PresentedTick,
+                DisplayTick = _controller != null
+                    ? _controller.DisplayTickForShot(shot.Origin, shot.Direction, ObserverTimeline.PresentedTick)
+                    : ObserverTimeline.PresentedTick,
                 AimOrigin = shot.Origin, AimDirection = shot.Direction, Ads01 = shot.Ads01 };
             if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-submit", shotId = request.ShotId,
                 inputTick = request.InputTick, lifeEpoch = request.LifeEpoch, displayTick = request.DisplayTick,
@@ -103,10 +105,17 @@ namespace Game.Gameplay.Network
         private readonly System.Collections.Generic.Queue<(TimedFireRequest request, double arrived)> _timedShots = new();
         private uint _lastReceivedShotId;
         private uint _lastExecutedInputTick, _lastExecutedInputLife;
+        private readonly ServerShotCadence _shotCadence = new();
+        private WeaponRuntime _cadenceRuntime;
+        private uint _cadenceLife;
         [ServerRpc(RequireOwnership = true)]
         private void ServerFireRequest(TimedFireRequest request)
         {
-            if (request.ShotId == 0 || request.ShotId <= _lastReceivedShotId) return;
+            if (request.ShotId == 0 || request.ShotId <= _lastReceivedShotId)
+            {
+                Debug.LogWarning($"[FireTrace] duplicate-or-zero id={request.ShotId} last={_lastReceivedShotId} conn={OwnerClientId}");
+                return;
+            }
             // Reliable ordered RPC: no legitimate submitted shot can skip an id. This also
             // prevents choosing a later id just to select a favourable deterministic sample.
             if (request.ShotId != _lastReceivedShotId + 1)
@@ -177,7 +186,14 @@ namespace Game.Gameplay.Network
                 RejectShot(shotRequestId, ShotRejectReason.Duplicate);
                 return;
             }
-            if (_controller == null || !_controller.CanAttemptFire)
+            if (_controller != null && (_cadenceRuntime != _controller.Runtime || _cadenceLife != request.LifeEpoch))
+            {
+                _cadenceRuntime = _controller.Runtime;
+                _cadenceLife = request.LifeEpoch;
+                _shotCadence.Reset();
+            }
+            if (_controller == null || !_controller.CanAttemptTimedServerFire
+                || !_shotCadence.CanFire(request.InputTick))
             {
                 if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] reject id={shotRequestId} estTick={estimatedServerTick} conn={OwnerClientId} "
                     + $"match={MatchLifecycle.ClientMatchId}（冷却/弹药/动作槽忙碌——未回溯）");
@@ -222,7 +238,9 @@ namespace Game.Gameplay.Network
                 }
                 accepted = _controller.TryFireWithServerSnapshot(request.AimOrigin, request.AimDirection,
                     fireContext, ShotAimPolicy.SpreadSeed(request.ShotId, request.LifeEpoch), rewindContext,
-                    historicalMuzzle, historicalBodyAnchor);
+                    historicalMuzzle, historicalBodyAnchor, cadenceValidated: true);
+                if (accepted)
+                    _shotCadence.Record(request.InputTick, ServerTickRate(), _controller.Stat.Rpm);
                 if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-result", shotId = shotRequestId,
                     inputTick = request.InputTick, displayTick = request.DisplayTick, usedTick = usedTick,
                     serverTick = CurrentServerTick(), connection = (int)OwnerClientId, reason = accepted ? "accepted" : "not-ready" });
@@ -386,7 +404,10 @@ namespace Game.Gameplay.Network
 
         public override void OnStartServer()
         {
+            MatchLifecycle.ServerSyncPlayerTeam(this);
+            _displayName.Value = MatchLifecycle.ResolveDisplayName(this);
             _timedShots.Clear(); _lastReceivedShotId = 0; _lastExecutedInputTick = _lastExecutedInputLife = 0;
+            _shotCadence.Reset(); _cadenceRuntime = null; _cadenceLife = 0;
             _seenShotRequestIds.Clear(); _seenShotRequestIdOrder.Clear();
             _lastProcessedShotRequestId = 0;
             ServerLagCompensation.AfterCapture += ProcessTimedShots;
@@ -459,6 +480,7 @@ namespace Game.Gameplay.Network
             presentation.WeaponId = _controller != null && _controller.Definition != null
                 ? _controller.Definition.WeaponId : string.Empty;
             presentation.IsSuppressed = _controller != null && _controller.IsSuppressed;
+            presentation.LifeEpoch = CurrentLifeEpoch;
             ObserversShot(presentation);
             bool ownerIsRemote = NetworkObject != null && NetworkObject.Owner != null
                 && !NetworkObject.Owner.IsLocalClient;
@@ -469,6 +491,11 @@ namespace Game.Gameplay.Network
             // 并给出最终碰撞体/层/所属 NetworkObject——`target=null` 不再是无法解释的终态。
             var target = shot.Result.Target;
             var evidence = _controller != null ? _controller.LastFireEvidence : default;
+            if (!shot.Result.Damaged)
+                Debug.Log($"[FireTrace] no-damage id={_pendingShotRequestId} conn={OwnerClientId} "
+                    + $"hit={shot.Result.Hit} reason={(string.IsNullOrEmpty(evidence.MissReason) ? "unknown" : evidence.MissReason)} "
+                    + $"collider={(string.IsNullOrEmpty(evidence.FinalCollider) ? "-" : evidence.FinalCollider)} "
+                    + $"rewind={evidence.RewindTick} point={shot.Result.Point.ToString("F2")}");
             if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-hit", shotId = _pendingShotRequestId,
                 connection = (int)OwnerClientId, serverTick = CurrentServerTick(),
                 reason = shot.Result.Damaged ? "damaged" : shot.Result.Hit ? "blocked-or-protected" : evidence.MissReason });
@@ -517,6 +544,7 @@ namespace Game.Gameplay.Network
         /// FishNet 织入契约：TargetRpc 首参必须是 NetworkConnection（显式传 Owner 连接）。</summary>
         private void RejectShot(uint shotRequestId, ShotRejectReason reason)
         {
+            Debug.LogWarning($"[FireTrace] reject id={shotRequestId} conn={OwnerClientId} reason={reason} tick={CurrentServerTick()}");
             if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "shot-reject", shotId = shotRequestId,
                 connection = (int)OwnerClientId, serverTick = CurrentServerTick(), reason = reason.ToString() });
             AdvanceLastProcessedShotRequestId(shotRequestId);
@@ -537,7 +565,7 @@ namespace Game.Gameplay.Network
             // instead of waiting for an unrelated SyncVar change.
             ObserveOwnerAmmoLifeEpoch(snapshot.LifeEpoch);
             _controller?.ApplyAuthoritativeAmmoSnapshot(snapshot);
-            if (PublicTestTelemetry.Enabled) Debug.Log($"[FireTrace] confirm reject id={shotRequestId} reason={reason}（已通知 Owner 撤销预测表现）");
+            Debug.LogWarning($"[FireTrace] confirm reject id={shotRequestId} reason={reason}（已通知 Owner 撤销预测表现）");
         }
 
         [TargetRpc]
@@ -663,6 +691,7 @@ namespace Game.Gameplay.Network
             _dead.Value = true; // 死亡表现保留（受击/倒地/禁碰）——authored 目标同样保留世界表现
             // 击杀归因（Docs/23 P1-3）：查登记表得击杀者 → killer kills+1、自己 deaths+1 → 广播 Kill
             var killer = MatchLifecycle.ConsumeKillerOf(_target);
+            var killDetail = MatchLifecycle.ConsumeKillDetailOf(_target);
             // Day2 任务 B：死亡/击杀归因路径统一检查 killer 与 victim 的联网比赛资格——
             // authored/server-owned/未认证目标不贡献联网成绩（不加 kills/deaths、不广播 Kill、
             // 不参与 20 杀终局）；真实联网玩家互杀保持原行为（MatchKillAttributionPolicy）。
@@ -675,9 +704,9 @@ namespace Game.Gameplay.Network
                 case MatchKillAttributionPolicy.Outcome.FullAttribution:
                     killer.ServerAddKill();
                     ServerAddDeath();
-                    MatchLifecycle.AddTeamKill(killer.TeamId); // C3/Q04 TDM：团队击杀计入击杀者队伍
+                    MatchLifecycle.AddTeamKill(MatchLifecycle.ServerSyncPlayerTeam(killer));
                     AwardAssists(_target, killer);
-                    MatchLifecycle.BroadcastKill(killer, this);
+                    MatchLifecycle.BroadcastKill(killer, this, killDetail);
                     break;
                 case MatchKillAttributionPolicy.Outcome.DeathOnly:
                     ServerAddDeath(); // 真实玩家的环境死亡/无归因死亡仍计 deaths（原行为）
@@ -706,36 +735,54 @@ namespace Game.Gameplay.Network
             // 终局后不复活（用户规则：比赛已结束时不得重新开放对局操作）：已经排队到期的重生
             // 定时器在此自然作废，死亡状态与倒地表现保留到返回房间/大厅。
             if (MatchLifecycle.Phase == MatchPhase.Ended) return;
+            var spawns = SceneSpawnPoints.Current();
+            if (spawns.Length == 0)
+            {
+                // Never revive at the death position when a persistent PlayerSpawner
+                // still references an unloaded map. Wait for the live scene markers.
+                Debug.LogError("[Respawn] 当前地图没有可用的 Spawn_ 点，保持死亡并在 1 秒后重试", this);
+                _respawnAtTick.Value = CurrentServerTick() + MatchRules.SecondsToTicks(1f, ServerTickRate());
+                return;
+            }
+            Vector3[] basePositions = new Vector3[spawns.Length];
+            Quaternion[] baseRotations = new Quaternion[spawns.Length];
+            for (int i = 0; i < spawns.Length; i++)
+            { basePositions[i] = spawns[i].position; baseRotations[i] = spawns[i].rotation; }
+            Vector3 spawnPosition;
+            Quaternion spawnRotation;
+            var occupied = CollectEnemyPositions(); // all living players, including teammates
+            if (MatchLifecycle.IsTeamMatch() && (TeamId == MatchRules.TeamRed || TeamId == MatchRules.TeamBlue))
+            {
+                var red = new List<TeamSpawnDirectory.SpawnSlot>();
+                var blue = new List<TeamSpawnDirectory.SpawnSlot>();
+                TeamSpawnDirectory.BuildTeamSlots(basePositions, baseRotations, red, blue);
+                var slots = (TeamId == MatchRules.TeamRed ? red : blue).ToArray();
+                int picked = TeamSpawnDirectory.PickTeamSlot(slots, occupied, 0, out _);
+                if (picked < 0)
+                {
+                    _respawnAtTick.Value = CurrentServerTick() + MatchRules.SecondsToTicks(1f, ServerTickRate());
+                    return;
+                }
+                spawnPosition = slots[picked].Position;
+                spawnRotation = slots[picked].Rotation;
+            }
+            else
+            {
+                int picked = MatchRules.SelectRespawnPoint(basePositions, occupied);
+                if (picked < 0)
+                {
+                    _respawnAtTick.Value = CurrentServerTick() + MatchRules.SecondsToTicks(1f, ServerTickRate());
+                    return;
+                }
+                spawnPosition = basePositions[picked];
+                spawnRotation = baseRotations[picked];
+            }
+            spawnPosition = SpawnGrounding.Align(spawnPosition, GetComponent<CharacterController>());
             // 生命代际递增（Phase 1/2）：LagComp 历史快照携带旧代际 → 跨生命回溯命中被拒绝
             //（"旧生命误伤新生命"的结构性修复，无需清历史）；同时开启出生保护窗口。
             _lifeGeneration++;
             _invincibleUntilTick.Value = CurrentServerTick()
                 + MatchRules.SecondsToTicks(MatchRules.SpawnProtectionSeconds, ServerTickRate());
-            var spawnPosition = transform.position;
-            var spawnRotation = transform.rotation;
-            // 位置重置（C3/Q04）：远离敌人的安全点（MatchRules.SelectRespawnPoint 纯函数）；
-            // 无候选/单点时保留原位降级（Docs/23 P1-5 近邻排除语义的 TDM 强化版）
-            var spawner = FindFirstObjectByType<FishNet.Component.Spawning.PlayerSpawner>();
-            if (spawner != null)
-            {
-                var spawns = spawner.Spawns;
-                if (spawns != null && spawns.Length > 0)
-                {
-                    var enemies = CollectEnemyPositions();
-                    var candidates = new Vector3[spawns.Length];
-                    for (int i = 0; i < spawns.Length; i++)
-                        candidates[i] = spawns[i] != null ? spawns[i].position : Vector3.zero;
-                    // I3：TDM 优先己方半场（几何中轴切分）的安全点；KillRace 全集选点
-                    int picked = MatchLifecycle.IsTeamMatch()
-                        ? MatchRules.SelectTeamRespawnPoint(candidates, TeamId, MatchLifecycle.CurrentMode, enemies)
-                        : MatchRules.SelectRespawnPoint(candidates, enemies);
-                    if (picked >= 0 && spawns[picked] != null)
-                    {
-                        spawnPosition = spawns[picked].position;
-                        spawnRotation = spawns[picked].rotation;
-                    }
-                }
-            }
             var locomotor = GetComponent<Game.Gameplay.Movement.Locomotor>();
             if (locomotor != null)
             {
@@ -830,7 +877,10 @@ namespace Game.Gameplay.Network
             var assists = MatchLifecycle.ConsumeAssistsOf(target, killer);
             if (assists == null) return;
             foreach (var assistant in assists)
+            {
                 assistant.ServerAddAssist();
+                MatchLifecycle.BroadcastAssist(assistant, this);
+            }
         }
 
         public int Health => _health.Value;
@@ -851,7 +901,7 @@ namespace Game.Gameplay.Network
 
         /// <summary>生命代际（表现层可读，S2 预测表现注册表按代际丢弃跨生命残留；
         /// 语义同 CurrentLifeEpoch，仅暴露口径不同）。</summary>
-        public uint LifeEpochForPresentation => (uint)_lifeGeneration;
+        public uint LifeEpochForPresentation => IsServerInitialized ? (uint)_lifeGeneration : _ownerAmmoLifeEpoch;
 
         /// <summary>F14 测试接缝：无头直驱递增代际（真实路径在 ServerRespawn 内递增，
         /// 但该路径需要完整 NetworkObject/目标组件——EditMode 用接缝直接推进代际时钟）。</summary>
@@ -982,12 +1032,16 @@ namespace Game.Gameplay.Network
         private readonly SyncVar<int> _assists = new();
         /// <summary>所属队伍（C3/Q04 TDM：服务器权威 SyncVar；CombatResolver 友伤过滤与比分/终局/HUD 消费）。</summary>
         private readonly SyncVar<string> _team = new();
+        private readonly SyncVar<string> _displayName = new();
 
         /// <summary>本局击杀数（服务器权威 SyncVar；HUD/终局判定读）。</summary>
         public int Kills => _kills.Value;
 
         /// <summary>所属队伍（"None"/"Red"/"Blue"；服务器写、全端读）。</summary>
         public string TeamId => string.IsNullOrEmpty(_team.Value) ? MatchRules.TeamNone : _team.Value;
+
+        /// <summary>服务器认证档案中的游戏名，随玩家对象同步给观察者。</summary>
+        public string DisplayName => _displayName.Value;
 
         // A radar sighting is accepted only after the server checks the observer's team,
         // current view direction and unobstructed line of sight. No client position is trusted.

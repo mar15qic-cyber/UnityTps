@@ -111,7 +111,54 @@ namespace Game.Gameplay.Tests
                 Assert.That(entry.prefab,Is.SameAs(source.prefab));
                 Assert.That(entry.HasModel,Is.True);
                 Assert.That(entry.mountOffset,Is.EqualTo(source.mountOffset));
+                Assert.That(entry.mountEuler,Is.EqualTo(source.mountEuler));
             }
+        }
+
+        [TestCaseSource(nameof(Guns))]
+        public void SuppressorOutletFacesAwayAndThreadSeatsOnMuzzleInBothViews(string id)
+        {
+            var weapon=Resources.Load<WeaponAssetCatalog>("WeaponAssetCatalog").Entries.First(e=>e.itemId==id);
+            var catalog=Resources.Load<AttachmentAssetCatalog>("AttachmentAssetCatalog");
+            var entry=catalog.Find("attach.lpfp.muffler.01");
+            var mesh=entry.prefab.GetComponentInChildren<MeshFilter>(true).sharedMesh;
+            float rear=mesh.vertices.Max(v=>v.z), front=mesh.vertices.Min(v=>v.z);
+            foreach(var prefab in new[]{weapon.definition.FirstPersonViewPrefab,weapon.definition.ThirdPersonViewPrefab})
+            {
+                var root=PrefabUtility.LoadPrefabContents(AssetDatabase.GetAssetPath(prefab));
+                try
+                {
+                    var view=root.GetComponent<WeaponAttachmentView>() ?? root.AddComponent<WeaponAttachmentView>();
+                    view.ApplyAttachments(catalog,id,new[]{entry},false);
+                    var socket=view.GetSocketTransform(AttachmentSlotType.Muzzle);
+                    var attached=view.FindSpawned(entry.itemId);
+                    Assert.That(socket,Is.Not.Null,id+" missing muzzle socket");
+                    Assert.That(attached,Is.Not.Null,id+" suppressor did not spawn");
+                    Vector3 threaded=socket.InverseTransformPoint(attached.TransformPoint(new Vector3(0,0,rear)));
+                    Vector3 outlet=socket.InverseTransformPoint(attached.TransformPoint(new Vector3(0,0,front)));
+                    Assert.That(threaded.x,Is.InRange(0,.009f),id+" connector must overlap muzzle slightly");
+                    Assert.That(Mathf.Abs(threaded.y)+Mathf.Abs(threaded.z),Is.LessThan(.002f),id+" connector coaxial");
+                    Assert.That(outlet.x,Is.LessThan(-.20f),id+" outlet must face downrange");
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+        }
+
+        [TestCaseSource(nameof(Guns))]
+        public void SuppressorSocketRemainsAtTheActualFrontBarrelSection(string id)
+        {
+            var weapon=Resources.Load<WeaponAssetCatalog>("WeaponAssetCatalog").Entries.First(e=>e.itemId==id);
+            var root=weapon.definition.ThirdPersonViewPrefab;
+            var socket=root.GetComponentsInChildren<AttachmentSocket>(true).Single(s=>s.Slot==AttachmentSlotType.Muzzle);
+            var body=root.GetComponentsInChildren<MeshFilter>(true).Where(m=>m.sharedMesh!=null)
+                .OrderByDescending(m=>m.sharedMesh.vertexCount).First();
+            var vertices=body.sharedMesh.vertices.Select(v=>root.transform.InverseTransformPoint(body.transform.TransformPoint(v))).ToArray();
+            float front=vertices.Max(v=>v.z);
+            var section=vertices.Where(v=>v.z>=front-.003f).ToArray();
+            Vector3 center=root.transform.InverseTransformPoint(socket.transform.position);
+            Assert.That(center.z,Is.EqualTo(front).Within(.001f),id+" suppressor behind or ahead of muzzle");
+            Assert.That(center.x,Is.InRange(section.Min(v=>v.x)-.002f,section.Max(v=>v.x)+.002f),id+" lateral axis");
+            Assert.That(center.y,Is.InRange(section.Min(v=>v.y)-.002f,section.Max(v=>v.y)+.002f),id+" vertical axis");
         }
 
         internal static Vector3[] Triangles(GameObject root,Transform frame,Transform mounted,bool wantMounted)

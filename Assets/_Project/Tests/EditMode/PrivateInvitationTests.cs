@@ -10,7 +10,14 @@ namespace Game.Gameplay.Tests
             networkMode="private-overlay",zeroTierNetworkId="743993800fd77ce1",hostOverlayAddress="10.16.41.231",apiBaseUrl="http://10.16.41.231:5081",hotUpdateBaseUrl="http://10.16.41.231:5081/hotupdate" };
         [Test] public void PrivateEndpointsMustMatchHost() { var c=Config(); Assert.IsTrue(c.TryValidate(out _)); c.apiBaseUrl="http://127.0.0.1:5080"; Assert.IsFalse(c.TryValidate(out _)); }
         [Test] public void PublicModeCannotUsePrivateHttp() { var c=Config(); c.networkMode="public"; Assert.IsFalse(c.TryValidate(out _)); }
-        [Test] public void PrivateModeStillRequiresInvitation() { var c=Config();c.inviteOnly=false;Assert.IsFalse(c.TryValidate(out _)); }
+        [Test] public void PrivateModeAllowsRegistrationButStillRequiresReleaseValidation()
+        {
+            var c=Config();c.inviteOnly=false;
+            Assert.IsTrue(c.TryValidate(out _));
+            Assert.IsTrue(c.RequiresReleaseValidation);
+            c.apiBaseUrl="http://127.0.0.1:5080";
+            Assert.IsFalse(c.TryValidate(out _));
+        }
         [TestCase("8.141.92.231")][TestCase("127.0.0.1")][TestCase("0.0.0.0")][TestCase("::1")]
         public void RejectNonPrivateHost(string host) { Assert.IsFalse(ClientReleaseEnvironment.IsPrivateIPv4(host)); }
         [Test] public void ContentMismatchIsRejected() { Assert.IsFalse(MapContentIdentity.Matches("abc","")); Assert.IsFalse(MapContentIdentity.Matches("abc","def")); Assert.IsTrue(MapContentIdentity.Matches("abc","ABC")); }

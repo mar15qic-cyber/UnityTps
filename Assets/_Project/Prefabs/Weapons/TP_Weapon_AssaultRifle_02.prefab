@@ -71,7 +71,7 @@ Transform:
   m_GameObject: {fileID: 3814232813695162830}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.0003439187, y: -0.040407635, z: 0.45996997}
+  m_LocalPosition: {x: -0.00033600628, y: 0.026849985, z: 0.45997003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -147,8 +147,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8036578809055917007}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
-  m_LocalPosition: {x: -0.0003, y: -0.0612, z: 0.1772}
+  m_LocalRotation: {x: 0.075239815, y: 0.6240458, z: 0.75696224, w: -0.17864472}
+  m_LocalPosition: {x: -0.064, y: -0.04, z: 0.13}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -270,8 +270,30 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: 7dc8fd3d374be6b41815bc11e60d5b26, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4573073165715729740}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: 7dc8fd3d374be6b41815bc11e60d5b26, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1595912815940156382}
   m_SourcePrefab: {fileID: 100100000, guid: 7dc8fd3d374be6b41815bc11e60d5b26, type: 3}
+--- !u!1 &5313730131039769789 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100000, guid: 7dc8fd3d374be6b41815bc11e60d5b26, type: 3}
+  m_PrefabInstance: {fileID: 5313730131039867421}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1595912815940156382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313730131039769789}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177831118c5a366498ba02db4f7b048e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalWristFromGripCenter: {x: -0.0636, y: 0.0062, z: -0.0809}
+  verticalWristRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
 --- !u!4 &5313730131039996061 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 7dc8fd3d374be6b41815bc11e60d5b26, type: 3}

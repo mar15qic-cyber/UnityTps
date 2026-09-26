@@ -13,7 +13,8 @@ namespace Game.Gameplay.Network
         PlayerLeft,
         /// <summary>全量战绩快照（战绩面板）：载荷 MatchScoreboardPayload JSON（显示名/击杀/助攻/ping/剩余时间），
         /// 服务器周期（2s）+ 击杀/离场/终局时机广播。</summary>
-        ScoreboardSnapshot
+        ScoreboardSnapshot,
+        Assist
     }
 
     /// <summary>比赛阶段：服务器权威推进（MatchLifecycle），客户端经事件镜像。</summary>

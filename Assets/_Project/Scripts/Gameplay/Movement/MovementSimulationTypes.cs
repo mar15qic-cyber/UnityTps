@@ -27,6 +27,8 @@ namespace Game.Gameplay.Movement
         /// 并清队，不得作为新生命输入消费。协议 v5→v6（wire 字段新增）。</summary>
         public uint LifeEpoch;
         public sbyte LeanIntent;
+        /// <summary>Owner-sampled ADS transition. Sent with each movement tick for deterministic ground speed.</summary>
+        public float Ads01;
 
         /// <summary>兼容构造器（Locomotor 离线路径等既有调用点零改动）：PitchDelta 默认 0。</summary>
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, uint tick)
@@ -42,6 +44,7 @@ namespace Game.Gameplay.Movement
             Tick = tick;
             LifeEpoch = 0u;
             LeanIntent = 0;
+            Ads01 = 0f;
         }
 
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, float pitchDelta, uint tick, uint lifeEpoch)
@@ -54,6 +57,7 @@ namespace Game.Gameplay.Movement
             Tick = tick;
             LifeEpoch = lifeEpoch;
             LeanIntent = 0;
+            Ads01 = 0f;
         }
     }
 

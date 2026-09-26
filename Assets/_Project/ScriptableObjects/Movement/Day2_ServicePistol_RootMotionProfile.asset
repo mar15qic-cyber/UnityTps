@@ -15,8 +15,8 @@ MonoBehaviour:
   versionHash: e82b8edb7dd17c55ad353e913ae8108e
   walkCycleDuration: 0.9333334
   sprintCycleDuration: 0.6666667
-  walkSpeed: 1.58
-  sprintSpeed: 3.8
+  walkSpeed: 1.68
+  sprintSpeed: 4
   walkTracks:
   - sourceClipName: walk_forward@handgun_tpc
     sourceDuration: 0.9333334

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using FishNet.Managing;
 using Game.Account;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -85,6 +86,23 @@ namespace Game.UI
             var path = MapContentUpdater.FindBundle(sceneName);
             try
             {
+                // A scene bundle carries its own copy of NetworkSystems and the FishNet prefab
+                // collection. If it is the first combat scene, that copy can become the persistent
+                // NetworkManager while the dedicated server uses the one from built-in Arena.
+                // Both ends must initialize from the same built-in prefab collection before the
+                // bundled environment is loaded; the bundle's duplicate manager is then discarded.
+                if (UnityEngine.Object.FindFirstObjectByType<NetworkManager>() == null)
+                {
+                    var bootstrap = SceneManager.LoadSceneAsync("Arena", LoadSceneMode.Single);
+                    if (bootstrap == null) throw new InvalidOperationException("Built-in Arena bootstrap is unavailable");
+                    while (!bootstrap.isDone)
+                    {
+                        onProgress?.Invoke(Mathf.Clamp01(bootstrap.progress / .9f) * .1f);
+                        await Task.Yield();
+                    }
+                    if (UnityEngine.Object.FindFirstObjectByType<NetworkManager>() == null)
+                        throw new InvalidOperationException("Built-in Arena NetworkManager is unavailable");
+                }
                 if (loadedMapBundle != null)
                 {
                     // 换图卸旧（同图重进幂等：复用已加载 bundle）

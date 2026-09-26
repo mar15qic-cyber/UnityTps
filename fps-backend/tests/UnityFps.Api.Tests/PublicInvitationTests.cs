@@ -45,6 +45,20 @@ public sealed class PublicInvitationTests
     }
 
     [Fact]
+    public async Task SelfRegistrationCreatesAccountAndRejectsDuplicateUsername()
+    {
+        using var root = new ApiFactory();
+        using var factory = root.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, c) =>
+            c.AddInMemoryCollection(new Dictionary<string,string?> { ["Access:InviteOnly"] = "false" })));
+        using var client = factory.CreateClient();
+        var request = new { username = "selfregistered", password = "Password123!" };
+        var registered = await client.PostAsJsonAsync("/api/auth/register", request);
+        Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/auth/register", request)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/login", request)).StatusCode);
+    }
+
+    [Fact]
     public async Task LoginLimiterRejectsEleventhAttempt()
     {
         using var factory = new ApiFactory(); using var client = factory.CreateClient();

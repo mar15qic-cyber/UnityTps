@@ -1,6 +1,7 @@
 using System.Reflection;
 using Game.Gameplay.Health;
 using Game.Gameplay.Network;
+using Game.Gameplay.Player;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -36,9 +37,9 @@ namespace Game.Gameplay.Tests
     {
         /// <summary>躯干/头部胶囊的序列化参数（与 PlayerNetworkAdapter F11 轮字段一致：
         /// 躯干上延 1.50 与头部 1.40..1.80 形成 0.10m 有限重叠带）。</summary>
-        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.525f, 0.333f);
-        private const float TorsoRadius = 0.26f;
-        private const float TorsoHeight = 1.05f;
+        private static readonly Vector3 TorsoCenter = new Vector3(0f, 0.78f, 0.333f);
+        private const float TorsoRadius = 0.24f;
+        private const float TorsoHeight = 0.48f;
         private static readonly Vector3 UpperCenter = new Vector3(0f, 1f, 0.333f);
         private static readonly Vector3 HeadCenter = new Vector3(0f, 1.60f, 0.333f);
         private const float HeadRadius = 0.15f;
@@ -101,12 +102,13 @@ namespace Game.Gameplay.Tests
             Vector3 rootPos)
         {
             // EditMode 下 collider.bounds 依赖物理世界懒同步——用 TransformPoint 纯数学断言
-            var torsoBottom = hitbox.TransformPoint(torso.center - Vector3.up * (torso.height * 0.5f)).y;
+            var foot = hitbox.Find("LeftFootHitbox").GetComponent<CapsuleCollider>();
+            var footBottom = foot.transform.TransformPoint(foot.center - Vector3.up * (foot.height * 0.5f)).y;
             var upper = hitbox.Find("UpperHitbox").GetComponent<CapsuleCollider>();
             var headTop = head.transform.TransformPoint(head.center + Vector3.up * (head.height * 0.5f)).y;
             var torsoTop = upper.transform.TransformPoint(upper.center + Vector3.up * (upper.height * 0.5f)).y;
             var headBottom = head.transform.TransformPoint(head.center - Vector3.up * (head.height * 0.5f)).y;
-            Assert.That(torsoBottom, Is.EqualTo(rootPos.y).Within(0.01f), "躯干下端=脚底（腿部覆盖）");
+            Assert.That(footBottom, Is.EqualTo(rootPos.y - .005f).Within(0.01f), "脚部胶囊应覆盖鞋底");
             Assert.That(headTop, Is.EqualTo(rootPos.y + 1.8f).Within(0.01f), "头上端=头顶");
             Assert.That(hitbox.TransformPoint(torso.center + Vector3.up * (torso.height * .5f)).y,
                 Is.GreaterThanOrEqualTo(upper.transform.TransformPoint(upper.center - Vector3.up * (upper.height * .5f)).y),
@@ -215,6 +217,17 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
+        public void RayBetweenLegs_DoesNotHitLowerTorso()
+        {
+            Build(Vector3.zero, new Vector3(0f, 0f, 0.341f), 0f, Vector3.one);
+            Physics.SyncTransforms();
+            Assert.That(HitSurface(new Vector3(0f, .3f, -2f), Vector3.forward), Is.False,
+                "双腿之间的空处不得由旧下身粗胶囊归属伤害");
+            Assert.That(HitSurface(new Vector3(-.16f, .3f, -2f), Vector3.forward), Is.True,
+                "腿部自身仍须可命中");
+        }
+
+        [Test]
         public void Raycasts_BesideHeadAndTorso_AirMisses_WithinSilhouetteHit()
         {
             // 第五轮核心回归（用户 14:16 实机症状）：头旁/躯干旁的"看得见的空气"不得命中。
@@ -301,7 +314,7 @@ namespace Game.Gameplay.Tests
             Assert.That(lower.center, Is.EqualTo(TorsoCenter).Within(0.001f));
             Assert.That(lower.height, Is.EqualTo(TorsoHeight).Within(1e-4f));
             Assert.That(upper.center, Is.EqualTo(UpperCenter).Within(0.001f));
-            Assert.That(upper.radius, Is.EqualTo(TorsoRadius).Within(1e-4f));
+            Assert.That(upper.radius, Is.EqualTo(0.26f).Within(1e-4f));
             Assert.That(restoredHead.radius, Is.EqualTo(HeadRadius).Within(1e-4f));
             Assert.That(restoredHead.center, Is.EqualTo(HeadCenter).Within(0.001f));
             Assert.That(lower.isTrigger && upper.isTrigger && restoredHead.isTrigger, Is.True);
@@ -354,13 +367,13 @@ namespace Game.Gameplay.Tests
             Physics.SyncTransforms();
             Assert.That(Vector3.Distance(lower.transform.TransformPoint(lower.center), lowerBefore), Is.LessThan(1e-4f));
             Assert.That(upper.transform.TransformPoint(upper.center).x - upperBefore.x,
-                Is.EqualTo(.1125f).Within(.001f));
+                Is.EqualTo(LeanProfile.EyeSideMeters * .45f).Within(.001f));
             Assert.That(head.transform.TransformPoint(head.center).x - headBefore.x,
-                Is.EqualTo(.25f).Within(.001f));
+                Is.EqualTo(LeanProfile.EyeSideMeters).Within(.001f));
 
             // At head height, the old location is air and the exposed location is hittable.
             Assert.That(HitSurface(new Vector3(0f, 1.65f, -2f), Vector3.forward), Is.False);
-            Assert.That(HitSurface(new Vector3(.25f, 1.65f, -2f), Vector3.forward), Is.True);
+            Assert.That(HitSurface(new Vector3(LeanProfile.EyeSideMeters, 1.65f, -2f), Vector3.forward), Is.True);
 
             refresh.Invoke(adapter, new object[] { 0f });
             Physics.SyncTransforms();

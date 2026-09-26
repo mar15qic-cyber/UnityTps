@@ -68,7 +68,7 @@ internal sealed class Config
     public bool InviteOnly { get; set; }
     public void Validate()
     {
-        if (NetworkMode != "private-overlay" || !InviteOnly || !System.Text.RegularExpressions.Regex.IsMatch(ZeroTierNetworkId, "^[a-fA-F0-9]{16}$")) throw new InvalidOperationException("私有测试配置无效。");
+        if (NetworkMode != "private-overlay" || !System.Text.RegularExpressions.Regex.IsMatch(ZeroTierNetworkId, "^[a-fA-F0-9]{16}$")) throw new InvalidOperationException("私有测试配置无效。");
         if (!IPAddress.TryParse(HostOverlayAddress, out var ip) || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new InvalidOperationException("组网地址无效。");
         var b = ip.GetAddressBytes();
         if (!(b[0] == 10 || b[0] == 172 && b[1] >= 16 && b[1] <= 31 || b[0] == 192 && b[1] == 168)) throw new InvalidOperationException("必须使用私有组网地址。");

@@ -1,0 +1,18 @@
+item=weapon.smg02 name=Agram 2000 clip=idle@rifle_tpc
+beforeWrist=(-0.06357, -0.08961, -0.00281)
+beforeRotation=(0.07524, 0.62405, 0.75696, -0.17865)
+target=(-0.06400, -0.04000, 0.05500)
+targetRotation=(0.07524, 0.62405, 0.75696, -0.17864)
+wristErrorMm=0.000
+wristAngleError=0.000
+LeftHand=(-0.06400, -0.04000, 0.05500)
+LeftThumbProximal=(-0.05194, -0.01378, 0.10135)
+LeftIndexProximal=(-0.02372, -0.02332, 0.16606)
+LeftMiddleProximal=(-0.01913, -0.06880, 0.15618)
+LeftMiddleIntermediate=(0.01061, -0.06564, 0.15961)
+LeftMiddleDistal=(0.02846, -0.05766, 0.13604)
+mesh=TP_Weapon_SMG_02 min=(-0.02063, -0.11940, -0.19750) max=(0.02084, 0.05804, 0.21827)
+mesh=smg_02_iron_sights min=(-0.02207, 0.01483, -0.18076) max=(0.02276, 0.08126, 0.16044)
+mesh=smg_02_mag min=(-0.01379, -0.16261, -0.01209) max=(0.01379, 0.00127, 0.06332)
+mesh=smg_02_slider min=(-0.04153, 0.02926, -0.08594) max=(0.01951, 0.05245, 0.03607)
+mesh=OpticMountAdapter min=(-0.01100, 0.05448, -0.09900) max=(0.01100, 0.06097, 0.00900)

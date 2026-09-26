@@ -19,23 +19,27 @@ public static class MapCatalog
     // SceneName 必须与 Unity 侧 EditorBuildSettings 登记的场景名逐字一致。
     public static readonly MapCatalogDto Stackyard = new(
         MapId: "map_01", DisplayName: "Stackyard", SceneName: "Map_Stackyard",
-        Modes: [GameModes.Tdm, GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
+        Modes: [GameModes.Tdm], MaxCapacity: 8, SpawnGroups: ["Red", "Blue"]);
 
     public static readonly MapCatalogDto Depot55 = new(
         MapId: "map_02", DisplayName: "Depot 55", SceneName: "Map_Depot55",
-        Modes: [GameModes.Tdm, GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
+        Modes: [GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
 
     public static readonly MapCatalogDto Ridgeline = new(
         MapId: "map_03", DisplayName: "Ridgeline", SceneName: "Map_Ridgeline",
-        Modes: [GameModes.Tdm, GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
+        Modes: [GameModes.Tdm], MaxCapacity: 8, SpawnGroups: ["Red", "Blue"]);
 
     // 2026-09-17 热更试点 P4：热更地图——客户端经热更 bundle 加载场景（不进客户端构建），
     // DS 随构建分发；SceneName 与 GameMapCatalog/热更 bundle 命名逐字一致。
     public static readonly MapCatalogDto TrainingYard = new(
         MapId: "map_04", DisplayName: "Training Yard", SceneName: "Map_TrainingYard",
-        Modes: [GameModes.Tdm, GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
+        Modes: [GameModes.Tdm], MaxCapacity: 8, SpawnGroups: ["Red", "Blue"]);
 
-    private static readonly IReadOnlyList<MapCatalogDto> Builtin = [Arena, Stackyard, Depot55, Ridgeline, TrainingYard];
+    public static readonly MapCatalogDto NightRelay = new(
+        MapId: "map_05", DisplayName: "Night Relay", SceneName: "Map_NightRelay",
+        Modes: [GameModes.KillRace], MaxCapacity: 16, SpawnGroups: ["Red", "Blue", "FFA"]);
+
+    private static readonly IReadOnlyList<MapCatalogDto> Builtin = [Arena, Stackyard, Depot55, Ridgeline, TrainingYard, NightRelay];
     public static IReadOnlyList<MapCatalogDto> All => PublishedMapCatalog.Read(Builtin);
 
     public static MapCatalogDto? Find(string? mapId) =>
@@ -80,7 +84,7 @@ public static class RoomSettingRules
         if (!map.Modes.Contains(mode))
             throw new ApiException(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.MapNotAllowed,
                 $"地图 {map.MapId} 不支持模式 {mode}");
-        if (!IsValidCapacity(maxPlayers))
+        if (!IsValidCapacity(maxPlayers) || maxPlayers > map.MaxCapacity)
             throw Error("maxPlayers");
         if (!IsValidKillTarget(mode, killTarget))
             throw Error("killTarget");

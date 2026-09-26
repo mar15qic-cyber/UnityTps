@@ -91,13 +91,13 @@ public static class PassSeeder
                     ItemId = itemId, ItemType = "Attachment", SlotType = slotType, Category = "Attachment",
                     DisplayName = displayName, Description = "通行证奖励配件；装配适配由配件系统后续开放",
                     AssetKey = assetKey, PriceCoins = 0, UnlockLevel = 1, IsActive = true,
-                    IsImplemented = itemId == "attach.rifle.optic", CalibrationKey = itemId == "attach.rifle.optic" ? "socket-v2" : "pending", AcquisitionSource = "PassReward"
+                    IsImplemented = true, CalibrationKey = slotType == "Magazine" ? "stat-only" : "socket-v2", AcquisitionSource = "PassReward"
                 });
             else
             {
                 item.SlotType = slotType; item.DisplayName = displayName; item.AssetKey = assetKey;
-                item.IsImplemented = itemId == "attach.rifle.optic";
-                item.CalibrationKey = itemId == "attach.rifle.optic" ? "socket-v2" : "pending";
+                item.IsImplemented = true;
+                item.CalibrationKey = slotType == "Magazine" ? "stat-only" : "socket-v2";
                 item.AcquisitionSource = "PassReward";
             }
         }

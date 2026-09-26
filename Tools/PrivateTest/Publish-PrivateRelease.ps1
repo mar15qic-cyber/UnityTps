@@ -2,12 +2,12 @@
 $ErrorActionPreference='Stop'
 $project=Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $e=Get-Content $EnvironmentPath -Raw | ConvertFrom-Json
-if ($e.networkMode -ne 'private-overlay' -or -not $e.inviteOnly -or $e.zeroTierNetworkId -notmatch '^[a-fA-F0-9]{16}$' -or $e.releaseId -notmatch '^[a-zA-Z0-9_-]{1,80}$') { throw 'Invalid private environment.' }
+if ($e.networkMode -ne 'private-overlay' -or $e.inviteOnly -isnot [bool] -or $e.zeroTierNetworkId -notmatch '^[a-fA-F0-9]{16}$' -or $e.releaseId -notmatch '^[a-zA-Z0-9_-]{1,80}$') { throw 'Invalid private environment.' }
 $client=Join-Path $project 'Builds/PrivateInvitationClient';$server=Join-Path $project 'Builds/PrivateInvitationServer'
 $cm=Get-Content "$client/build-manifest.json" -Raw | ConvertFrom-Json;$sm=Get-Content "$server/build-manifest.json" -Raw | ConvertFrom-Json
 if ($cm.subtarget -ne 'PrivateInvitationPlayer' -or $cm.protocolId -ne $sm.protocolId -or $cm.inputDigest -ne $sm.inputDigest) { throw 'Build pair mismatch.' }
 $built=Get-Content "$client/client-environment.json" -Raw | ConvertFrom-Json
-foreach ($key in @('environmentId','releaseId','networkMode','zeroTierNetworkId','hostOverlayAddress','apiBaseUrl','hotUpdateBaseUrl')) { if ($e.$key -ne $built.$key) { throw 'Environment differs from built client.' } }
+foreach ($key in @('environmentId','releaseId','networkMode','inviteOnly','zeroTierNetworkId','hostOverlayAddress','apiBaseUrl','hotUpdateBaseUrl')) { if ($e.$key -ne $built.$key) { throw 'Environment differs from built client.' } }
 $dest=Join-Path $project ('Builds/PrivateInvitations/'+$e.releaseId)
 if (Test-Path $dest) { throw 'Release exists; use a new release id.' }
 New-Item -ItemType Directory -Path $dest | Out-Null
@@ -19,7 +19,8 @@ Copy-Item "$PSScriptRoot/玩家说明.txt" "$dest/Client"
 @('@echo off','start "" "%~dp0StartGame.exe"') | Set-Content "$dest/Client/开始游戏.cmd" -Encoding ASCII
 & dotnet publish "$project/fps-backend/src/UnityFps.Api/UnityFps.Api.csproj" -c Release -r win-x64 --self-contained true -o "$dest/Api"
 if ($LASTEXITCODE -ne 0) { throw 'API publish failed.' }
-Get-ChildItem "$dest/Api" -Filter 'appsettings*.json' | ForEach-Object { Set-Content $_.FullName '{"Database":{"AllowInMemoryFallback":false},"Access":{"InviteOnly":true}}' -Encoding UTF8 }
+$settings=@{Database=@{AllowInMemoryFallback=$false};Access=@{InviteOnly=[bool]$e.inviteOnly}} | ConvertTo-Json -Depth 4
+Get-ChildItem "$dest/Api" -Filter 'appsettings*.json' | ForEach-Object { Set-Content $_.FullName $settings -Encoding UTF8 }
 $hotTarget=[IO.Path]::GetFullPath((Join-Path $dest 'Api/hotupdate'))
 if(-not $hotTarget.StartsWith([IO.Path]::GetFullPath($dest)+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Generated hot-update directory escaped release.'}
 # dotnet publish may copy the developer's old hotupdate directory; replace only this new release's copy.

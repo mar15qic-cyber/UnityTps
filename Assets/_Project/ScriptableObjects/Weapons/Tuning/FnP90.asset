@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: FnP90
+  m_EditorClassIdentifier: 
+  WeaponId: smg.04
+  Stat:
+    Damage: 19
+    Rpm: 850
+    MagSize: 30
+    ReserveAmmo: 120
+    ReloadTime: 2.2
+    Spread: 2.2
+    MaxRange: 120
+    AdsFov: 48
+    Recoil:
+      PitchDeg: 0.67
+      YawDeg: 0.36
+      FirstShotMultiplier: 1.12
+      Accumulation: 1.35
+      MaxAccumulation: 8
+      RecoveryDelay: 0.16
+      RecoverySpeed: 5.3
+      SpringFrequency: 9
+      SpringDamping: 0.75
+      ShakePositionAmplitude: 0.25
+      ViewModelKickBack: 0.045
+      ViewModelKickPitch: 4
+      AdsRecoilMultiplier: 0.8
+    Accuracy:
+      BaseHipSpread: 0.25
+      BaseAdsSpread: 0.1
+      MovementSpreadMax: 0.8
+      SprintSpreadExtra: 1
+      AirborneSpreadExtra: 1.25
+      ShotBloomPerShot: 0.35
+      MaxBloom: 2
+      BloomRecoveryDelay: 0.15
+      BloomRecoverySpeed: 6
+    Ballistic:
+      PelletCount: 1
+      PelletSpread: 0
+  AdsGroundSpeedMultiplier: 0.9
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

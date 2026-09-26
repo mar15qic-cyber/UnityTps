@@ -46,8 +46,34 @@ namespace Game.Gameplay.Tests
             float head = so.FindProperty("headWeight").floatValue;
             Assert.That(spine + chest + neck + head, Is.EqualTo(1f).Within(0.001f),
                 "脊柱/胸/颈/头俯仰权重之和应≈1（与场景作者玩家参考配置一致）");
+            Assert.That(spine + chest, Is.EqualTo(1f).Within(0.001f),
+                "持枪手臂跟随脊柱和胸骨；若把俯仰留给颈/头，TP 枪与 FP 视角会系统性错角");
             Assert.That(so.FindProperty("maxPitchDegrees").floatValue, Is.GreaterThan(0f));
             Assert.That(so.FindProperty("pitchSmoothSeconds").floatValue, Is.GreaterThanOrEqualTo(0f));
+        }
+
+        [Test]
+        public void BoreCorrection_ClosesIdleBiasAndStaysBounded()
+        {
+            var down = Quaternion.Euler(8, 0, 0) * Vector3.forward;
+            var correction = TPAimDriver.BoreDirectionCorrection(down, Vector3.forward);
+            Assert.That(Vector3.Angle(correction * down, Vector3.forward), Is.LessThan(.01f));
+            correction = TPAimDriver.BoreDirectionCorrection(Vector3.down, Vector3.up);
+            Assert.That(Quaternion.Angle(Quaternion.identity, correction), Is.EqualTo(20f).Within(.01f));
+        }
+
+        [Test]
+        public void PlayerCapsule_ContainsAuthoredTorsoAtWall()
+        {
+            var controller = LoadPlayerPrefab().GetComponent<CharacterController>();
+            Assert.That(controller, Is.Not.Null);
+            // The bound pose is only .590 m deep, but the animated torso/head
+            // reaches .967 m while looking down. Include CharacterController's
+            // skin contact distance, as verified by the actual Move wall probe.
+            Assert.That(controller.center.z + controller.radius + controller.skinWidth,
+                Is.GreaterThanOrEqualTo(1.0f));
+            Assert.That(controller.radius, Is.GreaterThanOrEqualTo(.50f),
+                "shoulders must stay inside the lateral movement envelope");
         }
 
         [Test]

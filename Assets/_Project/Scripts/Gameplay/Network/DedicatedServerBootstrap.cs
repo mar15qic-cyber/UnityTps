@@ -106,6 +106,7 @@ namespace Game.Gameplay.Network
             MatchLifecycle.OnServerMatchInProgress += HandleServerMatchInProgress;
             MatchLifecycle.OnServerMatchEnded += HandleServerMatchEnded;
             MatchLifecycle.OnServerMatchResultReady += HandleServerMatchResultReady; // C3/Q05 终局上报
+            MatchLifecycle.OnServerRearmed += HandleServerRearmed;
         }
 
         /// <summary>对称解绑（OnDestroy/重接线前调用；与 Wire 严格配对）。</summary>
@@ -117,6 +118,7 @@ namespace Game.Gameplay.Network
             MatchLifecycle.OnServerMatchInProgress -= HandleServerMatchInProgress;
             MatchLifecycle.OnServerMatchEnded -= HandleServerMatchEnded;
             MatchLifecycle.OnServerMatchResultReady -= HandleServerMatchResultReady;
+            MatchLifecycle.OnServerRearmed -= HandleServerRearmed;
         }
 
         /// <summary>NetworkManager.Start 阶段之前的 headless 自动启动禁用（P0 修复核心；GuardOnly 模式同样生效）。
@@ -550,6 +552,16 @@ namespace Game.Gameplay.Network
 
         /// <summary>即时心跳单飞闸（并发事件只允许一个在途上报；不缓存，周期心跳兜底）。</summary>
         private readonly SingleFlightGate _immediateHeartbeatGate = new();
+        private bool _rearmHeartbeatPending;
+
+        private void HandleServerRearmed()
+        {
+            // A disconnect heartbeat may still be in flight. Preserve the Ready/0
+            // announcement until the gate opens; the periodic 15 s tick is too late
+            // for a player immediately starting another room.
+            _rearmHeartbeatPending = true;
+            TrySendImmediateHeartbeat();
+        }
 
         /// <summary>
         /// 掉线收敛加速（Day2）：连接从 FishNet 移除后立即上报 CurrentPlayers 事实（单飞闸防重入）。
@@ -563,6 +575,7 @@ namespace Game.Gameplay.Network
                 return; // F1：周期/即时心跳均不能抢在重臂门禁之前发 Ready+0
             if (!_immediateHeartbeatGate.TryBegin())
                 return;
+            _rearmHeartbeatPending = false;
             _ = SendImmediateHeartbeatAsync();
         }
 
@@ -735,6 +748,7 @@ namespace Game.Gameplay.Network
             finally
             {
                 _immediateHeartbeatGate.End();
+                if (_rearmHeartbeatPending) TrySendImmediateHeartbeat();
             }
         }
 

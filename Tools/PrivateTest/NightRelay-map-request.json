@@ -1,0 +1,8 @@
+{
+  "mapId": "map_05",
+  "scenePath": "Assets/_Project/Scenes/Map_NightRelay.unity",
+  "version": "9",
+  "displayName": "Night Relay",
+  "modes": ["KillRace"],
+  "maxCapacity": 16
+}

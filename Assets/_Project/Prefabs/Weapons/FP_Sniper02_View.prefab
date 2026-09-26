@@ -76,6 +76,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 0
+  geometryVerified: 0
 --- !u!1 &6372499987024056621
 GameObject:
   m_ObjectHideFlags: 0
@@ -476,10 +477,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   muzzle: {fileID: 1331422402223979469}
+  tracerMuzzleInsetMeters: 0
+  hasCalibratedBarrelTip: 1
+  barrelTipMuzzleLocal: {x: 0.0004451587, y: 0.0004030075, z: -0.06919889}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
-  nearSegmentLength: 1.2
   maxTracerLength: 4.25
   muzzleFlashPrefab: {fileID: 7370422501337669886, guid: e7be28f466724f04b88d12d47fdddc85, type: 3}
   muzzleFlashDespawnSeconds: 0.15
@@ -490,4 +493,3 @@ MonoBehaviour:
   sightReference: {fileID: 8652912913179961545}
   alignAdsToSightAxis: 0
   debugShotDiagnostics: 0
-  reconcileThresholdMeters: 0.35

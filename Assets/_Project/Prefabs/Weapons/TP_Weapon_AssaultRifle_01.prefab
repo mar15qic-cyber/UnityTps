@@ -375,8 +375,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4196807724495039585}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
-  m_LocalPosition: {x: 0.00023280973, y: -0.024052154, z: 0.12420206}
+  m_LocalRotation: {x: -0.38806444, y: 0.49446964, z: 0.40893227, w: -0.66157407}
+  m_LocalPosition: {x: -0.008, y: -0.055, z: 0.075}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -407,7 +407,7 @@ Transform:
   m_GameObject: {fileID: 5011729277734864073}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.00023281024, y: -0.024052165, z: 0.44685644}
+  m_LocalPosition: {x: -0.0012929402, y: 0.01995635, z: 0.44685644}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -424,6 +424,7 @@ GameObject:
   - component: {fileID: 5906388474719765818}
   - component: {fileID: 8120697064188912995}
   - component: {fileID: 3727419258479357065}
+  - component: {fileID: 2002798645280064420}
   m_Layer: 0
   m_Name: TP_Weapon_AssaultRifle_01
   m_TagString: Untagged
@@ -506,6 +507,20 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2002798645280064420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7707036890514972092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177831118c5a366498ba02db4f7b048e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalWristFromGripCenter: {x: -0.0636, y: 0.0062, z: -0.0809}
+  verticalWristRotation: {x: 0.07523985, y: 0.6240461, z: 0.7569626, w: -0.1786448}
 --- !u!1 &8853277028140263433
 GameObject:
   m_ObjectHideFlags: 0

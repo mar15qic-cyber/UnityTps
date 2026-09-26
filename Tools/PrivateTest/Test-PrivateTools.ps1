@@ -15,3 +15,12 @@ foreach($bad in @('127.0.0.1','8.141.92.231','0.0.0.0','::1')){
 $errors=@();Get-ChildItem $PSScriptRoot -Filter '*.ps1' | ForEach-Object {$tokens=$null;$parse=$null;[Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$parse)|Out-Null;$errors+=$parse}
 if($errors.Count){throw ($errors | Out-String)}
 Write-Output 'PRIVATE_TOOL_CHECKS_PASSED: valid config, 4 rejected addresses, all PowerShell parsed. No network changes.'
+$records=@('[{"name":"api"},{"name":"arena"}]' | ConvertFrom-Json | ForEach-Object { $_ })
+if($records.Count -ne 2){throw 'Process JSON was not flattened.'}
+$pool=[pscustomobject]@{instances=@(
+ [pscustomobject]@{instanceId='historical-test';state='InMatch';currentPlayers=1;fresh=$false},
+ [pscustomobject]@{instanceId='invite-arena';state='Ready';currentPlayers=0;fresh=$true})}
+if(@(Get-PrivateBusyInstances $pool $records).Count){throw 'Historical foreign instance blocked draining.'}
+$pool.instances[1].state='InMatch';$pool.instances[1].fresh=$false
+if(@(Get-PrivateBusyInstances $pool $records).Count -ne 1){throw 'Owned stale match was not protected.'}
+Write-Output 'PRIVATE_DRAIN_TESTS_PASSED: process enumeration, foreign history ignored, owned stale matches protected.'

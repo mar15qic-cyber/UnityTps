@@ -18,7 +18,23 @@ namespace Game.Core
         }
 
         [SerializeField] private WeaponEntry[] weapons = Array.Empty<WeaponEntry>();
+        [SerializeField] private WeaponTuningProfile[] mainlineProfiles = Array.Empty<WeaponTuningProfile>();
         private Dictionary<string, WeaponStat> _lookup;
+        private Dictionary<string, WeaponTuningProfile> _profileLookup;
+
+        public WeaponTuningProfile[] MainlineProfiles => mainlineProfiles;
+
+        public bool TryGetProfile(string weaponId, out WeaponTuningProfile profile)
+        {
+            EnsureLookup();
+            return _profileLookup.TryGetValue(weaponId, out profile);
+        }
+
+        public float GetAdsGroundSpeedMultiplier(string weaponId) =>
+            TryGetProfile(weaponId, out var profile) ? profile.AdsGroundSpeedMultiplier : 1f;
+
+        public HitRegionMultipliers GetHitRegionMultipliers(string weaponId) =>
+            TryGetProfile(weaponId, out var profile) ? profile.HitRegions : HitRegionMultipliers.Standard;
 
         public WeaponStat GetWeaponStat(string weaponId)
         {
@@ -46,16 +62,30 @@ namespace Game.Core
         public int GetFinalDamage(string weaponId) => Mathf.Max(1, GetWeaponStat(weaponId).Damage);
         public int GetXpForLevel(int level) => Mathf.Max(0, level) * 100;
 
-        private void OnValidate() => _lookup = null;
+        private void OnValidate() { _lookup = null; _profileLookup = null; }
 
         private void EnsureLookup()
         {
             if (_lookup != null) return;
             _lookup = new Dictionary<string, WeaponStat>(StringComparer.Ordinal);
+            _profileLookup = new Dictionary<string, WeaponTuningProfile>(StringComparer.Ordinal);
             foreach (var entry in weapons)
             {
                 if (!string.IsNullOrWhiteSpace(entry.WeaponId))
                     _lookup[entry.WeaponId] = entry.Stat;
+            }
+            foreach (var profile in mainlineProfiles)
+            {
+                string error = profile == null ? "null profile" : null;
+                if (profile == null || !profile.Validate(out error))
+                {
+                    Debug.LogError($"[Balance] Invalid mainline profile: {(profile != null ? profile.name : "null")} {error}", this);
+                    continue;
+                }
+                if (_profileLookup.ContainsKey(profile.WeaponId))
+                    Debug.LogError($"[Balance] Duplicate profile ID: {profile.WeaponId}", this);
+                _profileLookup[profile.WeaponId] = profile;
+                _lookup[profile.WeaponId] = profile.Stat;
             }
         }
 

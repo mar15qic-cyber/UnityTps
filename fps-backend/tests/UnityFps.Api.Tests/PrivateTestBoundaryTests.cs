@@ -1,3 +1,4 @@
+using UnityFps.Api.Common;
 using UnityFps.Api.Features;
 using UnityFps.Api.Services;
 using Xunit;
@@ -27,5 +28,22 @@ public sealed class PrivateTestBoundaryTests
     {
         var map=new MapCatalogDto("test","Test","Test",["TDM"],8,["Red","Blue","FFA"],"1",new string('a',64));
         Assert.Throws<InvalidDataException>(()=>PublishedMapCatalog.Validate([map,map]));
+    }
+    [Theory]
+    [InlineData("map_01", "TDM", 8)]
+    [InlineData("map_03", "TDM", 8)]
+    [InlineData("map_04", "TDM", 8)]
+    [InlineData("map_02", "KillRace", 16)]
+    [InlineData("map_05", "KillRace", 16)]
+    public void RedesignedMapsExposeOnlyTheirIntendedModeAndCapacity(string id, string mode, int capacity)
+    {
+        var map = MapCatalog.Find(id);
+        Assert.NotNull(map);
+        Assert.Equal(capacity, map.MaxCapacity);
+        Assert.Equal([mode], map.Modes);
+        var wrongMode = mode == "TDM" ? "KillRace" : "TDM";
+        Assert.Throws<ApiException>(() => RoomSettingRules.Validate(wrongMode, id, 20, 5, 8));
+        if (capacity == 8)
+            Assert.Throws<ApiException>(() => RoomSettingRules.Validate(mode, id, 50, 5, 16));
     }
 }

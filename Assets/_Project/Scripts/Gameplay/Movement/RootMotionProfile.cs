@@ -89,8 +89,8 @@ namespace Game.Gameplay.Movement
         [SerializeField] private string versionHash;
         [SerializeField] private float walkCycleDuration = 0.9333334f;
         [SerializeField] private float sprintCycleDuration = 0.6666667f;
-        [SerializeField] private float walkSpeed = 1.58f;
-        [SerializeField] private float sprintSpeed = 3.8f;
+        [SerializeField] private float walkSpeed = 1.68f;
+        [SerializeField] private float sprintSpeed = 4.0f;
         [SerializeField] private RootMotionTrack[] walkTracks = new RootMotionTrack[DirectionCount];
         [SerializeField] private RootMotionTrack[] sprintTracks = new RootMotionTrack[DirectionCount];
 
@@ -180,8 +180,8 @@ namespace Game.Gameplay.Movement
             versionHash = hash;
             walkCycleDuration = Mathf.Max(0.0001f, walkDuration);
             sprintCycleDuration = Mathf.Max(0.0001f, runDuration);
-            walkSpeed = 1.58f;
-            sprintSpeed = 3.8f;
+            walkSpeed = 1.68f;
+            sprintSpeed = 4.0f;
             walkTracks = bakedWalkTracks;
             sprintTracks = bakedSprintTracks;
         }

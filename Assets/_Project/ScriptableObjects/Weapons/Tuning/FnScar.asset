@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72d976a51744f039b142d5a3f6c018a, type: 3}
+  m_Name: FnScar
+  m_EditorClassIdentifier: 
+  WeaponId: rifle.03
+  Stat:
+    Damage: 28
+    Rpm: 520
+    MagSize: 25
+    ReserveAmmo: 100
+    ReloadTime: 2.3
+    Spread: 0.8
+    MaxRange: 150
+    AdsFov: 45
+    Recoil:
+      PitchDeg: 1.05
+      YawDeg: 0.36
+      FirstShotMultiplier: 1.25
+      Accumulation: 1.15
+      MaxAccumulation: 8
+      RecoveryDelay: 0.18
+      RecoverySpeed: 3.8
+      SpringFrequency: 9
+      SpringDamping: 0.75
+      ShakePositionAmplitude: 0.32
+      ViewModelKickBack: 0.05
+      ViewModelKickPitch: 4.2
+      AdsRecoilMultiplier: 0.77
+    Accuracy:
+      BaseHipSpread: 0.8
+      BaseAdsSpread: 0.25
+      MovementSpreadMax: 1.5
+      SprintSpreadExtra: 1.8
+      AirborneSpreadExtra: 1.6
+      ShotBloomPerShot: 0.2
+      MaxBloom: 2.5
+      BloomRecoveryDelay: 0.18
+      BloomRecoverySpeed: 5
+    Ballistic:
+      PelletCount: 1
+      PelletSpread: 0
+  AdsGroundSpeedMultiplier: 0.8
+  HitRegions:
+    Head: 1.5
+    Torso: 1
+    Arm: 0.8
+    Leg: 0.7

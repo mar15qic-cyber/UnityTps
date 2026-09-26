@@ -23,8 +23,8 @@ MonoBehaviour:
     magnification: 0
     prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
-    mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
+    mountEuler: {x: 0, y: 90, z: 0}
+    mountOffset: {x: -0.1112973, y: 0, z: 0}
     modifiers:
     - stat: 0
       op: 1
@@ -158,8 +158,8 @@ MonoBehaviour:
     magnification: 0
     prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
-    mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
+    mountEuler: {x: 0, y: 90, z: 0}
+    mountOffset: {x: -0.1112973, y: 0, z: 0}
     modifiers:
     - stat: 0
       op: 1
@@ -196,8 +196,8 @@ MonoBehaviour:
     magnification: 0
     prefab: {fileID: 1367497072319680, guid: d08f83b90bf669d4c9823f25d0ae3b1d, type: 3}
     prefabPath: Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab
-    mountEuler: {x: 0, y: -90, z: 0}
-    mountOffset: {x: -0.09814642, y: 0.00000057183206, z: -0.00000002514571}
+    mountEuler: {x: 0, y: 90, z: 0}
+    mountOffset: {x: -0.1112973, y: 0, z: 0}
     modifiers:
     - stat: 0
       op: 1
@@ -211,6 +211,22 @@ MonoBehaviour:
   - itemId: attach.pistol.magazine
     displayName: "\u624B\u67AA\u52A0\u957F\u5F39\u5323"
     description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u5F39\u5BB9\u91CF +3"
+    slot: 2
+    aimTier: 0
+    isSuppressor: 0
+    adsFovOverride: 0
+    magnification: 0
+    prefab: {fileID: 0}
+    prefabPath: 
+    mountEuler: {x: 0, y: 0, z: 0}
+    mountOffset: {x: 0, y: 0, z: 0}
+    modifiers:
+    - stat: 9
+      op: 0
+      value: 3
+  - itemId: attach.sniper.magazine
+    displayName: 狙击枪加长弹匣
+    description: 狙击枪专用；弹容量 +3
     slot: 2
     aimTier: 0
     isSuppressor: 0
