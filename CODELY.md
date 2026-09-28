@@ -122,3 +122,21 @@
 - [2026-09-17 15:19:55] [2026-09-17 16:10] 三则新工程事实（2026-09-17 四组需求批次）：①**手写 EF 迁移（只加列）可不带 Designer**：[Migration("id")] 直接标注在 Migration 子类上即可被 Database.Migrate() 发现，快照手工同步省 dotnet-ef 往返；但本轮实证**启动时未自动应用**（500 缺列）——根因未定，修复=对真库等价 ALTER+手动插 __EFMigrationsHistory 行；后续再遇"实体列先于 DB 列"先查后端启动迁移异常日志。②**PC_RPAsset.asset 与 UniversalRenderPipelineGlobalSettings.asset 在 Assets/Settings/ 下**（不在 ProjectSettings/）——构建前 5 设置文件备份的正确路径清单：ProjectSettings/{GraphicsSettings,ProjectSettings,DynamicsManager}.asset + Assets/Settings/{PC_RPAsset,UniversalRenderPipelineGlobalSettings}.asset。③连接串键名是 **"User ID"**（非 "User"）——mysql CLI 取值用 parts['User ID']。Why: 本轮实测踩坑。How to apply: 后续构建/迁移/联测直接采用。
 - [2026-09-20 17:18:31] [2026-09-20 17:15] Unity YAML 资产文件禁止 `#` 注释：解析器在序列中间的注释行报 "Unable to parse file … Parser Failure at line NNN: Expect ':' between key and value within mapping" 并**静默截断**——注释之后的列表行全部丢弃，无弹窗，错误只混在 Console 历史里。实证：AttachmentCalibration.asset 的 opticAimRows 中 3 行注释（含非 ASCII ×）导致磁盘 16 行只导入 10 行（恰好=注释前前缀）。Why: 前任外部文本编辑 YAML 加注释，探针实跑 authored=False 暴露；Unity 序列化器保存时也会剥掉注释。How to apply: 手写/外部编辑 .asset 后必须 AssetDatabase.ImportAsset + 读回验证行数/字段；资产数据"写了但没生效"先 grep Console/Editor.log 的 "Unable to parse file"。
 - [2026-09-20 17:18:31] [2026-09-20 17:15] ScriptableObject 非序列化缓存字段在原地重导入后不重置：AssetDatabase.ImportAsset 只覆盖序列化字段，同一编辑器会话内已构建的私有索引/字典残留旧数据。实证：AttachmentCalibration._opticIndex 在 YAML 修复+强制重导入后仍以 10 行旧索引应答（serialized rows=16 vs index count=10，TryGetOpticAim 拿不到新行），反射置空后才恢复；OnValidate 会触发（DataVersion 15→16）但不清索引。Play Mode/构建不受影响（domain reload 重建）。Why: 资产修复后"数据对了但查询还是旧值"会误判修复失败。How to apply: 编辑器内验证资产数据改动时，若类有私有缓存字段，须 domain reload 或反射清缓存后再测；AttachmentCalibration 的 _opticIndex/_index 建议在 OnValidate/OnEnable 置空（已作为建议票据留给用户，未实施）。
+
+## [静态约定] agent-relay 多 agent 协同（2026-09-29 起生效，非流水记忆，勿归档）
+
+本工作区（UnityFpsLowPoly）用 agent-relay 做多 agent 协同：审计→拆解→实施→复核的流转与额度感知调度都经它登记。
+CLI 调用（shell 直接执行）：`node "E:\UnityProject\agent-relay\src\index.ts" <命令>`（下称 relay）。
+
+开工前（会话开始处理任何任务前）：`relay status` 看额度/我的任务/可认领/未读；`relay inbox` 收未读（自动标已读）。
+接手任务：`relay task update <T-xxxx> --claim`（已被认领会报错，勿抢；强接管 `--takeover` 仅 fallback 链内允许）。
+完成任一环节（审计/拆解/实施/复核）后按顺序：
+1. 先把报告落盘 `Docs/交接/YYYY-MM-DD-<主题>-<类型>.md`（零上下文可读，含 commit/测试证据）——正文永远在 md，relay 只存指针
+2. `relay report register --type <AUDIT|PLAN|IMPLEMENTATION|REVIEW> --path <相对路径> --author codely`
+3. `relay task update <T-xxxx> --note "<一句话结论>"`（不要改任务状态，阶段状态由调度器推进）
+4. `relay send --to user --type report_ready --title "<标题>" --body "<结论摘要>" --ref report:<R-xxxx>`
+
+额度耗尽：立即 `relay quota set codely exhausted --reason "<已完成/剩余进度>"`，进度写进任务 note 后停止，不要空转重试。
+审计去重：审计/复核开工前先 `relay finding list`——已 verified/closed 旧项不要重复上报（F01–F19 历史底册已入库）。
+
+红线三条：①报告正文永远落盘 md，relay/_bridge/ 只存指针、状态与 sha256；②`_bridge/` 状态目录不入 git，relay 生成的状态卡（Docs/交接/*状态卡.md）才是可提交快照；③relay 故障时降级为直接 md 交接并告知用户，不得阻塞主任务。

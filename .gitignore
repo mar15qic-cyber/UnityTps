@@ -92,3 +92,6 @@ Desktop.ini
 **/TestResults/
 *.trx
 *.log
+
+# ===== agent-relay 运行时状态（任务/信箱/调度留痕，不入库；状态卡快照在 Docs/交接/ 下单独提交） =====
+/Docs/交接/_bridge/
