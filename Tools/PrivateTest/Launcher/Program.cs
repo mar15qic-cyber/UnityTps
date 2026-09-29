@@ -5,7 +5,8 @@ using System.Text.Json;
 
 internal static class Program
 {
-    internal static readonly string Root = AppContext.BaseDirectory;
+    // Keep the self-contained .NET runtime outside the Unity player search directory.
+    internal static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
     internal static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
     [STAThread] static void Main(string[] args)
     {
@@ -141,7 +142,13 @@ internal sealed class Launcher : Form
             {
                 var game = Path.Combine(Program.Root, "UnityFpsClient.exe");
                 if (Process.GetProcessesByName("UnityFpsClient").Any()) { state.Text = "游戏已经运行，请切换到游戏窗口。"; return; }
-                Process.Start(new ProcessStartInfo(game, "-publicTestTelemetry") { WorkingDirectory = Program.Root, UseShellExecute = true });
+                var run = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8];
+                var logs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UnityFps", config.ReleaseId, "Logs", run);
+                Directory.CreateDirectory(logs);
+                var launch = new ProcessStartInfo(game) { WorkingDirectory = Program.Root, UseShellExecute = false };
+                foreach (var arg in new[] { "-publicTestTelemetry", "-testRunId", run, "-evidenceDir", Path.Combine(logs, "Telemetry"), "-logFile", Path.Combine(logs, "client.log") }) launch.ArgumentList.Add(arg);
+                Process.Start(launch);
+                state.Text = "游戏已启动。日志自动保存在：\n" + logs;
             }
         }
         catch (OperationCanceledException) { state.Text = "检查已取消或超时，可重试。"; }
@@ -153,7 +160,7 @@ internal sealed class Launcher : Form
         using var dialog = new SaveFileDialog { Filter = "测试记录|*.zip", FileName = "测试记录-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".zip" };
         if (dialog.ShowDialog() != DialogResult.OK) return;
         var script = Path.Combine(Program.Root, "Export-PlayerEvidence.ps1");
-        var evidence = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "DefaultCompany", "UnityFps", "PublicTestEvidence");
+        var evidence = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UnityFps", config.ReleaseId, "Logs");
         var sources = Directory.Exists(evidence) ? new[] { evidence } : Array.Empty<string>();
         if (sources.Length != 1) { state.Text = "无法唯一定位测试日志，请先完成一次游戏或联系主机。"; return; }
         var p = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };

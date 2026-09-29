@@ -50,7 +50,7 @@ if ($c.PSObject.Properties.Name -contains 'privateOverlay' -and $c.privateOverla
     $inviteOnly=$clientEnvironment.inviteOnly
 }
 New-Item -ItemType Directory -Path $c.stateRoot -Force | Out-Null
-$logs = Join-Path $c.stateRoot ('logs/'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
+$logs = Join-Path $c.stateRoot ('logs/'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 $envValues = @{
     'ASPNETCORE_ENVIRONMENT'='Production'; 'ASPNETCORE_URLS'=$c.apiListenUrl;
@@ -100,7 +100,8 @@ try {
         Start-Managed $map.id $ds @('-batchmode','-nographics','-dedicatedServer','-instanceId',$map.instance,
             '-port',"$($map.port)",'-publicAddress',$c.publicAddress,'-backendUrl',$c.apiListenUrl,
             '-mapId',$map.id,'-capacity',"$($c.capacityPerMap)",'-buildVersion',$c.releaseId,
-            '-logFile',('"'+(Join-Path $logs ($map.id+'.unity.log'))+'"'),'-publicTestTelemetry','-testRunId',$c.releaseId) (Split-Path -Parent $ds)
+            '-logFile',('"'+(Join-Path $logs ($map.id+'.unity.log'))+'"'),'-publicTestTelemetry','-testRunId',$c.releaseId,
+            '-evidenceDir',('"'+(Join-Path $logs ($map.id+'/Telemetry'))+'"')) (Split-Path -Parent $ds)
     }
     & "$PSScriptRoot/Test-CloudReadiness.ps1" -ConfigPath $ConfigPath -AllowActive
     if (-not $?) { throw 'Cloud readiness failed.' }

@@ -1,5 +1,9 @@
 ﻿param([Parameter(Mandatory)][string]$ConfigPath)
 . "$PSScriptRoot/Private.Common.ps1"
+if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
+    Write-Output ('HOST_NOT_CONFIGURED: no host.json at ' + $ConfigPath + '; no processes were stopped.')
+    exit 0
+}
 $c=Read-PrivateConfig $ConfigPath
 New-Item -ItemType Directory -Path $c.stateRoot -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $c.stateRoot 'admissions.paused') -Value 'draining'

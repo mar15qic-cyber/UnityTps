@@ -28,11 +28,11 @@ foreach($variant in @('DirectClient','ExeLauncher')){
         New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $source $relative) -Destination $target
     }
-    $entry=if($variant -eq 'DirectClient'){'UnityFpsClient.exe'}else{'StartGame.exe'}
+    $entry=if($variant -eq 'DirectClient'){'UnityFpsClient.exe'}elseif(Test-Path (Join-Path $stage 'Launcher/StartGame.exe')){'Launcher/StartGame.exe'}else{'StartGame.exe'}
     $readme=if($variant -eq 'DirectClient'){
         '完整解压后双击 UnityFpsClient.exe。不要单独移动 EXE，必须保留 UnityFpsClient_Data、UnityPlayer.dll 及其余附带文件。此入口不检查或申请加入 ZeroTier；请先安装 ZeroTier，加入网络 743993800fd77ce1 并由主机批准设备，再启动游戏。主机需要开启对应版本服务器。在游戏登录页点击“创建账号”，填写用户名和至少 8 位密码，再点击“注册并继续”。'
     }else{
-        '完整解压后双击 StartGame.exe，再点击窗口中的“开始游戏”。未安装 ZeroTier 时按提示安装，首次加入允许管理员请求，将设备编号发给主机批准，然后重试。主机需要开启对应版本服务器。在游戏登录页点击“创建账号”，填写用户名和至少 8 位密码，再点击“注册并继续”。连接诊断和导出测试记录均在助手中。不要单独发送或移动 EXE，保留整个文件夹。'
+        ('完整解压后运行 '+$entry+'，再点击窗口中的“开始游戏”。未安装 ZeroTier 时按提示安装，首次加入允许管理员请求，将设备编号发给主机批准，然后重试。主机需要开启对应版本服务器。在游戏登录页点击“创建账号”，填写用户名和至少 8 位密码，再点击“注册并继续”。连接诊断和导出测试记录均在助手中。不要单独发送或移动 EXE，保留整个文件夹。')
     }
     Set-Content -LiteralPath (Join-Path $stage 'README.txt') -Value $readme -Encoding UTF8
     $hashes=@(Get-ChildItem -LiteralPath $stage -Recurse -File | ForEach-Object {

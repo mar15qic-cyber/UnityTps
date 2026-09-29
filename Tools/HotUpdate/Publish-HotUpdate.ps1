@@ -17,7 +17,7 @@
 # Output layout:
 #   Logs\HotUpdate\releases\<version>\<version>\lua files + maps\*.bundle
 #   Logs\HotUpdate\releases\<version>\manifest.json       (pointer to this version)
-# Deploy = copy BOTH the version dir and manifest.json into the backend hotupdate dir.
+# Deploy = copy the version dir, manifest.json and maps-manifest.json into the backend hotupdate dir.
 #
 # F05/F06 (2026-09-19 audit):
 #   - Same-version republish with DIFFERENT content is refused (clients keep their
@@ -32,7 +32,9 @@
 param(
     [long]$Version = 0,
     [switch]$Deploy,
-    [string]$MinClientVersion = "0.0.0"
+    [string]$MinClientVersion = "0.0.0",
+    # Optional verified bundle directory (e.g. an existing release's maps directory).
+    [string]$BundleSourcePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,6 +45,7 @@ $luaSourceDir = Join-Path $script:Root 'Assets\Resources\Lua'
 $backendHotDir = Join-Path $script:Root 'fps-backend\src\UnityFps.Api\hotupdate'
 $releaseRoot = Join-Path $script:Root 'Logs\HotUpdate\releases'
 $bundleSourceDir = Join-Path $script:Root 'Logs\HotUpdate\bundles'
+if ($BundleSourcePath) { $bundleSourceDir = [IO.Path]::GetFullPath($BundleSourcePath) }
 
 # 1) collect lua sources
 $sources = @(Get-ChildItem -LiteralPath $luaSourceDir -Filter '*.lua.txt' | Sort-Object Name)
@@ -54,6 +57,23 @@ if (Test-Path -LiteralPath $bundleSourceDir) {
     $bundleFiles = @(Get-ChildItem -LiteralPath $bundleSourceDir -Recurse -Filter '*.bundle' | Sort-Object FullName)
 }
 
+# The local map channel has its own protocol-bound, map-only pointer. Never copy the
+# Lua manifest to maps-manifest.json: the client intentionally rejects mixed files.
+$protocolSource = Get-Content -LiteralPath (Join-Path $script:Root 'Assets/_Project/Scripts/Gameplay/Network/GameProtocolIdentity.cs') -Raw
+$protocolMatch = [regex]::Match($protocolSource, 'const\s+string\s+ProtocolId\s*=\s*"([^"]+)"')
+if (-not $protocolMatch.Success) { throw 'Cannot resolve map protocol identity.' }
+$protocolId = $protocolMatch.Groups[1].Value
+
+# Validate the actual selected bytes, including -BundleSourcePath / reused releases.
+# A successful download/hash does not establish that a DS-stripped bundle can render.
+if ($bundleFiles.Count -gt 0) {
+    $python = Get-Command python -ErrorAction Stop
+    $validator = Join-Path $script:Root 'Tools/HotUpdate/Validate-MapBundles.py'
+    $bundlePaths = @($bundleFiles | ForEach-Object { $_.FullName })
+    & $python.Source $validator @bundlePaths
+    if ($LASTEXITCODE -ne 0) { throw 'Map bundle shader validation failed. Rebuild client map bundles before publishing.' }
+}
+
 # 2) resolve version: explicit > backend manifest + 1 > 1
 if ($Version -le 0) {
     $Version = 1
@@ -61,6 +81,39 @@ if ($Version -le 0) {
     if (Test-Path -LiteralPath $currentManifest) {
         $json = Get-Content -LiteralPath $currentManifest -Raw | ConvertFrom-Json
         if ($json.version) { $Version = [long]$json.version + 1 }
+    }
+    $mapPointer = Join-Path $backendHotDir 'maps-manifest.json'
+    if (Test-Path -LiteralPath $mapPointer) {
+        $mapVersion = [long](Get-Content -LiteralPath $mapPointer -Raw | ConvertFrom-Json).version
+        $Version = [Math]::Max($Version, $mapVersion + 1)
+    }
+    if (Test-Path -LiteralPath $releaseRoot) {
+        foreach ($directory in Get-ChildItem -LiteralPath $releaseRoot -Directory) {
+            $stagedVersion = 0L
+            if ([long]::TryParse($directory.Name, [ref]$stagedVersion)) { $Version = [Math]::Max($Version, $stagedVersion + 1) }
+        }
+    }
+}
+
+if ($Deploy -and $bundleFiles.Count -gt 0) {
+    $mapPointer = Join-Path $backendHotDir 'maps-manifest.json'
+    if ((Test-Path -LiteralPath $mapPointer) -and [long](Get-Content -LiteralPath $mapPointer -Raw | ConvertFrom-Json).version -ge $Version) {
+        throw 'Version must exceed the deployed map channel version.'
+    }
+    # Do not publish new geometry while the local launcher still owns a DS using old content.
+    $mapState = Join-Path $script:Root 'Tools/Server/.runtime/map-servers.json'
+    $catalogFile = Join-Path $script:Root 'Tools/Server/.runtime/maps.json'
+    if ((Test-Path $mapState) -and (Test-Path $catalogFile)) {
+        $catalog = @(Get-Content $catalogFile -Raw | ConvertFrom-Json)
+        foreach ($record in @(Get-Content $mapState -Raw | ConvertFrom-Json)) {
+            if (-not (Get-Process -Id $record.pid -ErrorAction SilentlyContinue)) { continue }
+            $map = $catalog | Where-Object mapId -eq $record.mapId | Select-Object -First 1
+            if (-not $map) { continue }
+            $bundle = $bundleFiles | Where-Object Name -eq ($map.sceneName.ToLowerInvariant() + '.bundle') | Select-Object -First 1
+            if (-not $bundle -or (Get-FileHash -LiteralPath $bundle.FullName).Hash -ne $record.contentHash) {
+                throw ('Map DS still uses previous content: ' + $record.mapId + '. Drain/stop it, build the matching DS, then deploy and run Start-LocalServer -AllMaps.')
+            }
+        }
     }
 }
 
@@ -118,6 +171,7 @@ foreach ($src in $sources) {
 foreach ($bf in $bundleFiles) {
     # keep relative layout (e.g. maps\map_trainingyard.bundle -> maps/map_trainingyard.bundle)
     $relative = $bf.FullName.Substring($bundleSourceDir.Length + 1) -replace '\\', '/'
+    if (-not $relative.StartsWith('maps/')) { $relative = 'maps/' + $relative }
     Add-PackageFile $bf.FullName $relative
 }
 
@@ -128,6 +182,12 @@ $manifest = [ordered]@{
 }
 $manifestPath = Join-Path $releaseDir 'manifest.json'
 [System.IO.File]::WriteAllText($manifestPath, (ConvertTo-Json -InputObject $manifest -Depth 4))
+$mapManifestPath = Join-Path $releaseDir 'maps-manifest.json'
+if ($bundleFiles.Count -gt 0) {
+    $mapManifest = [ordered]@{ version = "$Version"; releaseId = ''; protocolId = $protocolId;
+        minClientVersion = $MinClientVersion; files = @($fileEntries | Where-Object path -like 'maps/*.bundle') }
+    [System.IO.File]::WriteAllText($mapManifestPath, (ConvertTo-Json -InputObject $mapManifest -Depth 5))
+}
 
 $bundleNote = ""
 if ($bundleFiles.Count -gt 0) { $bundleNote = "  map bundles: " + $bundleFiles.Count }
@@ -161,10 +221,17 @@ if ($Deploy) {
     $manifestTmp = Join-Path $backendHotDir ('manifest.json.tmp-' + [guid]::NewGuid().ToString('N'))
     Copy-Item -LiteralPath $manifestPath -Destination $manifestTmp -Force
     Move-Item -Force -Path $manifestTmp -Destination $liveManifest
+    if (Test-Path -LiteralPath $mapManifestPath) {
+        $liveMaps = Join-Path $backendHotDir 'maps-manifest.json'
+        $mapsTmp = $liveMaps + '.tmp-' + [guid]::NewGuid().ToString('N')
+        Copy-Item -LiteralPath $mapManifestPath -Destination $mapsTmp
+        Move-Item -LiteralPath $mapsTmp -Destination $liveMaps -Force
+    }
     Write-Host ("  DEPLOYED to : " + $backendHotDir)
     Write-Host ""
     Write-Host "NEXT (verify):"
     Write-Host ("  curl http://127.0.0.1:5080/hotupdate/manifest.json")
+    if ($bundleFiles.Count -gt 0) { Write-Host '  map channel: http://127.0.0.1:5080/hotupdate/maps-manifest.json; verify /api/maps and matching DS before admission.' }
     Write-Host "  then start the CLIENT - check its log for:"
     Write-Host ("    [HotUpdate] kind=applied version=" + $Version)
 } else {
@@ -174,6 +241,7 @@ if ($Deploy) {
     Write-Host ("     into         " + $backendHotDir)
     Write-Host ("  2) copy file    " + $manifestPath)
     Write-Host ("     onto         " + (Join-Path $backendHotDir 'manifest.json') + "  (overwrite)")
+    if ($bundleFiles.Count -gt 0) { Write-Host ('     also promote ' + $mapManifestPath + ' to the backend hotupdate directory after matching map servers are ready.') }
     Write-Host "  3) no backend restart is needed (static files are read per request)"
     Write-Host ("  4) verify: curl http://127.0.0.1:5080/hotupdate/manifest.json  -> version " + $Version)
     Write-Host "  5) start the CLIENT with the old exe - its log should show:"

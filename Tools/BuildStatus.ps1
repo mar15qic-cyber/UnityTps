@@ -13,7 +13,7 @@
 #   - 门禁失败关闭（fail closed）：清单缺字段（protocolId/builtAtUtc 无法解析/gamePlayDllSha256
 #     缺失/缺 inputDigest）一律按 STALE 阻止，不再"没比较出差异就 OK"；
 #   - 产物 DLL 完整性：两端 Game.Gameplay.dll 的磁盘 SHA256 必须等于清单记录；
-#   - 输入内容摘要：清单 inputDigest = 构建输入集合（Scripts/Editor/Lua/Packages manifest/
+#   - 输入内容摘要：清单 inputDigest = 构建输入集合（Assets (including meta)/Packages manifest+lock/
 #     ProjectVersion）逐文件内容摘要。-Gate 模式重算当前源码摘要做【内容】比对（权威）；
 #     mtime 仅作非 Gate 模式的廉价提示；
 #   - 构建输入不含 Assets/_Project/Tests（EditMode 测试不进产物）：测试代码改动不再把两端
@@ -48,11 +48,10 @@ function UtcToLocal($iso) {
 
 # ---- 构建输入集合（与 BuildManifestWriter.InputRoots 保持一致） ----------------
 $script:inputRoots = @(
-    (Join-Path $root "Assets\_Project\Scripts"),
-    (Join-Path $root "Assets\_Project\Editor"),
-    (Join-Path $root "Assets\Resources\Lua"),
+    (Join-Path $root "Assets"),
     (Join-Path $root "Packages\manifest.json"),
-    (Join-Path $root "ProjectSettings\ProjectVersion.asset")
+    (Join-Path $root "Packages\packages-lock.json"),
+    (Join-Path $root "ProjectSettings")
 )
 $testsRoot = Join-Path $root "Assets\_Project\Tests"
 
@@ -95,10 +94,10 @@ function Get-InputDigest {
             $rel = $path.Substring($root.Length + 1).Replace('\', '/')
             $pathBytes = [System.Text.Encoding]::UTF8.GetBytes($rel + "`n")
             [void]$merger.TransformBlock($pathBytes, 0, $pathBytes.Length, $null, 0)
-            try { $content = [System.IO.File]::ReadAllBytes($path) } catch { $content = @() }
             $sha = [System.Security.Cryptography.SHA256]::Create()
-            $contentHash = $sha.ComputeHash($content)
-            $sha.Dispose()
+            $stream = [System.IO.File]::OpenRead($path)
+            try { $contentHash = $sha.ComputeHash($stream) }
+            finally { $stream.Dispose(); $sha.Dispose() }
             [void]$merger.TransformBlock($contentHash, 0, $contentHash.Length, $null, 0)
             $count++
         }

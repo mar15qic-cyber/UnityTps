@@ -12,11 +12,12 @@ $dest=Join-Path $project ('Builds/PrivateInvitations/'+$e.releaseId)
 if (Test-Path $dest) { throw 'Release exists; use a new release id.' }
 New-Item -ItemType Directory -Path $dest | Out-Null
 Copy-Item $client "$dest/Client" -Recurse;Copy-Item $server "$dest/Server" -Recurse
-& dotnet publish "$PSScriptRoot/Launcher/Launcher.csproj" -c Release -r win-x64 --self-contained true -o "$dest/Client"
+foreach($name in @('mscorlib.dll','System.Private.CoreLib.dll','StartGame.exe')){if(Test-Path -LiteralPath "$dest/Client/$name"){throw ('Unity source contains launcher runtime: '+$name)}}
+& dotnet publish "$PSScriptRoot/Launcher/Launcher.csproj" -c Release -r win-x64 --self-contained true -o "$dest/Client/Launcher"
 if ($LASTEXITCODE -ne 0) { throw 'Launcher publish failed.' }
 Copy-Item "$PSScriptRoot/../Cloud/Export-PlayerEvidence.ps1" "$dest/Client"
 Copy-Item "$PSScriptRoot/玩家说明.txt" "$dest/Client"
-@('@echo off','start "" "%~dp0StartGame.exe"') | Set-Content "$dest/Client/开始游戏.cmd" -Encoding ASCII
+@('@echo off','start "" "%~dp0Launcher\StartGame.exe"') | Set-Content "$dest/Client/开始游戏.cmd" -Encoding ASCII
 & dotnet publish "$project/fps-backend/src/UnityFps.Api/UnityFps.Api.csproj" -c Release -r win-x64 --self-contained true -o "$dest/Api"
 if ($LASTEXITCODE -ne 0) { throw 'API publish failed.' }
 $settings=@{Database=@{AllowInMemoryFallback=$false};Access=@{InviteOnly=[bool]$e.inviteOnly}} | ConvertTo-Json -Depth 4

@@ -270,11 +270,16 @@ if ($CheckOnly) {
 
 # ---- 3. execute: backend first (recovery), then control-plane key ------------
 $hotRoot = Join-Path $root 'fps-backend\src\UnityFps.Api\hotupdate'
-$hotManifestPath = Join-Path $hotRoot 'manifest.json'
+$hotManifestPath = Join-Path $hotRoot 'maps-manifest.json'
+$hasMapChannel = Test-Path -LiteralPath $hotManifestPath
+if (-not $hasMapChannel) { $hotManifestPath = Join-Path $hotRoot 'manifest.json' }
 $hotMapHashes = @{}
 $hotMapCatalog = @()
 if (Test-Path -LiteralPath $hotManifestPath) {
     $hotManifest = Get-Content -LiteralPath $hotManifestPath -Raw | ConvertFrom-Json
+    if ($hasMapChannel -and ([string]$hotManifest.protocolId -ne [string]$manifest.protocolId -or [string]$hotManifest.releaseId -ne '')) {
+        Fail 'HOT_MAP_IDENTITY_MISMATCH' 'Local map channel must match this DS protocol and the local release identity.'
+    }
     if ([string]$hotManifest.version -notmatch '^[1-9][0-9]*$') { Fail 'HOT_MAP_MANIFEST_INVALID' 'Invalid hotupdate version.' }
     foreach ($spec in @(
         @{ id = 'map_04'; scene = 'Map_TrainingYard'; display = 'Training Yard'; modes = @('TDM'); capacity = 8; groups = @('Red','Blue') },
@@ -374,7 +379,7 @@ if ($dsAction -eq 'start') {
         [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $hotMapHashes[$MapId], 'Process')
         $ds = Start-Process -FilePath $dsExe -ArgumentList $argList `
             -RedirectStandardOutput (Join-Path $runLog 'server.out.log') `
-            -RedirectStandardError (Join-Path $runLog 'server.err.log') -PassThru
+            -RedirectStandardError (Join-Path $runLog 'server.err.log') -PassThru -WindowStyle Hidden
     } finally { [Environment]::SetEnvironmentVariable('FPS_MAP_CONTENT_HASH', $previousMapHash, 'Process') }
     Write-Output "DS_STARTING pid=$($ds.Id) instance=$InstanceId port=$DsPort"
     $ready = $false
