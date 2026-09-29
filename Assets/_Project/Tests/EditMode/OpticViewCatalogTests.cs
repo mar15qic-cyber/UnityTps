@@ -99,7 +99,9 @@ namespace Game.Tests.EditMode
                 Assert.NotNull(scope.Find("Lens")?.GetComponent<CanvasRenderer>());
                 // A2（2026-09-19 ADS 审计）：分划容器 ReticleFrame 承载跨相机镜窗投影锚定，
                 // Tactical 图形挂容器下、随容器整体平移（无绑定数据时容器归零=旧居中行为）。
-                var frame = reticle.Find("ReticleFrame");
+                var clip = reticle.Find("OpticWindowClip");
+                Assert.NotNull(clip?.GetComponent<UnityEngine.UI.RectMask2D>(), "reticle must clip to the optic window");
+                var frame = clip.Find("ReticleFrame");
                 Assert.NotNull(frame, "A2 分划容器缺失");
                 Assert.NotNull(frame.Find("Tactical")?.GetComponent<CanvasRenderer>());
                 Assert.NotNull(frame.Find("Tactical")?.GetComponent<TacticalOpticReticleGraphic>());

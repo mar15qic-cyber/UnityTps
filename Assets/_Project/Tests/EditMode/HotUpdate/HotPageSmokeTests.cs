@@ -200,6 +200,92 @@ namespace Game.Gameplay.Tests
             Assert.IsTrue(names.Any(n => n == "Btn_CareerRetry"), "重试按钮存在");
         }
 
+        [Test]
+        public void CareerCleanup_WithDeferredDestroy_DetachesEachNodeAndReturns()
+        {
+            // Execute the production Lua cleanup with deferred-destruction semantics.
+            // The instruction hook fails a regressed unbounded loop without hanging Unity.
+            var source = Resources.Load<TextAsset>("Lua/career_page.lua").text;
+            int start = source.IndexOf("local function clearRoot", StringComparison.Ordinal);
+            int end = source.IndexOf("local function shortTime", start, StringComparison.Ordinal);
+            using var lua = new XLua.LuaEnv();
+            lua.DoString(@"
+                destroyed = 0
+                typeof = function(x) return x end
+                CS = { UnityEngine = { UI = { Button = {} }, Application = { isPlaying = true }, Object = {
+                    Destroy = function(go) assert(not go.active); destroyed = destroyed + 1 end,
+                    DestroyImmediate = function() error('must use deferred destruction') end
+                } } }
+                t = { childCount = 3, children = {} }
+                function t:GetChild(index) return self.children[index + 1] end
+                for i = 1, 3 do
+                    local go = { active = true }
+                    function go:GetComponentsInChildren(kind, inactive) return { Length = 0 } end
+                    function go:SetActive(value) self.active = value end
+                    local child = { gameObject = go }
+                    function child:SetParent(parent, keepWorld)
+                        assert(parent == nil)
+                        for index, entry in ipairs(t.children) do
+                            if entry == self then table.remove(t.children, index); break end
+                        end
+                        t.childCount = #t.children
+                    end
+                    t.children[i] = child
+                end
+            ");
+            lua.DoString(source.Substring(start, end - start) + @"
+                debug.sethook(function() error('cleanup did not terminate') end, '', 10000)
+                local ok, err = pcall(function()
+                    clearRoot({ transform = t })
+                    assert(t.childCount == 0 and destroyed == 3)
+                    clearRoot({ transform = t })
+                    assert(destroyed == 3)
+                end)
+                debug.sethook()
+                assert(ok, err)
+            ");
+        }
+
+        [Test]
+        public void RuntimeShutdown_ReleasesRegisteredPageAndLiveButtonDelegates()
+        {
+            var root = new GameObject("LiveLuaButton", typeof(RectTransform), typeof(UnityEngine.UI.Button));
+            try
+            {
+                var runtime = HotUpdateRuntime.Instance;
+                runtime.Env.DoString(@"
+                    CS.Game.UI.HotLuaFacade.RegisterPage('shutdown_test', '退出', function(root)
+                        local button = root.gameObject:GetComponent(typeof(CS.UnityEngine.UI.Button))
+                        button.onClick:AddListener(function() error('stale callback invoked') end)
+                    end)");
+                Assert.IsTrue(HotPageRegistry.TryGet("shutdown_test", out var page));
+                page.Render(root.GetComponent<RectTransform>());
+                typeof(HotUpdateRuntime).GetMethod("OnDestroy", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(runtime, null);
+                Assert.IsNull(runtime.Env);
+                Assert.IsNull(page.Render);
+                Assert.IsEmpty(HotPageRegistry.All);
+                Assert.DoesNotThrow(() => root.GetComponent<UnityEngine.UI.Button>().onClick.Invoke());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        [Test]
+        public void CareerPage_RepeatedSuccessEmptyAndFailure_ReplacesOldContent()
+        {
+            RenderCareerViaLua(@"
+                for i = 1, 4 do
+                    CareerPageRender(__careerRoot, { page=1, totalCount=1, totalPages=1,
+                        summary={ totalMatches=1, wins=1 }, rows={} }, nil)
+                    CareerPageRender(__careerRoot, { page=1, totalCount=0, totalPages=1,
+                        summary={ totalMatches=0 }, rows={} }, nil)
+                    CareerPageRender(__careerRoot, nil, 'TEST_FAILURE')
+                end
+            ", out var texts, out var names);
+            Assert.AreEqual(1, names.Count(n => n == "Btn_CareerRetry"));
+            Assert.AreEqual(1, names.Count(n => n == "T_CareerTitle"));
+            Assert.IsTrue(texts.Any(t => t.Contains("战绩加载失败")));
+        }
+
         // ---- 离线构造助手（复用 LobbyShellPageTests 的反射模式）----
 
         private static void SetField(object target, string name, object value)

@@ -31,13 +31,14 @@ namespace Game.Gameplay.Weapon
         public readonly int Seed;                      // 随机种子快照（网络回放预留）
         public readonly HitscanResult[] Pellets;       // null=单发；Shotgun=全弹丸结果
         public readonly float Ads01;
+        public readonly double ShotSeconds;
 
         public WeaponShot(Vector3 origin, Vector3 direction, HitscanResult result)
             : this(origin, direction, direction, result, 0f, default, 0, 0, null) { }
 
         public WeaponShot(Vector3 origin, Vector3 direction, Vector3 firedDirection, HitscanResult result,
             float finalSpreadDegrees, ShotRecoilResult recoil, int shotIndex, int seed,
-            HitscanResult[] pellets, float ads01 = 0f)
+            HitscanResult[] pellets, float ads01 = 0f, double shotSeconds = 0)
         {
             Origin = origin;
             Direction = direction;
@@ -49,6 +50,7 @@ namespace Game.Gameplay.Weapon
             Seed = seed;
             Pellets = pellets;
             Ads01 = ads01;
+            ShotSeconds = shotSeconds;
         }
     }
 
@@ -83,20 +85,12 @@ namespace Game.Gameplay.Weapon
         public WeaponStat Stat { get; private set; }
         public ActionSystem Actions => actionSystem;
         public bool IsInitialized => Runtime != null;
+        /// <summary>Read-only collision policy for cosmetic shot visibility queries.</summary>
+        public int ShotCollisionMask => hitMask.value;
 
-        /// <summary>Use the actual observed target's rendered tick for rewind. Individual
-        /// observer buffers can lag the session clock by a packet or two under jitter.</summary>
+        /// <summary>The whole displayed world uses one time, regardless of crosshair target.</summary>
         internal double DisplayTickForShot(Vector3 origin, Vector3 direction, double fallbackTick)
-        {
-            if (combatResolver == null || Runtime == null || direction.sqrMagnitude < .0001f)
-                return fallbackTick;
-            var hit = combatResolver.ProbeDisplayedShot(origin, direction, Stat.MaxRange,
-                hitMask.value, transform.root);
-            var target = hit.Target != null ? hit.Target.GetComponentInParent<NetworkCombatAuthority>() : null;
-            var adapter = target != null ? target.GetComponent<PlayerNetworkAdapter>() : null;
-            return adapter != null && adapter.TryGetPresentedTick(out double tick)
-                ? tick : fallbackTick;
-        }
+            => ObserverTimeline.Ready ? ObserverTimeline.PresentedTick : fallbackTick;
 
         /// <summary>当前装配是否含消音器（isSuppressor 配件）——WeaponAudioView 据此切换消音 Fire 池。</summary>
         public bool IsSuppressed
@@ -173,7 +167,7 @@ namespace Game.Gameplay.Weapon
 
         /// <summary>最近一次开火的权威几何证据（审计 §6.1；服务器侧有意义，离线/客户端为 default）。</summary>
         public Combat.FireEvidence LastFireEvidence
-            => combatResolver != null ? combatResolver.LastTwoStageEvidence : default;
+            => combatResolver != null ? combatResolver.LastFireEvidence : default;
 
         public event System.Action<WeaponShot> OnShotFired;
         public event System.Action OnDryFire;
@@ -191,6 +185,10 @@ namespace Game.Gameplay.Weapon
 
         private IBalanceConfig _balance;
         private WeaponRecoilState _recoil = new();        private readonly WeaponAccuracyState _accuracy = new();
+        private readonly WeaponAccuracyState _ballisticAccuracy = new();
+        private double _lastBallisticShot = double.NaN;
+        private double? _shotSecondsOverride;
+        private bool _triggerWasActive;
         private readonly AttachmentStatModifierSource _attachmentSource = new();   // 配件层（Priority=0，Docs/21 Phase D）
         private System.Random _random = new();     // 可播种（seed=0 随机）；弹道散布唯一随机源
         private int _seed;
@@ -266,9 +264,21 @@ namespace Game.Gameplay.Weapon
             if (Runtime.State == WeaponRuntimeState.Reloading)
                 Runtime.SyncReloadRemaining(actionSystem.Remaining);
 
-            if (!processLocalInput || input == null || input.WeaponInputBlocked) return;
+            if (!processLocalInput || input == null || input.WeaponInputBlocked)
+            { _triggerWasActive = false; Runtime.DiscardOverdueCooldown(); return; }
             bool wantsFire = definition.FireMode == WeaponFireMode.Automatic ? input.FireHeld : input.FirePressed;
-            if (wantsFire) TryFire();
+            if (!_triggerWasActive || !wantsFire) Runtime.DiscardOverdueCooldown();
+            if (wantsFire)
+            {
+                int limit = definition.FireMode == WeaponFireMode.Automatic ? 3 : 1;
+                for (int i = 0; i < limit && Runtime.CooldownRemaining <= 0f; i++)
+                {
+                    _shotSecondsOverride = Time.timeAsDouble + Math.Min(0f, Runtime.CooldownOffset);
+                    try { if (!TryFire()) break; }
+                    finally { _shotSecondsOverride = null; }
+                }
+            }
+            _triggerWasActive = wantsFire;
             if (input.ReloadPressed) TryReload();
         }
 
@@ -404,6 +414,16 @@ namespace Game.Gameplay.Weapon
 
             Runtime.ReconcileAuthoritativeAmmo(current, reserve, snapshot.ReloadState, snapshot.ReloadRemaining);
             Runtime.ApplyPredictedAmmoDebt(pending);
+            // A late Reloading snapshot can arrive after local completion. Restore its
+            // timer too, otherwise Runtime remains Reloading forever with no action to end it.
+            if (actionSystem != null)
+            {
+                if (Runtime.State == WeaponRuntimeState.Reloading && !actionSystem.IsBusy)
+                    actionSystem.TryStart(PlayerActionType.Reload, Runtime.ReloadRemaining);
+                else if (Runtime.State == WeaponRuntimeState.Ready
+                    && actionSystem.CurrentAction == PlayerActionType.Reload)
+                    actionSystem.Interrupt(ActionInterruptReason.AuthorityRejected);
+            }
             _ammoCacheByWeaponId[snapshot.WeaponId] = (Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
         }
@@ -432,6 +452,8 @@ namespace Game.Gameplay.Weapon
             // 硬重置（Docs/13 §5.3-4）：仅切枪；停火/换弹自然恢复
             _recoil.HardReset();
             _accuracy.HardReset();
+            _ballisticAccuracy.HardReset();
+            _lastBallisticShot = double.NaN;
             // 恢复目标枪自己的配件后再恢复弹药，避免扩容弹匣先被基础容量截断。
             // 首次装备仍为空；服务器装备回调继续用权威快照覆盖，不继承上一把枪的配件。
             _attachmentSource.Reset(_attachmentsByWeaponId.TryGetValue(next.WeaponId, out var savedAttachments)
@@ -477,7 +499,6 @@ namespace Game.Gameplay.Weapon
         /// </summary>
         private bool _serverAimOverride;
         private bool _serverCadenceValidated;
-        private Vector3? _serverMuzzleOverride, _serverBodyAnchorOverride;
         private Vector3 _serverAimOrigin, _serverAimDirection;
         private WeaponFireContext? _shotContextOverride;
         private int? _shotSeedOverride;
@@ -494,18 +515,30 @@ namespace Game.Gameplay.Weapon
 
         internal bool TryFireWithServerSnapshot(Vector3 origin, Vector3 direction,
             WeaponFireContext fireContext, int seed, LagCompRewindContext context,
-            Vector3? historicalMuzzle = null, Vector3? historicalBodyAnchor = null,
-            bool cadenceValidated = false)
+            bool cadenceValidated = false, double? shotSeconds = null)
         {
             _serverCadenceValidated = cadenceValidated;
             _shotContextOverride = fireContext;
             _shotSeedOverride = seed;
-            _serverMuzzleOverride = historicalMuzzle;
-            _serverBodyAnchorOverride = historicalBodyAnchor;
+            _shotSecondsOverride = shotSeconds;
             try { return TryFireWithServerAim(origin, direction, context); }
             finally { _shotContextOverride = null; _shotSeedOverride = null;
-                _serverMuzzleOverride = null; _serverBodyAnchorOverride = null; _serverCadenceValidated = false; }
+                _serverCadenceValidated = false; _shotSecondsOverride = null; }
         }
+        /// <summary>A legitimate locally predicted trigger contributes bloom even when its
+        /// damage request misses the history/input budget. Keep the subsequent sequence
+        /// deterministic without consuming authoritative ammo or emitting a shot/damage.</summary>
+        internal void AdvanceRejectedPrediction(double shotSeconds)
+        {
+            if (Runtime == null || !double.IsFinite(shotSeconds)
+                || !double.IsNaN(_lastBallisticShot) && shotSeconds <= _lastBallisticShot) return;
+            if (!double.IsNaN(_lastBallisticShot))
+                _ballisticAccuracy.Tick((float)(shotSeconds - _lastBallisticShot), Resolved);
+            _ballisticAccuracy.OnShot(Resolved);
+            _lastBallisticShot = shotSeconds;
+            _accuracy.CopyFrom(_ballisticAccuracy);
+        }
+
         internal bool IsPresentedOriginUnobstructed(Vector3 authoritativeOrigin, Vector3 displayedOrigin)
             => combatResolver != null && combatResolver.IsAimOriginUnobstructed(authoritativeOrigin,
                 displayedOrigin, hitMask.value, transform.root);
@@ -520,6 +553,29 @@ namespace Game.Gameplay.Weapon
         public bool TryFire(LagCompRewindContext rewindContext = default)
         {
             if (Runtime == null || actionSystem.IsBusy) return false;
+            Vector3 origin = _serverAimOverride ? _serverAimOrigin : AimOrigin;
+            Vector3 aimDirection = _serverAimOverride ? _serverAimDirection : AimDirection;
+            if (!_serverAimOverride && processLocalInput && Time.frameCount - _presentedFrame <= 1)
+            {
+                origin = _presentedOrigin;
+                aimDirection = _presentedDirection;
+            }
+            // This also covers host/direct fire: Unity rays starting inside a wall can
+            // otherwise miss that wall. Reject before ammo, recoil and shot events.
+            if (!IsPresentedOriginUnobstructed(origin, origin)) return false;
+            var adapter = GetComponent<PlayerNetworkAdapter>();
+            if (!_serverAimOverride && adapter != null && adapter.NetworkObject != null
+                && adapter.NetworkObject.IsSpawned)
+            {
+                Vector3 anchor = Game.Gameplay.Player.LeanProfile.Eye(transform.root.position,
+                    transform.root.rotation, 0f);
+                if (!IsPresentedOriginUnobstructed(anchor, AimOrigin)
+                    || !IsPresentedOriginUnobstructed(AimOrigin, origin)) return false;
+            }
+            var hostAuthority = GetComponent<NetworkCombatAuthority>();
+            if (!_serverAimOverride && FishNetLifecycleGuard.CanSubmitRpc(hostAuthority)
+                && hostAuthority.IsServerInitialized && hostAuthority.IsOwnerPlayer)
+                return hostAuthority.TryHostFire(origin, aimDirection, _shotSecondsOverride ?? Time.timeAsDouble);
             if (!Runtime.TryConsumeRound(_serverAimOverride && _serverCadenceValidated))
             {
                 if (!Runtime.HasAmmo) OnDryFire?.Invoke();
@@ -531,14 +587,14 @@ namespace Game.Gameplay.Weapon
             // 五步顺序（Docs/13 §5.3-5）
             // ① 开火前状态算弹道：权威瞄准 + 动态散布锥（腰射/ADS/移动/冲刺/Bloom 均已合成）
             var ctx = _shotContextOverride ?? FireContext;
-            float spreadDeg = _accuracy.CurrentSpread(ctx, Resolved);
-            Vector3 origin = _serverAimOverride ? _serverAimOrigin : AimOrigin;
-            Vector3 aimDirection = _serverAimOverride ? _serverAimDirection : AimDirection;
-            if (!_serverAimOverride && processLocalInput && Time.frameCount - _presentedFrame <= 1)
-            {
-                origin = _presentedOrigin;
-                aimDirection = _presentedDirection;
-            }
+            double shotSeconds = _shotSecondsOverride ?? Time.timeAsDouble;
+            var localAim = GetComponent<Game.Gameplay.Player.PlayerAimState>();
+            if (!_shotContextOverride.HasValue && localAim != null && !localAim.DebugAdsOverride.HasValue)
+                ctx = new WeaponFireContext(localAim.AdsAt(shotSeconds), ctx.HorizontalSpeed01,
+                    ctx.IsSprinting, ctx.IsGrounded, ctx.IsCrouching);
+            if (!double.IsNaN(_lastBallisticShot))
+                _ballisticAccuracy.Tick((float)Math.Max(0, shotSeconds - _lastBallisticShot), Resolved);
+            float spreadDeg = _ballisticAccuracy.CurrentSpread(ctx, Resolved);
             int? shotSeed = _shotSeedOverride;
             var networkAuthority = GetComponent<NetworkCombatAuthority>();
             if (!shotSeed.HasValue && FishNetLifecycleGuard.CanSubmitRpc(networkAuthority) && networkAuthority.IsOwnerPlayer
@@ -547,22 +603,12 @@ namespace Game.Gameplay.Weapon
             var shotRandom = shotSeed.HasValue ? new System.Random(shotSeed.Value) : _random;
 
             // ② 命中结算（含 Shotgun 多弹丸：主方向一次取样，每弹丸围绕主方向独立 PelletSpread 锥，聚合单次广播）
-            // I4a/P4：服务器路径走两段权威命中（相机候选→逻辑枪口遮挡验证→身体锚点防伸墙，同回溯窗口单次伤害）；
-            // 客户端预测/离线保持单段相机射线（不改客户端命中权威语义）。
+            // One camera-ray geometry on client, host, offline and dedicated server.
+            // Pure client prediction can display a hit but cannot mutate target health.
             var serverObject = GetComponentInParent<FishNet.Object.NetworkObject>();
-            bool serverTwoStage = serverObject != null && serverObject.IsServerInitialized;
-            // F01（2026-09-19 审计）：仅服务器权威结算把射手传入伤害链——击杀归因在
-            // DamageableTarget.ApplyDamage 的"伤害实际被结算"点登记（先于 OnDied），
-            // 离线/客户端预测传 null 不进注册表；霰弹逐 pellet 传入 → 多目标各归其位。
-            var attributionSource = serverTwoStage
-                ? GetComponentInParent<Game.Gameplay.Network.NetworkCombatAuthority>()
-                : null;
-            var locomotorForLean = GetComponentInParent<Game.Gameplay.Movement.Locomotor>();
-            float leanForShot = locomotorForLean != null ? locomotorForLean.Lean.Amount : 0f;
-            Vector3 logicalMuzzle = _serverMuzzleOverride ?? Game.Gameplay.Player.LeanProfile.Muzzle(
-                transform.root.position, transform.root.rotation, leanForShot);
-            Vector3 bodyAnchor = _serverBodyAnchorOverride ?? Game.Gameplay.Player.LeanProfile.BodyAnchor(
-                transform.root.position, transform.root.rotation, leanForShot);
+            bool serverAuthority = _serverAimOverride || serverObject != null && serverObject.IsServerInitialized;
+            bool applyDamage = serverAuthority || serverObject == null || !serverObject.IsClientInitialized;
+            var attributionSource = serverAuthority ? GetComponentInParent<NetworkCombatAuthority>() : null;
 
             HitscanResult[] pellets = null;
             HitscanResult result;
@@ -577,11 +623,8 @@ namespace Game.Gameplay.Weapon
                     Vector3 dir = ApplySpread(mainDirection, Stat.Ballistic.PelletSpread, shotRandom);
                     // The shotgun's Damage is the total shell budget, not damage per pellet.
                     int pelletDamage = Stat.Damage / pelletCount + (i < Stat.Damage % pelletCount ? 1 : 0);
-                    pellets[i] = serverTwoStage
-                        ? combatResolver.ResolveHitscanTwoStage(
-                            origin, dir, Stat.MaxRange, pelletDamage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
-                        : combatResolver.ResolveHitscan(
-                            origin, dir, Stat.MaxRange, pelletDamage, hitMask.value, transform.root, attributionSource);
+                    pellets[i] = combatResolver.ResolveCameraHitscan(origin, dir, Stat.MaxRange,
+                        pelletDamage, hitMask.value, transform.root, rewindContext, attributionSource, applyDamage);
                     if (primary == null && pellets[i].Damaged) primary = pellets[i];
                     if (firstHit == null && pellets[i].Hit) firstHit = pellets[i];
                 }
@@ -589,20 +632,19 @@ namespace Game.Gameplay.Weapon
             }
             else
             {
-                result = serverTwoStage
-                    ? combatResolver.ResolveHitscanTwoStage(
-                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, logicalMuzzle, bodyAnchor, rewindContext, attributionSource)
-                    : combatResolver.ResolveHitscan(
-                        origin, mainDirection, Stat.MaxRange, Stat.Damage, hitMask.value, transform.root, attributionSource);
+                result = combatResolver.ResolveCameraHitscan(origin, mainDirection, Stat.MaxRange,
+                    Stat.Damage, hitMask.value, transform.root, rewindContext, attributionSource, applyDamage);
             }
 
             // ③ Bloom 累计（影响下一发）
-            _accuracy.OnShot(Resolved);
+            _ballisticAccuracy.OnShot(Resolved);
+            _lastBallisticShot = shotSeconds;
+            _accuracy.CopyFrom(_ballisticAccuracy);
             // ④ 后坐冲量（影响下一发；产出本发完整结果供表现消费）
             var recoil = _recoil.OnShot(ctx, Resolved);
             // ⑤ 单次广播（FiredDirection=本发实际弹道方向，拖尾/表现消费；Direction 保持瞄准语义）
             OnShotFired?.Invoke(new WeaponShot(origin, aimDirection, mainDirection, result,
-                spreadDeg, recoil, recoil.ShotIndex, shotSeed ?? _seed, pellets, ctx.Ads01));
+                spreadDeg, recoil, recoil.ShotIndex, shotSeed ?? _seed, pellets, ctx.Ads01, shotSeconds));
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             if (debugRecoil)
                 Debug.Log($"[Recoil] {definition.WeaponId} #{recoil.ShotIndex} kick=({recoil.PitchKickDeg:F2}°, {recoil.YawKickDeg:F2}°) " +
@@ -621,6 +663,7 @@ namespace Game.Gameplay.Weapon
                 return false;
             }
             OnReloadStarted?.Invoke();
+            if (!_serverAimOverride) GetComponent<NetworkCombatAuthority>()?.SubmitReloadRequest();
             return true;
         }
 

@@ -376,6 +376,19 @@ namespace Game.EditorTools
                 : path.Contains("crate_") || path.Contains("sandbags_") ? olive : sand;
             foreach (var renderer in go.GetComponentsInChildren<Renderer>(true))
                 renderer.sharedMaterials = Enumerable.Repeat(surface, renderer.sharedMaterials.Length).ToArray();
+            // This tent has open sides. A bounds box fills those openings and blocks
+            // eye-authoritative shots, so use the visible mesh for its collision.
+            if (path == "Environments/tent_01")
+            {
+                var filter = go.GetComponent<MeshFilter>();
+                if (filter == null || filter.sharedMesh == null)
+                    throw new InvalidOperationException("Tent mesh is required for collision.");
+                var meshCollider = go.GetComponent<MeshCollider>();
+                if (meshCollider == null) meshCollider = go.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = filter.sharedMesh;
+                meshCollider.convex = false;
+                return go;
+            }
             if (go.GetComponentInChildren<Collider>(true) == null)
             {
                 var bounds = go.GetComponentsInChildren<Renderer>(true).Select(r => r.bounds).ToArray();

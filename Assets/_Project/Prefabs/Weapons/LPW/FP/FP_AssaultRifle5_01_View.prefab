@@ -229,6 +229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slot: 1
+  geometryVerified: 0
 --- !u!1 &265962722267060483
 GameObject:
   m_ObjectHideFlags: 0
@@ -1035,7 +1036,8 @@ Transform:
   m_LocalPosition: {x: -0.76018465, y: 0.02652283, z: 0.0036824942}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 6482591526085362477}
   m_Father: {fileID: 33095349532659111}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3586277546448669517
@@ -1412,6 +1414,37 @@ Transform:
   - {fileID: 2531917954551246208}
   m_Father: {fileID: 6942177414518455871}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4460491745200515020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6482591526085362477}
+  m_Layer: 0
+  m_Name: MuzzleExit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6482591526085362477
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4460491745200515020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1627059328373838039}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4621929750767414037
 GameObject:
   m_ObjectHideFlags: 0
@@ -1774,6 +1807,10 @@ MonoBehaviour:
   actionFadeSeconds: 0.12
   aimFadeSeconds: 0.08
   aimPoseFadeSeconds: 0.05
+  throwablePresentationClip: {fileID: 7400000, guid: bdcf1216968aeff45ac7c5df15db1b92, type: 2}
+  throwablePrepareClip: {fileID: 7400000, guid: bfd241a1e961abd459e651aa0e9e2b4a, type: 2}
+  throwViewLocalPosition: {x: 0, y: -0.09, z: 0.18}
+  throwViewLocalEuler: {x: 0, y: 0, z: 0}
 --- !u!114 &8745579234268254254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1788,6 +1825,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controller: {fileID: 0}
   muzzle: {fileID: 1627059328373838039}
+  tracerMuzzleInsetMeters: 0
+  hasCalibratedBarrelTip: 0
+  barrelTipMuzzleLocal: {x: 0, y: 0, z: 0}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

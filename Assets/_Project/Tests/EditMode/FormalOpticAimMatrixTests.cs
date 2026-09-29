@@ -145,10 +145,8 @@ namespace Game.Tests.EditMode
                     AssertFinite(position, Key(WeaponIds[wi], optic) + " mount position");
                     AssertFinite(rotation, Key(WeaponIds[wi], optic) + " mount rotation");
                     Assert.That(socket.GetComponent<AttachmentSocket>().GeometryVerified, Is.True);
-                    Assert.That(position, Is.EqualTo(Vector3.zero), Key(WeaponIds[wi], optic));
-                    Assert.That(rotation, Is.EqualTo(Vector3.zero), Key(WeaponIds[wi], optic));
-                    Assert.That(authorFrame, Is.EqualTo(default(Quaternion)),
-                        "Gun-relative socket frames now correspond without root-space conjugation.");
+                    Game.Gameplay.Tests.AttachmentMountMatrixTests.AssertMountContract(
+                        WeaponIds[wi], optic, position, rotation, authorFrame);
                 }
             }
 

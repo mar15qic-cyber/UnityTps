@@ -12,7 +12,7 @@ namespace Game.Gameplay.Network
     public static class LagCompensationConfig
     {
         /// <summary>回溯窗口上限（毫秒）。超出窗口的命中请求裁剪到最老可用快照。</summary>
-        public const int MaxRewindMs = 200;
+        public const int MaxRewindMs = (int)(ShotTimingPolicy.MaxHistorySeconds * 1000);
         /// <summary>窗口外历史保留余量（tick 数），防边界抖动导致空窗。</summary>
         public const int WindowMarginTicks = 4;
     }
@@ -184,7 +184,8 @@ namespace Game.Gameplay.Network
             if (nm == null || !nm.IsServerStarted) return;
             uint tick = _timeManager != null ? _timeManager.Tick : 0;
             foreach (var player in _players)
-                if (player.Root != null) player.Root.GetComponent<PlayerNetworkAdapter>()?.PinTpModelToRootForServer();
+                if (player.Root != null) player.Root.GetComponent<PlayerNetworkAdapter>()?.PrepareTpPoseForServerTick(
+                    _timeManager != null ? (float)_timeManager.TickDelta : 1f / 30f);
             Capture(tick);
             AfterCapture?.Invoke();
             if (PublicTestTelemetry.Enabled) PublicTestTelemetry.Write(new PublicTestTelemetry.Record { kind = "server-tick-total", serverTick = tick,

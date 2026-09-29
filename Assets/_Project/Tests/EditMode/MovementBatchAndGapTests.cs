@@ -265,7 +265,7 @@ namespace Game.Gameplay.Tests
         /// （客户端冻结不预测、服务器空 tick 不模拟 → 误差恒 0，旧实现的 0.9m+ 虚假 SNAP 消失）。
         /// </summary>
         [Test]
-        public void AdvanceServerInputs_EmptyQueue_HoldsPosition_NoSimulation()
+        public void AdvanceServerInputs_EmptyQueue_ContinuesGravityWithoutInventingInputAck()
         {
             var (adapter, queue, root, advance) = SpawnServerSim();
             Vector3 initial = root.position;
@@ -280,10 +280,11 @@ namespace Game.Gameplay.Tests
             for (int i = 0; i < 3; i++)
             {
                 Advance(adapter, advance);
-                Assert.That(root.position, Is.EqualTo(afterMove).Within(1e-6f),
-                    $"空 tick {i + 1}：保持位姿，不得外推/空命令模拟");
+                Assert.That(root.position.y, Is.LessThan(afterMove.y), "停止输入不能悬空");
+                afterMove = root.position;
             }
-            Assert.That(queue.ConsecutiveEmptyTicks, Is.EqualTo(3), "空 tick 只计数不模拟");
+            Assert.That(queue.ConsecutiveEmptyTicks, Is.EqualTo(3));
+            Assert.That(queue.LastProcessedTick, Is.EqualTo(1u), "重力步不伪造输入确认");
         }
 
         /// <summary>
@@ -298,15 +299,102 @@ namespace Game.Gameplay.Tests
                 queue.Enqueue(new MovementCommand(new Vector2(0f, 1f), false, false, 0f, 0f, t));
 
             Advance(adapter, advance);
-            Assert.That(queue.LastProcessedTick, Is.EqualTo(3u), "单 tick 有限追赶 = ServerMaxCatchUpPerTick");
+            Assert.That(queue.LastProcessedTick, Is.EqualTo(8u), "旧5步退休，最新4步只模拟3步，不伪造额外时间");
+            Assert.That(queue.ConsumedTotal, Is.EqualTo(3));
+            Assert.That(queue.DroppedBacklog, Is.EqualTo(5));
             Advance(adapter, advance);
-            Assert.That(queue.LastProcessedTick, Is.EqualTo(6u));
-            Advance(adapter, advance);
-            Assert.That(queue.LastProcessedTick, Is.EqualTo(9u), "9 条积压 3 tick 内清空");
+            Assert.That(queue.LastProcessedTick, Is.EqualTo(9u));
+            Assert.That(queue.ConsumedTotal, Is.EqualTo(4), "借用的两步不能每 tick 重置");
             Assert.That(queue.ConsecutiveEmptyTicks, Is.EqualTo(0));
 
             Advance(adapter, advance);
             Assert.That(queue.ConsecutiveEmptyTicks, Is.EqualTo(1), "清空后的下一个空 tick 走 hold");
+        }
+
+        [Test]
+        public void ContinuousInput_AfterStall_DoesNotKeepPermanentEightTickTail()
+        {
+            var (adapter, queue, _, advance) = SpawnServerSim();
+            queue.Enqueue(Cmd(1)); Advance(adapter, advance);
+            for (int i = 0; i < 12; i++) Advance(adapter, advance);
+            for (uint tick = 2; tick <= 12; tick++) queue.Enqueue(Cmd(tick));
+            long consumedBefore = queue.ConsumedTotal;
+            for (uint tick = 13; tick < 103; tick++)
+            {
+                queue.Enqueue(Cmd(tick));
+                Advance(adapter, advance);
+                Assert.That(tick - queue.LastProcessedTick, Is.LessThanOrEqualTo(3));
+                Assert.That(queue.Count, Is.LessThanOrEqualTo(3));
+                Assert.That(queue.ConsumedTotal - consumedBefore, Is.LessThanOrEqualTo(tick - 12 + 2));
+            }
+            Assert.That(queue.DroppedBacklog, Is.GreaterThan(0));
+            Assert.That(queue.SkippedTicks, Is.EqualTo(queue.DroppedBacklog));
+        }
+
+        [Test]
+        public void TrimBacklog_PreservesLookButDoesNotReplayOldJumpOrMovement()
+        {
+            var queue = new ServerInputQueue();
+            var output = new List<MovementCommand>();
+            queue.Enqueue(Cmd(1)); queue.Drain(1, output);
+            for (uint tick = 2; tick <= 9; tick++)
+                queue.Enqueue(new MovementCommand(Vector2.one.normalized, false, tick == 2, 2f, 3f, tick));
+            Assert.That(queue.TrimSimulationBacklog(4), Is.EqualTo(4));
+            Assert.That(queue.Drain(1, output), Is.EqualTo(1));
+            Assert.That(output[0].Tick, Is.EqualTo(6u));
+            Assert.That(output[0].YawDelta, Is.EqualTo(10f));
+            Assert.That(output[0].PitchDelta, Is.EqualTo(15f));
+            Assert.That(output[0].Jump, Is.False);
+            Assert.That(queue.LastDrainGap, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void ServerSimulationBudget_SustainedBurstHasOnlyBoundedLifetimeLead()
+        {
+            var budget = new ServerSimulationBudget();
+            int total = 0;
+            for (int tick = 1; tick <= 900; tick++)
+            {
+                int count = budget.BeginTick();
+                budget.Consume(count);
+                total += count;
+                Assert.That(total, Is.LessThanOrEqualTo(tick + 2));
+            }
+            Assert.That(total, Is.EqualTo(902));
+        }
+
+        [Test]
+        public void ServerSimulationBudget_IdleRepaysBurstBeforeAdvancingGravity()
+        {
+            var budget = new ServerSimulationBudget();
+            budget.Consume(budget.BeginTick());
+            budget.BeginTick(); Assert.That(budget.TryConsumeIdle(), Is.False);
+            budget.BeginTick(); Assert.That(budget.TryConsumeIdle(), Is.False);
+            Assert.That(budget.IdleStepsSinceInput, Is.Zero, "Waiting to repay lead does not advance physics");
+            budget.BeginTick(); Assert.That(budget.TryConsumeIdle(), Is.True);
+            Assert.That(budget.IdleStepsSinceInput, Is.EqualTo(1));
+            Assert.That(budget.BeginTick(), Is.EqualTo(3), "repayment restores bounded catchup");
+            budget.Consume(1);
+            Assert.That(budget.IdleStepsSinceInput, Is.Zero);
+        }
+
+        [Test]
+        public void EnqueueServerInputBatch_RejectsOversizeAndNonFinitePayloadsAtomically()
+        {
+            var (adapter, queue, _, _) = SpawnServerSim();
+            var enqueue = typeof(PlayerNetworkAdapter).GetMethod("EnqueueServerInputBatch", Any);
+            var oversized = new MovementCommand[MovementPredictionConfig.ClientBatchMaxCommands + 1];
+            for (int i = 0; i < oversized.Length; i++) oversized[i] = Cmd((uint)i + 1);
+            enqueue.Invoke(adapter, new object[] { oversized });
+            Assert.That(queue.Count, Is.Zero);
+            var invalid = Cmd(2); invalid.Move.x = float.NaN;
+            enqueue.Invoke(adapter, new object[] { new[] { Cmd(1), invalid } });
+            Assert.That(queue.Count, Is.Zero, "valid prefix must not partially enter the queue");
+            invalid = Cmd(1); invalid.PitchDelta = float.PositiveInfinity;
+            queue.Enqueue(invalid);
+            invalid = Cmd(1); invalid.Ads01 = -1;
+            queue.Enqueue(invalid);
+            Assert.That(queue.Count, Is.Zero);
         }
 
         /// <summary>

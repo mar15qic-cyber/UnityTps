@@ -43,8 +43,8 @@ public static class ThrowableContentBuilder
         catalog.Flash = Load<ThrowableDefinition>(ResourceRoot + "/Throwable_Flash.asset");
         catalog.Smoke = Load<ThrowableDefinition>(ResourceRoot + "/Throwable_Smoke.asset");
         catalog.NetworkProjectilePrefab = projectile;
-        if (catalog.ReleaseDelaySeconds <= 0f) catalog.ReleaseDelaySeconds = 0.15f;
-        if (catalog.ThrowActionSeconds <= catalog.ReleaseDelaySeconds) catalog.ThrowActionSeconds = 0.5f;
+        if (catalog.ReleaseDelaySeconds <= 0f) catalog.ReleaseDelaySeconds = 0.35f;
+        if (catalog.ThrowActionSeconds <= catalog.ReleaseDelaySeconds) catalog.ThrowActionSeconds = 1.15f;
         EditorUtility.SetDirty(catalog);
         BuildAudioConfig();
         BindWeaponAssets();

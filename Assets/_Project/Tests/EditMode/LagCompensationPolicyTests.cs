@@ -155,9 +155,10 @@ namespace Game.Gameplay.Tests
             int window = manager.RewindWindowTicks;
 
             Assert.That(manager.TryBeginRewind(1), Is.False, "Old requests cannot consume storage margin");
-            Assert.That(manager.TryBeginRewind(23), Is.False, "7 ticks at 30Hz exceeds 200ms");
-            Assert.That(manager.TryBeginRewind(24), Is.True);
-            Assert.That(hitbox.position.x, Is.EqualTo(24));
+            uint oldest = 30 - (uint)(30 * ShotTimingPolicy.MaxHistorySeconds);
+            Assert.That(manager.TryBeginRewind(oldest - 1), Is.False, "storage margin is not compensation budget");
+            Assert.That(manager.TryBeginRewind(oldest), Is.True);
+            Assert.That(hitbox.position.x, Is.EqualTo(oldest));
             manager.EndRewind();
             Assert.That(hitbox.position.x, Is.EqualTo(30));
         }

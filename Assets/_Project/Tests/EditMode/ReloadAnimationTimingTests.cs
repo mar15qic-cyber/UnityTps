@@ -84,6 +84,7 @@ namespace Game.Gameplay.Tests
             var stat = balance.GetWeaponStat(definition.WeaponId);
 
             var root = new GameObject("ReloadAnimationTimingTest");
+            root.transform.position = new Vector3(4800, 4800, 4800);
             try
             {
                 var actions = root.AddComponent<Game.Gameplay.Action.ActionSystem>();
@@ -92,6 +93,7 @@ namespace Game.Gameplay.Tests
                 SetPrivateField(controller, "actionSystem", actions);
                 SetPrivateField(controller, "combatResolver", combat);
                 SetPrivateField(controller, "processLocalInput", false);
+                SetPrivateField(controller, "aimPivot", root.transform);
                 controller.Initialize(definition, balance);
 
                 Assert.That(controller.TryFire(), Is.True, definition.name + " must fire for the reload setup");

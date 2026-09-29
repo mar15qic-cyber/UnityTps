@@ -10,6 +10,29 @@ namespace Game.Gameplay.Tests
     /// </summary>
     public sealed class MatchLifecycleRulesTests
     {
+        [Test]
+        public void LateJoinSnapshot_InitializesPhaseRulesTeamsAndMatchIdentity()
+        {
+            var host = new UnityEngine.GameObject("LifecycleSnapshotTest");
+            try
+            {
+                var lifecycle = host.AddComponent<MatchLifecycle>();
+                var payload = new MatchScoreboardPayload { matchId = "late-match", phase = MatchPhase.InProgress,
+                    mode = MatchRules.ModeTdm, killTarget = 50, timeLimitSeconds = 600, redKills = 12, blueKills = 9 };
+                typeof(MatchLifecycle).GetMethod("MirrorFromEvent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(lifecycle, new object[] { MatchEventKind.ScoreboardSnapshot, UnityEngine.JsonUtility.ToJson(payload) });
+                Assert.AreEqual(MatchPhase.InProgress, MatchLifecycle.Phase);
+                Assert.IsFalse(MatchLifecycle.InputFrozen);
+                Assert.IsTrue(MatchLifecycle.IsTeamMatch());
+                Assert.AreEqual("late-match", MatchLifecycle.ClientMatchId);
+                Assert.AreEqual(600, MatchLifecycle.TimeLimitSeconds);
+                Assert.AreEqual(50, MatchLifecycle.TargetKills);
+                Assert.AreEqual(12, MatchLifecycle.RedScore);
+                Assert.AreEqual(9, MatchLifecycle.BlueScore);
+                lifecycle.ResetMirrorState();
+            }
+            finally { UnityEngine.Object.DestroyImmediate(host); }
+        }
         // ---- EvaluateWinner：20 杀即时终局 ----
 
         [Test]

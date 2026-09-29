@@ -58,12 +58,21 @@ namespace Game.Gameplay.Tests
                     if(prefab==w.definition.FirstPersonViewPrefab)w.definition.FirstPersonAnimations.AimIdle.SampleAnimation(root,0);
                     var socket=view.GetSocketTransform(AttachmentSlotType.Optic);
                     var optic=view.FindSpawned(entry.itemId);
+                    if (!AttachmentCompatibilityPolicy.IsAllowed(id, entry))
+                    {
+                        Assert.That(optic, Is.Null, id + " must reject unsupported optic " + entry.itemId);
+                        continue;
+                    }
+                    Assert.That(optic, Is.Not.Null, id + " supported optic " + entry.itemId);
                     var body=Triangles(root,socket,optic,false);var attachment=Triangles(root,socket,optic,true);
                     int contacts=0;
+                    var calibratedSection = optic.localPosition - entry.mountOffset;
                     // Inner clamp ceiling: exclude the +/-20 mm bevel and locking lug,
                     // which extend into rail slots rather than defining the seating plane.
                     foreach(float x in new[]{-.013f,-.006f,0,.006f,.013f}) {
-                        float seat=Intersect(attachment,x,0,true), support=Intersect(body,x,0,false);
+                        // Measure the translated inner ceiling, not its sloped edge at the old socket datum.
+                        float seat=Intersect(attachment,x+calibratedSection.x,calibratedSection.z,true);
+                        float support=Intersect(body,x+calibratedSection.x,calibratedSection.z,false);
                         Assert.That(float.IsFinite(seat)&&float.IsFinite(support),Is.True,id+" missing footprint");
                         float gap=seat-support;
                         Assert.That(gap,Is.InRange(-.001f,.0036f),id+" "+entry.itemId+" "+prefab.name+" footprint gap");
@@ -154,7 +163,8 @@ namespace Game.Gameplay.Tests
                 .OrderByDescending(m=>m.sharedMesh.vertexCount).First();
             var vertices=body.sharedMesh.vertices.Select(v=>root.transform.InverseTransformPoint(body.transform.TransformPoint(v))).ToArray();
             float front=vertices.Max(v=>v.z);
-            var section=vertices.Where(v=>v.z>=front-.003f).ToArray();
+            // The M4 has a slanted crown: only its bottom tooth reaches the front plane.
+            var section=vertices.Where(v=>v.z>=front-(id=="weapon.m4"?.03f:.003f)).ToArray();
             Vector3 center=root.transform.InverseTransformPoint(socket.transform.position);
             Assert.That(center.z,Is.EqualTo(front).Within(.001f),id+" suppressor behind or ahead of muzzle");
             Assert.That(center.x,Is.InRange(section.Min(v=>v.x)-.002f,section.Max(v=>v.x)+.002f),id+" lateral axis");

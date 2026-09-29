@@ -39,6 +39,9 @@ namespace Game.Gameplay.Player
         private ActionSystem _actions;
         private WeaponController _weapon;
         private bool? _remoteAimIntent;
+        private readonly Game.Gameplay.Network.CombatAimTimeline _timeline = new();
+        private bool? _timelineTarget;
+        internal float AdsAt(double seconds) => _timeline.Evaluate(seconds, adsTransitionSeconds);
 
         public void SetRemoteAimIntent(bool wantsAim) => _remoteAimIntent = wantsAim;
         public void ClearRemoteAimIntent() => _remoteAimIntent = null;
@@ -69,10 +72,15 @@ namespace Game.Gameplay.Player
                 _input?.ResetAimToggle();
             }
             float target = wantsAim && actionFree ? 1f : 0f;
-            float speed = adsTransitionSeconds <= 0f
-                ? Mathf.Infinity
-                : Time.deltaTime / adsTransitionSeconds;
-            Ads01 = Mathf.MoveTowards(Ads01, target, speed);
+            bool aimTarget = target > 0f;
+            if (_timelineTarget != aimTarget)
+            {
+                _timelineTarget = aimTarget;
+                double started = System.Math.Max(0, Time.timeAsDouble - Time.deltaTime);
+                _timeline.SetTarget(aimTarget, started, adsTransitionSeconds);
+                GetComponent<Game.Gameplay.Network.NetworkCombatAuthority>()?.SubmitAimIntentAt(aimTarget, started);
+            }
+            Ads01 = AdsAt(Time.timeAsDouble);
             if (DebugAdsOverride.HasValue) Ads01 = Mathf.Clamp01(DebugAdsOverride.Value);
 
             // FOV/灵敏度求值（AdsFovMath 共享公式）：瞄具分档覆盖优先于武器默认 AdsFov。

@@ -8,7 +8,7 @@ namespace Game.Gameplay.Tests
     public sealed class DragunovAlignmentTests
     {
         [Test]
-        public void FirstPersonSightFollowsWeaponAndTracerBeginsAtVisibleSilencerTip()
+        public void FirstPersonSightFollowsWeaponAndTracerBeginsAtBareBarrelTip()
         {
             const string path = "Assets/_Project/Prefabs/Weapons/FP_Sniper03_View.prefab";
             var root = PrefabUtility.LoadPrefabContents(path);
@@ -34,7 +34,7 @@ namespace Game.Gameplay.Tests
                 Assert.That(Mathf.Abs(eyeRoot.y - sightRoot.y), Is.LessThan(.015f),
                     "Built-in optic calibration must share the visible scope axis");
                 var silencer = System.Array.Find(root.GetComponentsInChildren<SkinnedMeshRenderer>(true),
-                    renderer => renderer.name == "silencer");
+                    renderer => renderer.name == "sniper_03" || renderer.name == "sniper_rifle_03");
                 Assert.That(silencer, Is.Not.Null);
                 var mesh = new Mesh();
                 try
@@ -44,7 +44,11 @@ namespace Game.Gameplay.Tests
                     foreach (var vertex in mesh.vertices)
                         front = Mathf.Max(front, root.transform.InverseTransformPoint(
                             silencer.transform.TransformPoint(vertex)).z);
-                    float tracerZ = root.transform.InverseTransformPoint(muzzle.position).z;
+                    var view = root.GetComponent<Game.Presentation.Weapon.WeaponView>();
+                    var start = (Vector3)typeof(Game.Presentation.Weapon.WeaponView).GetMethod("ResolveTracerStart",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                        null, System.Type.EmptyTypes, null).Invoke(view, null);
+                    float tracerZ = root.transform.InverseTransformPoint(start).z;
                     Assert.That(Mathf.Abs(tracerZ - front), Is.LessThan(.015f),
                         "First person muzzle marker must sit on the visible outlet");
                 }
@@ -65,7 +69,10 @@ namespace Game.Gameplay.Tests
                 Assert.That(muzzle, Is.Not.Null);
                 Assert.That(body, Is.Not.Null);
                 float tracerZ = root.transform.InverseTransformPoint(muzzle.position).z;
-                float front = root.transform.InverseTransformPoint(body.bounds.max).z;
+                var filter = body.GetComponent<MeshFilter>();
+                float front = float.NegativeInfinity;
+                foreach (var vertex in filter.sharedMesh.vertices)
+                    front = Mathf.Max(front, root.transform.InverseTransformPoint(filter.transform.TransformPoint(vertex)).z);
                 Assert.That(Mathf.Abs(tracerZ - front), Is.LessThan(.015f));
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }

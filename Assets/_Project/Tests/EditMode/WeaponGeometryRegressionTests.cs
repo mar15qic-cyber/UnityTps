@@ -47,7 +47,10 @@ namespace Game.Gameplay.Tests
                     var gun = muzzle.parent;
                     var bounds = new Bounds(gun.InverseTransformPoint(renderer.transform.TransformPoint(vertices[ring[0]])), Vector3.zero);
                     foreach (int i in ring) bounds.Encapsulate(gun.InverseTransformPoint(renderer.transform.TransformPoint(vertices[i])));
-                    Assert.That(Vector3.Distance(gun.TransformPoint(bounds.center), muzzle.position),
+                    var tracerStart = (Vector3)typeof(WeaponView).GetMethod("ResolveTracerStart",
+                        BindingFlags.Instance | BindingFlags.NonPublic, null, System.Type.EmptyTypes, null)
+                        .Invoke(root.GetComponent<WeaponView>(), null);
+                    Assert.That(Vector3.Distance(gun.TransformPoint(bounds.center), tracerStart),
                         Is.LessThan(.0015f), name + " " + clip.name + " @" + fraction);
                 }
             }
@@ -95,6 +98,9 @@ namespace Game.Gameplay.Tests
         public void ActualOwnerTracer_OneLineFollowsMovedMuzzle_AndProjectsToWallHit()
         {
             var root = new GameObject("TracerWorldCamera");
+            // Clear the lobby's floor/preview geometry without introducing large-coordinate
+            // float precision loss into this projection test.
+            root.transform.position = new Vector3(0, 10, 0);
             WeaponView view = null;
             try
             {
@@ -110,7 +116,7 @@ namespace Game.Gameplay.Tests
                 view = gun.AddComponent<WeaponView>();
                 Set(view, "muzzle", gun.transform);
                 Invoke(view, "BuildEffects");
-                var hit = new Vector3(0, 0, 20);
+                var hit = root.transform.position + new Vector3(0, 0, 20);
                 Invoke(view, "SpawnTracer", gun.transform.position, hit, 1u);
                 for (int frame = 0; frame < 4; frame++)
                 {

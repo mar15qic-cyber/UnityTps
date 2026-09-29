@@ -41,9 +41,17 @@ namespace Game.Gameplay.Weapon
         public void Tick(float deltaTime, in ResolvedWeaponStats s)
         {
             if (deltaTime <= 0f) return;
+            float previous = TimeSinceLastShot;
             TimeSinceLastShot += deltaTime;
-            if (TimeSinceLastShot > s.Stat.Accuracy.BloomRecoveryDelay && CurrentBloom > 0f)
-                CurrentBloom = Mathf.Max(0f, CurrentBloom - s.Stat.Accuracy.BloomRecoverySpeed * deltaTime);
+            float delay = s.Stat.Accuracy.BloomRecoveryDelay;
+            float recover = Mathf.Max(0f, TimeSinceLastShot - delay) - Mathf.Max(0f, previous - delay);
+            CurrentBloom = Mathf.Max(0f, CurrentBloom - s.Stat.Accuracy.BloomRecoverySpeed * recover);
+        }
+
+        internal void CopyFrom(WeaponAccuracyState other)
+        {
+            CurrentBloom = other.CurrentBloom;
+            TimeSinceLastShot = other.TimeSinceLastShot;
         }
 
         /// <summary>硬重置：仅切枪/死亡/组件禁用。</summary>

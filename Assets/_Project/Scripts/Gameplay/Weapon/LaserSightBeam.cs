@@ -149,7 +149,8 @@ namespace Game.Gameplay.Weapon
                 foreach (var filter in GetComponentsInChildren<MeshFilter>())
                 {
                     if (filter.sharedMesh == null) continue;
-                    foreach (var vertex in filter.sharedMesh.vertices)
+                    var mesh = filter.sharedMesh;
+                    foreach (var vertex in mesh.isReadable ? mesh.vertices : BoundsCorners(mesh.bounds))
                         vertices.Add(transform.InverseTransformPoint(filter.transform.TransformPoint(vertex)));
                 }
                 if (vertices.Count > 0)
@@ -164,6 +165,17 @@ namespace Game.Gameplay.Weapon
                 }
             }
             return transform.TransformPoint(_localCenter);
+        }
+
+        // Importers may discard CPU vertices in a player. Mesh bounds remain available;
+        // their front face is a deterministic device-local fallback without changing imports.
+        private static Vector3[] BoundsCorners(Bounds bounds)
+        {
+            var corners = new Vector3[8];
+            for (int i = 0; i < corners.Length; i++)
+                corners[i] = bounds.center + Vector3.Scale(bounds.extents,
+                    new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+            return corners;
         }
 
         /// <summary>沿器件轴向的世界命中点：从激光器原点沿挂点 -X 前向射线，取首个非自身命中；

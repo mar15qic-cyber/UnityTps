@@ -72,9 +72,9 @@ namespace Game.Gameplay.PlayModeTests
                 throwable.ResetOfflineInventory(); throwable.SelectNext();
                 float start = Time.time;
                 throwable.TryThrow(ThrowableType.Frag);
-                yield return new WaitForSeconds(.22f);
-                Assert.AreEqual(0, throwable.Count(ThrowableType.Frag), "release must not replay the equip wind-up");
-                Assert.Less(Time.time - start, .35f);
+                yield return new WaitForSeconds(throwable.ReleaseDelaySeconds + .07f);
+                Assert.AreEqual(0, throwable.Count(ThrowableType.Frag), "inventory must commit at the authored release");
+                Assert.Less(Time.time - start, throwable.ReleaseDelaySeconds + .2f);
                 yield return Capture("throw-release");
                 yield return new WaitForSeconds(2f);
 
@@ -106,13 +106,20 @@ namespace Game.Gameplay.PlayModeTests
         [UnityTest]
         public IEnumerator RejectedSessionReturnsToExplicitLoginNotice()
         {
+            bool createdApp = AppRoot.Instance == null;
             var app = AppRoot.Ensure();
+            app.AcknowledgeSessionExpired();
+            try
+            {
             app.Session.Apply(new Game.Account.AuthSessionDto { token = "rejected-test-session",
                 expiresAtUtc = System.DateTime.UtcNow.AddHours(1).ToString("O") });
             app.ApiClient.SetToken(app.Session.Token);
             typeof(AppRoot).GetMethod("RejectSession", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(app, new object[] { "rejected-test-session" });
-            yield return null;
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while (Time.realtimeSinceStartup < deadline &&
+                (SceneManager.GetActiveScene().name != "Lobby" || Object.FindFirstObjectByType<LobbyPresenter>() == null))
+                yield return null;
             yield return null;
             Assert.IsFalse(app.Session.IsAuthenticated);
             Assert.IsNull(app.Session.Token);
@@ -122,6 +129,14 @@ namespace Game.Gameplay.PlayModeTests
             Assert.AreEqual(LobbyPage.SessionExpired, typeof(LobbyPresenter)
                 .GetField("currentPage", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lobby));
             yield return Capture("session-rejected");
+            }
+            finally
+            {
+                app.ApiClient.ClearToken();
+                app.Session.Clear();
+                app.AcknowledgeSessionExpired();
+                if (createdApp) Object.Destroy(app.gameObject);
+            }
         }
 
         [UnityTest]

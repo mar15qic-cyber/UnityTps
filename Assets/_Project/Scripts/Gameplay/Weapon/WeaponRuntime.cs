@@ -14,7 +14,10 @@ namespace Game.Gameplay.Weapon
         public int CurrentAmmo { get; private set; }
         public int ReserveAmmo { get; private set; }
         public int MagazineSize { get; }
-        public float CooldownRemaining { get; private set; }
+        private float _cooldown;
+        public float CooldownRemaining => Math.Max(0f, _cooldown);
+        internal float CooldownOffset => _cooldown;
+        internal void DiscardOverdueCooldown() => _cooldown = Math.Max(0f, _cooldown);
         public float ReloadRemaining { get; private set; }
         public WeaponRuntimeState State { get; private set; }
         public bool HasAmmo => CurrentAmmo > 0;
@@ -36,12 +39,13 @@ namespace Game.Gameplay.Weapon
             return true;
         }
 
-        internal void StartCooldown(float seconds) => CooldownRemaining = Math.Max(0f, seconds);
+        internal void StartCooldown(float seconds) => _cooldown = Math.Min(0f, _cooldown) + Math.Max(0f, seconds);
 
         internal void Tick(float deltaTime)
         {
             if (deltaTime <= 0f) return;
-            CooldownRemaining = Math.Max(0f, CooldownRemaining - deltaTime);
+            // Retain the missed fraction of a frame; bound recovery after a stall to 100ms.
+            _cooldown = Math.Max(-.1f, _cooldown - deltaTime);
             if (State == WeaponRuntimeState.Reloading)
                 ReloadRemaining = Math.Max(0f, ReloadRemaining - deltaTime);
         }
@@ -89,17 +93,16 @@ namespace Game.Gameplay.Weapon
             ReserveAmmo = Math.Max(0, reserveAmmo);
             State = WeaponRuntimeState.Ready;
             ReloadRemaining = 0f;
-            CooldownRemaining = 0f;
+            _cooldown = 0f;
         }
 
         /// <summary>Network reconciliation changes ammunition without treating an ordinary
         /// acknowledgement as a weapon switch. In particular it preserves cooldown and a
-        /// locally valid reload; a changed Ready snapshot completes that reload.</summary>
+        /// locally valid reload; reserve consumption in a Ready snapshot completes it.</summary>
         internal void ReconcileAuthoritativeAmmo(int currentAmmo, int reserveAmmo,
             WeaponRuntimeState authoritativeState, float authoritativeReloadRemaining)
         {
-            bool changed = CurrentAmmo != Math.Clamp(currentAmmo, 0, MagazineSize)
-                || ReserveAmmo != Math.Max(0, reserveAmmo);
+            bool reserveConsumed = Math.Max(0, reserveAmmo) < ReserveAmmo;
             CurrentAmmo = Math.Clamp(currentAmmo, 0, MagazineSize);
             ReserveAmmo = Math.Max(0, reserveAmmo);
 
@@ -108,10 +111,10 @@ namespace Game.Gameplay.Weapon
                 State = WeaponRuntimeState.Reloading;
                 ReloadRemaining = Math.Max(0f, authoritativeReloadRemaining);
             }
-            else if (State == WeaponRuntimeState.Reloading && changed)
+            else if (State == WeaponRuntimeState.Reloading && reserveConsumed)
             {
-                // A changed Ready snapshot is the authoritative reload completion (for
-                // example 0/30 -> 30/0). An unchanged fire ACK must not cancel reload.
+                // A fire ACK can change the magazine while a predicted reload is running.
+                // Only reserve consumption proves ammo was transferred by a completed reload.
                 State = WeaponRuntimeState.Ready;
                 ReloadRemaining = 0f;
             }

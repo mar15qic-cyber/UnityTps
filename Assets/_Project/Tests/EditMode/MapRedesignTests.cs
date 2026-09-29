@@ -2,6 +2,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Game.Gameplay.Tests
 {
@@ -52,6 +53,31 @@ namespace Game.Gameplay.Tests
                 var stage = scene.GetRootGameObjects().Single(r => r.name == "--- Environment ---")
                     .transform.Find("DesignedCombatSpace");
                 Assert.That(stage.GetComponentsInChildren<Light>().Count(l => l.type == LightType.Point), Is.EqualTo(5));
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        [Test]
+        public void NightRelayTent_ClearsVisibleSideOpening_ButStopsShotsAtCanvas()
+        {
+            var scene = EditorSceneManager.OpenPreviewScene("Assets/_Project/Scenes/Map_NightRelay.unity");
+            try
+            {
+                var colliders = scene.GetRootGameObjects()
+                    .SelectMany(r => r.GetComponentsInChildren<Collider>(true))
+                    .Where(c => c.name == "tent_01").ToArray();
+                Assert.That(colliders.Length, Is.EqualTo(2));
+                Assert.That(colliders, Is.All.InstanceOf<MeshCollider>());
+                var physics = scene.GetPhysicsScene();
+                var eye = new Vector3(-31.167f, 1.62f, -12.5f);
+                Assert.That(physics.Raycast(eye, Vector3.right, out _, 12f, ~0,
+                    QueryTriggerInteraction.Collide), Is.False,
+                    "the recording's crosshair lane must pass the tent opening");
+                eye.z = -15f;
+                Assert.That(physics.Raycast(eye, Vector3.right, out var canvasHit, 12f, ~0,
+                    QueryTriggerInteraction.Collide), Is.True);
+                Assert.That(canvasHit.collider.name, Is.EqualTo("tent_01"),
+                    "visible tent canvas must still block shots");
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
         }

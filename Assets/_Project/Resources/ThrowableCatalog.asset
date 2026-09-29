@@ -16,5 +16,5 @@ MonoBehaviour:
   Flash: {fileID: 11400000, guid: e0a1b653d730e3e4283abfa67e70a3f1, type: 2}
   Smoke: {fileID: 11400000, guid: 7725fbe94de15e743883bd6eddef56e6, type: 2}
   NetworkProjectilePrefab: {fileID: 543343758811637522, guid: 4e57263dea9926448b6e85f2583dbd4a, type: 3}
-  ReleaseDelaySeconds: 0.15
-  ThrowActionSeconds: 0.5
+  ReleaseDelaySeconds: 0.35
+  ThrowActionSeconds: 1.15

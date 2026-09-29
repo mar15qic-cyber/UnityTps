@@ -146,6 +146,8 @@ namespace Game.Presentation.Animation
 
             // 枪口/左手挂点（Day4.2：TPWeaponFX 与 TPLeftHandIK 消费）
             CurrentMuzzle = _current.transform.Find("Muzzle");
+            if (CurrentMuzzle != null && CurrentMuzzle.Find("MuzzleExit") != null)
+                CurrentMuzzle = CurrentMuzzle.Find("MuzzleExit");
             _baseLeftHandTarget = _current.transform.Find("LeftHandTarget");
 
             // 配件表现（Docs/21 Phase G）：远端可见的改装外形。Gate A-2（2026-09-08 复审）：
@@ -189,6 +191,8 @@ namespace Game.Presentation.Animation
             foreach (Transform child in socket)
             {
                 if (!child.name.StartsWith("Att_", System.StringComparison.Ordinal) || !child.gameObject.activeInHierarchy) continue;
+                var authored = child.Find("MuzzleExit");
+                if (authored != null) { CurrentMuzzle = authored; break; }
                 if (!Game.Presentation.Weapon.WeaponView.TryGetAttachmentTip(child, CurrentMuzzle, out var tip)) continue;
                 var worldTip = child.TransformPoint(tip);
                 if (Vector3.Dot(worldTip - CurrentMuzzle.position, CurrentMuzzle.forward) <= .005f) continue;

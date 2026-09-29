@@ -16,8 +16,14 @@ CareerPageRender = nil
 
 local function clearRoot(root)
     local t = root.transform
-    while t.childCount > 0 do
-        local child = t:GetChild(0)
+    -- Destroy is deferred in Player. Remove each old node from the page now,
+    -- and bound traversal to the original children so rendering always returns.
+    for i = t.childCount - 1, 0, -1 do
+        local child = t:GetChild(i)
+        local buttons = child.gameObject:GetComponentsInChildren(typeof(CS.UnityEngine.UI.Button), true)
+        for j = 0, buttons.Length - 1 do buttons[j].onClick:RemoveAllListeners() end
+        child.gameObject:SetActive(false)
+        child:SetParent(nil, false)
         if CS.UnityEngine.Application.isPlaying then
             CS.UnityEngine.Object.Destroy(child.gameObject)
         else
@@ -128,7 +134,16 @@ CareerPageRender = function(root, dto, err)
     end)
 end
 
+local requestGeneration = setmetatable({}, { __mode = 'k' })
+
 function show(root, page)
+    local generation = (requestGeneration[root] or 0) + 1
+    requestGeneration[root] = generation
+    local function isCurrent()
+        if requestGeneration[root] ~= generation then return false end
+        local ok, active = pcall(function() return root.gameObject.activeInHierarchy end)
+        return ok and active
+    end
     clearRoot(root)
     local rt = root.transform
     Typography.Text("T_CareerTitle", rt, "作战战绩", Theme.FontPageTitle, Theme.TextPrimary,
@@ -136,8 +151,8 @@ function show(root, page)
     Typography.Text("T_CareerLoading", rt, "正在加载战绩…",
         Theme.FontBody, Theme.TextMuted, Vector2(0.03, 0.70), Vector2(0.60, 0.80), Alignment.Left)
     Facade.GetMatchHistory(page, PAGE_SIZE,
-        function(dto) CareerPageRender(root, dto, nil) end,
-        function(err) CareerPageRender(root, nil, err) end)
+        function(dto) if isCurrent() then CareerPageRender(root, dto, nil) end end,
+        function(err) if isCurrent() then CareerPageRender(root, nil, err) end end)
 end
 
 Facade.RegisterPage("career", "战绩", function(root)

@@ -55,6 +55,7 @@ namespace Game.Presentation.Animation
         private Vector2 _visualMoveVelocity;
         private bool _mixersValid;
         private bool _actionClipsReady;
+        private bool _serverTickDriven;
 
         private void Awake()
         {
@@ -131,6 +132,7 @@ namespace Game.Presentation.Animation
 
         private void OnDisable()
         {
+            _serverTickDriven = false;
             ClearThrowableView();
             if (controller == null) return;
             controller.OnShotFired -= HandleShot;
@@ -142,6 +144,25 @@ namespace Game.Presentation.Animation
         }
 
         private void Update()
+        {
+            if (_serverTickDriven) return;
+            UpdatePose(Time.deltaTime);
+        }
+
+        // Called once per authoritative tick, before pitch and hitbox capture. Pausing
+        // automatic evaluation prevents render FPS from advancing the server graph twice.
+        public void EvaluateServerAnimationTick(float deltaTime)
+        {
+            if (!isActiveAndEnabled || _animancer == null) return;
+            _serverTickDriven = true;
+            _remoteSource = null;
+            _animancer.Graph.PauseGraph();
+            if (!_clipsLoaded) LoadClips();
+            UpdatePose(deltaTime);
+            _animancer.Evaluate(deltaTime);
+        }
+
+        private void UpdatePose(float deltaTime)
         {
             if (_poseFrozenForDeath)
             {
@@ -158,7 +179,7 @@ namespace Game.Presentation.Animation
                 ApplyState(false);
             }
             UpdateThrowableView();
-            UpdateMixerParametersAndPhase();
+            UpdateMixerParametersAndPhase(deltaTime);
         }
 
         private void ApplyState(bool immediate)
@@ -209,7 +230,7 @@ namespace Game.Presentation.Animation
         /// <summary>远端当前本地积分相位（诊断/测试）。</summary>
         public float RemoteIntegratedPhase => _remotePhase;
 
-        private void UpdateMixerParametersAndPhase()
+        private void UpdateMixerParametersAndPhase(float deltaTime)
         {
             Vector2 target = SourceMoveInput;
             _visualMove = visualDirectionSmoothTime <= 0f
@@ -220,7 +241,7 @@ namespace Game.Presentation.Animation
                     ref _visualMoveVelocity,
                     visualDirectionSmoothTime,
                     Mathf.Infinity,
-                    Time.deltaTime);
+                    deltaTime);
 
             float phase;
             if (_remoteSource != null)
@@ -235,9 +256,9 @@ namespace Game.Presentation.Animation
                 else
                 {
                     bool sprint = SourceLocomotionState == LocomotionState.Sprint;
-                    _remotePhase = RemoteGaitPhase.Advance(_remotePhase, Time.deltaTime, ResolveCycleSeconds(sprint));
+                    _remotePhase = RemoteGaitPhase.Advance(_remotePhase, deltaTime, ResolveCycleSeconds(sprint));
                     _remotePhase = RemoteGaitPhase.CorrectToward(
-                        _remotePhase, SourceGaitPhase, RemotePhaseSnapThreshold, RemotePhasePullPerSecond, Time.deltaTime);
+                        _remotePhase, SourceGaitPhase, RemotePhaseSnapThreshold, RemotePhasePullPerSecond, deltaTime);
                 }
                 phase = _remotePhase;
             }
@@ -557,7 +578,7 @@ namespace Game.Presentation.Animation
                 if (_animancer.IsGraphInitialized) _animancer.Graph.PauseGraph();
                 return;
             }
-            _animancer.Graph.UnpauseGraph();
+            if (!_serverTickDriven) _animancer.Graph.UnpauseGraph();
             _deathState = _animancer.Layers[LocomotionLayer].Play(clip, 0.08f);
             _deathState.Time = Mathf.Clamp(elapsedSeconds, 0, clip.length);
             _deathState.Speed = elapsedSeconds >= clip.length ? 0 : 1;
@@ -577,7 +598,7 @@ namespace Game.Presentation.Animation
             _deathState = null;
             ResetTransientAnimationState();
             if (_animancer == null) return;
-            if (wasFrozen && _animancer.IsGraphInitialized) _animancer.Graph.UnpauseGraph();
+            if (wasFrozen && !_serverTickDriven && _animancer.IsGraphInitialized) _animancer.Graph.UnpauseGraph();
             LoadClips(); // 死亡期间可能已换枪 → 按当前权威武器重建 clip 集
             ApplyState(true); // immediate：不做淡入，站桩也立刻有有效姿态
             if (_animancer.IsGraphInitialized) _animancer.Evaluate(0f); // 就地求值一帧

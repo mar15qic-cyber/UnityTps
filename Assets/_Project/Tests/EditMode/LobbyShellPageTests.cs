@@ -139,7 +139,10 @@ namespace Game.Gameplay.Tests
             Assert.That(page.Find("ModeCardOffline"), Is.Null);
             Assert.That(page.Find("LoadoutCard/WeaponIcon").GetComponent<Image>().sprite, Is.Not.Null);
             Assert.That(page.Find("QuitGameButton"), Is.Not.Null);
-            Assert.That(page.GetComponentsInChildren<Button>().Length, Is.EqualTo(3));
+            var buttons = page.GetComponentsInChildren<Button>();
+            Assert.That(buttons, Has.Exactly(1).Matches<Button>(button =>
+                button.GetComponentInChildren<TMP_Text>()?.text == "联机对战   →"));
+            Assert.That(page.Find("LoadoutCard").GetComponent<Button>(), Is.Not.Null);
         }
 
         [Test]

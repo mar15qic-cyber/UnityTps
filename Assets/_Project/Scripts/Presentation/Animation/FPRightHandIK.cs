@@ -47,6 +47,9 @@ namespace Game.Presentation.Animation
 
         private void LateUpdate()
         {
+            var animator = GetComponent<FPWeaponAnimator>();
+            if (animator != null && animator.IsThrowablePresentationActive)
+            { _weight = 0f; return; }
             if (!solveRightHand)
             {
                 _weight = 0f;

@@ -17,10 +17,12 @@ namespace Game.UI
             public string Id;
             public string Label;
             public Action<RectTransform> Render;
+            internal Action<RectTransform> Callback;
         }
 
         private static readonly List<HotPage> ordered = new();
         private static readonly Dictionary<string, HotPage> byId = new();
+        private static readonly HashSet<RectTransform> renderedRoots = new();
 
         public static void Register(string id, string label, Action<RectTransform> render)
         {
@@ -29,10 +31,15 @@ namespace Game.UI
             if (byId.TryGetValue(key, out var existing))
             {
                 existing.Label = label;
-                existing.Render = render;
+                existing.Callback = render;
                 return;
             }
-            var page = new HotPage { Id = key, Label = label, Render = render };
+            var page = new HotPage { Id = key, Label = label, Callback = render };
+            page.Render = root =>
+            {
+                if (root != null) renderedRoots.Add(root);
+                page.Callback?.Invoke(root);
+            };
             byId[key] = page;
             ordered.Add(page);
         }
@@ -48,6 +55,14 @@ namespace Game.UI
 
         public static void ClearAll()
         {
+            foreach (var root in renderedRoots)
+            {
+                if (root == null) continue;
+                foreach (var button in root.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                    button.onClick.RemoveAllListeners();
+            }
+            renderedRoots.Clear();
+            foreach (var page in ordered) { page.Callback = null; page.Render = null; }
             ordered.Clear();
             byId.Clear();
         }

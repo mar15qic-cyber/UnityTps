@@ -30,6 +30,7 @@ namespace Game.Gameplay.Tests
         public void SetUp()
         {
             _root = new GameObject("SlotAmmo_Test");
+            _root.transform.position = new Vector3(4600, 4600, 4600);
             _actions = _root.AddComponent<ActionSystem>();
             _root.AddComponent<CombatResolver>();
             _controller = _root.AddComponent<WeaponController>();
@@ -44,6 +45,7 @@ namespace Game.Gameplay.Tests
             SetField(_controller, "actionSystem", _actions);
             SetField(_controller, "combatResolver", _root.GetComponent<CombatResolver>());
             SetField(_controller, "processLocalInput", false);
+            SetField(_controller, "aimPivot", _root.transform);
             _controller.Initialize(_pistol, _balance);
 
             SetField(_arsenal, "controller", _controller);
@@ -70,6 +72,99 @@ namespace Game.Gameplay.Tests
                 _actions.Tick(0.01f);
                 _arsenal.EvaluateSwap();
             }
+        }
+
+        [Test]
+        public void ServerSwitch_TwoSlotsWithSameWeapon_AdvancesEquipmentCommandAndSlot()
+        {
+            SetField(_arsenal, "slots", new[] { _pistol, _pistol });
+            var authority = _root.AddComponent<NetworkCombatAuthority>();
+            SetField(authority, "_controller", _controller);
+            var method = typeof(NetworkCombatAuthority).GetMethod("ExecuteCombatAction",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.That((bool)method.Invoke(authority, new object[] { new TimedFireRequest {
+                Kind = 2, Slot = 1, CommandId = 17, WeaponId = _pistol.WeaponId, ShotSeconds = 1 } }), Is.True);
+            CompleteSwitch();
+            Assert.That(_arsenal.ActiveIndex, Is.EqualTo(1));
+            Assert.That(typeof(NetworkCombatAuthority).GetField("_executedEquipmentCommand",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(authority), Is.EqualTo(17u));
+        }
+
+        [Test]
+        public void RejectedSwitch_RestoresWeaponAndEpoch_WhileLateAcknowledgmentsCannotUndoNewerActions()
+        {
+            var authority = _root.AddComponent<NetworkCombatAuthority>();
+            SetField(authority, "_controller", _controller);
+            var networkWeapon = _root.AddComponent<NetworkWeaponState>();
+            SetField(networkWeapon, "_controller", _controller);
+            SetField(networkWeapon, "_arsenal", _arsenal);
+            _controller.EquipDefinition(_rifle);
+            _arsenal.AlignToEquippedDefinition(_rifle);
+            SetField(authority, "_lastSubmittedActionCommand", 17u);
+            SetField(authority, "_submittedEquipmentCommand", 17u);
+            _actions.TryStart(PlayerActionType.SwitchWeapon, 1);
+            authority.ApplyCombatActionResult(0, 17, 2, false, 8, _pistol.WeaponId);
+            Assert.That(_actions.IsBusy, Is.False);
+            Assert.That(_controller.Definition, Is.SameAs(_pistol));
+            Assert.That(_arsenal.ActiveIndex, Is.Zero);
+            var epoch = typeof(NetworkCombatAuthority).GetField("_submittedEquipmentCommand",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.That(epoch.GetValue(authority), Is.EqualTo(8u));
+            SetField(authority, "_lastSubmittedActionCommand", 18u);
+            SetField(authority, "_submittedEquipmentCommand", 18u);
+            _actions.TryStart(PlayerActionType.SwitchWeapon, 1);
+            authority.ApplyCombatActionResult(0, 17, 2, false, 8, _pistol.WeaponId);
+            Assert.That(epoch.GetValue(authority), Is.EqualTo(18u));
+            Assert.That(_actions.IsBusy, Is.True);
+            authority.ObserveOwnerAmmoLifeEpoch(1);
+            authority.ApplyCombatActionResult(0, 18, 2, true, 18, _rifle.WeaponId);
+            Assert.That(epoch.GetValue(authority), Is.EqualTo(0u), "Old-life ACK cannot restore an old equipment epoch");
+        }
+
+        [Test]
+        public void ReloadReply_AfterRejectedSwitch_RepairsEquipmentEpoch()
+        {
+            var authority = _root.AddComponent<NetworkCombatAuthority>();
+            SetField(authority, "_controller", _controller);
+            SetField(authority, "_lastSubmittedActionCommand", 19u);
+            SetField(authority, "_submittedEquipmentCommand", 18u);
+            authority.ApplyCombatActionResult(0, 18, 2, false, 8, _pistol.WeaponId);
+            authority.ApplyCombatActionResult(0, 19, 1, false, 8, _pistol.WeaponId);
+            Assert.That(typeof(NetworkCombatAuthority).GetField("_submittedEquipmentCommand",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(authority), Is.EqualTo(8u));
+        }
+
+        [Test]
+        public void RejectedPrediction_PreservesNextShotBloom_WithoutAmmoDamageOrDuplicatePulse()
+        {
+            var serialized = new SerializedObject(_balance);
+            var accuracy = serialized.FindProperty("weapons").GetArrayElementAtIndex(0)
+                .FindPropertyRelative("Stat").FindPropertyRelative("Accuracy");
+            accuracy.FindPropertyRelative("BaseHipSpread").floatValue = .25f;
+            accuracy.FindPropertyRelative("ShotBloomPerShot").floatValue = .35f;
+            accuracy.FindPropertyRelative("MaxBloom").floatValue = 2f;
+            accuracy.FindPropertyRelative("BloomRecoveryDelay").floatValue = .2f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            _controller.Initialize(_pistol, _balance);
+            int ammo = _controller.Runtime.CurrentAmmo;
+            int emitted = 0;
+            WeaponShot shot = default;
+            _controller.OnShotFired += s => { emitted++; shot = s; };
+            var expected = new WeaponAccuracyState();
+            expected.OnShot(_controller.Resolved);
+            _controller.AdvanceRejectedPrediction(10);
+            _controller.AdvanceRejectedPrediction(10); // duplicate does not add bloom twice
+            _controller.AdvanceRejectedPrediction(9); // stale request cannot rewind it
+            Assert.That(emitted, Is.Zero);
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(ammo));
+            expected.Tick(.1f, _controller.Resolved);
+            float spread = expected.CurrentSpread(WeaponFireContext.Default, _controller.Resolved);
+            Assert.That(spread, Is.EqualTo(.6f).Within(.00001f), "Fixture must contain a nonzero rejected-shot bloom pulse");
+            Assert.That(_controller.TryFireWithServerSnapshot(_root.transform.position, Vector3.forward,
+                WeaponFireContext.Default, 123, default, true, 10.1), Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+            Assert.That(shot.FinalSpreadDegrees, Is.EqualTo(spread).Within(.00001f));
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(ammo - 1));
         }
 
         private void FireRounds(int count)
@@ -309,6 +404,130 @@ namespace Game.Gameplay.Tests
             Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(8),
                 "late A ACK must retain A's N+1/N+2 debt while B is equipped");
         }
+
+        [Test]
+        public void BurstWithDelayedAcks_HudKeepsPendingDebt_StopsAtEmpty_ThenReloads()
+        {
+            var hudObject = new GameObject("AmmoHudRegression");
+            hudObject.SetActive(false); // no runtime canvas/font construction in EditMode
+            try
+            {
+                var hud = hudObject.AddComponent<Game.Presentation.HUD.WeaponHudView>();
+                var textObject = new GameObject("AmmoText", typeof(RectTransform));
+                textObject.transform.SetParent(hudObject.transform);
+                var label = textObject.AddComponent<TMPro.TextMeshProUGUI>();
+                SetField(hud, "controller", _controller);
+                SetField(hud, "_ammoLine", label);
+                // A cached online component must not suppress owner prediction events.
+                SetField(hud, "_netWeaponState", _root.AddComponent<NetworkWeaponState>());
+                Invoke(hud, "Subscribe");
+                Invoke(_controller, "OnDisable");
+                Invoke(_controller, "OnEnable");
+                uint sequence = 0;
+                for (uint shot = 1; shot <= 12; shot++)
+                {
+                    Assert.That(_controller.TryFire(), Is.True);
+                    _controller.RegisterPredictedShotForAmmo(shot, 0);
+                    Assert.That(label.text, Does.Contain($">{12 - shot:00}</size>"), "same-frame event");
+                    if (shot > 2)
+                    {
+                        _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+                        {
+                            WeaponId = "test.pistol", Sequence = ++sequence,
+                            CurrentAmmo = 12 - (int)(shot - 2), ReserveAmmo = 48,
+                            LastProcessedShotRequestId = shot - 2
+                        });
+                    }
+                    Invoke(hud, "RefreshAmmo");
+                    Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(12 - shot));
+                    Assert.That(label.text, Does.Contain($">{12 - shot:00}</size>"), "poll must preserve pending debt");
+                    _controller.Runtime.Tick(.2f);
+                }
+                Assert.That(_controller.TryFire(), Is.False, "an empty magazine cannot keep predicting fire");
+                _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+                {
+                    WeaponId = "test.pistol", Sequence = ++sequence,
+                    CurrentAmmo = 0, ReserveAmmo = 48, LastProcessedShotRequestId = 12
+                });
+                Assert.That(_controller.TryReload(), Is.True);
+                _actions.Tick(1.1f);
+                Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(12));
+                Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(36));
+                Assert.That(_actions.IsBusy, Is.False);
+                Assert.That(_controller.TryFire(), Is.True);
+                Assert.That(_controller.TryReload(), Is.True, "next reload remains available");
+                Invoke(hud, "Unsubscribe");
+            }
+            finally { Object.DestroyImmediate(hudObject); }
+        }
+
+        [Test]
+        public void LateReloadSnapshot_RestoresTimer_AndReadyAckReleasesActionWithoutExtraRounds()
+        {
+            Invoke(_controller, "OnDisable");
+            Invoke(_controller, "OnEnable");
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", Sequence = 1, CurrentAmmo = 0, ReserveAmmo = 24,
+                ReloadState = WeaponRuntimeState.Reloading, ReloadRemaining = .3f
+            });
+            Assert.That(_actions.CurrentAction, Is.EqualTo(PlayerActionType.Reload));
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", Sequence = 2, CurrentAmmo = 12, ReserveAmmo = 12
+            });
+            Assert.That(_actions.IsBusy, Is.False, "authority completion releases the action slot");
+            _actions.Tick(1f);
+            Assert.That(_controller.Runtime.CurrentAmmo + _controller.Runtime.ReserveAmmo, Is.EqualTo(24));
+            Assert.That(_controller.TryFire(), Is.True);
+            Assert.That(_controller.TryReload(), Is.True);
+        }
+
+        [Test]
+        public void DelayedFireAck_ChangingMagazineDoesNotCancelPredictedReload()
+        {
+            Invoke(_controller, "OnDisable");
+            Invoke(_controller, "OnEnable");
+            FireRounds(4);
+            Assert.That(_controller.TryReload(), Is.True);
+            _actions.Tick(.2f);
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", Sequence = 1, CurrentAmmo = 10, ReserveAmmo = 48,
+                ReloadState = WeaponRuntimeState.Ready
+            });
+            Assert.That(_controller.Runtime.State, Is.EqualTo(WeaponRuntimeState.Reloading));
+            Assert.That(_actions.CurrentAction, Is.EqualTo(PlayerActionType.Reload));
+            Assert.That(_actions.Elapsed, Is.EqualTo(.2f).Within(.001f));
+            Assert.That(_controller.TryFire(), Is.False, "late shot ACK cannot unlock fire during reload");
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", Sequence = 2, CurrentAmmo = 12, ReserveAmmo = 46
+            });
+            Assert.That(_controller.Runtime.State, Is.EqualTo(WeaponRuntimeState.Ready));
+            Assert.That(_actions.IsBusy, Is.False);
+        }
+
+        [Test]
+        public void LateReloadSnapshot_WithoutAnotherAck_CompletesInsteadOfSticking()
+        {
+            Invoke(_controller, "OnDisable");
+            Invoke(_controller, "OnEnable");
+            _controller.ApplyAuthoritativeAmmoSnapshot(new AuthoritativeAmmoSnapshot
+            {
+                WeaponId = "test.pistol", Sequence = 1, CurrentAmmo = 0, ReserveAmmo = 24,
+                ReloadState = WeaponRuntimeState.Reloading, ReloadRemaining = .3f
+            });
+            _actions.Tick(.31f);
+            Assert.That(_controller.Runtime.State, Is.EqualTo(WeaponRuntimeState.Ready));
+            Assert.That(_controller.Runtime.CurrentAmmo, Is.EqualTo(12));
+            Assert.That(_controller.Runtime.ReserveAmmo, Is.EqualTo(12));
+            Assert.That(_controller.TryFire(), Is.True);
+        }
+
+        private static void Invoke(object target, string method)
+            => target.GetType().GetMethod(method, System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Instance).Invoke(target, null);
 
         // ---------- 辅助（与 ArsenalTests 同款） ----------
 

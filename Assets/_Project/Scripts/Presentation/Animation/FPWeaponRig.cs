@@ -48,7 +48,8 @@ namespace Game.Presentation.Animation
         // ---- IWeaponPresentationGate（Gameplay 接口，Presentation 实现；单向依赖不变）----
         // LaserSightBeam 等持续表现写者据此判断"当前是否允许出束/运行"——
         // 死亡/镜内/复活准备期间为 false，写者不得每帧自行 enabled=true（"无枪红线"根因）。
-        public bool IsWeaponViewVisible => _activeView != null && !_visibility.IsHidden;
+        public bool IsWeaponViewVisible => _activeView != null && !_visibility.IsHidden
+            && (!_activeView.TryGetComponent<FPWeaponAnimator>(out var animator) || !animator.IsThrowablePresentationActive);
         GameObject Game.Gameplay.Weapon.IWeaponPresentationGate.ActiveView => _activeView;
         bool Game.Gameplay.Weapon.IWeaponPresentationGate.IsWeaponViewVisible => IsWeaponViewVisible;
 
@@ -293,6 +294,9 @@ namespace Game.Presentation.Animation
 
         /// <summary>注册一个 Renderer 到受控基线（视图创建/动态配件挂载时调用；重复注册安全）。</summary>
         public void RegisterViewRenderer(Renderer renderer) => _visibility.Register(renderer);
+
+        public void SetThrowableRendererHidden(Renderer renderer, bool hidden)
+            => _visibility.SetThrowableHidden(renderer, hidden);
 
 
         private GameObject GetOrCreateView(WeaponDefinition definition)

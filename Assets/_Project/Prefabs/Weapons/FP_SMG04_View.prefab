@@ -70,11 +70,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 964968674331354674}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.28728512, y: -0.0000007688412, z: -0.0000002305974, w: 0.95784515}
-  m_LocalPosition: {x: -0.0000013078139, y: 0.20281291, z: 0.2596492}
+  m_LocalRotation: {x: -0.28728512, y: -0.0000007688418, z: -0.00000023059718, w: 0.9578451}
+  m_LocalPosition: {x: -0.0000013062117, y: 0.20281272, z: 0.25964922}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1892879466503304097}
   m_Father: {fileID: 7937880123323832600}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4698191262721720566
@@ -134,7 +135,7 @@ Transform:
   m_GameObject: {fileID: 8696285945113994993}
   serializedVersion: 2
   m_LocalRotation: {x: -0.20313959, y: 0.6772987, z: -0.2031398, w: 0.6772998}
-  m_LocalPosition: {x: -0.0002470776, y: 0.18702316, z: 0.23538318}
+  m_LocalPosition: {x: -0.00024706562, y: 0.18702285, z: 0.23538302}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -154,6 +155,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slot: 1
   geometryVerified: 1
+--- !u!1 &8823201464553443312
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1892879466503304097}
+  m_Layer: 9
+  m_Name: MuzzleExit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1892879466503304097
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8823201464553443312}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.00024579838, y: 0.00017158221, z: -0.028950553}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5879890757994711998}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9118415518425886409
 GameObject:
   m_ObjectHideFlags: 0
@@ -456,6 +488,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 400072, guid: 21ec48bb14b3d6243b8b764b854a8ced, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.2941813
+      objectReference: {fileID: 0}
+    - target: {fileID: 400072, guid: 21ec48bb14b3d6243b8b764b854a8ced, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.5509514
+      objectReference: {fileID: 0}
+    - target: {fileID: 400072, guid: 21ec48bb14b3d6243b8b764b854a8ced, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.780252
+      objectReference: {fileID: 0}
+    - target: {fileID: 400072, guid: 21ec48bb14b3d6243b8b764b854a8ced, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.033419
+      objectReference: {fileID: 0}
     - target: {fileID: 9500000, guid: 21ec48bb14b3d6243b8b764b854a8ced, type: 3}
       propertyPath: m_Avatar
       value: 
@@ -564,6 +612,10 @@ MonoBehaviour:
   actionFadeSeconds: 0.12
   aimFadeSeconds: 0.08
   aimPoseFadeSeconds: 0.05
+  throwablePresentationClip: {fileID: 7400000, guid: bdcf1216968aeff45ac7c5df15db1b92, type: 2}
+  throwablePrepareClip: {fileID: 7400000, guid: bfd241a1e961abd459e651aa0e9e2b4a, type: 2}
+  throwViewLocalPosition: {x: 0, y: -0.09, z: 0.18}
+  throwViewLocalEuler: {x: 0, y: 0, z: 0}
 --- !u!114 &9029323598560025362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -580,7 +632,7 @@ MonoBehaviour:
   muzzle: {fileID: 5879890757994711998}
   tracerMuzzleInsetMeters: 0.02
   hasCalibratedBarrelTip: 1
-  barrelTipMuzzleLocal: {x: -0.00024579233, y: -0.007929146, z: -0.02895058}
+  barrelTipMuzzleLocal: {x: -0.00024579838, y: 0.00017158221, z: -0.028950553}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

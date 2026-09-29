@@ -171,6 +171,10 @@ namespace Game.EditorTools
                 float front=bodyPoints.Max(p=>p.z);
                 var tip=bodyPoints.Where(p=>p.z>front-(id=="weapon.smg04"?.01f:.001f)).ToArray();
                 var muzzle=new Vector3((tip.Min(p=>p.x)+tip.Max(p=>p.x))*.5f,(tip.Min(p=>p.y)+tip.Max(p=>p.y))*.5f,front);
+                // Preserve the verified bore axis. Frontmost teeth/front sights are
+                // not the aperture centre (M4, SMG04, Shotgun01).
+                var authoredExit=tp.transform.Find("Muzzle/MuzzleExit");
+                if(authoredExit!=null)muzzle=tp.transform.InverseTransformPoint(authoredExit.position);
                 float z=OpticZ[id], top=float.NegativeInfinity;
                 for(int i=0;i<=24;i++)for(int j=-1;j<=1;j++)
                     top=Mathf.Max(top,Surface(triangles,j*.009f,z-.05f+i*.1f/24,false));

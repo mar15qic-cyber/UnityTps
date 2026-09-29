@@ -150,7 +150,10 @@ namespace Game.Gameplay.Tests
             var keyTexts = AllTexts(page.Find("KeybindCard"));
             Assert.That(keyTexts, Has.Member("前进"));
             Assert.That(keyTexts, Has.Member("换弹"));
-            Assert.That(keyTexts, Has.Member("快速切枪"));
+            Assert.That(keyTexts, Has.Member("左探头"));
+            Assert.That(keyTexts, Has.Member("右探头"));
+            Assert.That(keyTexts, Has.Member("选择 / 切换投掷物"));
+            Assert.That(keyTexts, Does.Not.Contain("快速切枪"));
             var gfxTexts = AllTexts(page.Find("GraphicsCard"));
             Assert.That(gfxTexts, Has.Member("分辨率"));
             Assert.That(gfxTexts, Has.Member("帧率上限"));

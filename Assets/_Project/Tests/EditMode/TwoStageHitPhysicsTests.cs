@@ -66,6 +66,83 @@ namespace Game.Gameplay.Tests
             return (muzzle, body);
         }
 
+        [TestCase(1.45f)]
+        [TestCase(1.55f)]
+        [TestCase(1.61f)]
+        public void CrosshairAboveCrate_HitsSeenTarget_WithoutLowVirtualMuzzleVeto(float coverHeight)
+        {
+            Box("LowCrate", new Vector3(0, coverHeight / 2, 1.25f), new Vector3(2, coverHeight, .5f));
+            var target = MakeTarget(Box("VisibleTarget", new Vector3(0, 1.62f, 12), new Vector3(1, .2f, .4f)));
+            Vector3 eye = Game.Gameplay.Player.LeanProfile.Eye(Vector3.zero, Quaternion.identity, 0);
+            var anchors = AnchorsOf(_shooterRoot.transform);
+            var old = _resolver.ResolveHitscanTwoStage(eye, Vector3.forward, 50, 25, ~0,
+                _shooterRoot.transform, anchors.muzzle, anchors.body);
+            Assert.That(old.Damaged, Is.False, "reproduce the recording: virtual low muzzle hits crate");
+            Assert.That(_resolver.LastFireEvidence.FinalCollider, Is.EqualTo("LowCrate"));
+            Assert.That(_resolver.IsAimOriginUnobstructed(eye, eye, ~0, _shooterRoot.transform), Is.True);
+            var predicted = _resolver.ResolveCameraHitscan(eye, Vector3.forward, 50, 25, ~0,
+                _shooterRoot.transform, applyDamage: false);
+            Assert.That(predicted.Target, Is.EqualTo(target));
+            Assert.That(target.CurrentHealth, Is.EqualTo(100), "client prediction never applies damage");
+            var authority = _resolver.ResolveCameraHitscan(eye, Vector3.forward, 50, 25, ~0, _shooterRoot.transform);
+            Assert.That(authority.Damaged, Is.True);
+            Assert.That(authority.Point, Is.EqualTo(predicted.Point));
+            Assert.That(target.CurrentHealth, Is.EqualTo(75), "server applies this round exactly once");
+            Assert.That(_resolver.LastFireEvidence.CameraOnly, Is.True);
+            Assert.That(_resolver.LastFireEvidence.FinalCollider, Is.EqualTo("VisibleTarget"));
+        }
+
+        [Test]
+        public void CrosshairBehindTallWall_StillHitsWallAndCannotDamageTarget()
+        {
+            Box("TallWall", new Vector3(0, 1, .7f), new Vector3(4, 2, .1f));
+            var target = MakeTarget(Box("HiddenTarget", new Vector3(0, 1.62f, 8), new Vector3(1, 1, .4f)));
+            Vector3 eye = Game.Gameplay.Player.LeanProfile.Eye(Vector3.zero, Quaternion.identity, 0);
+            var result = _resolver.ResolveCameraHitscan(eye, Vector3.forward, 50, 25, ~0, _shooterRoot.transform);
+            Assert.That(result.Damaged, Is.False);
+            Assert.That(result.Point.z, Is.EqualTo(.65f).Within(.001f));
+            Assert.That(target.CurrentHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void EyeValidation_RejectsWallCrossingAndEmbeddedZeroLengthOrigin()
+        {
+            var eye = new Vector3(0, 1.62f, 0);
+            Box("ThinWall", new Vector3(0, 1.62f, .2f), new Vector3(2, 2, .02f));
+            Assert.That(_resolver.IsAimOriginUnobstructed(eye, eye + Vector3.forward * .4f, ~0,
+                _shooterRoot.transform), Is.False);
+            var embedded = eye + Vector3.forward * .2f;
+            Assert.That(_resolver.IsAimOriginUnobstructed(embedded, embedded, ~0,
+                _shooterRoot.transform), Is.False, "Unity rays miss colliders containing their origin");
+            Assert.That(_resolver.IsAimOriginUnobstructed(eye, eye + Vector3.right * .1f, ~0,
+                _shooterRoot.transform), Is.True);
+            Assert.That(_resolver.IsAimOriginUnobstructed(eye, new Vector3(float.NaN, 0, 0), ~0,
+                _shooterRoot.transform), Is.False);
+        }
+
+        [Test]
+        public void CameraHit_UsesRewoundTargetAndRestoresCurrentPose()
+        {
+            var managerGo = new GameObject("CameraRewind"); _temp.Add(managerGo);
+            var manager = managerGo.AddComponent<ServerLagCompensation>();
+            var targetGo = Box("MovingTarget", new Vector3(0, 1.62f, 5), new Vector3(.5f, .5f, .5f));
+            var target = MakeTarget(targetGo);
+            manager.RegisterPlayer(targetGo.transform, new Collider[] { targetGo.GetComponent<BoxCollider>() });
+            manager.Capture(10);
+            targetGo.transform.position += Vector3.right * 5;
+            Physics.SyncTransforms(); manager.Capture(16);
+            Assert.That(manager.TryBeginRewind(10), Is.True);
+            try
+            {
+                var result = _resolver.ResolveCameraHitscan(new Vector3(0, 1.62f, 0), Vector3.forward,
+                    50, 25, ~0, _shooterRoot.transform, new LagCompRewindContext(10, true));
+                Assert.That(result.Target, Is.EqualTo(target));
+                Assert.That(result.Point.z, Is.EqualTo(4.75f).Within(.001f));
+            }
+            finally { manager.EndRewind(); }
+            Assert.That(targetGo.transform.position.x, Is.EqualTo(5).Within(.001f));
+        }
+
         [Test]
         public void MuzzlePokingIntoWall_BlocksShot_EvenWhenCameraSeesTargetBehindWall()
         {

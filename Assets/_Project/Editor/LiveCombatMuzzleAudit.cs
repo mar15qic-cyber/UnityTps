@@ -18,6 +18,8 @@ namespace Game.EditorTools
 
         public static bool TryTip(GameObject view, Transform frame, bool firstPerson, out Vector3 local)
         {
+            var authored = frame.Find("MuzzleExit");
+            if (authored != null) { local = frame.InverseTransformPoint(authored.position); return true; }
             var points = new List<Vector3>();
             if (firstPerson)
             {

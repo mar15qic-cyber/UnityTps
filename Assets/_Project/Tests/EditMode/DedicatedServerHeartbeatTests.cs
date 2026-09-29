@@ -18,6 +18,22 @@ namespace Game.Gameplay.Tests
     /// </summary>
     public sealed class DedicatedServerHeartbeatTests
     {
+        [Test]
+        public void StoppedTransport_SuppressesReadyEvenWhenProcessIsAlive()
+        {
+            var go = new UnityEngine.GameObject("StoppedTransportTest");
+            try
+            {
+                var bootstrap = go.AddComponent<DedicatedServerBootstrap>();
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                typeof(DedicatedServerBootstrap).GetField("_transportUnavailable", flags).SetValue(bootstrap, true);
+                var args = new object[] { null };
+                var available = (bool)typeof(DedicatedServerBootstrap).GetMethod("TryBuildHeartbeat", flags).Invoke(bootstrap, args);
+                Assert.IsFalse(available);
+                Assert.IsNull(args[0]);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
         // ---- 基础：Starting / 注册同步 / 绑定 ----
 
         [Test]

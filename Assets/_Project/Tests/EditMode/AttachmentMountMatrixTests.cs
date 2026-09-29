@@ -63,6 +63,18 @@ namespace Game.Gameplay.Tests
         private GameObject fpInstance;
         private GameObject previewControllerObject;
 
+        internal static void AssertMountContract(string weapon, string optic, Vector3 position, Vector3 rotation, Quaternion frame)
+        {
+            // September 23 centering calibration: only the two asymmetric M4 clamps move laterally.
+            var expected = weapon == "weapon.m4" && (optic == Optic01 || optic == Optic03)
+                ? new Vector3(0, 0, -.00179714f) : Vector3.zero;
+            Assert.That(Vector3.Distance(position, expected), Is.LessThan(1e-7f), weapon + " " + optic);
+            Assert.That(rotation, Is.EqualTo(Vector3.zero));
+            if (weapon == "weapon.m4" && optic == Optic02)
+                Assert.That(Quaternion.Angle(frame, Quaternion.Euler(0, 90, 0)), Is.LessThan(.001f));
+            else Assert.That(frame, Is.EqualTo(default(Quaternion)));
+        }
+
         [TearDown]
         public void TearDown()
         {
@@ -86,9 +98,8 @@ namespace Game.Gameplay.Tests
                     "duplicate mount row: " + Key(row.weaponItemId, row.attachmentItemId));
                 AssertFinite(row.positionOffset, "positionOffset " + Key(row.weaponItemId, row.attachmentItemId));
                 AssertFinite(row.rotationEulerOffset, "rotationEulerOffset " + Key(row.weaponItemId, row.attachmentItemId));
-                Assert.That(row.HasAuthorFrame, Is.False, "Measured socket frames correspond directly across FP/TP.");
-                Assert.That(row.positionOffset, Is.EqualTo(Vector3.zero));
-                Assert.That(row.rotationEulerOffset, Is.EqualTo(Vector3.zero));
+                AssertMountContract(row.weaponItemId, row.attachmentItemId, row.positionOffset,
+                    row.rotationEulerOffset, row.AuthorRotation);
             }
 
             Assert.That(targetCount, Is.EqualTo(52));
@@ -112,9 +123,7 @@ namespace Game.Gameplay.Tests
                 foreach (var optic in OpticIds)
                 {
                     Assert.That(calibration.TryGet(weapon, optic, out var position, out var rotation, out var frame), Is.True);
-                    Assert.That(position, Is.EqualTo(Vector3.zero));
-                    Assert.That(rotation, Is.EqualTo(Vector3.zero));
-                    Assert.That(frame, Is.EqualTo(default(Quaternion)), "Offsets now use corresponding gun-local socket frames.");
+                    AssertMountContract(weapon, optic, position, rotation, frame);
                     AssertFinite(catalog.Find(optic).mountOffset, optic);
                 }
                 new NativeAttachmentMountTests().AllFourOpticsSeatTheirClampOnAnActualSurfaceInBothViews(weapon);

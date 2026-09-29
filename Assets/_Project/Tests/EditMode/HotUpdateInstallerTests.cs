@@ -74,6 +74,47 @@ namespace Game.Gameplay.Tests
         // ---- 用例 ----
 
         [Test]
+        public void BuildDigest_ChangesForGameplayAssetsMetadataPhysicsAndLockedPackages()
+        {
+            var type = System.AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType("Game.EditorTools.BuildManifestWriter")).First(t => t != null);
+            var compute = type.GetMethod("ComputeInputDigest", new[] { typeof(string) });
+            Directory.CreateDirectory(_root);
+            foreach (var relative in new[] { "Assets/Resources/Weapons/rifle.asset", "Assets/_Project/Scenes/Arena.unity",
+                "Assets/_Project/Prefabs/Player.prefab", "Assets/_Project/Prefabs/Player.prefab.meta",
+                "ProjectSettings/DynamicsManager.asset", "Packages/packages-lock.json" })
+            {
+                var before = ((System.ValueTuple<string, int>)compute.Invoke(null, new object[] { _root })).Item1;
+                var path = Path.Combine(_root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, "initial");
+                var created = ((System.ValueTuple<string, int>)compute.Invoke(null, new object[] { _root })).Item1;
+                Assert.AreNotEqual(before, created, relative);
+                File.WriteAllText(path, "changed");
+                var changed = ((System.ValueTuple<string, int>)compute.Invoke(null, new object[] { _root })).Item1;
+                Assert.AreNotEqual(created, changed, relative);
+                Assert.AreEqual(changed, ((System.ValueTuple<string, int>)compute.Invoke(null, new object[] { _root })).Item1);
+            }
+        }
+
+        [Test]
+        public async Task SameVersionRepair_ReplacesCorruptAndMissingFiles_PreservesIdentity()
+        {
+            var manifest = MakeManifest("7", ("a.lua", "original"), ("maps/x.bundle", "map"));
+            var fetch = Fetcher(ContentOf(("a.lua", "original"), ("maps/x.bundle", "map")), null);
+            Assert.IsTrue((await HotUpdateInstaller.InstallAsync(manifest, JsonUtility.ToJson(manifest), _root, null, null, fetch)).Success);
+            var directory = Path.Combine(_root, "7");
+            File.WriteAllText(Path.Combine(directory, "a.lua"), "corrupt");
+            File.Delete(Path.Combine(directory, "maps/x.bundle"));
+            Assert.IsFalse(HotUpdateInstaller.DirectoryMatches(directory, manifest));
+            var result = await HotUpdateInstaller.InstallAsync(manifest, JsonUtility.ToJson(manifest), _root, manifest, directory, fetch);
+            Assert.IsTrue(result.Success, result.Error);
+            Assert.AreEqual(2, result.FilesDownloaded);
+            Assert.IsTrue(HotUpdateInstaller.DirectoryMatches(directory, manifest));
+            Assert.AreEqual("7", JsonUtility.FromJson<HotUpdateManifest>(ReadInstalledVersion(_root)).version);
+        }
+
+        [Test]
         public async Task FreshInstall_WritesFullDirectoryAndPointer()
         {
             var remote = MakeManifest("1", ("hot_bootstrap.lua", "boot1"), ("maps/m.bundle", "mapdata1"));

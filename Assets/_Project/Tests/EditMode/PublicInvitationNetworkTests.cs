@@ -35,8 +35,8 @@ namespace Game.Gameplay.Tests
         [TestCase(20)] [TestCase(30)] [TestCase(50)] [TestCase(60)] [TestCase(128)]
         public void CompensationWindowDoesNotIncludeStorageMargin(int rate)
         {
-            Assert.That(ShotTimingPolicy.ValidDisplayTick(100 - rate * .2, 100, rate), Is.True);
-            Assert.That(ShotTimingPolicy.ValidDisplayTick(100 - rate * .2 - .01, 100, rate), Is.False);
+            Assert.That(ShotTimingPolicy.ValidDisplayTick(100 - rate * ShotTimingPolicy.MaxHistorySeconds, 100, rate), Is.True);
+            Assert.That(ShotTimingPolicy.ValidDisplayTick(100 - rate * ShotTimingPolicy.MaxHistorySeconds - .01, 100, rate), Is.False);
             Assert.That(ShotTimingPolicy.ValidDisplayTick(101, 100, rate), Is.False);
             Assert.That(ShotTimingPolicy.ValidDisplayTick(double.NaN, 100, rate), Is.False);
         }
@@ -124,7 +124,7 @@ namespace Game.Gameplay.Tests
                 var lag=managerGo.AddComponent<ServerLagCompensation>(); var box=target.AddComponent<BoxCollider>();
                 lag.RegisterPlayer(target.transform,new Collider[]{box});
                 for (uint t=90;t<=100;t++) { target.transform.position=Vector3.right*t; lag.Capture(t); }
-                Assert.That(lag.TryBeginRewind(93.0,null,out double _), Is.False);
+                Assert.That(lag.TryBeginRewind(84.99,null,out double _), Is.False);
                 Assert.That(lag.TryBeginRewind(94.5,null,out double used), Is.True);
                 Assert.That(used,Is.EqualTo(94.5)); Assert.That(target.transform.position.x,Is.EqualTo(94.5).Within(.001));
                 lag.EndRewind(); Assert.That(target.transform.position.x,Is.EqualTo(100));

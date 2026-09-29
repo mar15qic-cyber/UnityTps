@@ -125,6 +125,9 @@ namespace Game.Gameplay.Tests
             Assert.That(Private<bool>(adapter, "_tpModelBaseCaptured"), Is.False, "前置：基准尚未捕获");
 
             Invoke(combat, "ApplyDeathVisual"); // 首次收到即已死：死亡表现已写入 TP_Model
+            // Production now plays a death clip; this minimal harness has no skeleton.
+            // Supply its final visual pose explicitly to test the baseline race itself.
+            model.localRotation = Quaternion.Euler(85f, 25f, 0f);
             Assert.That(model.localRotation.eulerAngles.x, Is.GreaterThan(10f), "前置：尸体位姿已写入");
             adapter.TestRemoteVisualTime = 0f;
             Invoke(adapter, "UpdateRemoteVisualSmoothing");

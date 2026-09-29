@@ -9,8 +9,8 @@ namespace Game.Gameplay.Combat
         public ThrowableDefinition Flash;
         public ThrowableDefinition Smoke;
         public GameObject NetworkProjectilePrefab;
-        [Min(0f)] public float ReleaseDelaySeconds = 0.15f;
-        [Min(0f)] public float ThrowActionSeconds = 0.5f;
+        [Min(0f)] public float ReleaseDelaySeconds = 0.35f;
+        [Min(0f)] public float ThrowActionSeconds = 1.15f;
 
         public ThrowableDefinition Get(ThrowableType type) => type switch
         {

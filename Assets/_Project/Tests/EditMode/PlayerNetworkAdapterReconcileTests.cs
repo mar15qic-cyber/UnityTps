@@ -287,6 +287,30 @@ namespace Game.Gameplay.Tests
         /// 不可达（TryStore 单调 / PruneUpTo 只删 ≤ack / 容量 128≫lead），本用例直接注入缺口锁守卫语义。
         /// </summary>
         [Test]
+        public void Rebase_ReplaysShotDebtAtEachMovementStep_AndPreservesLiveDebt()
+        {
+            var (adapter, locomotor, root) = Spawn(new Vector3(5500, 5500, 5500));
+            var weapon = root.gameObject.AddComponent<Game.Gameplay.Weapon.WeaponController>();
+            SetPrivate(adapter, "_weaponController", weapon);
+            SetPrivate(locomotor, "_weaponController", weapon);
+            var buffer = Private<PredictionBuffer>(adapter, "_buffer");
+            buffer.TryStore(new MovementCommand(Vector2.zero, false, false, -3f, 0f, 11));
+            buffer.TryStore(new MovementCommand(Vector2.zero, false, false, -4f, 0f, 12));
+            adapter.RememberRecoilBeforePrediction(11, new Vector2(1f, 2f));
+            adapter.RememberRecoilBeforePrediction(12, new Vector2(2f, 3f));
+            var liveDebt = new Vector2(5f, 6f); // Another shot after the last movement step.
+            weapon.RestoreRecoilCompensationDebt(liveDebt);
+            typeof(PlayerNetworkAdapter).GetMethod("HardSnapTo", NonPublic).Invoke(adapter,
+                new object[] { State(20, 10, root.position), MovementRebaseKind.Snap, 0f });
+            Assert.That(Mathf.DeltaAngle(0, root.eulerAngles.y), Is.EqualTo(-2f).Within(.001f),
+                "Each opposite yaw consumes the debt that actually existed before that input.");
+            Assert.That(weapon.RecoilCompensationDebt, Is.EqualTo(liveDebt));
+            typeof(PlayerNetworkAdapter).GetMethod("HardSnapTo", NonPublic).Invoke(adapter,
+                new object[] { State(21, 12, root.position), MovementRebaseKind.DeathRespawn, 0f });
+            Assert.That(weapon.RecoilCompensationDebt, Is.EqualTo(Vector2.zero));
+        }
+
+        [Test]
         public void HardSnapTo_ReplayGap_RebasesLocalTickToReplayed_AndInvalidatesAbove()
         {
             var (adapter, _, root) = Spawn(Vector3.zero);

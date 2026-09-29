@@ -306,7 +306,9 @@ namespace Game.Gameplay.Combat
                 QueryTriggerInteraction.Ignore);
             foreach (var hit in hits)
             {
-                if (hit.collider == projectileCollider || hit.collider.GetComponentInParent<DamageableTarget>() != null
+                if (hit.collider == projectileCollider || CombatResolver.IsMovementBlocker(hit.collider)
+                    || hit.collider.GetComponentInParent<NetworkCombatAuthority>() != null
+                    || hit.collider.GetComponentInParent<DamageableTarget>() != null
                     || thrower != null && hit.collider.GetComponentInParent<NetworkCombatAuthority>() == thrower)
                     continue;
                 return true;

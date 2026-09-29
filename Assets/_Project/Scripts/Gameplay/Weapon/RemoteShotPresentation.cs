@@ -33,6 +33,7 @@ namespace Game.Gameplay.Weapon
         public bool[] PelletHits;       // 与 PelletPoints 等长；null=单发
         public Vector3[] PelletNormals;
         public bool[] PelletCharacters;
+        public int[] PelletDamageAmounts;
 
         public static RemoteShotPresentation FromShot(in WeaponShot shot, uint shotRequestId)
         {
@@ -61,12 +62,14 @@ namespace Game.Gameplay.Weapon
                 dto.PelletHits = new bool[pellets.Length];
                 dto.PelletNormals = new Vector3[pellets.Length];
                 dto.PelletCharacters = new bool[pellets.Length];
+                dto.PelletDamageAmounts = new int[pellets.Length];
                 for (int i = 0; i < pellets.Length; i++)
                 {
                     dto.PelletPoints[i] = pellets[i].Point;
                     dto.PelletHits[i] = pellets[i].Hit;
                     dto.PelletNormals[i] = pellets[i].Normal;
                     dto.PelletCharacters[i] = pellets[i].Target != null;
+                    dto.PelletDamageAmounts[i] = pellets[i].DamageAmount;
                     dto.DamageAmount += pellets[i].DamageAmount;
                     if (pellets[i].DamageAmount > 0 && pellets[i].BodyRegion == HitBodyRegion.Head)
                         dto.BodyRegion = HitBodyRegion.Head;

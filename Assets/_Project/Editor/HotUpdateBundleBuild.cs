@@ -44,8 +44,7 @@ namespace Game.EditorTools
                 }
             }
 
-            var manifest = BuildPipeline.BuildAssetBundles(outDir, builds,
-                BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.StandaloneWindows64);
+            var manifest = BuildClientMaps(outDir, builds);
             if (manifest == null || manifest.GetAllAssetBundles().Length != builds.Length)
             {
                 Debug.LogError("[HotUpdateBundleBuild] bundle 构建结果与清单不符");
@@ -53,6 +52,29 @@ namespace Game.EditorTools
             }
             var names = string.Join(", ", manifest.GetAllAssetBundles());
             Debug.Log($"[HotUpdateBundleBuild] BUNDLE_OK dir={outDir} bundles=[{names}]");
+        }
+
+        // BuildAssetBundles' legacy overload inherits the editor's standalone subtarget.
+        // A preceding DS build can therefore strip every material's shader from client maps.
+        internal static AssetBundleManifest BuildClientMaps(string output, AssetBundleBuild[] builds)
+        {
+            foreach (var build in builds)
+                foreach (string dependency in AssetDatabase.GetDependencies(build.assetNames, true))
+                {
+                    if (!dependency.EndsWith(".mat", System.StringComparison.OrdinalIgnoreCase)) continue;
+                    var material = AssetDatabase.LoadAssetAtPath<Material>(dependency);
+                    if (material == null || material.shader == null
+                        || material.shader.name == "Hidden/InternalErrorShader")
+                        throw new System.InvalidOperationException("Map material has no valid shader: " + dependency);
+                }
+            return BuildPipeline.BuildAssetBundles(new BuildAssetBundlesParameters
+            {
+                outputPath = output,
+                bundleDefinitions = builds,
+                options = BuildAssetBundleOptions.ChunkBasedCompression | BuildAssetBundleOptions.ForceRebuildAssetBundle,
+                targetPlatform = BuildTarget.StandaloneWindows64,
+                subtarget = (int)StandaloneBuildSubtarget.Player
+            });
         }
     }
 }

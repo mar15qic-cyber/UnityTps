@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using FishNet.Transporting;
 using UnityEngine;
@@ -32,7 +32,7 @@ namespace Game.Gameplay.Network
         private const float ServerStartWatchdogSeconds = 20f;
 
         private DedicatedServerOptions _options;
-        private UnityWebServerControlPlaneClient _controlPlane;
+        private IServerControlPlaneClient _controlPlane;
         private IDedicatedServerRuntime _runtime;
         private INetworkManagerBinding _manager;
         private JoinTicketAuthenticator _authenticator;
@@ -45,6 +45,9 @@ namespace Game.Gameplay.Network
         private MatchResultPendingStore _pendingMatchResults;
         /// <summary>掉线上报泵单飞闸（并发通知只允许一个排水循环在途；新条目由在途循环 CollectPending 拾起）。</summary>
         private readonly SingleFlightGate _disconnectDrainGate = new();
+        private readonly SingleFlightGate _resultDrainGate = new();
+        private bool _transportUnavailable;
+        private bool _destroyed;
         private float _heartbeatIntervalSeconds = DefaultHeartbeatSeconds;
         private bool _headlessGuardApplied;
         private DedicatedEntryDecision _entryMode = DedicatedEntryDecision.GuardOnly;
@@ -87,6 +90,7 @@ namespace Game.Gameplay.Network
 
         private void OnDestroy()
         {
+            _destroyed = true;
             SceneManager.sceneLoaded -= OnSceneLoadedForHeadlessGuard;
             // Day2 生命周期闭环（接管契约 §2）：静态事件订阅对称解绑——防止重复初始化后
             // OnServerMatchInProgress/OnServerMatchEnded 多次触发 TryEnterMatch
@@ -258,6 +262,7 @@ namespace Game.Gameplay.Network
 
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
+            _transportUnavailable = args.ConnectionState != LocalConnectionState.Started;
             bool wasConcluded = _listenGate.Concluded;
             _listenGate.OnConnectionState(args.ConnectionState);
 
@@ -269,14 +274,32 @@ namespace Game.Gameplay.Network
             else if (wasConcluded && _listenGate.Ready && args.ConnectionState == LocalConnectionState.Stopped)
             {
                 // Ready 后的停服属 Day2 比赛生命周期（当前仅记录，心跳继续上报事实）
-                Debug.LogWarning("[DedicatedServer] server connection stopped after ready——Day2 生命周期将接管该语义");
+                Debug.LogWarning("[DedicatedServer] transport stopped: Ready announcements suspended until listening resumes");
+                if (!_heartbeatTracker.IsRoomBound) _ = ReportStoppedTransportAsync();
             }
+        }
+
+        private async Task ReportStoppedTransportAsync()
+        {
+            if (_controlPlane == null || _manager == null || _options == null) return;
+            try
+            {
+                var request = _heartbeatTracker.BuildHeartbeat(_manager.ConnectedClientCount, _options.MapId);
+                request.state = "Offline";
+                await _controlPlane.HeartbeatAsync(request);
+            }
+            catch (Exception e) { Debug.LogWarning("[ServerRegistry] offline report failed: " + e.Message); }
         }
 
         private async Task RegisterAndHeartbeatAsync()
         {
-            while (true)
+            while (!_destroyed)
             {
+                if (_transportUnavailable)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(RegisterRetrySeconds));
+                    continue;
+                }
                 if (!await TryRegisterOnceAsync())
                 {
                     await Task.Delay(TimeSpan.FromSeconds(RegisterRetrySeconds));
@@ -369,15 +392,22 @@ namespace Game.Gameplay.Network
         /// 注册成功等时机由 FlushPendingMatchResultsAsync 重放（幂等 by matchId）。</summary>
         private async Task DeliverMatchResultAsync(IServerMatchResultReporter reporter, ServerMatchResultReportRequest request)
         {
+            // Persist before the first await: a crash during delivery must leave a replayable payload.
+            _pendingMatchResults.Append(request);
+            if (!_resultDrainGate.TryBegin()) return; // Persisted; the periodic pump will collect it.
             try
             {
-                if (await ReportMatchResultAsync(reporter, request)) return;
+                if (await ReportMatchResultAsync(reporter, request))
+                {
+                    _pendingMatchResults.Remove(request.matchId);
+                    return;
+                }
             }
             catch (Exception exception)
             {
                 Debug.LogWarning($"[ServerRegistry] MATCH_RESULT_DELIVER_FAULT match={request.matchId}: {exception.Message}");
             }
-            _pendingMatchResults.Append(request);
+            finally { _resultDrainGate.End(); }
             if (_pendingMatchResults.LastSaveSucceeded)
                 Debug.LogError($"[ServerRegistry] MATCH_RESULT_PERSISTED_FOR_COMPENSATION match={request.matchId} pending={_pendingMatchResults.Count}——已落盘，后端恢复后自动重放");
             else
@@ -393,6 +423,7 @@ namespace Game.Gameplay.Network
         {
             for (int attempt = 1; attempt <= MatchResultReportMaxAttempts; attempt++)
             {
+                if (_destroyed) return false;
                 try
                 {
                     var outcome = await reporter.ReportMatchResultAsync(request);
@@ -433,30 +464,36 @@ namespace Game.Gameplay.Network
         private async Task FlushPendingMatchResultsAsync()
         {
             if (_controlPlane is not IServerMatchResultReporter reporter) return;
-            if (_pendingMatchResults.Count == 0) return;
-            _pendingMatchResults.EnsureSaved(); // F09：补偿泵每轮重试上次失败的落盘
-            Debug.Log($"[ServerRegistry] MATCH_RESULT_COMPENSATION_FLUSH pending={_pendingMatchResults.Count}");
-            foreach (var request in _pendingMatchResults.CollectSnapshot())
+            if (_pendingMatchResults == null || _pendingMatchResults.Count == 0 || !_resultDrainGate.TryBegin()) return;
+            try
             {
-                try
+                _pendingMatchResults.EnsureSaved(); // F09：补偿泵每轮重试上次失败的落盘
+                Debug.Log($"[ServerRegistry] MATCH_RESULT_COMPENSATION_FLUSH pending={_pendingMatchResults.Count}");
+                int attempted = 0;
+                foreach (var request in _pendingMatchResults.CollectSnapshot())
                 {
-                    var outcome = await reporter.ReportMatchResultAsync(request);
-                    if (outcome is MatchResultReportOutcome.Accepted or MatchResultReportOutcome.StateConflict)
+                    if (_destroyed || attempted++ >= 8) return;
+                    try
                     {
-                        _pendingMatchResults.Remove(request.matchId);
-                        Debug.Log($"[ServerRegistry] MATCH_RESULT_COMPENSATED match={request.matchId} outcome={outcome} pending={_pendingMatchResults.Count}");
+                        var outcome = await reporter.ReportMatchResultAsync(request);
+                        if (outcome is MatchResultReportOutcome.Accepted or MatchResultReportOutcome.StateConflict)
+                        {
+                            _pendingMatchResults.Remove(request.matchId);
+                            Debug.Log($"[ServerRegistry] MATCH_RESULT_COMPENSATED match={request.matchId} outcome={outcome} pending={_pendingMatchResults.Count}");
+                        }
+                        else
+                        {
+                            return; // The heartbeat interval provides backoff; do not stall the pump.
+                        }
                     }
-                    else
+                    catch (Exception exception)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(MatchResultReportRetrySeconds));
+                        Debug.LogWarning($"[ServerRegistry] MATCH_RESULT_COMPENSATION_RETRY match={request.matchId}: {exception.Message}");
+                        return; // 后端仍不可达：等下一次注册/心跳周期
                     }
-                }
-                catch (Exception exception)
-                {
-                    Debug.LogWarning($"[ServerRegistry] MATCH_RESULT_COMPENSATION_RETRY match={request.matchId}: {exception.Message}");
-                    return; // 后端仍不可达：等下一次注册/心跳周期
                 }
             }
+            finally { _resultDrainGate.End(); }
         }
 
         private async Task<bool> TryRegisterOnceAsync()
@@ -488,6 +525,11 @@ namespace Game.Gameplay.Network
                     : DefaultHeartbeatSeconds;
                 Debug.Log($"[ServerRegistry] REGISTERED instance={_options.InstanceId} state={response.state} heartbeat={_heartbeatIntervalSeconds:0}s protocol={GameProtocolIdentity.ProtocolId} build={_options.BuildVersion}");
                 _ = FlushPendingMatchResultsAsync(); // 后端可达：排空终局上报补偿队列（重启后恢复也在注册后触发）
+                if (_transportUnavailable)
+                {
+                    if (!_heartbeatTracker.IsRoomBound) await ReportStoppedTransportAsync();
+                    return false;
+                }
                 return true;
             }
             catch (Exception exception)
@@ -499,9 +541,11 @@ namespace Game.Gameplay.Network
 
         private async Task HeartbeatUntilConflictAsync()
         {
-            while (true)
+            while (!_destroyed)
             {
                 await Task.Delay(TimeSpan.FromSeconds(_heartbeatIntervalSeconds));
+                if (_destroyed) return;
+                _ = FlushPendingMatchResultsAsync();
                 if (!TryBuildHeartbeat(out var request))
                     continue; // F1：释放许可到达但 MatchLifecycle 尚未完成 Ended→Idle，禁止 Ready+0
                 var outcome = await _controlPlane.HeartbeatAsync(request);
@@ -759,6 +803,7 @@ namespace Game.Gameplay.Network
         /// </summary>
         private bool TryBuildHeartbeat(out ServerInstanceHeartbeatRequest request)
         {
+            if (_transportUnavailable || _destroyed) { request = null; return false; }
             if (_heartbeatTracker.ReadyHeartbeatAwaitingRearm)
             {
                 if (!MatchLifecycle.IsReadyForDedicatedServerHeartbeat())

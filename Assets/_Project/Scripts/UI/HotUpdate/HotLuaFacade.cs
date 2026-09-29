@@ -19,6 +19,26 @@ namespace Game.UI
     /// </summary>
     public static class HotLuaFacade
     {
+        private sealed class PendingRequest
+        {
+            public Action<LuaTable> Success;
+            public Action<string> Error;
+            public LuaEnv Env;
+            public readonly CancellationTokenSource Cancellation = new();
+            public void Release() { Success = null; Error = null; Env = null; }
+        }
+        private static readonly System.Collections.Generic.HashSet<PendingRequest> pending = new();
+
+        internal static void CancelPendingRequests()
+        {
+            var snapshot = new System.Collections.Generic.List<PendingRequest>(pending);
+            pending.Clear();
+            foreach (var request in snapshot)
+            {
+                request.Release();
+                request.Cancellation.Cancel();
+            }
+        }
         public static void RegisterPage(string id, string label, Action<RectTransform> render) =>
             HotPageRegistry.Register(id, label, render);
 
@@ -32,33 +52,37 @@ namespace Game.UI
                 SafeError(onError, "客户端未就绪");
                 return;
             }
-            _ = FetchHistoryAsync(api, page, pageSize, onSuccess, onError);
+            var request = new PendingRequest { Success = onSuccess, Error = onError,
+                Env = HotUpdateRuntime.Instance != null ? HotUpdateRuntime.Instance.Env : null };
+            pending.Add(request);
+            _ = FetchHistoryAsync(api, page, pageSize, request);
         }
 
         private static async Task FetchHistoryAsync(IApiClient api, int page, int pageSize,
-            Action<LuaTable> onSuccess, Action<string> onError)
+            PendingRequest request)
         {
             try
             {
-                var result = await api.GetMatchHistoryAsync(page, pageSize, CancellationToken.None);
+                var result = await api.GetMatchHistoryAsync(page, pageSize, request.Cancellation.Token);
+                if (request.Cancellation.IsCancellationRequested) return;
                 if (!result.Success)
                 {
-                    SafeError(onError, result.Code ?? "UNKNOWN");
+                    SafeError(request.Error, result.Code ?? "UNKNOWN");
                     return;
                 }
-                var env = HotUpdateRuntime.Instance != null ? HotUpdateRuntime.Instance.Env : null;
+                var env = request.Env;
                 if (env == null)
                 {
-                    SafeError(onError, "LuaEnv 未初始化");
+                    SafeError(request.Error, "LuaEnv 未初始化");
                     return;
                 }
                 var dto = result.Data ?? new MatchHistoryPageDto();
-                var table = env.NewTable();
+                using var table = env.NewTable();
                 table.Set("page", dto.page);
                 table.Set("totalCount", dto.totalCount);
                 table.Set("totalPages", dto.totalPages);
 
-                var summary = env.NewTable();
+                using var summary = env.NewTable();
                 var s = dto.summary ?? new CareerSummaryDto();
                 summary.Set("totalMatches", s.totalMatches);
                 summary.Set("wins", s.wins);
@@ -69,14 +93,14 @@ namespace Game.UI
                 summary.Set("winRate", s.winRate);
                 table.Set("summary", summary);
 
-                var rows = env.NewTable();
+                using var rows = env.NewTable();
                 if (dto.matches != null)
                 {
                     var rowIndex = 1; // Lua 1-based，配 ipairs
                     foreach (var m in dto.matches)
                     {
                         if (m == null) continue;
-                        var row = env.NewTable();
+                        using var row = env.NewTable();
                         row.Set("playedAt", m.playedAtUtc ?? string.Empty);
                         row.Set("isWin", m.isWin);
                         row.Set("kills", m.kills);
@@ -89,12 +113,13 @@ namespace Game.UI
                     }
                 }
                 table.Set("rows", rows);
-                onSuccess?.Invoke(table);
+                request.Success?.Invoke(table);
             }
             catch (Exception e)
             {
-                SafeError(onError, e.Message);
+                if (!request.Cancellation.IsCancellationRequested) SafeError(request.Error, e.Message);
             }
+            finally { pending.Remove(request); request.Release(); request.Cancellation.Dispose(); }
         }
 
         private static void SafeError(Action<string> onError, string message)

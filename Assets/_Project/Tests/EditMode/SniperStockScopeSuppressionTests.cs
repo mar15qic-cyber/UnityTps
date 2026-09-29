@@ -40,9 +40,8 @@ namespace Game.Gameplay.Tests
             Assert.That(spawnedScope, Is.Not.Null, "外镜内部测试 scope 子树缺失");
             Assert.That(spawnedScope.gameObject.activeInHierarchy, Is.True, "外镜内部 scope 不得被隐藏");
 
-            LogAssert.Expect(LogType.Error,
-                new System.Text.RegularExpressions.Regex("Destroy may not be called from edit mode"));
             view.ApplyAttachments(null, "weapon.sniper.test", Array.Empty<AttachmentAssetEntry>());
+            LogAssert.NoUnexpectedReceived();
 
             Assert.That(stockScope.activeInHierarchy, Is.True, "卸下外镜必须恢复出厂镜 active 状态");
             Assert.That(sharedGun.activeInHierarchy, Is.True);

@@ -40,6 +40,36 @@ namespace Game.Gameplay.Tests
             finally { PrefabUtility.UnloadPrefabContents(player); }
         }
 
+        [TestCase(-1f, 0f)]
+        [TestCase(0f, 0f)]
+        [TestCase(1f, 90f)]
+        public void ProductionCameraEye_IsInsideExposedHeadHitbox(float lean, float yaw)
+        {
+            GameObject player = PrefabUtility.LoadPrefabContents(PlayerPath);
+            try
+            {
+                player.transform.position = new Vector3(6000, 0, 6000);
+                player.transform.rotation = Quaternion.Euler(0, yaw, 0);
+                var adapter = player.GetComponent<PlayerNetworkAdapter>();
+                adapter.AlignEyePivot();
+                typeof(PlayerNetworkAdapter).GetMethod("EnsureBodyHitbox", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(adapter, null);
+                var body = player.transform.Find("TP_Model/BodyHitbox");
+                body.GetComponent<ArticulatedHitboxFollower>().SetLean(lean);
+                Vector3 eye = Game.Gameplay.Player.LeanProfile.Eye(player.transform.position, player.transform.rotation, lean);
+                Vector3 displayedEye = player.transform.Find("CameraPivot").position
+                    + player.transform.right * (lean * Game.Gameplay.Player.LeanProfile.EyeSideMeters);
+                Assert.That(Vector3.Distance(eye, displayedEye), Is.LessThan(.001f));
+                Physics.SyncTransforms();
+                var head = body.Find("HeadHitbox").GetComponent<CapsuleCollider>();
+                Assert.That(Vector3.Distance(head.ClosestPoint(eye), eye), Is.LessThan(.005f),
+                    "a player exposing their camera must expose a hittable head volume");
+                Assert.That(head.Raycast(new Ray(eye + player.transform.forward * 2,
+                    -player.transform.forward), out _, 3), Is.True);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(player); }
+        }
+
         private static void AssertFollows(Animator animator, ArticulatedHitboxFollower follower,
             Transform volume, HumanBodyBones trackedBone, HumanBodyBones movedBone, Quaternion delta)
         {

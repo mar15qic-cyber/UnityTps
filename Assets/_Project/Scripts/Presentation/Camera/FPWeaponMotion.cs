@@ -265,6 +265,22 @@ namespace Game.Presentation.Camera
             }
 
             WeaponView activeView = FindActiveView();
+            var throwAnimator = activeView != null ? activeView.GetComponent<FPWeaponAnimator>() : null;
+            if (throwAnimator != null && throwAnimator.IsThrowablePresentationActive)
+            {
+                if (_viewCamera == null) _viewCamera = ResolveViewCamera();
+                if (_viewCamera != null)
+                {
+                    // Camera-relative authored rig frame; no feedback from the moving
+                    // grenade, no gun ADS/hip offsets, and no whole-arm screen pinning.
+                    Quaternion rotation = _viewCamera.transform.rotation * throwAnimator.ThrowViewLocalRotation;
+                    Vector3 position = _viewCamera.transform.TransformPoint(throwAnimator.ThrowViewLocalPosition);
+                    Quaternion rootRotation = rotation * Quaternion.Inverse(activeView.transform.localRotation);
+                    transform.SetPositionAndRotation(position - rootRotation * activeView.transform.localPosition, rootRotation);
+                    _lastAdsBlend = 0f;
+                    return;
+                }
+            }
             FPWeaponPoseProfile activeProfile = activeView != null
                 ? activeView.GetComponent<FPWeaponPoseProfile>()
                 : null;

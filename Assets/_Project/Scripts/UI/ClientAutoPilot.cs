@@ -30,6 +30,7 @@ namespace Game.UI
             public int MaxPlayers = 2;
             public int MinReadyPlayers = 2; // 房主开局前等待的就绪人数（含自己）；联测编排用
             public string Mode = "TDM";
+            public string MapId = "arena";
             public int KillTarget = 20;
             public int TimeLimitMinutes = 5;
             /// <summary>-itNoReady：join 端不点准备，留在房间等房主开赛后再点「进入比赛」（未准备成员场景）。</summary>
@@ -59,6 +60,7 @@ namespace Game.UI
                 MaxPlayers = int.TryParse(Arg("-itMax"), out var max) ? max : 2,
                 MinReadyPlayers = int.TryParse(Arg("-itWaitPlayers"), out var wait) ? wait : 2,
                 Mode = Arg("-itMode") ?? "TDM",
+                MapId = Arg("-itMap") ?? "arena",
                 // killTarget 默认按模式取白名单值（RoomSettingRules：TDM {50,100,150}、
                 // KillRace {10,20,30}）——旧固定 20 是 KillRace 值，TDM 建房被 422 SETTING_INVALID 拒。
                 KillTarget = int.TryParse(Arg("-itKill"), out var kill)
@@ -162,18 +164,38 @@ namespace Game.UI
                     yield break;
                 }
 
+                // Finding the presenter is earlier than its asynchronous health/profile bootstrap.
+                // Use the same ready gate as a user clicking the enabled online controls.
+                deadline = Time.unscaledTime + 60f;
+                while ((!GetPrivateField<bool>(_presenter, "apiAvailable") || MapContentUpdater.Busy)
+                       && Time.unscaledTime < deadline)
+                    yield return new WaitForSeconds(.2f);
+                if (!GetPrivateField<bool>(_presenter, "apiAvailable") || MapContentUpdater.Busy)
+                {
+                    Debug.LogError("[IT_AUTOPILOT] FAIL lobby admission not ready");
+                    yield break;
+                }
+
                 if (options.Action == "create")
                 {
                     var request = new CreateRoomRequest
                     {
                         maxPlayers = options.MaxPlayers,
                         mode = options.Mode,
-                        mapId = "arena",
+                        mapId = options.MapId,
                         killTarget = options.KillTarget,
                         timeLimitMinutes = options.TimeLimitMinutes,
                     };
-                    InvokeAsync(_presenter, "StartOnlineCreateAsync", request);
-                    Debug.Log($"[IT_AUTOPILOT] create requested mode={options.Mode} max={options.MaxPlayers}");
+                    var createTask = (Task)_presenter.GetType().GetMethod("StartOnlineCreateAsync", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Invoke(_presenter, new object[] { request });
+                    yield return WaitTask(createTask);
+                    if (createTask.IsFaulted || _session.Room == null)
+                    {
+                        Debug.LogError("[IT_AUTOPILOT] FAIL create: " + (createTask.Exception != null
+                            ? createTask.Exception.ToString() : GetPrivateField<TMPro.TMP_Text>(_presenter, "status")?.text));
+                        yield break;
+                    }
+                    Debug.Log($"[IT_AUTOPILOT] create requested map={options.MapId} mode={options.Mode} max={options.MaxPlayers}");
                 }
                 else
                 {
@@ -295,7 +317,8 @@ namespace Game.UI
             private static bool IsInArena()
             {
                 var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-                return scene.name.Contains("Arena");
+                return HotMapCatalog.TryGetSceneName(AppRoot.Instance?.Session?.Room?.MapId, out var expected)
+                    && scene.name == expected;
             }
 
             private static void InvokeAsync(object target, string method, params object[] arguments)

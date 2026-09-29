@@ -34,6 +34,7 @@ namespace Game.EditorTools
             var output = "Builds/PrivateMaps/" + r.mapId + "/" + r.version;
             if (Directory.Exists(output)) throw new InvalidOperationException("Immutable map version exists");
             var setup = EditorSceneManager.GetSceneManagerSetup();
+            var previousSubtarget = EditorUserBuildSettings.standaloneBuildSubtarget;
             if (setup.Any(s => UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty)) throw new InvalidOperationException("Save scene edits first");
             try
             {
@@ -47,9 +48,8 @@ namespace Game.EditorTools
                     throw new InvalidOperationException("Spawn points do not form separate team regions");
                 if (roots.SelectMany(o => o.GetComponentsInChildren<MonoBehaviour>(true)).Any(m => m == null)) throw new InvalidOperationException("Missing script in map");
                 Directory.CreateDirectory(output + "/Content");
-                var bundle = BuildPipeline.BuildAssetBundles(output + "/Content", new[] { new AssetBundleBuild {
-                    assetBundleName = "maps/" + sceneName.ToLowerInvariant() + ".bundle", assetNames = new[] { r.scenePath } } },
-                    BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.StandaloneWindows64);
+                var bundle = HotUpdateBundleBuild.BuildClientMaps(output + "/Content", new[] { new AssetBundleBuild {
+                    assetBundleName = "maps/" + sceneName.ToLowerInvariant() + ".bundle", assetNames = new[] { r.scenePath } } });
                 if (bundle == null) throw new InvalidOperationException("Bundle build failed");
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes = new[] { r.scenePath },
                     locationPathName = output + "/Server/UnityFpsDedicatedServer.exe", target = BuildTarget.StandaloneWindows64,
@@ -58,7 +58,11 @@ namespace Game.EditorTools
                 BuildManifestWriter.WriteManifest(output + "/Server", "Server");
                 File.WriteAllText(output + "/map-request.json", JsonUtility.ToJson(r, true));
             }
-            finally { EditorSceneManager.RestoreSceneManagerSetup(setup); }
+            finally
+            {
+                EditorUserBuildSettings.standaloneBuildSubtarget = previousSubtarget;
+                EditorSceneManager.RestoreSceneManagerSetup(setup);
+            }
         }
     }
 }

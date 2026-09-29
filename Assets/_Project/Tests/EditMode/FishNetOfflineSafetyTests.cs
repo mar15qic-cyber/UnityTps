@@ -95,13 +95,13 @@ namespace Game.Gameplay.Tests
         public void HudAmmoSourceGate_Offline_FallsBackToLocal()
         {
             // WeaponHudView 数据源纯函数：网络未启动 → 无论引用是否残留都必须回本地路径
-            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldReadAuthoritativeAmmo(
+            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldBindOwnerState(
                 networkActive: false, hasOwnerNetworkState: true), Is.False);
-            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldReadAuthoritativeAmmo(
+            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldBindOwnerState(
                 networkActive: false, hasOwnerNetworkState: false), Is.False);
-            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldReadAuthoritativeAmmo(
+            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldBindOwnerState(
                 networkActive: true, hasOwnerNetworkState: true), Is.True);
-            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldReadAuthoritativeAmmo(
+            Assert.That(Game.Presentation.HUD.WeaponHudView.ShouldBindOwnerState(
                 networkActive: true, hasOwnerNetworkState: false), Is.False);
         }
     }

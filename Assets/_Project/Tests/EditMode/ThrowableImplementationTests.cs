@@ -24,7 +24,7 @@ namespace Game.Gameplay.Tests
             var catalog = AssetDatabase.LoadAssetAtPath<ThrowableCatalog>(Root + "/Resources/ThrowableCatalog.asset");
             Assert.NotNull(catalog);
             Assert.IsTrue(catalog.IsValid(out var reason), reason);
-            Assert.AreEqual(0.15f, catalog.ReleaseDelaySeconds, 0.001f);
+            Assert.AreEqual(0.35f, catalog.ReleaseDelaySeconds, 0.001f);
             AssertDefinition(catalog.Frag, ThrowableType.Frag, 1.75f, 3.5f, 0.75f);
             AssertDefinition(catalog.Flash, ThrowableType.Flash, 1.25f, 9f, 1.75f);
             AssertDefinition(catalog.Smoke, ThrowableType.Smoke, 0.75f, 3f, 14.25f);

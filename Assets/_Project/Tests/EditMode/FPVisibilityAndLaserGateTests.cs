@@ -42,6 +42,39 @@ namespace Game.Gameplay.Tests
         // ---- FPViewModelVisibility：原因合成与受控基线 ----
 
         [Test]
+        public void ThrowableHiding_SurvivesScopeExit_AndPreservesAuthorBaseline()
+        {
+            var visibility = new FPViewModelVisibility();
+            var gun = Prim("Gun", true).GetComponent<MeshRenderer>();
+            var arms = Prim("arms", true).GetComponent<MeshRenderer>();
+            var authorOff = Prim("AuthorOff", false).GetComponent<MeshRenderer>();
+            visibility.Register(gun); visibility.Register(arms); visibility.Register(authorOff);
+            visibility.SetHidden(FPViewHideReason.ScopeOverlay, true);
+            visibility.SetThrowableHidden(gun, true);
+            visibility.SetThrowableHidden(authorOff, true);
+            visibility.SetHidden(FPViewHideReason.ScopeOverlay, false);
+            Assert.That(gun.enabled, Is.False, "Scope exit must not restore the gun during a throw");
+            Assert.That(arms.enabled, Is.True);
+            visibility.SetHidden(FPViewHideReason.Death, true);
+            visibility.SetThrowableHidden(gun, false);
+            visibility.SetThrowableHidden(authorOff, false);
+            Assert.That(gun.enabled, Is.False, "Throw completion must not undo death hiding");
+            visibility.SetHidden(FPViewHideReason.Death, false);
+            Assert.That(gun.enabled, Is.True);
+            Assert.That(authorOff.enabled, Is.False);
+        }
+
+        [Test]
+        public void ThrowableHiding_ResetClearsPerRendererState()
+        {
+            var visibility = new FPViewModelVisibility();
+            var gun = Prim("Gun", true).GetComponent<MeshRenderer>();
+            visibility.SetThrowableHidden(gun, true);
+            visibility.ResetAll();
+            Assert.That(gun.enabled, Is.True);
+        }
+
+        [Test]
         public void Reasons_Compose_ReleaseOneKeepsOthers()
         {
             var visibility = new FPViewModelVisibility();
@@ -199,6 +232,17 @@ namespace Game.Gameplay.Tests
             var (beam, line, _, _) = BuildLaser();
             LateUpdate(beam);
             Assert.That(line.enabled, Is.True, "活着+腰射+闸门放行 → 出束（既有语义保持）");
+        }
+
+        [Test]
+        public void Laser_ThrowablePresentation_StaysOff()
+        {
+            var (beam, line, rig, _) = BuildLaser();
+            rig.ActiveView.SetActive(false);
+            var animator = rig.ActiveView.AddComponent<FPWeaponAnimator>();
+            typeof(FPWeaponAnimator).GetField("_throwPlaying", NonPublic).SetValue(animator, true);
+            LateUpdate(beam);
+            Assert.That(line.enabled, Is.False, "A persistent laser writer must respect throw hiding");
         }
 
         /// <summary>§7.4：死亡后**连续多帧** LateUpdate 都必须维持关线（不是只断言死亡入口关过一次）。</summary>

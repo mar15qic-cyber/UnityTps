@@ -34,6 +34,7 @@ namespace Game.Presentation.Animation
         private readonly bool[] _reasons = new bool[ReasonCount];
         private readonly Dictionary<Renderer, bool> _baseline = new();
         private readonly List<Renderer> _renderers = new();
+        private readonly HashSet<Renderer> _throwHidden = new();
         private int _changeCount;
 
         /// <summary>当前是否处于隐藏（任一原因位生效）。</summary>
@@ -61,11 +62,22 @@ namespace Game.Presentation.Animation
         /// <summary>清空全部原因（组件禁用/销毁边界），并按基线还原。</summary>
         public void ResetAll()
         {
+            _throwHidden.Clear();
             bool changed = false;
             for (int i = 0; i < _reasons.Length; i++) { changed |= _reasons[i]; _reasons[i] = false; }
             IsHidden = false;
             if (changed) _changeCount++;
             Apply();
+        }
+
+        // Throwing hides the gun and attachments, but keeps the arms and held object.
+        // Compose with scope/death instead of letting another writer restore the gun.
+        public void SetThrowableHidden(Renderer renderer, bool hidden)
+        {
+            if (renderer == null) return;
+            Register(renderer);
+            if (hidden) _throwHidden.Add(renderer); else _throwHidden.Remove(renderer);
+            renderer.enabled = !IsHidden && !_throwHidden.Contains(renderer) && _baseline[renderer];
         }
 
         /// <summary>
@@ -78,7 +90,7 @@ namespace Game.Presentation.Animation
             if (_baseline.ContainsKey(renderer))
             {
                 // 已注册：只需保证当前状态正确（例如注册发生在死亡之后）
-                if (IsHidden) renderer.enabled = false;
+                if (IsHidden || _throwHidden.Contains(renderer)) renderer.enabled = false;
                 return;
             }
             _baseline[renderer] = renderer.enabled;
@@ -98,7 +110,7 @@ namespace Game.Presentation.Animation
                     continue;
                 }
                 // 基线优先：作者本就关闭的网格在可见时也保持关闭
-                renderer.enabled = IsHidden ? false : _baseline[renderer];
+                renderer.enabled = !IsHidden && !_throwHidden.Contains(renderer) && _baseline[renderer];
             }
         }
     }

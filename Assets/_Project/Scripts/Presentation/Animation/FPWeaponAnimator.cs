@@ -43,6 +43,7 @@ namespace Game.Presentation.Animation
         // so it is evaluated on a masked layer which cannot write the
         // Armature root, camera, or weapon branch.
         private const int ArmFeedbackLayer = 1;
+        private const int ThrowableDrawLeftLayer = 2;
 
         /// <summary>动作版本号：每次 Reload/Switch 递增；阶段事件携带版本，回调校验失效即丢弃。</summary>
         public int CurrentActionVersion { get; private set; }
@@ -56,9 +57,31 @@ namespace Game.Presentation.Animation
         private ThrowableController _throwables;
         private AnimancerState _throwState;
         private GameObject _heldThrowable;
+        private FPThrowablePinView _pinView;
+        private FPThrowablePresentation _throwPresentation;
+        private GameObject _retiringThrowable;
+        private bool _throwDrawing;
+        private bool _weaponDrawPending;
+        private const float ThrowableRevealSeconds = .065f;
         private float _throwStartedAt;
         private bool _throwPlaying;
-        private readonly System.Collections.Generic.List<Renderer> _throwHidden = new();
+        [SerializeField] private AnimationClip throwablePresentationClip;
+        [SerializeField] private AnimationClip throwablePrepareClip;
+        internal AnimationClip ThrowableClip => _throwPresentation != null && _throwPresentation.Throw != null
+            ? _throwPresentation.Throw : throwablePresentationClip != null ? throwablePresentationClip : _clips.ThrowGrenade;
+        internal AnimationClip ThrowablePrepareClip => _throwPresentation != null && _throwPresentation.Prepare != null
+            ? _throwPresentation.Prepare : throwablePrepareClip;
+        internal bool IsThrowableDrawPlaying => _throwDrawing;
+        [SerializeField] private Vector3 throwViewLocalPosition = new(0f, -.09f, .18f);
+        [SerializeField] private Vector3 throwViewLocalEuler;
+        public bool IsThrowablePresentationActive => _heldThrowable != null || _throwPlaying;
+        internal Vector3 ThrowViewLocalPosition => throwViewLocalPosition;
+        internal Quaternion ThrowViewLocalRotation => Quaternion.Euler(throwViewLocalEuler);
+        internal Transform HeldThrowableTransform => _heldThrowable != null ? _heldThrowable.transform : null;
+        internal bool IsThrowPresentationPlaying => _throwPlaying;
+        internal const string ThrowableHandPath = "Armature/arm_R/lower_arm_R/hand_R";
+        private readonly System.Collections.Generic.Dictionary<Renderer, bool> _throwHidden = new();
+        private FPWeaponRig _visibilityRig;
         private WeaponAnimationSet _clips;
         private bool _clipsReady;
         private bool _playedBeforeStart;
@@ -76,6 +99,8 @@ namespace Game.Presentation.Animation
         private float _drawIdleBlendRemaining;
         private AnimancerLayer _armFeedbackLayer;
         private AvatarMask _armFeedbackMask;
+        private AnimancerLayer _throwDrawLeftLayer;
+        private AvatarMask _throwDrawLeftMask;
 
         /// <summary>
         /// The presentation clock for reload. Gameplay still decides when
@@ -176,13 +201,12 @@ namespace Game.Presentation.Animation
         private void Update()
         {
             if (controller == null) return;
+            // Selection runs before Arsenal. Let a real slot switch take over
+            // this frame before drawing the previously equipped gun again.
+            if (_weaponDrawPending) PlayDraw();
             if (_throwables != null && (_throwables.IsEquipped || _throwPlaying))
             {
-                if (!_throwPlaying && _throwState != null && _clips.ThrowGrenade != null)
-                {
-                    float prepared = Mathf.SmoothStep(.18f, .35f, _throwables.HoldProgress);
-                    _throwState.Time = _clips.ThrowGrenade.length * prepared;
-                }
+                TickThrowablePresentation(Time.deltaTime, _throwables.IsHolding);
                 if (_throwPlaying && _heldThrowable != null && Time.time - _throwStartedAt >= _throwables.ReleaseDelaySeconds)
                     _heldThrowable.SetActive(false);
                 if (!_throwables.IsEquipped && !_throwables.IsThrowing) HandleThrowableSelection();
@@ -311,6 +335,7 @@ namespace Game.Presentation.Animation
         /// <summary>换枪交换点：加载新武器 clip 集并播出枪动画。</summary>
         public void PlayDraw()
         {
+            _weaponDrawPending = false;
             StopArmFeedback(actionFadeSeconds);
             LoadClips();
             _aimFsm.ResetToHip(); // 切枪后从干净腰射态进入
@@ -338,6 +363,7 @@ namespace Game.Presentation.Animation
         /// 交换被打断时由 OnWeaponEquipped→PlayDraw 重播出枪兜底。</summary>
         public void PlayHolster()
         {
+            _weaponDrawPending = false;
             StopArmFeedback(actionFadeSeconds);
             LoadClips();
             _aimFsm.ResetToHip(); // 消除同帧竞争：收枪后不得再发 aim 指令覆盖收枪 clip
@@ -518,6 +544,7 @@ namespace Game.Presentation.Animation
         /// <summary>作废一切"死亡前已排定"的瞬时动作状态（flags/计时/OnEnd 回调/阶段事件版本）。</summary>
         private void ClearTransientActionState()
         {
+            _weaponDrawPending = false;
             _shotFiredThisFrame = false;
             _dryFiredThisFrame = false;
             _holsterRequestedThisFrame = false;
@@ -555,34 +582,121 @@ namespace Game.Presentation.Animation
 
         private void HandleThrowableSelection()
         {
+            bool returningToWeapon = IsThrowablePresentationActive || _weaponDrawPending;
+            // Retain the outgoing model only during descent into the draw pose.
+            var outgoing = _throwables != null && _throwables.IsEquipped ? _heldThrowable : null;
+            if (outgoing != null) _heldThrowable = null;
             ClearThrowablePresentation();
+            _retiringThrowable = outgoing;
+            if (_visibilityRig == null) _visibilityRig = GetComponentInParent<FPWeaponRig>();
             _aimFsm.ResetToHip();
-            if (_throwables == null || !_throwables.IsEquipped) { PlayIdle(); return; }
+            if (_throwables == null || !_throwables.IsEquipped)
+            {
+                // Auto return and selecting the same firearm do not equip a
+                // new WeaponDefinition, so FPWeaponRig emits no PlayDraw.
+                // A different slot still owns its normal holster/equip/draw.
+                _weaponDrawPending = returningToWeapon && !_holsterRequestedThisFrame
+                    && (actionSystem == null || actionSystem.CurrentAction != PlayerActionType.SwitchWeapon);
+                return;
+            }
+            _drawState = null;
+            _holsterState = null;
+            _drawIdleBlendRemaining = 0f;
             if (!_clipsReady) LoadClips();
             StopArmFeedback(0f);
-            if (_clips.ThrowGrenade == null) return;
-            _throwState = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
-            _throwState.Time = _clips.ThrowGrenade.length * 0.18f;
-            _throwState.Speed = 0f;
-            var hand = transform.Find("Armature/arm_L/lower_arm_L/hand_L");
+            var hand = transform.Find(ThrowableHandPath);
             if (hand != null && _throwables.SelectedDefinition != null)
             {
-                _heldThrowable = Instantiate(_throwables.SelectedDefinition.ModelPrefab, hand, false);
+                var visual = Resources.Load<GameObject>("ThrowableViews/" + _throwables.SelectedType);
+                _heldThrowable = Instantiate(visual != null ? visual : _throwables.SelectedDefinition.ModelPrefab, hand, false);
                 _heldThrowable.name = "HeldThrowable";
-                _heldThrowable.transform.localPosition = HeldThrowablePosition(_heldThrowable);
+                _throwPresentation = _heldThrowable.GetComponent<FPThrowablePresentation>();
+                AlignHeldThrowable(_heldThrowable);
+                _pinView = _heldThrowable.GetComponent<FPThrowablePinView>();
+                if (_pinView != null) _pinView.Bind(transform.Find("Armature/arm_L/lower_arm_L/hand_L"));
                 foreach (var t in _heldThrowable.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = gameObject.layer;
                 foreach (var c in _heldThrowable.GetComponentsInChildren<Collider>()) c.enabled = false;
             }
+            if (_throwPresentation != null && _throwPresentation.Draw != null)
+            {
+                _throwDrawing = true;
+                _throwState = _animancer.Play(_throwPresentation.Draw, .06f, FadeMode.FromStart);
+                _throwState.Time = 0; _throwState.Speed = 1;
+                _throwState.Events(this).OnEnd = null;
+                _heldThrowable.SetActive(false);
+                ParkLeftArmForThrowableDraw(_throwPresentation.Draw);
+            }
+            else BeginThrowablePreparation();
             foreach (var r in GetComponentsInChildren<Renderer>(true))
             {
-                if (!r.enabled || r.name == "arms" || _heldThrowable != null && r.transform.IsChildOf(_heldThrowable.transform)) continue;
-                r.enabled = false; _throwHidden.Add(r);
+                if (r.name == "arms" || _heldThrowable != null && r.transform.IsChildOf(_heldThrowable.transform)
+                    || _retiringThrowable != null && r.transform.IsChildOf(_retiringThrowable.transform)) continue;
+                // Scope overlay may already have disabled it. Still retain throw hiding
+                // when that overlay releases; preserve the author's baseline on recovery.
+                _throwHidden[r] = r.enabled;
+                if (_visibilityRig != null) _visibilityRig.SetThrowableRendererHidden(r, true);
+                else r.enabled = false;
             }
+        }
+
+        internal void TickThrowablePresentation(float deltaTime, bool holding)
+        {
+            if (_throwPlaying || _throwState == null) return;
+            if (_throwDrawing)
+            {
+                if (_throwState.Time >= ThrowableRevealSeconds) RevealIncomingThrowable();
+                if (holding || _throwState.Time >= _throwState.Length) BeginThrowablePreparation();
+                else return;
+            }
+            var prepare = ThrowablePrepareClip;
+            _throwState.Time = prepare != null
+                ? Mathf.MoveTowards((float)_throwState.Time, holding ? prepare.length : 0f, deltaTime * prepare.length / .36f)
+                : ThrowableClip != null ? ThrowableClip.length : 0f;
+        }
+
+        private void BeginThrowablePreparation()
+        {
+            _throwDrawing = false;
+            ReleaseThrowableLeftPose(.04f);
+            RevealIncomingThrowable();
+            var prepare = ThrowablePrepareClip;
+            var clip = prepare != null ? prepare : ThrowableClip;
+            if (clip == null) return;
+            _throwState = _animancer.Play(clip, .04f, FadeMode.FromStart);
+            _throwState.Time = prepare != null ? 0f : clip.length;
+            _throwState.Speed = 0;
+            _throwState.Events(this).OnEnd = null;
+        }
+
+        private void RevealIncomingThrowable()
+        {
+            ReleaseThrowableModel(ref _retiringThrowable);
+            if (_heldThrowable != null) _heldThrowable.SetActive(true);
+        }
+
+        private void ReleaseThrowableModel(ref GameObject model)
+        {
+            if (model == null) return;
+            model.SetActive(false);
+            if (Application.isPlaying) Destroy(model); else DestroyImmediate(model);
+            model = null;
+        }
+
+        // The grip's long axis runs across the fingers toward the thumb (-Z),
+        // not along the fingers (+Y). Rotate the model and its centre together.
+        internal static Quaternion HeldThrowableRotation => Quaternion.Euler(-90f, 0f, 0f);
+
+        public static void AlignHeldThrowable(GameObject model)
+        {
+            model.transform.localRotation = HeldThrowableRotation;
+            model.transform.localPosition = HeldThrowablePosition(model);
+            var presentation = model.GetComponent<FPThrowablePresentation>();
+            if (presentation != null) model.transform.localRotation *= presentation.GripAdjustment;
         }
 
         internal static Vector3 HeldThrowablePosition(GameObject model)
         {
-            // hand_L is the wrist, not the palm centre. Seat the body between
+            // The hand bone is the wrist, not the palm centre. Seat the body between
             // the curled fingers and thumb, outside the palm's negative-X face.
             var bounds = new Bounds(Vector3.zero, Vector3.zero);
             bool haveBounds = false;
@@ -599,43 +713,103 @@ namespace Game.Presentation.Animation
                     else bounds.Encapsulate(p);
                 }
             }
-            return new Vector3(-bounds.extents.x - .006f, .082f, .013f) - bounds.center;
+            return new Vector3(-bounds.extents.x - .006f, .074f, -.006f) - HeldThrowableRotation * bounds.center;
         }
 
         private void ClearThrowablePresentation()
         {
-            _throwPlaying = false; _throwState = null;
-            if (_heldThrowable != null) { _heldThrowable.SetActive(false); Destroy(_heldThrowable); _heldThrowable = null; }
-            foreach (var r in _throwHidden) if (r != null) r.enabled = true;
+            _weaponDrawPending = false;
+            _throwPlaying = false; _throwDrawing = false; _throwState = null;
+            ReleaseThrowableLeftPose(0f);
+            _throwPresentation = null;
+            if (_pinView != null) _pinView.Clear();
+            _pinView = null;
+            ReleaseThrowableModel(ref _heldThrowable);
+            ReleaseThrowableModel(ref _retiringThrowable);
+            foreach (var pair in _throwHidden)
+            {
+                if (pair.Key == null) continue;
+                if (_visibilityRig != null) _visibilityRig.SetThrowableRendererHidden(pair.Key, false);
+                else pair.Key.enabled = pair.Value;
+            }
             _throwHidden.Clear();
         }
 
         private void HandleThrowStarted(ThrowableType _)
         {
             if (!_clipsReady) LoadClips();
-            if (_clips.ThrowGrenade == null)
+            if (ThrowableClip == null)
             {
                 Debug.LogError($"[FPWeaponAnimator] grenade_throw clip missing for {controller?.Definition?.name}", this);
                 return;
             }
             _throwPlaying = true;
+            _throwDrawing = false;
+            ReleaseThrowableLeftPose(Mathf.Min(actionFadeSeconds, .08f));
+            RevealIncomingThrowable();
             _throwStartedAt = Time.time;
             _aimFsm.ResetToHip();
             StopArmFeedback(actionFadeSeconds);
-            float heldFraction = _throwState != null && _clips.ThrowGrenade.length > 0f
-                ? Mathf.Clamp((float)(_throwState.Time / _clips.ThrowGrenade.length), .18f, .35f) : .18f;
-            var state = _animancer.Play(_clips.ThrowGrenade, actionFadeSeconds, FadeMode.FromStart);
+            // A short click must still reach the two-handed contact pose before
+            // the support hand separates at 0.12s; a 0.12s blend skipped it.
+            var state = _animancer.Play(ThrowableClip, Mathf.Min(actionFadeSeconds, .08f), FadeMode.FromStart);
             if (_throwables.ThrowActionSeconds <= 0f)
             {
                 Debug.LogError("[FPWeaponAnimator] throw action duration missing", this);
                 return;
             }
-            // Continue from the hold pose so a short click and a fully prepared throw
-            // both move forward through the same authored animation without snapping.
-            state.Time = _clips.ThrowGrenade.length * heldFraction;
-            state.Speed = _clips.ThrowGrenade.length * (1f - heldFraction) / _throwables.ThrowActionSeconds;
+            // Preserve the authored wind-up/release/recovery timing. The catalog's
+            // release delay is authored in seconds; never force every clip to 35%.
+            state.Time = 0;
+            state.Speed = 1f;
             _throwState = state;
-            state.Events(this).OnEnd = () => { if (_throwables != null) _throwables.Unequip(); HandleThrowableSelection(); };
+            state.Events(this).OnEnd = null; // Gameplay completes/interrupts the action.
+        }
+
+        // The main draw crossfade still carries the previous rifle/support pose.
+        // Only the left branch must take its offscreen draw pose immediately;
+        // the right arm keeps its existing smooth transition and timing.
+        private void ParkLeftArmForThrowableDraw(AnimationClip draw)
+        {
+            if (_throwDrawLeftMask == null)
+            {
+                _throwDrawLeftMask = new AvatarMask { hideFlags = HideFlags.HideAndDontSave };
+                _throwDrawLeftMask.AddTransformPath(transform, true);
+                for (int i = 0; i < _throwDrawLeftMask.transformCount; i++)
+                {
+                    string path = _throwDrawLeftMask.GetTransformPath(i);
+                    _throwDrawLeftMask.SetTransformActive(i, string.IsNullOrEmpty(path)
+                        || path == "Armature/arm_L" || path.StartsWith("Armature/arm_L/", StringComparison.Ordinal));
+                }
+                _throwDrawLeftLayer = _animancer.Layers[ThrowableDrawLeftLayer];
+                _throwDrawLeftLayer.IsAdditive = false;
+                _animancer.Layers.SetMask(ThrowableDrawLeftLayer, _throwDrawLeftMask);
+            }
+            var state = _throwDrawLeftLayer.Play(draw);
+            state.Time = 0; state.Speed = 0;
+            state.Events(this).OnEnd = null;
+            _throwDrawLeftLayer.Weight = 1f;
+        }
+
+        private void ReleaseThrowableLeftPose(float fadeSeconds)
+        {
+            if (_throwDrawLeftLayer == null) return;
+            if (fadeSeconds <= 0f) _throwDrawLeftLayer.Weight = 0f;
+            else _throwDrawLeftLayer.StartFade(0f, fadeSeconds);
+        }
+
+        private void OnDestroy()
+        {
+            if (_throwDrawLeftMask == null) return;
+            if (Application.isPlaying) Destroy(_throwDrawLeftMask);
+            else DestroyImmediate(_throwDrawLeftMask);
+        }
+
+        private void LateUpdate()
+        {
+            if (_pinView != null && !_throwDrawing)
+                _pinView.Present(_throwPlaying, Time.time - _throwStartedAt,
+                    _throwState != null ? (float)_throwState.Time : 0f);
         }
 
         /// <summary>

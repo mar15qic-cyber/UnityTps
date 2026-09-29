@@ -305,7 +305,9 @@ namespace Game.UI
         private void StopPresenceLoop() { }
         private void OnSocialChanged()
         {
-            cachedFriends = SocialSession.Instance?.Friends;
+            // A service reconnect must not blank a snapshot already displayed by this page.
+            // Explicit sign-out clears the cache in the account lifecycle handler.
+            if (SocialSession.Instance?.Friends != null) cachedFriends = SocialSession.Instance.Friends;
             RefreshSocialViews();
         }
 
@@ -411,21 +413,27 @@ namespace Game.UI
         /// <summary>建房：成功后进入等待房间页（快照无 connection）。失败清上下文留在大厅。</summary>
         private async Task StartOnlineCreateAsync(CreateRoomRequest request)
         {
-            if (request != null && HotMapCatalog.TryGetSceneName(request.mapId, out var requestedScene)
-                && HotSceneLoader.IsBundleScene(requestedScene)
-                && (!HotMapCatalog.TryGet(request.mapId, out var publishedMap)
-                    || string.IsNullOrWhiteSpace(publishedMap.contentHash)))
-            { status.text = "这张热更地图尚未发布与服务器匹配的版本，请等待地图更新"; return; }
-            if (request != null && HotMapCatalog.TryGet(request.mapId, out var selectedMap)
-                && (selectedMap.availability == "preparing" || !string.IsNullOrEmpty(selectedMap.contentHash) && !HotSceneLoader.IsBundleReady(selectedMap.sceneName)))
-            { status.text = "地图尚未准备好，请等待服务器就绪或完成地图下载"; return; }
             if (!await BeginRoomRequestGuardAsync("create")) return;
-            // P0-A：申报本端应用协议代际——后端冻结在房间上，实例租用按协议筛选（旧 DS 不可见）
-            if (request != null) request.clientProtocolId = Game.Gameplay.Network.GameProtocolIdentity.ProtocolId;
-            status.text = "正在向服务器申请建房…";
             var token = pageCts.Token;
-            var result = await api.CreateRoomAsync(request, token);
-            await HandleRoomEntryResponseAsync(result, token);
+            try
+            {
+                if (!await RefreshMapCatalogAsync() || token.IsCancellationRequested)
+                { if (!token.IsCancellationRequested) status.text = "地图目录获取失败，请检查连接后重试"; return; }
+                if (request != null && HotMapCatalog.TryGetSceneName(request.mapId, out var requestedScene)
+                    && HotSceneLoader.IsBundleScene(requestedScene)
+                    && (!HotMapCatalog.TryGet(request.mapId, out var publishedMap)
+                        || string.IsNullOrWhiteSpace(publishedMap.contentHash)))
+                { status.text = "这张热更地图尚未发布与服务器匹配的版本，请等待地图更新"; return; }
+                if (request != null && HotMapCatalog.TryGet(request.mapId, out var selectedMap)
+                    && (selectedMap.availability == "preparing" || !string.IsNullOrEmpty(selectedMap.contentHash) && !HotSceneLoader.IsBundleReady(selectedMap.sceneName)))
+                { status.text = "地图尚未准备好，请等待服务器就绪或完成地图下载"; return; }
+                // P0-A：申报本端应用协议代际——后端冻结在房间上，实例租用按协议筛选（旧 DS 不可见）
+                if (request != null) request.clientProtocolId = Game.Gameplay.Network.GameProtocolIdentity.ProtocolId;
+                status.text = "正在向服务器申请建房…";
+                var result = await api.CreateRoomAsync(request, token);
+                await HandleRoomEntryResponseAsync(result, token);
+            }
+            finally { roomEntryPending = false; }
         }
 
         /// <summary>按房间码加入：Waiting → 等待房间页；Starting/InMatch（重连/补人）→ 直接进战场。
@@ -628,22 +636,34 @@ namespace Game.UI
             return true;
         }
 
-        /// <summary>P4 热更试点：后台拉取 /api/maps 目录（建房页数据源）。成功且仍在本页则重渲染。</summary>
-        private async Task RefreshMapCatalogAsync()
+        /// <summary>Refresh independently of content downloads; never rebuild the browser under active input.</summary>
+        private Task<bool> mapCatalogRefreshTask;
+        private Task<bool> RefreshMapCatalogAsync()
         {
+            if (mapCatalogRefreshTask == null || mapCatalogRefreshTask.IsCompleted)
+                mapCatalogRefreshTask = FetchMapCatalogAsync();
+            return mapCatalogRefreshTask;
+        }
+
+        private async Task<bool> FetchMapCatalogAsync()
+        {
+            if (api == null || session?.IsAuthenticated != true) return false;
+            var accountToken = session.Token;
             try
             {
                 var result = await api.ListMapsAsync(CancellationToken.None);
-                if (result.Success && result.Data != null && result.Data.Length > 0)
+                if (this != null && session.IsAuthenticated && session.Token == accountToken
+                    && result.Success && result.Data != null && result.Data.Length > 0)
                 {
                     HotMapCatalog.Store(result.Data);
-                    if (currentPage == LobbyPage.OnlineJoin) RenderOnlineJoin();
+                    return true;
                 }
             }
             catch
             {
-                // 后台拉取失败：保持兜底清单（内置 4 图），不打断建房页
+                // Retain the last catalog; creation reports failure instead of claiming a version mismatch.
             }
+            return false;
         }
 
         private bool IsLpfpLoadoutItem(string itemId)

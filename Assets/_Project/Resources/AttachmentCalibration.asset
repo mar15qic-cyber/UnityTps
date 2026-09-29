@@ -248,11 +248,11 @@ MonoBehaviour:
   - weaponItemId: weapon.smg05
     attachmentItemId: attach.lpfp.muffler.01
     positionOffset: {x: 0, y: 0, z: 0}
-    rotationEulerOffset: {x: 0, y: 0, z: 0}
-    authorFrameX: 0
-    authorFrameY: 0
-    authorFrameZ: 0
-    authorFrameW: 0
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: -0.0000000045829984
+    authorFrameY: 0.7071068
+    authorFrameZ: -0.00000002812542
+    authorFrameW: 0.7071068
   - weaponItemId: weapon.smg01
     attachmentItemId: attach.lpw.tactical.laser
     positionOffset: {x: 0, y: 0, z: 0}
@@ -264,11 +264,11 @@ MonoBehaviour:
   - weaponItemId: weapon.smg03
     attachmentItemId: attach.lpw.tactical.laser
     positionOffset: {x: 0, y: 0, z: 0}
-    rotationEulerOffset: {x: 0, y: 0, z: 0}
-    authorFrameX: 0
-    authorFrameY: 0
-    authorFrameZ: 0
-    authorFrameW: 0
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0.50000006
+    authorFrameY: 0.50000006
+    authorFrameZ: -0.50000006
+    authorFrameW: 0.50000006
   - weaponItemId: weapon.rifle03
     attachmentItemId: attach.lpw.tactical.light
     positionOffset: {x: 0, y: 0, z: 0}
@@ -336,11 +336,11 @@ MonoBehaviour:
   - weaponItemId: weapon.m4
     attachmentItemId: attach.rifle.optic
     positionOffset: {x: 0, y: 0, z: 0}
-    rotationEulerOffset: {x: 0, y: 0, z: 0}
-    authorFrameX: 0
-    authorFrameY: 0
-    authorFrameZ: 0
-    authorFrameW: 0
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0.000000013627222
+    authorFrameY: 0.7071069
+    authorFrameZ: 0.000000009340166
+    authorFrameW: 0.7071069
   - weaponItemId: weapon.m4
     attachmentItemId: attach.lpfp.optic.03
     positionOffset: {x: 0, y: 0, z: -0.0017971355}
@@ -744,11 +744,11 @@ MonoBehaviour:
   - weaponItemId: weapon.m4
     attachmentItemId: attach.lpfp.muffler.01
     positionOffset: {x: 0, y: 0, z: 0}
-    rotationEulerOffset: {x: 0, y: 0, z: 0}
-    authorFrameX: 0
-    authorFrameY: 0
-    authorFrameZ: 0
-    authorFrameW: 0
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0.000000013627222
+    authorFrameY: 0.7071069
+    authorFrameZ: 0.000000009340166
+    authorFrameW: 0.7071069
   - weaponItemId: weapon.m4
     attachmentItemId: attach.lpw.tactical.laser
     positionOffset: {x: 0, y: 0, z: 0}
@@ -1176,11 +1176,11 @@ MonoBehaviour:
   - weaponItemId: weapon.smg03
     attachmentItemId: attach.lpw.grip.01
     positionOffset: {x: 0, y: 0, z: 0}
-    rotationEulerOffset: {x: 0, y: 0, z: 0}
-    authorFrameX: 0
-    authorFrameY: 0
-    authorFrameZ: 0
-    authorFrameW: 0
+    rotationEulerOffset: {x: -0, y: 0, z: 0}
+    authorFrameX: 0.00000005273195
+    authorFrameY: 0.7071069
+    authorFrameZ: 0.000000034986684
+    authorFrameW: 0.7071068
   - weaponItemId: weapon.smg03
     attachmentItemId: attach.rifle.muzzle
     positionOffset: {x: 0, y: 0, z: 0}

@@ -39,6 +39,9 @@ namespace Game.Gameplay.Network
 
         /// <summary>输入冻结（服务器倒计时内置位；客户端镜像置位）。PlayerNetworkAdapter 消费。</summary>
         public static bool InputFrozen { get; private set; }
+        /// <summary>Network damage and score are immutable outside the live match.
+        /// Offline targets retain their normal local gameplay path.</summary>
+        public static bool AllowsCombat(bool networkActive) => !networkActive || Phase == MatchPhase.InProgress;
 
         /// <summary>本局客户端对局 id（倒计时开始时生成，结算幂等键；格式 match-yyyyMMddHHmmss-dddd）。
         /// CF 房间对局（C3/Q05）：取自票据 consume 的权威 room matchId（后端结算/返房以此对齐）。</summary>
@@ -312,6 +315,18 @@ namespace Game.Gameplay.Network
             if (IsServer()) return; // 服务器静态态由状态机直接推进
             switch (kind)
             {
+                case MatchEventKind.ScoreboardSnapshot:
+                    var snapshot = JsonUtility.FromJson<MatchScoreboardPayload>(payload);
+                    if (snapshot == null || string.IsNullOrEmpty(snapshot.matchId)) break;
+                    ClientMatchId = snapshot.matchId;
+                    CurrentMode = snapshot.mode;
+                    TargetKills = snapshot.killTarget;
+                    TimeLimitSeconds = snapshot.timeLimitSeconds;
+                    RedScore = snapshot.redKills;
+                    BlueScore = snapshot.blueKills;
+                    Phase = snapshot.phase;
+                    InputFrozen = Phase != MatchPhase.InProgress;
+                    break;
                 case MatchEventKind.CountdownStarted:
                     Phase = MatchPhase.Countdown;
                     InputFrozen = true;
@@ -405,6 +420,7 @@ namespace Game.Gameplay.Network
             SyncPlayerTeams();
             RelayStatic(MatchEventKind.CountdownStarted, string.Empty);
             RelayStatic(MatchEventKind.MatchIdAssigned, ClientMatchId);
+            ServerBroadcastScoreboard();
             NetworkCombatAuthority.ServerBroadcastChatSystem("比赛开始，正在进入战场"); // C4/I2 局内系统消息
             Debug.Log($"[MatchLifecycle] countdown started, matchId={ClientMatchId} mode={CurrentMode} target={TargetKills} timeLimit={TimeLimitSeconds}s");
         }
@@ -573,6 +589,8 @@ namespace Game.Gameplay.Network
         {
             if (_endedBroadcast) return; // 一次比赛只广播一次 Ended（终局/退出竞态幂等）
             _endedBroadcast = true;
+            InputFrozen = true;
+            Phase = MatchPhase.Ended;
 
             var players = FindPlayersStatic(); // 移除前快照（离开者含在列）
             var payload = new MatchEndedPayload
@@ -878,6 +896,8 @@ namespace Game.Gameplay.Network
         }
 
         /// <summary>服务器权威战绩快照构建：普查有效玩家 → 纯核心（个人击杀/助攻排序；TDM 附队伍与团队分）。</summary>
+        internal static string BuildCurrentSnapshotJson() => JsonUtility.ToJson(BuildScoreboardPayload());
+
         private static MatchScoreboardPayload BuildScoreboardPayload()
         {
             var players = FindPlayersStatic();
@@ -899,6 +919,9 @@ namespace Game.Gameplay.Network
             }
             return new MatchScoreboardPayload
             {
+                matchId = ClientMatchId,
+                phase = Phase,
+                timeLimitSeconds = TimeLimitSeconds,
                 timeLeftSeconds = ServerTimeLeftSeconds(),
                 entries = MatchScoreboardSnapshot.BuildEntries(inputs),
                 mode = CurrentMode,
@@ -929,6 +952,7 @@ namespace Game.Gameplay.Network
         public static void ServerNotifyPlayerJoined(NetworkCombatAuthority player)
         {
             if (!IsServer() || player == null) return;
+            ServerBroadcastScoreboard();
             if (Phase != MatchPhase.InProgress) return;
             NetworkCombatAuthority.ServerBroadcastChatSystem($"{ResolveDisplayName(player)} 加入了战斗");
         }

@@ -143,10 +143,11 @@ namespace Game.Gameplay.Combat
         public readonly uint RewindTick;
         /// <summary>Phase 6 回溯证据：请求 tick 被越窗裁剪（used != requested）。</summary>
         public readonly bool RewindClamped;
+        public readonly bool CameraOnly;
 
         public FireEvidence(in FireRaySegment camera, in FireRaySegment muzzle, in FireRaySegment body,
             TwoStageHitResolver.TwoStageDecision decision, Vector3 candidatePoint, in GeometryHit final,
-            string missReason, uint rewindTick = 0, bool rewindClamped = false)
+            string missReason, uint rewindTick = 0, bool rewindClamped = false, bool cameraOnly = false)
         {
             Camera = camera;
             Muzzle = muzzle;
@@ -161,12 +162,14 @@ namespace Game.Gameplay.Combat
             MissReason = missReason;
             RewindTick = rewindTick;
             RewindClamped = rewindClamped;
+            CameraOnly = cameraOnly;
         }
 
         public string Format()
         {
             var sb = new System.Text.StringBuilder(384);
             sb.Append("[FireGeom] reason=").Append(string.IsNullOrEmpty(MissReason) ? "OK" : MissReason)
+              .Append(" path=").Append(CameraOnly ? "eye" : "legacy-muzzle")
               .Append(" decision=").Append(Decision)
               .Append(" rewind=").Append(RewindTick).Append(RewindClamped ? "(clamped)" : string.Empty)
               .Append(" candidate=").Append(CandidatePoint.ToString("F3"))
@@ -175,9 +178,9 @@ namespace Game.Gameplay.Combat
               .Append(" finalOwnerObj=").Append(FinalOwnerObjectId.ToString())
               .Append(" finalTarget=").Append(FinalTargetName ?? "null")
               .Append(" finalAlive=").Append(FinalTargetAlive ? 1 : 0)
-              .Append(" | ").Append(Camera.Format())
-              .Append(" | ").Append(Muzzle.Format())
-              .Append(" | ").Append(Body.Format());
+              .Append(" | ").Append(Camera.Format());
+            if (!CameraOnly)
+                sb.Append(" | ").Append(Muzzle.Format()).Append(" | ").Append(Body.Format());
             return sb.ToString();
         }
     }
@@ -194,7 +197,7 @@ namespace Game.Gameplay.Combat
     /// </summary>
     public sealed class CombatResolver : MonoBehaviour
     {
-        private readonly RaycastHit[] _hits = new RaycastHit[32];
+        private RaycastHit[] _hits = new RaycastHit[32];
         private int _hitCount; // 最近一次 RaycastNonAlloc 的命中数（同根归属回退遍历用）
 
         /// <summary>未命中可归属存活目标的机械原因（[FireGeom] reason=）。</summary>
@@ -207,7 +210,8 @@ namespace Game.Gameplay.Combat
         public const string MissTargetInvincible = "TARGET_INVINCIBLE"; // Phase 2：射击对应历史 tick 的快照显示目标处于出生保护
 
         /// <summary>最近一次两段命中的完整证据（诊断；服务器侧有意义）。</summary>
-        public FireEvidence LastTwoStageEvidence { get; private set; }
+        public FireEvidence LastFireEvidence { get; private set; }
+        public FireEvidence LastTwoStageEvidence => LastFireEvidence;
 
         // 诊断节流：一发完整证据优先（审计 §6.1"补日志必须节流"）。静态=单进程一个节流门。
         private static float _nextEvidenceLogTime;
@@ -220,26 +224,32 @@ namespace Game.Gameplay.Combat
             Vector3 origin, Vector3 direction, float maxRange, int damage, int layerMask, Transform ignoreRoot,
             NetworkCombatAuthority attributionSource = null)
         {
-            var geometry = ResolveGeometry(origin, direction, maxRange, layerMask, ignoreRoot);
-            if (geometry.Hit && geometry.Target != null && geometry.Target.IsAlive)
-            {
-                // C3/Q04 TDM 友伤过滤（Docs/26 §2.4）：同队命中按阻挡处理——友军身体吸收子弹（射线截断）但不掉血
-                if (IsFriendlyBlocked(ignoreRoot, geometry.Target))
-                    return new HitscanResult(true, false, geometry.Point, geometry.Normal, geometry.Target, geometry.SelfHitsSkipped);
-                int dealt = geometry.Target.ApplyDamageMeasured(ScaledDamage(damage, geometry.BodyRegion, ignoreRoot),
-                    geometry.Point, direction.normalized, attributionSource, geometry.BodyRegion,
-                    WeaponIdOf(ignoreRoot));
-                return new HitscanResult(true, dealt > 0, geometry.Point, geometry.Normal, geometry.Target,
-                    geometry.SelfHitsSkipped, geometry.BodyRegion, dealt);
-            }
+            return ResolveCameraHitscan(origin, direction, maxRange, damage, layerMask, ignoreRoot,
+                default, attributionSource);
+        }
 
-            return geometry.Hit
-                ? new HitscanResult(true, false, geometry.Point, geometry.Normal, null, geometry.SelfHitsSkipped)
-                : new HitscanResult(false, false, origin + direction.normalized * maxRange, Vector3.up, null, geometry.SelfHitsSkipped);
+        /// <summary>The crosshair ray is the sole hit geometry. Callers validate the eye
+        /// against consumed server input before rewinding targets. The rendered muzzle
+        /// only supplies flash/tracer presentation and cannot replace this hit point.</summary>
+        public HitscanResult ResolveCameraHitscan(Vector3 eyeOrigin, Vector3 direction, float maxRange,
+            int damage, int layerMask, Transform ignoreRoot, LagCompRewindContext rewindContext = default,
+            NetworkCombatAuthority attributionSource = null, bool applyDamage = true)
+        {
+            Vector3 dir = direction.normalized;
+            var geometry = ResolveGeometry(eyeOrigin, dir, maxRange, layerMask, ignoreRoot);
+            var result = ResolveFinalHit(geometry, eyeOrigin + dir * maxRange, dir, damage,
+                ignoreRoot, rewindContext, attributionSource, applyDamage, out string reason);
+            LastFireEvidence = new FireEvidence(
+                new FireRaySegment("eye", eyeOrigin, dir, maxRange, geometry), default, default,
+                TwoStageHitResolver.TwoStageDecision.UseCameraCandidate, geometry.Point, geometry,
+                reason, rewindContext.UsedTick, rewindContext.WasClamped, cameraOnly: true);
+            LogEvidence(LastFireEvidence);
+            return result;
         }
 
         /// <summary>
-        /// I4a/P4 两段权威命中（服务器专用；离线单段路径走 ResolveHitscan）。
+        /// Legacy muzzle-based geometry retained for regression comparisons only.
+        /// Gameplay firing uses ResolveCameraHitscan on every peer.
         /// 语义见 TwoStageHitResolver（R10 修正版）：相机候选 → 枪口遮挡验证（同源比较）→
         /// 枪口伸墙时采纳身体段可信侧遮挡命中（不豁免）；最终结果只应用一次伤害（含友伤过滤），
         /// 表现事件继续携带本发结果（拖尾连到最终点）。
@@ -292,7 +302,26 @@ namespace Game.Gameplay.Combat
                     break;
             }
 
-            string missReason = MissNone;
+            var result = ResolveFinalHit(final, cameraOrigin + dir * maxRange, dir, damage,
+                ignoreRoot, rewindContext, attributionSource, true, out string missReason);
+
+            LastFireEvidence = new FireEvidence(
+                new FireRaySegment("cam", cameraOrigin, dir, maxRange, cameraCandidate),
+                new FireRaySegment("mzl", muzzleOrigin, toCandidateDistance > 0.01f ? toCandidate / toCandidateDistance : dir,
+                    toCandidateDistance, muzzlePath),
+                new FireRaySegment("body", bodyAnchor, bodyToMuzzleDistance > 0.001f ? bodyToMuzzle / bodyToMuzzleDistance : dir,
+                    bodyToMuzzleDistance, bodySegment),
+                decision, candidatePoint, final, missReason,
+                rewindContext.UsedTick, rewindContext.WasClamped);
+            LogEvidence(LastTwoStageEvidence);
+            return result;
+        }
+
+        private HitscanResult ResolveFinalHit(GeometryHit final, Vector3 missPoint, Vector3 dir,
+            int damage, Transform ignoreRoot, LagCompRewindContext rewindContext,
+            NetworkCombatAuthority attributionSource, bool applyDamage, out string missReason)
+        {
+            missReason = MissNone;
             HitscanResult result;
             if (final.Hit && final.Target != null && final.Target.IsAlive)
             {
@@ -308,6 +337,11 @@ namespace Game.Gameplay.Combat
                     //（与友军过滤同形状：Hit=true/Damaged=false，证据 missReason 区分）。
                     missReason = gateReason;
                     result = new HitscanResult(true, false, final.Point, final.Normal, final.Target, final.SelfHitsSkipped);
+                }
+                else if (!applyDamage)
+                {
+                    result = new HitscanResult(true, false, final.Point, final.Normal, final.Target,
+                        final.SelfHitsSkipped, final.BodyRegion, 0);
                 }
                 else
                 {
@@ -325,18 +359,9 @@ namespace Game.Gameplay.Combat
             else
             {
                 missReason = MissGeometry;
-                result = new HitscanResult(false, false, cameraOrigin + dir * maxRange, Vector3.up, null, cameraCandidate.SelfHitsSkipped);
+                result = new HitscanResult(false, false, missPoint, Vector3.up, null, final.SelfHitsSkipped);
             }
 
-            LastTwoStageEvidence = new FireEvidence(
-                new FireRaySegment("cam", cameraOrigin, dir, maxRange, cameraCandidate),
-                new FireRaySegment("mzl", muzzleOrigin, toCandidateDistance > 0.01f ? toCandidate / toCandidateDistance : dir,
-                    toCandidateDistance, muzzlePath),
-                new FireRaySegment("body", bodyAnchor, bodyToMuzzleDistance > 0.001f ? bodyToMuzzle / bodyToMuzzleDistance : dir,
-                    bodyToMuzzleDistance, bodySegment),
-                decision, candidatePoint, final, missReason,
-                rewindContext.UsedTick, rewindContext.WasClamped);
-            LogEvidence(LastTwoStageEvidence);
             return result;
         }
 
@@ -357,11 +382,33 @@ namespace Game.Gameplay.Combat
         internal bool IsAimOriginUnobstructed(Vector3 authoritativeOrigin, Vector3 displayedOrigin,
             int layerMask, Transform ignoreRoot)
         {
+            if (!Finite(authoritativeOrigin) || !Finite(displayedOrigin)
+                || EyeInsideSolid(authoritativeOrigin, layerMask, ignoreRoot)) return false;
             Vector3 delta = displayedOrigin - authoritativeOrigin;
             return delta.sqrMagnitude < 0.000001f
-                || !ResolveGeometry(authoritativeOrigin, delta.normalized, delta.magnitude,
-                    layerMask, ignoreRoot).Hit;
+                || !EyeInsideSolid(displayedOrigin, layerMask, ignoreRoot)
+                    && !ResolveGeometry(authoritativeOrigin, delta.normalized, delta.magnitude,
+                        layerMask, ignoreRoot).Hit;
         }
+
+        private readonly Collider[] _eyeOverlaps = new Collider[32];
+        private bool EyeInsideSolid(Vector3 eye, int layerMask, Transform ignoreRoot)
+        {
+            int count = Physics.OverlapSphereNonAlloc(eye, .001f, _eyeOverlaps,
+                layerMask, QueryTriggerInteraction.Ignore);
+            if (count == _eyeOverlaps.Length) return true;
+            for (int i = 0; i < count; i++)
+            {
+                var collider = _eyeOverlaps[i];
+                if (collider == null || ignoreRoot != null && collider.transform.root == ignoreRoot
+                    || IsMovementBlocker(collider)) continue;
+                if ((collider.ClosestPoint(eye) - eye).sqrMagnitude < .00000001f) return true;
+            }
+            return false;
+        }
+
+        private static bool Finite(Vector3 value)
+            => float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
 
         internal GeometryHit ProbeDisplayedShot(Vector3 origin, Vector3 direction, float maxRange,
             int layerMask, Transform ignoreRoot)
@@ -376,35 +423,17 @@ namespace Game.Gameplay.Combat
             // Collide 不会误吸环境触发体；激光指示器走全局 queriesHitTriggers=1 语义不变。
             int count = Physics.RaycastNonAlloc(
                 new Ray(origin, dir), _hits, maxRange, layerMask, QueryTriggerInteraction.Collide);
+            // A full NonAlloc buffer is unordered and may omit the nearest wall. Grow only
+            // on saturation; never decide damage from a possibly truncated candidate set.
+            if (count == _hits.Length)
+            {
+                _hits = Physics.RaycastAll(origin, dir, maxRange, layerMask, QueryTriggerInteraction.Collide);
+                count = _hits.Length;
+                System.Array.Resize(ref _hits, Mathf.NextPowerOfTwo(Mathf.Max(32, count + 1)));
+            }
             _hitCount = count;
 
-            int selfSkipped = 0;
-            int movementSkipped = 0;
-            int best = -1;
-            for (int i = 0; i < count; i++)
-            {
-                var collider = _hits[i].collider;
-                if (collider == null) continue;
-                if (ignoreRoot != null && collider.transform.root == ignoreRoot)
-                {
-                    selfSkipped++;
-                    continue;
-                }
-                // P2（2026-09-18 审计 §5）：移动阻挡体在【候选选择阶段】整体跳过，而不是"先选中它
-                // 再把 Target 设空"。后者仍会让不可见的根 CC 外壳挡枪，并在模型后方的空处生成实体
-                // 弹孔。跳过后射线继续向后走：真实命中 BodyHitbox 正常结算，命中墙则落点归墙。
-                if (IsMovementBlocker(collider))
-                {
-                    movementSkipped++;
-                    continue;
-                }
-                // Neck/limb overlap: choose the higher-priority region within 3 cm of the nearest surface.
-                // The choice must not depend on RaycastNonAlloc's collider enumeration order.
-                if (best < 0 || _hits[i].distance < _hits[best].distance - .03f
-                    || (collider.transform.root == _hits[best].collider.transform.root
-                        && Mathf.Abs(_hits[i].distance - _hits[best].distance) <= .03f
-                        && RegionPriority(_hits[i].collider) > RegionPriority(_hits[best].collider))) best = i;
-            }
+            int best = SelectClosestDamageHit(_hits, count, ignoreRoot, out int selfSkipped, out int movementSkipped);
             LastSegmentMovementSkipped = movementSkipped;
 
             if (best < 0)
@@ -436,6 +465,64 @@ namespace Game.Gameplay.Combat
 #endif
             }
             return Describe(true, hitInfo, target, selfSkipped);
+        }
+
+        internal static int SelectClosestDamageHit(RaycastHit[] hits, int count, Transform ignoreRoot,
+            out int selfSkipped, out int movementSkipped)
+        {
+            selfSkipped = 0;
+            movementSkipped = 0;
+            int best = -1;
+            float worldDistance = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                var collider = hits[i].collider;
+                if (collider == null) continue;
+                if (ignoreRoot != null && collider.transform.root == ignoreRoot)
+                {
+                    selfSkipped++;
+                    continue;
+                }
+                // P2（2026-09-18 审计 §5）：移动阻挡体在【候选选择阶段】整体跳过，而不是"先选中它
+                // 再把 Target 设空"。后者仍会让不可见的根 CC 外壳挡枪，并在模型后方的空处生成实体
+                // 弹孔。跳过后射线继续向后走：真实命中 BodyHitbox 正常结算，命中墙则落点归墙。
+                if (IsMovementBlocker(collider))
+                {
+                    movementSkipped++;
+                    continue;
+                }
+                var authority = collider.GetComponentInParent<NetworkCombatAuthority>();
+                if (authority != null && authority.IsDead) continue;
+                if (collider.GetComponentInParent<DamageableTarget>() == null)
+                    worldDistance = Mathf.Min(worldDistance, hits[i].distance);
+                if (best < 0 || hits[i].distance < hits[best].distance
+                    || hits[i].distance == hits[best].distance
+                        && (collider.GetComponentInParent<DamageableTarget>() == null
+                            && hits[best].collider.GetComponentInParent<DamageableTarget>() != null
+                            || (collider.GetComponentInParent<DamageableTarget>() == null)
+                                == (hits[best].collider.GetComponentInParent<DamageableTarget>() == null)
+                                && collider.GetInstanceID() < hits[best].collider.GetInstanceID())) best = i;
+            }
+            if (best >= 0 && hits[best].collider.GetComponentInParent<DamageableTarget>() != null)
+            {
+                float nearestDistance = hits[best].distance;
+                Transform nearestRoot = hits[best].collider.transform.root;
+                // Fixed nearest-surface neighbourhood, not a tolerance around a moving winner.
+                // A world surface at or before a candidate always wins over region priority.
+                for (int i = 0; i < count; i++)
+                {
+                    var collider = hits[i].collider;
+                    if (collider == null || collider.transform.root != nearestRoot
+                        || IsMovementBlocker(collider) || hits[i].distance > nearestDistance + .03f
+                        || hits[i].distance >= worldDistance) continue;
+                    int priority = RegionPriority(collider), bestPriority = RegionPriority(hits[best].collider);
+                    if (priority > bestPriority || priority == bestPriority
+                        && (hits[i].distance < hits[best].distance
+                            || hits[i].distance == hits[best].distance
+                                && collider.GetInstanceID() < hits[best].collider.GetInstanceID())) best = i;
+                }
+            }
+            return best;
         }
 
         /// <summary>最近一次 ResolveGeometry 跳过的移动阻挡体数（测试/诊断接缝：证明 CC 是"被跳过"

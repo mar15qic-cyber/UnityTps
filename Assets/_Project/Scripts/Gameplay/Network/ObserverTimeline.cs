@@ -31,6 +31,9 @@ namespace Game.Gameplay.Network
         private static double _presented;
         public static double PresentedTick => _presented > 0 ? _presented : RenderTick;
         public static double RenderTick => Evaluate(Time.unscaledTimeAsDouble);
+        // Latest received time is diagnostic/network age evidence. Every shot uses
+        // PresentedTick, including rays into empty space and static world surfaces.
+        public static double LatestTick => _latest;
         public static double SampleForRendering()
         {
             if (_renderFrame != Time.frameCount)
@@ -167,7 +170,14 @@ namespace Game.Gameplay.Network
     public struct TimedFireRequest
     {
         public uint ShotId, InputTick, LifeEpoch;
+        public uint CommandId;
+        public uint EquipmentCommandId;
+        public byte Kind; // 0 fire, 1 reload, 2 switch; one reliable ordered command stream.
+        public int Slot;
+        public string WeaponId;
+        public double ShotSeconds;
         public double DisplayTick;
+        public double LatestObservedTick;
         // The shot's displayed camera ray, before this shot adds recoil. Never a client hit result.
         public Vector3 AimOrigin, AimDirection;
         public float Ads01;
@@ -199,14 +209,24 @@ namespace Game.Gameplay.Network
     {
         public enum Decision { Ready, Wait, StaleLife, InvalidTime, InputTimeout }
         public const double MaxWaitSeconds = .2;
+        // RTT budget + remote rendering buffer + two server ticks. The same bound sizes history.
+        public const double NetworkBudgetSeconds = .25;
+        public const double PresentationBudgetSeconds = .15;
+        public const double SchedulingBudgetSeconds = .1;
+        public const double MaxHistorySeconds = NetworkBudgetSeconds + PresentationBudgetSeconds + SchedulingBudgetSeconds;
         public static bool ValidDisplayTick(double tick, double now, int rate) =>
             !double.IsNaN(tick) && !double.IsInfinity(tick) && tick > 0 && tick <= now
-            && now - tick <= Math.Max(1, rate) * .2 + 1e-6;
+            && now - tick <= Math.Max(1, rate) * MaxHistorySeconds + 1e-6;
         public static Decision Evaluate(TimedFireRequest request, uint life, double serverTick, int rate,
             bool hasInput, uint acknowledged, double waitedSeconds)
         {
             if (request.LifeEpoch != life) return Decision.StaleLife;
             if (!ValidDisplayTick(request.DisplayTick, serverTick, rate)) return Decision.InvalidTime;
+            if (request.LatestObservedTick > 0 &&
+                (!double.IsFinite(request.LatestObservedTick) || request.LatestObservedTick > serverTick
+                || serverTick - request.LatestObservedTick > rate * (NetworkBudgetSeconds + SchedulingBudgetSeconds)
+                || request.LatestObservedTick - request.DisplayTick > rate * (PresentationBudgetSeconds + SchedulingBudgetSeconds)))
+                return Decision.InvalidTime;
             if (waitedSeconds > MaxWaitSeconds) return Decision.InputTimeout;
             if (hasInput) return Decision.Ready;
             return request.InputTick > acknowledged && waitedSeconds < MaxWaitSeconds

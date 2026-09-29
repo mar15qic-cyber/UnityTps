@@ -281,6 +281,12 @@ namespace Game.Gameplay.Network
         /// 审计 2026-09-15 §3：装备后必须对齐 Arsenal.ActiveIndex 并广播 OnActiveWeaponChanged——
         /// 否则弹道/弹药走新枪而 ActiveIndex/FP·TP·HUD·音频仍停在旧枪（装备状态分叉通道）。
         /// slots 为私有字段——反射读取（NetworkAdapter 同层的反向依赖规避惯例）。</summary>
+        internal void CorrectOwnerWeapon(string weaponId)
+        {
+            if (_controller != null && _controller.Definition != null && _controller.Definition.WeaponId == weaponId) return;
+            ApplyWeapon(weaponId, "combatActionRejected");
+        }
+
         private void ApplyWeapon(string weaponId, string reason)
         {
             if (_controller == null || string.IsNullOrEmpty(weaponId)) return;

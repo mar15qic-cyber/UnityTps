@@ -29,6 +29,8 @@ namespace Game.Gameplay.Network
         private int _redNext;
         private int _blueNext;
         private int _fallbackNext;
+        private Transform[] _spawnPoints = System.Array.Empty<Transform>();
+        private TeamSpawnDirectory.SpawnSlot[] _fallbackSlots = System.Array.Empty<TeamSpawnDirectory.SpawnSlot>();
         private bool _takeoverActive;
 
         private static readonly FieldInfo PlayerPrefabField = typeof(FishNet.Component.Spawning.PlayerSpawner)
@@ -108,18 +110,30 @@ namespace Game.Gameplay.Network
         {
             var spawns = SceneSpawnPoints.Current();
             if (spawns.Length == 0) spawns = _spawner != null ? _spawner.Spawns : null;
+            if (spawns != null) spawns = System.Array.FindAll(spawns, point => point != null);
             if (spawns == null || spawns.Length == 0)
             {
                 _redSlots = System.Array.Empty<TeamSpawnDirectory.SpawnSlot>();
                 _blueSlots = System.Array.Empty<TeamSpawnDirectory.SpawnSlot>();
+                _spawnPoints = System.Array.Empty<Transform>();
+                _fallbackSlots = System.Array.Empty<TeamSpawnDirectory.SpawnSlot>();
                 return;
             }
+            bool unchanged = spawns.Length == _spawnPoints.Length;
+            for (int i = 0; unchanged && i < spawns.Length; i++)
+                unchanged = spawns[i] == _spawnPoints[i] && spawns[i] != null
+                    && spawns[i].position == _fallbackSlots[i].Position
+                    && spawns[i].rotation == _fallbackSlots[i].Rotation;
+            if (unchanged) return;
+            _spawnPoints = (Transform[])spawns.Clone();
+            _fallbackSlots = new TeamSpawnDirectory.SpawnSlot[spawns.Length];
             var positions = new Vector3[spawns.Length];
             var rotations = new Quaternion[spawns.Length];
             for (int i = 0; i < spawns.Length; i++)
             {
                 positions[i] = spawns[i] != null ? spawns[i].position : Vector3.zero;
                 rotations[i] = spawns[i] != null ? spawns[i].rotation : Quaternion.identity;
+                _fallbackSlots[i] = new TeamSpawnDirectory.SpawnSlot(positions[i], rotations[i]);
             }
             var red = new List<TeamSpawnDirectory.SpawnSlot>();
             var blue = new List<TeamSpawnDirectory.SpawnSlot>();
@@ -168,15 +182,14 @@ namespace Game.Gameplay.Network
             {
                 // None 队/非 TDM 仍走与 FishNet 原生相同的 Spawn 数组轮转，
                 // 但也由本入口完成，确保不会因熔断原 PlayerSpawner 而漏生成。
-                var spawns = _spawner.Spawns;
-                if (spawns != null && spawns.Length > 0)
+                if (_fallbackSlots.Length > 0)
                 {
-                    var fallback = spawns[_fallbackNext];
-                    _fallbackNext = (_fallbackNext + 1) % spawns.Length;
-                    if (fallback != null)
+                    int picked = TeamSpawnDirectory.PickTeamSlot(_fallbackSlots, CollectOccupiedPositions(),
+                        _fallbackNext, out _fallbackNext);
+                    if (picked >= 0)
                     {
-                        position = fallback.position;
-                        rotation = fallback.rotation;
+                        position = _fallbackSlots[picked].Position;
+                        rotation = _fallbackSlots[picked].Rotation;
                     }
                 }
             }

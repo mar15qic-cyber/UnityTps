@@ -49,7 +49,13 @@ namespace Game.Gameplay.Network
         // v16: movement ADS sample and server-confirmed shot damage/region/life epoch.
         // v17: articulated observer pose and authenticated player display name.
         // v18: matched per-tick input cadence, per-player presentation and grounded spawn contract.
-        public const string ProtocolId = "fps-net-v18";
+        // v19: owner-requested authoritative match snapshot RPCs for late joins.
+        // v20: absolute view pitch in movement input; rejected shots cannot drift the aim baseline.
+        // v21: camera-ray hit contract and head-aligned eye origin must match across peers.
+        // v22: ordered combat commands, weapon/command identity, subframe shot clock,
+        // timestamped ADS intents, shared display clock and authoritative per-pellet damage.
+        // v23: reliable combat-action acceptance/rejection and equipment-epoch rollback.
+        public const string ProtocolId = "fps-net-v23";
 
         /// <summary>协议不匹配的冻结错误码（DS 拒绝广播 + 后端入房筛选共用字面值）。</summary>
         public const string ProtocolMismatchCode = "PROTOCOL_MISMATCH";

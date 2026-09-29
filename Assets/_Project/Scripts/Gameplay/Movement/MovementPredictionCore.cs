@@ -23,6 +23,9 @@ namespace Game.Gameplay.Movement
         public const int ServerMaxPendingCommands = 16;
         /// <summary>服务器单 tick 对单玩家最多消费的输入命令数（有限 catch-up）。</summary>
         public const int ServerMaxCatchUpPerTick = 3;
+        /// <summary>保留最新4步以限制恢复后的排队时延；超过的旧移动已由中性物理推进替代。
+        /// 不增加模拟预算，跳过的输入由权威ACK纠偏，转头增量保留。</summary>
+        public const int ServerMaxSimulationBacklog = 4;
         /// <summary>超过 lastProcessed+该值的输入视为客户端 tick 失控，直接丢弃。</summary>
         public const int ServerMaxFutureTicks = 32;
         /// <summary>误差 ≥ 该米数 = 硬校正（快照对位 + 从确认 tick+1 重放）。</summary>
@@ -358,11 +361,34 @@ namespace Game.Gameplay.Movement
     }
 
     /// <summary>
-    /// 服务器侧单玩家待处理输入队列（Day3 Phase 1）。
-    /// 每个玩家实例独享一个队列：不同 RTT/丢包玩家互不阻塞，也不影响服务器全局 tick。
-    /// 乱序（迟到旧 tick）、重复、tick 失控一律丢弃；积压超过上限丢弃最旧并计数告警——
-    /// 每条命令至多被模拟一次。纯逻辑、可离线测试。
+    /// Per-player server simulation clock. At most two steps may be borrowed;
+    /// sustained input cannot buy more simulation time than the server advances.
     /// </summary>
+    public sealed class ServerSimulationBudget
+    {
+        // At most two borrowed ticks accommodate a packet burst. Missing-input
+        // physics waits only while repaying that lead, then advances normally.
+        private const int Burst = MovementPredictionConfig.ServerMaxCatchUpPerTick;
+        private int _available = Burst - 1;
+        public int IdleStepsSinceInput { get; private set; }
+        public int BeginTick() => _available = Math.Min(Burst, _available + 1);
+        public void Consume(int steps)
+        {
+            int consumed = Math.Clamp(steps, 0, _available);
+            _available -= consumed;
+            if (consumed > 0) IdleStepsSinceInput = 0;
+        }
+        public bool TryConsumeIdle()
+        {
+            if (_available < Burst) return false;
+            _available--;
+            IdleStepsSinceInput++;
+            return true;
+        }
+        public void Reset() { _available = Burst - 1; IdleStepsSinceInput = 0; }
+    }
+
+    /// <summary>Per-player bounded, ordered input queue. Each accepted command is consumed once.</summary>
     public sealed class ServerInputQueue
     {
         private readonly Dictionary<uint, MovementCommand> _pending = new();
@@ -416,6 +442,7 @@ namespace Game.Gameplay.Movement
         /// <summary>入队（ServerRpc 批量载荷逐条调用；容忍乱序/重复/突发）。</summary>
         public void Enqueue(in MovementCommand cmd)
         {
+            if (!cmd.IsValidNetworkInput) return;
             // 首包也必须受未来窗口约束；否则新连接可注入任意大 tick，绕过失控 tick 防护。
             if (!_hasProcessed && cmd.Tick > MovementPredictionConfig.ServerMaxFutureTicks)
             {
@@ -447,6 +474,33 @@ namespace Game.Gameplay.Movement
                 _pending.Remove(oldest);
                 DroppedBacklog++;
             }
+        }
+
+        /// <summary>Bound latency after transport stalls without purchasing extra simulation time.
+        /// Retain look deltas, but do not execute stale movement/jump after idle physics already advanced.</summary>
+        public int TrimSimulationBacklog(int maximum)
+        {
+            maximum = Math.Max(1, maximum);
+            float yaw = 0f, pitch = 0f;
+            int dropped = 0;
+            while (_pending.Count > maximum)
+            {
+                uint oldest = MinPendingTick();
+                var command = _pending[oldest];
+                yaw += command.YawDelta; pitch += command.PitchDelta;
+                _pending.Remove(oldest);
+                dropped++;
+            }
+            if (dropped > 0)
+            {
+                uint first = MinPendingTick();
+                var retained = _pending[first];
+                retained.YawDelta += yaw;
+                retained.PitchDelta += pitch;
+                _pending[first] = retained;
+                DroppedBacklog += dropped;
+            }
+            return dropped;
         }
 
         /// <summary>

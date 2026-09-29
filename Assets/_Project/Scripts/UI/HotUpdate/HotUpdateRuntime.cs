@@ -86,7 +86,12 @@ namespace Game.UI
 
         private void OnDestroy()
         {
-            if (Instance == this) Instance = null;
+            if (Instance == this)
+            {
+                HotLuaFacade.CancelPendingRequests();
+                HotPageRegistry.ClearAll();
+                Instance = null;
+            }
             if (Env != null)
             {
                 Env.Dispose();

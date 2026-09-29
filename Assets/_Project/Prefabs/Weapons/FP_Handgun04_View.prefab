@@ -157,12 +157,44 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2204958433014284715}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.2862957, y: -0.000000769, z: -0.00000023, w: 0.9581413}
-  m_LocalPosition: {x: -0.0004, y: 0.1405, z: 0.1272}
+  m_LocalRotation: {x: -0.28629574, y: -0.00000076900017, z: -0.00000023000031, w: 0.9581413}
+  m_LocalPosition: {x: -0.00040000136, y: 0.14049986, z: 0.12720008}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1937975425092747384}
+  m_Father: {fileID: 3029508402480714215}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4300996984663140127
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1937975425092747384}
+  m_Layer: 9
+  m_Name: MuzzleExit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1937975425092747384
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4300996984663140127}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.0003998489, y: -0.001192213, z: -0.030298816}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3029508402480714215}
+  m_Father: {fileID: 8774634089874407361}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4302019569242958158
 GameObject:
@@ -252,7 +284,7 @@ Transform:
   m_GameObject: {fileID: 9169913865396567485}
   serializedVersion: 2
   m_LocalRotation: {x: -0.20244019, y: 0.6775081, z: -0.20244038, w: 0.6775091}
-  m_LocalPosition: {x: -0.00000011284472, y: 0.12288034, z: 0.10252224}
+  m_LocalPosition: {x: -0.00000011283575, y: 0.122880235, z: 0.102522366}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -614,6 +646,10 @@ MonoBehaviour:
   actionFadeSeconds: 0.12
   aimFadeSeconds: 0.08
   aimPoseFadeSeconds: 0.05
+  throwablePresentationClip: {fileID: 7400000, guid: bdcf1216968aeff45ac7c5df15db1b92, type: 2}
+  throwablePrepareClip: {fileID: 7400000, guid: bfd241a1e961abd459e651aa0e9e2b4a, type: 2}
+  throwViewLocalPosition: {x: 0, y: -0.09, z: 0.18}
+  throwViewLocalEuler: {x: 0, y: 0, z: 0}
 --- !u!114 &8689625756636848218
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -630,7 +666,7 @@ MonoBehaviour:
   muzzle: {fileID: 8774634089874407361}
   tracerMuzzleInsetMeters: 0
   hasCalibratedBarrelTip: 1
-  barrelTipMuzzleLocal: {x: 0.00039984728, y: -0.009461555, z: -0.030298833}
+  barrelTipMuzzleLocal: {x: 0.0003998489, y: -0.001192213, z: -0.030298816}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035

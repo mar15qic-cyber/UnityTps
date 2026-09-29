@@ -1,0 +1,7 @@
+{
+  "name": "Game.RuntimeAudit",
+  "rootNamespace": "Game.RuntimeAudit",
+  "references": ["Game.Core", "Game.Account", "Game.Gameplay", "Game.Presentation", "Game.UI", "FishNet.Runtime", "Unity.InputSystem", "Unity.TextMeshPro"],
+  "autoReferenced": true,
+  "defineConstraints": ["UNITY_EDITOR || FPS_RUNTIME_AUDIT"]
+}

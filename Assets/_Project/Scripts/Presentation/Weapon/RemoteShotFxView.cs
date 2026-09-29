@@ -27,6 +27,11 @@ namespace Game.Presentation.Weapon
         private Material _material;
         private int _cursor;
         private readonly Transform[] _muzzles = new Transform[PoolSize];
+        private readonly Transform[] _shooterRoots = new Transform[PoolSize];
+        private readonly int[] _masks = new int[PoolSize];
+        private readonly bool[] _hidden = new bool[PoolSize];
+        private readonly Vector3[] _endPoints = new Vector3[PoolSize];
+        private readonly TracerVisibility _visibility = new();
         private readonly List<(NetworkCombatAuthority shooter, RemoteShotPresentation shot)> _pending = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -63,7 +68,7 @@ namespace Game.Presentation.Weapon
             {
                 if (_timers[i] <= 0f) continue;
                 _timers[i] -= Time.deltaTime;
-                if (_lines[i] != null) _lines[i].enabled = _timers[i] > 0f;
+                if (_lines[i] != null) _lines[i].enabled = _timers[i] > 0f && !_hidden[i];
             }
         }
 
@@ -82,13 +87,16 @@ namespace Game.Presentation.Weapon
                 var swapper = pending.shooter.GetComponentInChildren<TPWeaponMeshSwapper>(true);
                 var muzzle = swapper != null ? swapper.CurrentMuzzle : null;
                 // Missing weapon geometry must not manufacture an eye-emitted tracer.
-                if (muzzle == null) continue;
+                if (muzzle == null || !muzzle.gameObject.activeInHierarchy) continue;
+                var controller = pending.shooter.GetComponent<WeaponController>();
+                if (!string.IsNullOrEmpty(pending.shot.WeaponId) && controller != null
+                    && controller.Definition != null
+                    && pending.shot.WeaponId != controller.Definition.WeaponId) continue;
                 DrawShot(muzzle, pending.shot);
             }
             _pending.Clear();
             for (int i = 0; i < PoolSize; i++)
-                if (_timers[i] > 0f && _lines[i] != null && _muzzles[i] != null)
-                    _lines[i].SetPosition(0, _muzzles[i].position);
+                if (_timers[i] > 0f && _lines[i] != null) UpdateTracer(i);
         }
 
         private void DrawShot(Transform muzzle, RemoteShotPresentation shot)
@@ -105,15 +113,37 @@ namespace Game.Presentation.Weapon
 
         private void SpawnTracer(Transform muzzle, Vector3 end)
         {
+            if (muzzle == null || !muzzle.gameObject.activeInHierarchy) return;
             int index = _cursor;
             _cursor = (_cursor + 1) % PoolSize;
             var line = _lines[index];
             if (line == null) return;
             _muzzles[index] = muzzle;
-            line.SetPosition(0, muzzle.position);
-            line.SetPosition(1, end);
-            line.enabled = true;
+            var controller = muzzle.GetComponentInParent<WeaponController>();
+            _shooterRoots[index] = controller != null ? controller.transform.root : muzzle.root;
+            _masks[index] = controller != null ? controller.ShotCollisionMask : Physics.DefaultRaycastLayers;
+            _hidden[index] = false;
+            _endPoints[index] = end;
             _timers[index] = TracerLifeSeconds;
+            UpdateTracer(index);
+        }
+
+        private void UpdateTracer(int index)
+        {
+            var muzzle = _muzzles[index];
+            var line = _lines[index];
+            if (!_hidden[index])
+            {
+                _hidden[index] = muzzle == null || !muzzle.gameObject.activeInHierarchy
+                    || !_visibility.CanShow(muzzle.position, _endPoints[index],
+                        _shooterRoots[index], _masks[index]);
+                if (!_hidden[index])
+                {
+                    line.SetPosition(0, muzzle.position);
+                    line.SetPosition(1, _endPoints[index]);
+                }
+            }
+            line.enabled = !_hidden[index] && _timers[index] > 0f;
         }
 
         private void BuildPool()

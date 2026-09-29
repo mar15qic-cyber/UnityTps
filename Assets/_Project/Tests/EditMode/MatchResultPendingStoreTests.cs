@@ -12,6 +12,83 @@ namespace Game.Gameplay.Tests
     /// </summary>
     public sealed class MatchResultPendingStoreTests
     {
+        private sealed class RecoveringControlPlane : IServerControlPlaneClient, IServerMatchResultReporter
+        {
+            public int Reports;
+            public System.Threading.Tasks.Task<MatchResultReportOutcome> ReportMatchResultAsync(ServerMatchResultReportRequest request)
+                => System.Threading.Tasks.Task.FromResult(++Reports == 1 ? MatchResultReportOutcome.RewardsPending : MatchResultReportOutcome.Accepted);
+            public System.Threading.Tasks.Task<HeartbeatOutcome> HeartbeatAsync(ServerInstanceHeartbeatRequest request)
+                => System.Threading.Tasks.Task.FromResult(Reports < 2 ? HeartbeatOutcome.Accepted : HeartbeatOutcome.StateConflict);
+            public System.Threading.Tasks.Task<ServerInstanceRegisterResponse> RegisterAsync(ServerInstanceRegisterRequest request)
+                => throw new System.Exception("Must recover without re-registering");
+            public System.Threading.Tasks.Task<TicketConsumeResult> ConsumeTicketAsync(string ticket) => throw new System.NotSupportedException();
+            public System.Threading.Tasks.Task<PlayerDisconnectReport> DisconnectPlayerAsync(ServerPlayerDisconnectRequest request) => throw new System.NotSupportedException();
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task Heartbeats_RetryRewardsPendingUntilAccepted_WithoutRegistration()
+        {
+            var go = new GameObject("ResultHeartbeatTest");
+            try
+            {
+                var bootstrap = go.AddComponent<DedicatedServerBootstrap>();
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var store = new MatchResultPendingStore(Path.Combine(_directory, "retry.json"));
+                store.Append(Request("retry-rewards"));
+                var control = new RecoveringControlPlane();
+                typeof(DedicatedServerBootstrap).GetField("_pendingMatchResults", flags).SetValue(bootstrap, store);
+                typeof(DedicatedServerBootstrap).GetField("_controlPlane", flags).SetValue(bootstrap, control);
+                typeof(DedicatedServerBootstrap).GetField("_heartbeatIntervalSeconds", flags).SetValue(bootstrap, .01f);
+                // A fake binding is only needed for its connected-player fact.
+                typeof(DedicatedServerBootstrap).GetField("_manager", flags).SetValue(bootstrap, new EmptyBinding());
+                typeof(DedicatedServerBootstrap).GetField("_options", flags).SetValue(bootstrap, new DedicatedServerOptions());
+                await (System.Threading.Tasks.Task)typeof(DedicatedServerBootstrap).GetMethod("HeartbeatUntilConflictAsync", flags).Invoke(bootstrap, null);
+                Assert.AreEqual(2, control.Reports);
+                Assert.AreEqual(0, store.Count);
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        private sealed class EmptyBinding : INetworkManagerBinding
+        {
+            public event System.Action<FishNet.Transporting.ServerConnectionStateArgs> ServerConnectionState { add { } remove { } }
+            public bool IsClientConnectionActive => false;
+            public int ConnectedClientCount => 0;
+            public bool TrySetTransportPort(ushort port, out string name) { name = "fake"; return true; }
+            public bool TrySetRemoteClientTimeout(double seconds, out string name) { name = "fake"; return true; }
+            public JoinTicketAuthenticator WireServerAuthenticator(IServerControlPlaneClient control, bool debug) => null;
+            public bool StartServerConnection() => true;
+            public bool StopServerConnection() => true;
+        }
+        private sealed class PausedReporter : IServerMatchResultReporter
+        {
+            public readonly System.Threading.Tasks.TaskCompletionSource<MatchResultReportOutcome> Completion = new();
+            public System.Threading.Tasks.Task<MatchResultReportOutcome> ReportMatchResultAsync(ServerMatchResultReportRequest request)
+                => Completion.Task;
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task Delivery_PersistsBeforeNetworkCompletes_AndRemovesOnlyAfterAck()
+        {
+            var go = new GameObject("PendingDeliveryTest");
+            try
+            {
+                var path = Path.Combine(_directory, "before-network.json");
+                var store = new MatchResultPendingStore(path);
+                var bootstrap = go.AddComponent<DedicatedServerBootstrap>();
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                typeof(DedicatedServerBootstrap).GetField("_pendingMatchResults", flags).SetValue(bootstrap, store);
+                var reporter = new PausedReporter();
+                var delivery = (System.Threading.Tasks.Task)typeof(DedicatedServerBootstrap).GetMethod("DeliverMatchResultAsync", flags)
+                    .Invoke(bootstrap, new object[] { reporter, Request("awaiting-ack") });
+                Assert.IsFalse(delivery.IsCompleted);
+                Assert.AreEqual(1, new MatchResultPendingStore(path).Count, "A crash now must preserve the result");
+                reporter.Completion.SetResult(MatchResultReportOutcome.Accepted);
+                await delivery;
+                Assert.AreEqual(0, new MatchResultPendingStore(path).Count);
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
         private string _directory;
 
         [SetUp]

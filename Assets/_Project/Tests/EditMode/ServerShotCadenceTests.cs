@@ -58,5 +58,32 @@ namespace Game.Gameplay.Tests
             runtime.CompleteReload();
             Assert.That(runtime.TryConsumeRound(true), Is.True);
         }
+
+        [Test]
+        public void ForgedInputTicks_CannotAccelerateServerTimeBudget()
+        {
+            var cadence = new ServerShotCadence();
+            int accepted = 0;
+            for (uint serverTick = 0; serverTick < 300; serverTick++)
+            {
+                uint inputTick = (serverTick + 1) * 30;
+                double now = serverTick / 30.0;
+                if (!cadence.CanFire(inputTick, now)) continue;
+                cadence.Record(inputTick, 30, 600, now);
+                accepted++;
+            }
+            Assert.That(accepted, Is.InRange(99, 103), "600 RPM plus at most 200ms bounded burst");
+        }
+
+        [Test]
+        public void NewWeaponRuntime_DoesNotRestoreConsumedCadenceBudget()
+        {
+            var cadence = new ServerShotCadence();
+            cadence.Record(1, 30, 60, 0);
+            var replacement = new WeaponRuntime(30, 90);
+            Assert.That(replacement.TryConsumeRound(true), Is.True);
+            Assert.That(cadence.CanFire(31, .1), Is.False);
+            Assert.That(cadence.CanFire(31, 1), Is.True);
+        }
     }
 }

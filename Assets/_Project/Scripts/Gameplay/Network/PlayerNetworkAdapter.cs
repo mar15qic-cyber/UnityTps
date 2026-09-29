@@ -51,6 +51,7 @@ namespace Game.Gameplay.Network
         private readonly PredictionBuffer _buffer = new(MovementPredictionConfig.ClientHistoryCapacity);
         private readonly TickAccumulator _accumulator = new();
         private readonly ServerInputQueue _serverQueue = new();
+        private readonly ServerSimulationBudget _serverSimulationBudget = new();
         private readonly List<MovementCommand> _serverBatch = new();
         private readonly ReconcileGate _gate = new();
         private readonly DivergenceGate _divergenceGate = new();
@@ -111,6 +112,17 @@ namespace Game.Gameplay.Network
         private uint _latestSentTick;
         /// <summary>最近一次权威快照携带的服务器"无真实输入"步数（审计 §3.2-2）。</summary>
         private int _lastIdleStepsAtSnapshot;
+        // Recoil pulses are render/fire events, not MovementCommands. Retain the actual
+        // pre-step debt so movement replay consumes exactly the original yaw compensation.
+        private readonly uint[] _recoilStepTicks = new uint[512];
+        private readonly Vector2[] _recoilStepDebts = new Vector2[512];
+
+        internal void RememberRecoilBeforePrediction(uint tick, Vector2 debt)
+        {
+            int index = (int)(tick % (uint)_recoilStepTicks.Length);
+            _recoilStepTicks[index] = tick;
+            _recoilStepDebts[index] = debt;
+        }
         /// <summary>输入时间轴是否已与服务器首次对齐（审计 §3.3"收敛初始积压"；会话内只做一次）。</summary>
         private bool _predictionAligned;
         // M1（2026-09-16 审计）：服务器缺口告警节流。
@@ -141,8 +153,18 @@ namespace Game.Gameplay.Network
         private int _currentInterpolationTicks = RemoteInterpolationMinTicks;
         private float _nextInterpolationAdjust;
 
+        /// <summary>Put the rendered camera and authoritative eye inside the authored head
+        /// volume. Keep the pitch pivot neutral; lean is applied once by its camera extension.</summary>
+        internal void AlignEyePivot()
+        {
+            var pivot = localOnlyRoot != null ? localOnlyRoot.transform : transform.Find("CameraPivot");
+            if (pivot != null)
+                pivot.localPosition = LeanProfile.Eye(Vector3.zero, Quaternion.identity, 0f);
+        }
+
         private void Awake()
         {
+            AlignEyePivot();
             _locomotor = GetComponent<Locomotor>();
             // 审计 2026-09-16 §6.2：快照必须携带基础俯仰（两端对账 + 重生/重基有明确基线）
             if (_locomotor != null) _locomotor.PitchProvider = CurrentPitch;
@@ -200,6 +222,7 @@ namespace Game.Gameplay.Network
 
         public override void OnStartNetwork()
         {
+            AlignEyePivot();
             _initialized = true;
             int tickRate = TimeManager != null ? (int)TimeManager.TickRate : 30;
             _fixedDelta = 1f / Mathf.Max(1, tickRate);
@@ -439,6 +462,7 @@ namespace Game.Gameplay.Network
 
         public override void OnStartClient()
         {
+            _serverLifeEpoch = 0; // A pooled object starts a new server life timeline.
             if (IsOwner) ObserverTimeline.Reset();
             _timestampedPoses.Reset();
             _poseClock.Reset();
@@ -537,6 +561,7 @@ namespace Game.Gameplay.Network
             _pendingYaw = 0f;
             _pendingPitch = 0f;
             _buffer.Clear();
+            System.Array.Clear(_recoilStepTicks, 0, _recoilStepTicks.Length);
             _serverQueue.Clear();
             _localTick = 0;
             _lastAckedClientTick = 0;
@@ -716,6 +741,7 @@ namespace Game.Gameplay.Network
             UnwireServerTick();
             ServerLagCompensation.Instance?.UnregisterPlayer(transform);
             _serverQueue.Clear();
+            _serverSimulationBudget.Reset();
             if (_serverWeaponController != null)
                 _serverWeaponController.OnWeaponEquipped -= HandleServerEquipApplyAttachments;
             _serverWeaponController = null;
@@ -877,6 +903,7 @@ namespace Game.Gameplay.Network
         private void RunOwnerPrediction()
         {
             if (_locomotor == null) return;
+            if (_weaponController == null) _weaponController = GetComponentInParent<WeaponController>();
             double deltaTime = TestPredictionDeltaTime >= 0f ? TestPredictionDeltaTime : Time.deltaTime;
             int steps = _accumulator.Advance(deltaTime, _fixedDelta, MovementPredictionConfig.ClientMaxCatchUpSteps);
             _diag.NoteGenerated(steps);
@@ -892,11 +919,15 @@ namespace Game.Gameplay.Network
                     _serverLifeEpoch); // F14：上行输入以最新权威生命代际盖章
                 cmd.LeanIntent = _input != null ? _input.LeanIntent : (sbyte)0;
                 cmd.Ads01 = _aimStateForMovement != null ? _aimStateForMovement.Ads01 : 0f;
+                cmd.HasViewPitch = _weaponController != null;
+                cmd.ViewPitch = CurrentPitch() - (_weaponController != null ? _weaponController.CurrentRecoilOffset.x : 0f);
                 if (jump && _input != null) _input.ConsumeJump();
                 _pendingYaw = 0f;
                 _pendingPitch = 0f;
 
                 _buffer.TryStore(cmd);
+                RememberRecoilBeforePrediction(tick, _weaponController != null
+                    ? _weaponController.RecoilCompensationDebt : Vector2.zero);
                 Vector3 moveBefore = transform.position;
                 _locomotor.Simulate(cmd, _fixedDelta);
                 // 审计 §3.2-4：MoveAfter 必须**紧接** Simulate 采样（旧实现在软校正之后取，
@@ -1003,8 +1034,6 @@ namespace Game.Gameplay.Network
                 if (wantsFire)
                     _combatAuthority.SubmitFireRequest(EstimateServerTick());
             }
-            if (_combatAuthority != null && _input != null && _input.ReloadPressed)
-                _combatAuthority.SubmitReloadRequest();
         }
 
         /// <summary>服务器 tick 估算：最新权威快照 ServerTick + 快照后已预测的本地 tick 数。</summary>
@@ -1023,7 +1052,8 @@ namespace Game.Gameplay.Network
             long ownerClientId = NetworkObject != null && NetworkObject.Owner != null
                 ? NetworkObject.Owner.ClientId
                 : -1L;
-            ulong lifeGeneration = _combatAuthority != null ? _combatAuthority.LifeGeneration : 0UL;
+            ulong lifeGeneration = NetworkObject != null && NetworkObject.IsServerInitialized && _combatAuthority != null
+                ? _combatAuthority.CurrentLifeEpoch : _serverLifeEpoch;
             var weapons = GetComponentsInChildren<WeaponController>(true);
             for (int i = 0; i < weapons.Length; i++)
             {
@@ -1102,7 +1132,7 @@ namespace Game.Gameplay.Network
 
         /// <summary>
         /// 服务器输入推进核心（审计 2026-09-17 D2/R1；EditMode 可直接反射驱动）：
-        /// 冻结 → 清队列；否则有限追赶消费（R1），空 tick 保持位姿不模拟（D2）。
+        /// 冻结时清队；非冻结输入与空闲物理共用服务器时间预算。
         /// </summary>
         internal void AdvanceServerInputs(bool applyRemotePitch)
         {
@@ -1112,15 +1142,18 @@ namespace Game.Gameplay.Network
                 RefreshLeanHitboxes(0f);
                 // 死亡/倒计时冻结：丢弃待处理输入（防解冻后爆发重放），权威快照照发（客户端对位）
                 _serverQueue.Clear();
+                _serverSimulationBudget.Reset();
                 return;
             }
 
-            // R1（审计 2026-09-17）：每 tick 有限追赶（接线既有常量；此前恒 Drain(1) 使突发积压
-            // **没有任何路径能追回**——客户端单帧可突发 5 步，两端平均速率相同，lead 一旦跃升
-            // 就永久抬升 = 权威位姿相对画面永久滞后、硬对位位移恒为 lead×速度）。
-            // 追赶仍逐步用 fixedDelta 模拟（不加速时间）；Snapshot.Tick 与 LastClientTick
-            // 依然一致（都取本 tick 消费的末条命令）。
-            int count = _serverQueue.Drain(MovementPredictionConfig.ServerMaxCatchUpPerTick, _serverBatch);
+            // Bounded catchup shares one lifetime time budget with idle physics.
+            // A new RPC or weapon/input tick cannot replenish that budget.
+            // Once idle physics has consumed elapsed time, a backlog cannot be
+            // drained faster forever. Bound its latency instead of retaining a
+            // permanent tail which makes every later fire request time out.
+            _serverQueue.TrimSimulationBacklog(MovementPredictionConfig.ServerMaxSimulationBacklog);
+            int count = _serverQueue.Drain(_serverSimulationBudget.BeginTick(), _serverBatch);
+            _serverSimulationBudget.Consume(count);
             _diag.NoteServerConsumed(count); // 0 = 本 tick 空步（丢包/空闲都会推高）
             // M1（审计 2026-09-16）：缺口不再静默——ACK 的语义是"已处理到该 tick"，
             // 缺口是"跳过并结算"（那些输入永不被模拟），必须留痕才能判上行漏发/积压。
@@ -1131,17 +1164,19 @@ namespace Game.Gameplay.Network
             }
             if (count == 0)
             {
-                // D2（审计 2026-09-17）：空队列**保持位姿**——不外推、不喂空命令，完全不模拟。
-                // 旧两版均有静态可证缺陷：空命令（Move=0）被地面减速 48 m/s² 在 0.07s 内刹停
-                // （客户端仍在前进，每个到批间隙制造约一个身位误差）；"按最后已知输入有界外推"
-                // 则把服务器单方推走 k 步——菜单/聊天冻结时客户端已停预测，k×步长 100% 计入
-                // 配对误差（外推位移不被任何配对口径承认，Snapshot.Tick=ack+k 违反配对不变量）。
-                // 保持位姿后：冻结场景两端同静（误差恒 0）；瞬时到批间隙的 1–3 步位移 ≤0.34m
-                // 落平滑带由平滑收敛，批次到达后 R1 追赶立即回填。快照照发——重复 ACK 由客户端
-                // ACK 门忽略（IgnoreRepeat），不产生虚假比较。空步不做 step 取证（未模拟时
-                // LastStepDebug 是上一步陈旧值，入证必误导），靠 empty 计数 + ConsecutiveEmptyTicks。
+                // Repay any already simulated burst lead before advancing idle
+                // physics. Once caught up, silence cannot suspend gravity. Keep
+                // the actual input ACK unchanged: no fabricated input/aim tick.
                 if (_serverQueue.ConsecutiveEmptyTicks == 1)
                     ExportServerStepTraceWindow("IDLE_START");
+                if (_serverSimulationBudget.TryConsumeIdle())
+                {
+                    var neutral = new MovementCommand(Vector2.zero, false, false, 0f, 0f,
+                        _serverQueue.LastProcessedTick,
+                        _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u);
+                    _locomotor.Simulate(neutral, _fixedDelta);
+                    RefreshLeanHitboxes(_locomotor.Lean.Amount);
+                }
                 return;
             }
             for (int i = 0; i < count; i++)
@@ -1154,7 +1189,7 @@ namespace Game.Gameplay.Network
                 }
                 _locomotor.Simulate(_serverBatch[i], _fixedDelta);
                 RefreshLeanHitboxes(_locomotor.Lean.Amount);
-                if (applyRemotePitch) ApplyRemotePitch(_serverBatch[i].PitchDelta);
+                if (applyRemotePitch) ApplyRemoteAimInput(_serverBatch[i]);
                 RememberServerAim(_serverBatch[i]);
                 CaptureServerStepEvidence(_serverBatch[i], null);
             }
@@ -1168,7 +1203,7 @@ namespace Game.Gameplay.Network
                 ServerTick = TimeManager != null ? TimeManager.Tick : 0,
                 LastClientTick = _serverQueue.LastProcessedTick,
                 // 审计 §3.2-2：告诉客户端"本快照的位姿比 LastClientTick 多推进了几步无输入步"
-                IdleStepsAtSnapshot = _serverQueue.ConsecutiveEmptyTicks,
+                IdleStepsAtSnapshot = _serverSimulationBudget.IdleStepsSinceInput,
                 Dead = _combatAuthority != null && _combatAuthority.IsDead,
                 // F14：随快照下发当前生命代际——Owner 上行输入以此盖章供服务器校验
                 LifeEpoch = _combatAuthority != null ? _combatAuthority.CurrentLifeEpoch : 0u,
@@ -1185,7 +1220,9 @@ namespace Game.Gameplay.Network
         /// <summary>服务器入队入口（与 RPC 载体分离，EditMode 可直驱）。</summary>
         internal void EnqueueServerInputBatch(MovementCommand[] commands)
         {
-            if (commands == null) return;
+            if (commands == null || commands.Length > MovementPredictionConfig.ClientBatchMaxCommands) return;
+            for (int i = 0; i < commands.Length; i++)
+                if (!commands[i].IsValidNetworkInput) return;
             // D3（审计 2026-09-17）：冻结窗口（倒计时/死亡）拒收在途批次。冻结期客户端本就不产
             // 输入（LocalMovementFrozen 包含两者），此时到达的只可能是"冻结快照到达客户端之前"
             // 已发出的批次——若照常入队，死亡→重生后旧 epoch 命令会被当作新输入消费（客户端重生
@@ -1234,12 +1271,15 @@ namespace Game.Gameplay.Network
 
         private void ApplyOwnerAuthoritativeState(AuthoritativeMovementState state)
         {
+            if (state.LifeEpoch < _serverLifeEpoch) return;
             _lastServerTick = state.ServerTick;
             ObserverTimeline.Observe(state.ServerTick, NetworkObject != null && TimeManager != null ? (int)TimeManager.TickRate : 30, Time.unscaledTimeAsDouble);
             _lastIdleStepsAtSnapshot = state.IdleStepsAtSnapshot;
             // F14：学习服务器当前生命代际——新基线（重生）快照先于本地感知到达时，
             // 后续上行即携带新代际；旧代际在途批次由服务器拒收清队。
+            bool lifeEpochChanged = _serverLifeEpoch != state.LifeEpoch;
             _serverLifeEpoch = state.LifeEpoch;
+            if (lifeEpochChanged) ApplyDeterministicRecoilSeeds();
             _diag.AuthoritativePitchDegrees = state.Snapshot.Pitch;
 
             if (state.Dead)
@@ -1406,6 +1446,9 @@ namespace Game.Gameplay.Network
         /// </summary>
         private void HardSnapTo(AuthoritativeMovementState state, MovementRebaseKind kind, float errorMeters = 0f)
         {
+            bool preserveLiveRecoil = kind != MovementRebaseKind.DeathRespawn
+                && kind != MovementRebaseKind.Initial && _weaponController != null;
+            Vector2 liveRecoilDebt = _weaponController != null ? _weaponController.RecoilCompensationDebt : Vector2.zero;
             Vector3 previousVisualWorld = _viewOffsetRoot != null ? _viewOffsetRoot.position : transform.position;
             Vector3 rootBefore = transform.position;
             _locomotor?.ApplyAuthoritativeSnapshot(state.Snapshot);
@@ -1435,6 +1478,9 @@ namespace Game.Gameplay.Network
                 for (uint tick = state.LastClientTick + 1; tick <= newest; tick++)
                 {
                     if (!_buffer.TryGetCommand(tick, out var cmd)) break; // 缺口：命令不可得，停止重放
+                    int recoilIndex = (int)(tick % (uint)_recoilStepTicks.Length);
+                    if (preserveLiveRecoil && _recoilStepTicks[recoilIndex] == tick)
+                        _weaponController.RestoreRecoilCompensationDebt(_recoilStepDebts[recoilIndex]);
                     Vector3 replayBefore = transform.position;
                     _locomotor?.Simulate(cmd, _fixedDelta);
                     _buffer.RecordPredicted(_locomotor.CaptureSnapshot());
@@ -1466,6 +1512,9 @@ namespace Game.Gameplay.Network
                 _localTick = state.LastClientTick;
             }
             // 审计 §3.2-3：重放结束后的最终根 = 客户端实际会继续预测的起点（旧实现记对位瞬间的根）
+            // Preserve pulses and pitch compensation after the newest movement step as well.
+            // Death/initial ownership still take the authoritative reset value.
+            if (preserveLiveRecoil) _weaponController.RestoreRecoilCompensationDebt(liveRecoilDebt);
             _traceSnapTo = transform.position;
 
             // C3：普通纠偏保留视觉残差衰减；重生/真传送（距离超限）才清视觉历史
@@ -1925,10 +1974,10 @@ namespace Game.Gameplay.Network
             return true;
         }
         private readonly Dictionary<uint, (uint epoch, uint serverTick, Vector3 origin, Vector3 direction,
-            Vector3 muzzle, Vector3 bodyAnchor, WeaponFireContext context)> _serverAimHistory = new();
+            Vector3 eyeAnchor, WeaponFireContext context)> _serverAimHistory = new();
         private readonly Queue<uint> _serverAimOrder = new();
         private uint _serverAimEpoch;
-        public uint LocalInputTick => _localTick;
+        public uint LocalInputTick => NetworkObject != null && IsServerInitialized && IsOwner ? _hostSourceTick : _localTick;
         public uint ServerInputTick => _serverQueue.LastProcessedTick;
         public uint KnownLifeEpoch => _serverLifeEpoch;
         internal bool TryGetServerAim(uint tick, uint epoch, out Vector3 origin, out Vector3 direction)
@@ -1939,12 +1988,34 @@ namespace Game.Gameplay.Network
                 && !ShotTimingPolicy.ValidDisplayTick(pose.serverTick, TimeManager.Tick, (int)TimeManager.TickRate)) return false;
             origin = pose.origin; direction = pose.direction; return true;
         }
-        internal bool TryGetServerShotGeometry(uint tick, uint epoch, out Vector3 muzzle, out Vector3 bodyAnchor)
+        // A rendered camera may interpolate earlier consumed movement, but must stay
+        // within a head-sized corridor of those eye samples. A broad origin radius alone
+        // would allow a client to lift its camera over cover while keeping its head hidden.
+        internal bool IsCameraOriginConsistent(uint tick, uint epoch, Vector3 displayedOrigin)
         {
-            muzzle = bodyAnchor = default;
+            if (!float.IsFinite(displayedOrigin.x) || !float.IsFinite(displayedOrigin.y)
+                || !float.IsFinite(displayedOrigin.z)
+                || !_serverAimHistory.TryGetValue(tick, out var current) || current.epoch != epoch) return false;
+            const float tolerance = .1f;
+            Vector3 newer = current.origin;
+            if ((displayedOrigin - newer).sqrMagnitude <= tolerance * tolerance) return true;
+            for (uint age = 1; age <= 2 && tick > age; age++)
+            {
+                if (!_serverAimHistory.TryGetValue(tick - age, out var older) || older.epoch != epoch) break;
+                Vector3 segment = older.origin - newer;
+                float t = segment.sqrMagnitude > .000001f
+                    ? Mathf.Clamp01(Vector3.Dot(displayedOrigin - newer, segment) / segment.sqrMagnitude) : 0f;
+                if ((displayedOrigin - (newer + segment * t)).sqrMagnitude <= tolerance * tolerance) return true;
+                newer = older.origin;
+            }
+            return false;
+        }
+
+        internal bool TryGetServerEyeAnchor(uint tick, uint epoch, out Vector3 eyeAnchor)
+        {
+            eyeAnchor = default;
             if (!_serverAimHistory.TryGetValue(tick, out var pose) || pose.epoch != epoch) return false;
-            muzzle = pose.muzzle;
-            bodyAnchor = pose.bodyAnchor;
+            eyeAnchor = pose.eyeAnchor;
             return true;
         }
         private void RememberServerAim(MovementCommand command)
@@ -1954,11 +2025,9 @@ namespace Game.Gameplay.Network
             if (weapon == null) return;
             if (!_serverAimHistory.ContainsKey(command.Tick)) _serverAimOrder.Enqueue(command.Tick);
             var provider = GetComponent<WeaponFireContextProvider>();
-            float lean = _locomotor != null ? _locomotor.Lean.Amount : 0f;
-            _serverAimHistory[command.Tick] = (command.LifeEpoch, TimeManager != null ? TimeManager.Tick : 0,
-                weapon.AimOrigin, weapon.AimDirection,
-                LeanProfile.Muzzle(transform.position, transform.rotation, lean),
-                LeanProfile.BodyAnchor(transform.position, transform.rotation, lean),
+            _serverAimHistory[command.Tick] = (command.LifeEpoch, NetworkObject != null && TimeManager != null ? TimeManager.Tick : 0,
+                weapon.AimOrigin, ResolveInputAimDirection(command, transform.rotation, weapon),
+                LeanProfile.Eye(transform.position, transform.rotation, 0f),
                 provider != null ? provider.Context : WeaponFireContext.Default);
             while (_serverAimOrder.Count > 128) _serverAimHistory.Remove(_serverAimOrder.Dequeue());
         }
@@ -2004,7 +2073,7 @@ namespace Game.Gameplay.Network
 
             if (NetworkObject != null && IsClientInitialized && !IsServerInitialized)
             {
-                if (_timestampedPoses.Evaluate(_poseClock.Sample(Time.unscaledTimeAsDouble), out var pose))
+                if (_timestampedPoses.Evaluate(ObserverTimeline.SampleForRendering(), out var pose))
                 {
                     _presentedPose = pose;
                     _presentedPoseValid = true;
@@ -2031,7 +2100,7 @@ namespace Game.Gameplay.Network
             // 而幸免，构成"正面中、侧背不中"的方向性）。Host（编辑器调试，同时渲染画面）与
             // 纯客户端保持插值平滑；NetworkObject 前置判空（EditMode 直驱安全）。
             var nobForServer = NetworkObject;
-            if (nobForServer != null && nobForServer.IsServerInitialized && !nobForServer.IsClientInitialized)
+            if (nobForServer != null && nobForServer.IsServerInitialized)
             {
                 PinTpModelToRootForServer();
                 return;
@@ -2095,6 +2164,14 @@ namespace Game.Gameplay.Network
         /// <summary>DS 钉根（2026-09-18 问题6；EditMode 可直驱的测试接缝）：TP_Model 直接写到
         /// 根∘作者基准，缓冲清空、追随作废——服务器侧 BodyHitbox（TP_Model 子物体）与权威根恒等，
         /// LagComp 记录/回滚的才是真实位姿。仅在 Dedicated（IsServerInitialized && !IsClientInitialized）调用。</summary>
+        internal void PrepareTpPoseForServerTick(float deltaTime)
+        {
+            var model = transform.Find(VisualModelNode);
+            if (model != null)
+                model.SendMessage("EvaluateServerAnimationTick", deltaTime, SendMessageOptions.DontRequireReceiver);
+            PinTpModelToRootForServer();
+        }
+
         internal void PinTpModelToRootForServer()
         {
             EnsureRemoteVisualBaseline();
@@ -2239,12 +2316,33 @@ namespace Game.Gameplay.Network
         private bool LocalMovementFrozen
             => MovementFrozen || Menu.GameplayInputGate.InputBlocked;
 
-        /// <summary>服务器侧：把远端玩家俯仰增量应用到 localOnlyRoot（CameraPivot）。
-        /// 公式与 FPMouseLook 本地写法逐字一致：**后坐债务先消费反向输入**，剩余部分才改基础俯仰，
-        /// Euler X 取负、夹紧 ±89°。
-        /// 审计 2026-09-16 §6.2：旧实现直接用原始 PitchDelta 积分——与 FPMouseLook 的两端 pitch
-        /// 积分公式不等价（客户端消费债务、服务器不消费），连续压枪/死亡期间转头会永久偏离，
-        /// 而位置/yaw 纠偏都不会修 pitch。</summary>
+        /// <summary>Validate a shot against the view pitch sampled with its consumed input.
+        /// Pitch is player aim input; origin, body yaw, life, time, spread and damage remain
+        /// server-validated. Rejected recoil must not integrate into a permanent aim error.</summary>
+        internal static Vector3 ResolveInputAimDirection(MovementCommand command, Quaternion bodyRotation,
+            WeaponController weapon)
+            => command.HasViewPitch
+                ? bodyRotation * Quaternion.Euler(command.ViewPitch, weapon.CurrentRecoilOffset.y, 0f) * Vector3.forward
+                : weapon.AimDirection;
+
+        private void ApplyRemoteAimInput(MovementCommand command)
+        {
+            if (!command.HasViewPitch)
+            {
+                ApplyRemotePitch(command.PitchDelta);
+                return;
+            }
+            if (_weaponController == null) _weaponController = GetComponentInParent<WeaponController>();
+            // Pitch is aim input, not a client hit result. Keep the server recoil state
+            // for weapon simulation, but never integrate a different compensation history.
+            if (_weaponController != null)
+                _weaponController.ConsumeRecoilCompensation(new Vector2(command.PitchDelta, 0f));
+            _remotePitch = Mathf.Clamp(command.ViewPitch + (_weaponController != null
+                ? _weaponController.CurrentRecoilOffset.x : 0f), -89f, 89f);
+            if (localOnlyRoot != null)
+                localOnlyRoot.transform.localRotation = Quaternion.Euler(_remotePitch, 0f, 0f);
+        }
+
         private void ApplyRemotePitch(float pitchUpDelta)
         {
             if (Mathf.Approximately(pitchUpDelta, 0f)) return;

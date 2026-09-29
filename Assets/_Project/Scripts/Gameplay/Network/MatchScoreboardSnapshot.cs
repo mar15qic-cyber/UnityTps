@@ -33,6 +33,9 @@ namespace Game.Gameplay.Network
     [Serializable]
     public sealed class MatchScoreboardPayload
     {
+        public string matchId;
+        public MatchPhase phase;
+        public int timeLimitSeconds;
         /// <summary>比赛剩余秒数（服务器权威；-1 = 无进行中比赛，HUD 隐藏计时）。</summary>
         public long timeLeftSeconds;
         public MatchScoreboardEntry[] entries;

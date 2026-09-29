@@ -85,7 +85,8 @@ namespace Game.UI
 
                 // F05 守卫：目标=当前已装目录（同版本异内容漏网到此）绝不删除/覆盖
                 var installedFull = string.IsNullOrEmpty(installedVersionDir) ? null : Path.GetFullPath(installedVersionDir);
-                if (installedFull != null && string.Equals(targetDir, installedFull, StringComparison.OrdinalIgnoreCase))
+                bool repairing = installedFull != null && string.Equals(targetDir, installedFull, StringComparison.OrdinalIgnoreCase);
+                if (repairing && !SameContentIdentity(remote, installed))
                 {
                     outcome.Error = "refusing to overwrite the installed version dir: " + remote.version;
                     return outcome;
@@ -149,6 +150,25 @@ namespace Game.UI
                 }
 
                 // ⑤ 发布：此处的已存在目录必然是内容不匹配的孤儿（匹配的已走快路径）→ 替换
+                if (repairing)
+                {
+                    // Same immutable content: replace each file atomically. An interruption leaves
+                    // verified repaired files plus old corrupt files, recoverable on the next check.
+                    foreach (var file in remote.files)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var relative = HotUpdatePlan.SanitizeRelativePath(file.path);
+                        var destination = Path.Combine(targetDir, relative);
+                        Directory.CreateDirectory(Path.GetDirectoryName(destination));
+                        if (File.Exists(destination)) File.Replace(Path.Combine(stagingFull, relative), destination, null);
+                        else File.Move(Path.Combine(stagingFull, relative), destination);
+                    }
+                    Directory.Delete(stagingFull, true);
+                    staging = null;
+                    WritePointerAtomic(rootFull, manifestJson);
+                    outcome.Success = true;
+                    return outcome;
+                }
                 if (Directory.Exists(targetDir))
                     Directory.Delete(targetDir, true);
                 Directory.Move(stagingFull, targetDir);
@@ -186,10 +206,22 @@ namespace Game.UI
             return false;
         }
 
-        private static bool DirectoryMatches(string dir, HotUpdateManifest manifest)
+        public static bool SameContentIdentity(HotUpdateManifest a, HotUpdateManifest b)
+        {
+            if (ValidateManifest(a) != null || ValidateManifest(b) != null || a.version != b.version
+                || a.releaseId != b.releaseId || a.protocolId != b.protocolId || a.minClientVersion != b.minClientVersion
+                || a.files.Length != b.files.Length) return false;
+            foreach (var file in a.files)
+                if (!Array.Exists(b.files, candidate => candidate.path == file.path && candidate.size == file.size
+                    && string.Equals(candidate.hash, file.hash, StringComparison.OrdinalIgnoreCase))) return false;
+            return true;
+        }
+
+        public static bool DirectoryMatches(string dir, HotUpdateManifest manifest)
         {
             try
             {
+                if (string.IsNullOrEmpty(dir) || ValidateManifest(manifest) != null) return false;
                 foreach (var file in manifest.files)
                 {
                     var path = Path.Combine(dir, HotUpdatePlan.SanitizeRelativePath(file.path));

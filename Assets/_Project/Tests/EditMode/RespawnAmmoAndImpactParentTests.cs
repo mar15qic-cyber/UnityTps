@@ -31,6 +31,7 @@ namespace Game.Gameplay.Tests
         public void SetUp()
         {
             _root = new GameObject("RespawnAmmo_Test");
+            _root.transform.position = new Vector3(4700, 4700, 4700);
             _actions = _root.AddComponent<ActionSystem>();
             _root.AddComponent<CombatResolver>();
             _controller = _root.AddComponent<WeaponController>();
@@ -45,6 +46,7 @@ namespace Game.Gameplay.Tests
             SetField(_controller, "actionSystem", _actions);
             SetField(_controller, "combatResolver", _root.GetComponent<CombatResolver>());
             SetField(_controller, "processLocalInput", false);
+            SetField(_controller, "aimPivot", _root.transform);
             _controller.Initialize(_pistol, _balance);
 
             SetField(_arsenal, "controller", _controller);
@@ -133,7 +135,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void SpawnImpact_WithTarget_ParentsEffectToTarget()
+        public void SpawnImpact_WithAuthoritativeDamage_EmitsWorldSpaceBurst()
         {
             var (viewGo, view) = NewViewWithPrefabs(out GameObject bloodPrefab, out GameObject wallPrefab);
             var victimGo = new GameObject("Victim");
@@ -141,19 +143,18 @@ namespace Game.Gameplay.Tests
             Vector3 point = new Vector3(1.5f, 1.2f, 3f);
             Vector3 normal = Vector3.back;
             var shot = new WeaponShot(Vector3.zero, Vector3.forward,
-                new HitscanResult(true, true, point, normal, target));
+                new HitscanResult(true, true, point, normal, target, 0, HitBodyRegion.Torso, 20));
+            GameObject fx = null;
             try
             {
-                InvokeSpawnImpact(view, shot);
-
-                Assert.That(victimGo.transform.childCount, Is.EqualTo(1),
-                    "命中玩家：特效必须挂在目标视觉体下（倒地/移动跟随）");
-                var fx = victimGo.transform.GetChild(0);
-                Assert.That(Vector3.Distance(fx.position, point + normal * 0.01f), Is.LessThan(1e-4f),
-                    "挂接后世界位置仍=命中点+法线偏移（Instantiate parent 保持世界位姿）");
+                fx = InvokeSpawnImpact(view, shot);
+                Assert.That(fx, Is.Not.Null);
+                Assert.That(fx.transform.parent, Is.Null, "blood is a short world-space burst, never a persistent character decal");
+                Assert.That(Vector3.Distance(fx.transform.position, point + normal * 0.01f), Is.LessThan(1e-4f));
             }
             finally
             {
+                if (fx != null) Object.DestroyImmediate(fx);
                 Object.DestroyImmediate(viewGo);
                 Object.DestroyImmediate(victimGo);
                 Object.DestroyImmediate(bloodPrefab);
@@ -182,10 +183,9 @@ namespace Game.Gameplay.Tests
 
                 Assert.That(CountSceneRootsWithName(wallPrefix), Is.EqualTo(wallRootsBefore),
                     "角色命中不得生成环境弹孔（零伤害也一样）");
-                Assert.That(victimGo.transform.childCount, Is.EqualTo(1),
-                    "角色只播短时命中反馈，并挂到目标视觉体下跟随身体");
-                Assert.That(victimGo.transform.GetChild(0).name.StartsWith(bloodPrefab.name), Is.True,
-                    "角色反馈用的是 damagedImpactPrefab（血花），不是 impactPrefab（弹孔）");
+                Assert.That(victimGo.transform.childCount, Is.Zero);
+                Assert.That(CountSceneRootsWithName(bloodPrefab.name), Is.EqualTo(1),
+                    "zero damage retains only the test prefab; no blood instance may be emitted");
             }
             finally
             {
@@ -292,12 +292,12 @@ namespace Game.Gameplay.Tests
             return (go, view);
         }
 
-        private static void InvokeSpawnImpact(Game.Presentation.Weapon.WeaponView view, WeaponShot shot)
+        private static GameObject InvokeSpawnImpact(Game.Presentation.Weapon.WeaponView view, WeaponShot shot)
         {
             var m = typeof(Game.Presentation.Weapon.WeaponView).GetMethod("SpawnImpact",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             Assert.That(m, Is.Not.Null, "WeaponView.SpawnImpact 必须存在（私有）");
-            m.Invoke(view, new object[] { shot });
+            return (GameObject)m.Invoke(view, new object[] { shot });
         }
 
         private static int CountSceneRootsWithName(string name)

@@ -14,7 +14,7 @@ namespace Game.Gameplay.Player
         public const float LeanOutSeconds = 0.095f;
 
         public static Vector3 Eye(Vector3 root, Quaternion yaw, float lean)
-            => root + yaw * new Vector3(Mathf.Clamp(lean, -1f, 1f) * EyeSideMeters, EyeHeightMeters, 0f);
+            => root + yaw * new Vector3(Mathf.Clamp(lean, -1f, 1f) * EyeSideMeters, EyeHeightMeters, BodyCenterForwardMeters);
 
         public static Vector3 Muzzle(Vector3 root, Quaternion yaw, float lean)
             => root + yaw * new Vector3(Mathf.Clamp(lean, -1f, 1f) * EyeSideMeters * .9f, 1.4f, .6f);

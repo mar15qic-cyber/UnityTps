@@ -103,6 +103,8 @@ namespace Game.Presentation.Animation
 
         private void LateUpdate()
         {
+            if (_weaponAnimator != null && _weaponAnimator.IsThrowablePresentationActive)
+            { ClearConstraintState(); return; }
             // Holster/draw clips already contain the complete authored arm
             // motion. Keeping this constraint alive during SwitchWeapon
             // makes the old hand target pull the new clip across the body and

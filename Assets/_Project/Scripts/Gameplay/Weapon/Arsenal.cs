@@ -171,7 +171,12 @@ namespace Game.Gameplay.Weapon
             if (actions.CurrentAction == PlayerActionType.SwitchWeapon
                 && !_swapped
                 && actions.Elapsed >= _swapElapsedThreshold)
-            {
+                PerformSwap();
+        }
+
+        private void PerformSwap()
+        {
+                if (_swapped || _pendingIndex < 0 || _pendingIndex >= slots.Length) return;
                 _swapped = true;
                 // Q 往返语义：记录交换前的武器为"上一把"（失败/中断的请求不会走到这里，不污染历史）
                 _previousSlotIndex = ActiveIndex;
@@ -179,7 +184,6 @@ namespace Game.Gameplay.Weapon
                 if (controller != null && slots[ActiveIndex] != null)
                     controller.EquipDefinition(slots[ActiveIndex]);
                 OnActiveWeaponChanged?.Invoke(slots[ActiveIndex]);
-            }
         }
 
         public bool TrySelectSlot(int slotIndex)
@@ -232,6 +236,8 @@ namespace Game.Gameplay.Weapon
         private void HandleActionCompleted(PlayerActionType action)
         {
             if (action != PlayerActionType.SwitchWeapon) return;
+            // A long frame can cross both the swap point and completion before Update.
+            PerformSwap();
             OnSwitchCompleted?.Invoke(ActiveWeapon);
         }
 

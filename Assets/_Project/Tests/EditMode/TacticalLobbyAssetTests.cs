@@ -121,7 +121,12 @@ namespace Game.Gameplay.Tests
                 stage = (GameObject)typeof(LobbyCharacterPreview).GetField("stage", flags).GetValue(preview);
                 Assert.That(weapon, Is.Not.Null);
                 catalog.TryGet(weaponId, out var entry);
-                Assert.That(weapon.transform.localPosition, Is.EqualTo(entry.definition.ThirdPersonViewPrefab.transform.localPosition));
+                var animator = (Animator)typeof(LobbyCharacterPreview).GetField("animator", flags).GetValue(preview);
+                var grip = Resources.Load<LobbyWeaponGripCatalog>("UI/LobbyWeaponGripCatalog").Find(weaponId);
+                Assert.That(grip, Is.Not.Null);
+                Assert.That(Vector3.Distance(weapon.transform.TransformPoint(grip.wrist),
+                    animator.GetBoneTransform(HumanBodyBones.RightHand).position), Is.LessThan(.001f),
+                    "preview must preserve the calibrated hand contact, not the combat prefab mount");
                 preview.ApplyLoadout(loadout, catalog);
                 Assert.That(typeof(LobbyCharacterPreview).GetField("weapon", flags).GetValue(preview), Is.SameAs(weapon));
             }

@@ -48,6 +48,7 @@ namespace Game.Gameplay.Health
         {
             // Docs/23 G3 服务器权威门：纯客户端的本地预测射线只出视觉，不扣生命值
             bool networkActive = IsNetworkActive();
+            if (!Game.Gameplay.Network.MatchLifecycle.AllowsCombat(networkActive)) return 0;
             if (!ShouldApplyDamage(networkActive, networkActive && InstanceFinder.NetworkManager.IsServerStarted)) return 0;
             if (!IsAlive || amount <= 0) return 0;
             // Phase 2 出生保护终闸兜底：按服务器"当前时刻"拒绝一切伤害——

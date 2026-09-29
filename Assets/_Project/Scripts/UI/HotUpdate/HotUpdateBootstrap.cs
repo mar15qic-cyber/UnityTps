@@ -100,6 +100,10 @@ namespace Game.UI
                 // 2) 决策（纯逻辑，可测）
                 var installed = LoadInstalledManifest();
                 var plan = HotUpdatePlan.Decide(remote, installed, HotUpdateRuntime.ClientVersion);
+                var installedDirectory = InstalledVersionDir(installed);
+                bool repair = plan.Kind == HotUpdatePlan.DecisionKind.UpToDate
+                    && !await Task.Run(() => HotUpdateInstaller.DirectoryMatches(installedDirectory, installed));
+                if (repair) plan.Kind = HotUpdatePlan.DecisionKind.Download;
                 switch (plan.Kind)
                 {
                     case HotUpdatePlan.DecisionKind.MinClientGate:
@@ -120,7 +124,8 @@ namespace Game.UI
                         return Finish(result);
                     case HotUpdatePlan.DecisionKind.Download:
                         // F05：同版本异内容 = 发布事故/篡改——拒绝安装，保住当前可用包
-                        if (installed != null && HotUpdatePlan.CompareHotVersion(installed.version, remote.version) == 0)
+                        if (installed != null && HotUpdatePlan.CompareHotVersion(installed.version, remote.version) == 0
+                            && !HotUpdateInstaller.SameContentIdentity(remote, installed))
                         {
                             result.Kind = "same-version-conflict";
                             result.Version = installed.version;
@@ -204,7 +209,8 @@ namespace Game.UI
         private static void ApplyInstalledRoot()
         {
             var installed = LoadInstalledManifest();
-            if (installed != null) ApplyRootFor(installed.version);
+            HotUpdateRuntime.HotFilesRoot = null;
+            if (HotUpdateInstaller.DirectoryMatches(InstalledVersionDir(installed), installed)) ApplyRootFor(installed.version);
         }
 
         private static void ApplyRootFor(string version)

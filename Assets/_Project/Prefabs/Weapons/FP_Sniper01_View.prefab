@@ -24,12 +24,44 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2265743883194168007}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000014901161, y: 6.252776e-13, z: -3.326761e-11, w: 1}
-  m_LocalPosition: {x: 0.0010559468, y: -0.08017386, z: 0.7245873}
+  m_LocalRotation: {x: -0.2862958, y: -0.0000007691015, z: -0.00000022983835, w: 0.9581413}
+  m_LocalPosition: {x: -0.000017848806, y: 0.5975719, z: 0.8228221}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7237535400475982213}
+  m_Father: {fileID: 2925572873735534648}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2717680720698686709
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7237535400475982213}
+  m_Layer: 9
+  m_Name: MuzzleExit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7237535400475982213
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2717680720698686709}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.0010557645, y: -0.00117209, z: -0.03257382}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2925572873735534658}
+  m_Father: {fileID: 8882209764369626616}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5172271407210915200
 GameObject:
@@ -87,7 +119,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6235084699770860263}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20244157, y: 0.67750764, z: -0.2024419, w: 0.6775087}
+  m_LocalRotation: {x: -0.20244159, y: 0.67750764, z: -0.20244192, w: 0.6775087}
   m_LocalPosition: {x: -0.001072613, y: 0.2778966, z: 0.10473905}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -353,7 +385,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 400084, guid: b3236689d20e81b4493519925058781a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4103536771799422210}
-    - targetCorrespondingSourceObject: {fileID: 400046, guid: b3236689d20e81b4493519925058781a, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 400084, guid: b3236689d20e81b4493519925058781a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8882209764369626616}
     m_AddedComponents:
@@ -428,6 +460,10 @@ MonoBehaviour:
   actionFadeSeconds: 0.12
   aimFadeSeconds: 0.08
   aimPoseFadeSeconds: 0.05
+  throwablePresentationClip: {fileID: 7400000, guid: bdcf1216968aeff45ac7c5df15db1b92, type: 2}
+  throwablePrepareClip: {fileID: 7400000, guid: bfd241a1e961abd459e651aa0e9e2b4a, type: 2}
+  throwViewLocalPosition: {x: 0, y: -0.09, z: 0.18}
+  throwViewLocalEuler: {x: 0, y: 0, z: 0}
 --- !u!114 &8094044290004937739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -444,7 +480,7 @@ MonoBehaviour:
   muzzle: {fileID: 8882209764369626616}
   tracerMuzzleInsetMeters: 0
   hasCalibratedBarrelTip: 1
-  barrelTipMuzzleLocal: {x: -0.001055772, y: -0.0011721049, z: -0.032574054}
+  barrelTipMuzzleLocal: {x: -0.0010557645, y: -0.00117209, z: -0.03257382}
   tracerColor: {r: 1, g: 0.78, b: 0.15, a: 1}
   tracerDuration: 0.045
   muzzleFlashDuration: 0.035
@@ -466,10 +502,5 @@ Transform:
 --- !u!4 &2925572873735534648 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400084, guid: b3236689d20e81b4493519925058781a, type: 3}
-  m_PrefabInstance: {fileID: 2925572873735135980}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &2925572873735534658 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 400046, guid: b3236689d20e81b4493519925058781a, type: 3}
   m_PrefabInstance: {fileID: 2925572873735135980}
   m_PrefabAsset: {fileID: 0}

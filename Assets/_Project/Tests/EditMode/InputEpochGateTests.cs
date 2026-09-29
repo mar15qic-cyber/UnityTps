@@ -15,6 +15,30 @@ namespace Game.Gameplay.Tests
     /// </summary>
     public sealed class InputEpochGateTests
     {
+        [Test]
+        public void OwnerRecoilSeed_UsesReceivedLifeEpoch_AndIgnoresOlderLifeSnapshots()
+        {
+            var (adapter, combat, _) = SpawnServerSide();
+            var definition = ScriptableObject.CreateInstance<Game.Gameplay.Weapon.WeaponDefinition>();
+            try
+            {
+                var weapon = adapter.gameObject.AddComponent<Game.Gameplay.Weapon.WeaponController>();
+                typeof(Game.Gameplay.Weapon.WeaponController).GetField("definition", NonPublic).SetValue(weapon, definition);
+                combat.BumpLifeGenerationForTests();
+                combat.BumpLifeGenerationForTests(); // Local plain counter must not seed a remote owner's prediction.
+                var apply = typeof(PlayerNetworkAdapter).GetMethod("ApplyOwnerAuthoritativeState", NonPublic);
+                var state = new AuthoritativeMovementState { LifeEpoch = 1, Dead = true,
+                    Snapshot = new MovementSnapshot { Rotation = Quaternion.identity } };
+                apply.Invoke(adapter, new object[] { state });
+                var expected = PlayerNetworkAdapter.ComputeRecoilSeed(definition.WeaponId, -1, 1);
+                Assert.AreEqual(expected, weapon.RecoilSeedAppliedForTests);
+                state.LifeEpoch = 0;
+                apply.Invoke(adapter, new object[] { state });
+                Assert.AreEqual(1, adapter.KnownLifeEpoch);
+                Assert.AreEqual(expected, weapon.RecoilSeedAppliedForTests);
+            }
+            finally { Object.DestroyImmediate(definition); }
+        }
         private static readonly BindingFlags Any = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
         private const BindingFlags NonPublic = BindingFlags.NonPublic | BindingFlags.Instance;
 

@@ -118,6 +118,28 @@ namespace Game.Gameplay.Tests
         private void Recover() => _driver.RecoverPoseAfterRespawn();
 
         [Test]
+        public void ServerTicks_EvaluateBonesTwiceWithinOneRenderFrame_WithoutRenderAdvance()
+        {
+            Build(withWalkClips: false);
+            var bone = new GameObject("ProbeBone");
+            bone.transform.SetParent(_player.transform, false);
+            var clip = _clips[0];
+            clip.SetCurve("ProbeBone", typeof(Transform), "localPosition.x", AnimationCurve.Linear(0f, 0f, 1f, 1f));
+            _driver.EvaluateServerAnimationTick(.1f);
+            float first = bone.transform.localPosition.x;
+            _driver.EvaluateServerAnimationTick(.1f);
+            Assert.That(bone.transform.localPosition.x, Is.GreaterThan(first + .05f));
+            float afterTicks = bone.transform.localPosition.x;
+            Assert.That(_animancer.Graph.IsGraphPlaying, Is.False);
+            Invoke(_driver, "Update");
+            Assert.That(bone.transform.localPosition.x, Is.EqualTo(afterTicks).Within(.00001f));
+            Freeze();
+            Assert.That(_animancer.Graph.IsGraphPlaying, Is.False, "Death must retain tick ownership");
+            Recover();
+            Assert.That(_animancer.Graph.IsGraphPlaying, Is.False, "Respawn must retain tick ownership");
+        }
+
+        [Test]
         public void IdleDeathIdle_ReplaysLocomotionStateOnRealGraph()
         {
             Build(withWalkClips: true);
@@ -143,6 +165,8 @@ namespace Game.Gameplay.Tests
         {
             // R2 核心：旧实现每复活一次净增一套 walk/run mixer，直到图销毁
             Build(withWalkClips: true);
+            // The death clip is cached once on first use; repeated revives must not grow it.
+            Freeze(); Recover();
             int creationsAfterStart = _driver.LocomotionMixerCreations;
             int statesAfterStart = _driver.LocomotionLayerStateCount;
             Assert.That(creationsAfterStart, Is.EqualTo(2), "前置：walk + run 两套混合器");

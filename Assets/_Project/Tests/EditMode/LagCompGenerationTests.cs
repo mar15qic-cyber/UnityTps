@@ -32,6 +32,7 @@ namespace Game.Gameplay.Tests
                 .Invoke(_manager, null);
 
             _victimRoot = new GameObject("Victim");
+            _victimRoot.transform.position = new Vector3(4900, 4900, 4900);
             _victimAuthority = _victimRoot.AddComponent<NetworkCombatAuthority>();
             _victimTarget = _victimRoot.AddComponent<DamageableTarget>();
             var hitboxGo = new GameObject("BodyHitbox");
@@ -46,6 +47,31 @@ namespace Game.Gameplay.Tests
             ServerLagCompensation.Enabled = true;
             if (_victimRoot != null) Object.DestroyImmediate(_victimRoot);
             if (_manager != null) Object.DestroyImmediate(_manager.gameObject);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CameraRay_PreservesRewindLifeAndInvincibilityGates(bool invincible)
+        {
+            typeof(DamageableTarget).GetProperty("CurrentHealth").GetSetMethod(true)
+                .Invoke(_victimTarget, new object[] { 100 });
+            if (invincible) SetInvincibleUntil(100);
+            _manager.Capture(1);
+            if (!invincible) SetLifeGeneration(5);
+            var shooter = new GameObject("CameraGateShooter");
+            try
+            {
+                var resolver = shooter.AddComponent<CombatResolver>();
+                Physics.SyncTransforms();
+                var result = resolver.ResolveCameraHitscan(_victimRoot.transform.position + new Vector3(0, 0, -2), Vector3.forward,
+                    10, 25, ~0, shooter.transform, new LagCompRewindContext(1, true));
+                Assert.That(result.Target, Is.EqualTo(_victimTarget));
+                Assert.That(result.Damaged, Is.False);
+                Assert.That(_victimTarget.CurrentHealth, Is.EqualTo(100));
+                Assert.That(resolver.LastFireEvidence.MissReason, Is.EqualTo(invincible
+                    ? CombatResolver.MissTargetInvincible : CombatResolver.MissTargetStale));
+            }
+            finally { Object.DestroyImmediate(shooter); }
         }
 
         private void SetLifeGeneration(ulong generation)

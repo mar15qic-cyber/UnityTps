@@ -35,9 +35,12 @@ namespace Game.Gameplay.PlayModeTests
                 Assert.That(tp.transform.Find("LeftHandTarget"), Is.Not.Null, itemId + " TP hand target");
 
                 var root = new GameObject("Runtime_" + definition.WeaponId);
+                root.transform.position = new Vector3(5200, 5200, 5200);
                 var actions = root.AddComponent<ActionSystem>();
                 root.AddComponent<CombatResolver>();
                 var controller = root.AddComponent<WeaponController>();
+                typeof(WeaponController).GetField("aimPivot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .SetValue(controller, root.transform);
                 controller.Initialize(definition, registry.Balance);
                 yield return null;
 

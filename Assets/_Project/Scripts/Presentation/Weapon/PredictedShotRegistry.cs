@@ -31,6 +31,7 @@ namespace Game.Presentation.Weapon
         private const int Capacity = 32;
         private readonly System.Collections.Generic.List<PredictedShotEntry> _entries = new(Capacity + 1);
         private readonly System.Collections.Generic.HashSet<ulong> _consumedConfirmIds = new();
+        private readonly System.Collections.Generic.Queue<ulong> _confirmOrder = new();
         private long _sequence;
 
         /// <summary>登记一发本地预测（HandleShot 时调用；decal=本发持久表现载体，可为 null）。</summary>
@@ -58,7 +59,8 @@ namespace Game.Presentation.Weapon
             {
                 var dropped = _entries[0];
                 _entries.RemoveAt(0);
-                dropped.Consumed = true; // 溢出视为已消费：确认到达时无对应登记可纠偏（表现按本地为准）
+                if (!dropped.Consumed) ReleaseEffects(dropped);
+                dropped.Consumed = true;
             }
             return entry;
         }
@@ -80,7 +82,7 @@ namespace Game.Presentation.Weapon
                 var entry = _entries[i];
                 if (entry.Consumed) continue;
                 entry.Consumed = true;
-                if (entry.Epoch != currentEpoch) continue; // 跨生命残留：丢弃（调用方不得纠偏旧代际表现）
+                if (entry.Epoch != currentEpoch) { ReleaseEffects(entry); continue; }
                 return entry;
             }
             return null;
@@ -95,6 +97,7 @@ namespace Game.Presentation.Weapon
                 var entry = _entries[i];
                 if (entry.Consumed || entry.ShotRequestId != shotRequestId) continue;
                 entry.Consumed = true;
+                if (entry.Epoch != currentEpoch) ReleaseEffects(entry);
                 return entry.Epoch == currentEpoch ? entry : null;
             }
             return null;
@@ -103,8 +106,10 @@ namespace Game.Presentation.Weapon
         /// <summary>确认去重：首见登记并返回 false；同 id 再次到达返回 true（不得二次消费/纠偏）。</summary>
         public bool IsDuplicateConfirm(ulong shotRequestId)
         {
-            if (_consumedConfirmIds.Add(shotRequestId)) return false;
-            return true;
+            if (!_consumedConfirmIds.Add(shotRequestId)) return true;
+            _confirmOrder.Enqueue(shotRequestId);
+            while (_confirmOrder.Count > Capacity * 2) _consumedConfirmIds.Remove(_confirmOrder.Dequeue());
+            return false;
         }
 
         public int PendingCount
@@ -119,10 +124,30 @@ namespace Game.Presentation.Weapon
         }
 
         /// <summary>清空（生命边界/视图禁用）；不销毁 decal——调用方自行决定其生命周期。</summary>
-        public void Clear()
+        public void Clear(bool destroyPending = false)
         {
+            if (destroyPending)
+                foreach (var entry in _entries)
+                    if (!entry.Consumed) ReleaseEffects(entry);
             _entries.Clear();
             _consumedConfirmIds.Clear();
+            _confirmOrder.Clear();
+        }
+
+        private static void ReleaseEffects(PredictedShotEntry entry)
+        {
+            DestroyEffect(entry.Decal);
+            if (entry.PelletDecals != null)
+                foreach (var effect in entry.PelletDecals) DestroyEffect(effect);
+            entry.Decal = null;
+            entry.PelletDecals = null;
+        }
+
+        private static void DestroyEffect(GameObject effect)
+        {
+            if (effect == null) return;
+            if (Application.isPlaying) Object.Destroy(effect);
+            else Object.DestroyImmediate(effect);
         }
     }
 }

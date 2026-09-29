@@ -30,6 +30,21 @@ namespace Game.Gameplay.Movement
         /// <summary>Owner-sampled ADS transition. Sent with each movement tick for deterministic ground speed.</summary>
         public float Ads01;
 
+        // Absolute owner view pitch, including the recoil visible before this tick's shot.
+        // Integrating raw mouse deltas against independently predicted recoil accumulates
+        // permanent pitch errors whenever the server rejects a shot.
+        public bool HasViewPitch;
+        public float ViewPitch;
+
+        // Deserialization does not run the normalizing constructors.
+        public bool IsValidNetworkInput => Tick > 0
+            && float.IsFinite(Move.x) && float.IsFinite(Move.y) && Move.sqrMagnitude <= 1.001f
+            && float.IsFinite(YawDelta) && Mathf.Abs(YawDelta) <= 360f
+            && float.IsFinite(PitchDelta) && Mathf.Abs(PitchDelta) <= 360f
+            && float.IsFinite(Ads01) && Ads01 >= 0f && Ads01 <= 1f
+            && float.IsFinite(ViewPitch) && (!HasViewPitch || (ViewPitch >= -124f && ViewPitch <= 89f))
+            && LeanIntent >= -1 && LeanIntent <= 1;
+
         /// <summary>兼容构造器（Locomotor 离线路径等既有调用点零改动）：PitchDelta 默认 0。</summary>
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, uint tick)
             : this(move, sprint, jump, yawDelta, 0f, tick) { }
@@ -45,6 +60,8 @@ namespace Game.Gameplay.Movement
             LifeEpoch = 0u;
             LeanIntent = 0;
             Ads01 = 0f;
+            HasViewPitch = false;
+            ViewPitch = 0f;
         }
 
         public MovementCommand(Vector2 move, bool sprint, bool jump, float yawDelta, float pitchDelta, uint tick, uint lifeEpoch)
@@ -58,6 +75,8 @@ namespace Game.Gameplay.Movement
             LifeEpoch = lifeEpoch;
             LeanIntent = 0;
             Ads01 = 0f;
+            HasViewPitch = false;
+            ViewPitch = 0f;
         }
     }
 

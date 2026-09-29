@@ -16,8 +16,8 @@ namespace Game.EditorTools
     ///    活跃旧进程（清单缺 APP_PROTOCOL 行/协议不一致）不得被当成新构建已部署；
     /// ② 运行中的进程启动时读自身清单打印 APP_PROTOCOL/buildId（DedicatedServerBootstrap / AppRoot）。
     /// F16（2026-09-19 审计）增量：清单新增 <see cref="BuildManifest.inputDigest"/>——构建输入
-    /// 集合（Scripts/Editor 全部文件 + Packages/manifest.json + ProjectSettings/ProjectVersion +
-    /// 内置 Lua）的逐文件内容摘要再归并摘要。BuildStatus 门据此做「源码 vs 构建」的【内容】比对
+    /// 集合（Assets 全部内容与 meta + Packages manifest/lock + ProjectSettings +
+    /// 内置 Lua）的逐文件内容摘要再归并摘要。读取失败中止，不以空内容冒充成功。BuildStatus 门据此做「源码 vs 构建」的【内容】比对
     /// （mtime 只是廉价提示）：缺字段/无法解析一律 Unknown/Invalid 且门禁阻止（fail closed），
     /// 不再以"没比较出差异"判 OK。热更包的输入清单由 Publish-HotUpdate.ps1 的 files/hash 承载。
     /// 协议 ID 调整纪律：改 RPC 签名/网络 DTO → GameProtocolIdentity.ProtocolId 递增 → 同批重建两端。
@@ -39,15 +39,14 @@ namespace Game.EditorTools
             public int inputFileCount;
         }
 
-        /// <summary>构建输入集合根（相对工程根）：受击体/玩法/UI/账号源码、编辑器构建脚本、
-        /// 包依赖声明、Unity 版本、内置热更 Lua（打进 Resources 的部分）。</summary>
+        /// <summary>Conservative shared content identity: all assets and GUID/import metadata,
+        /// locked package dependencies and project settings. Client/DS binary files remain separate.</summary>
         private static readonly string[] InputRoots =
         {
-            "Assets/_Project/Scripts",
-            "Assets/_Project/Editor",
-            "Assets/Resources/Lua",
+            "Assets",
             "Packages/manifest.json",
-            "ProjectSettings/ProjectVersion.asset",
+            "Packages/packages-lock.json",
+            "ProjectSettings",
         };
 
         /// <summary>构建成功后调用：写入产物目录根的 build-manifest.json。产物缺失的程序集记 "&lt;absent&gt;。</summary>
@@ -86,8 +85,8 @@ namespace Game.EditorTools
             }
             catch (Exception exception)
             {
-                // 清单是部署门证据，不是构建产物本身：失败只告警，不使构建红
-                Debug.LogWarning($"[BuildManifest] 清单写入失败（部署门将退化为无法比对）：{exception.Message}");
+                Debug.LogError($"[BuildManifest] 构建身份写入失败，禁止发布：{exception.Message}");
+                throw;
             }
         }
 
@@ -96,6 +95,12 @@ namespace Game.EditorTools
         public static (string Digest, int FileCount) ComputeInputDigest()
         {
             string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return ComputeInputDigest(projectRoot);
+        }
+
+        public static (string Digest, int FileCount) ComputeInputDigest(string projectRoot)
+        {
+            projectRoot = Path.GetFullPath(projectRoot);
             if (!Directory.Exists(projectRoot)) return (null, 0);
             using var merger = SHA256.Create();
             var fileCount = 0;
@@ -133,11 +138,9 @@ namespace Game.EditorTools
             var relative = filePath.Substring(projectRoot.Length + 1).Replace('\\', '/');
             byte[] pathBytes = Encoding.UTF8.GetBytes(relative + "\n");
             merger.TransformBlock(pathBytes, 0, pathBytes.Length, null, 0);
-            byte[] content;
-            try { content = File.ReadAllBytes(filePath); }
-            catch { content = new byte[0]; } // 被占用的生成文件按空字节参与归并（稳定顺序仍成立）
             byte[] contentHash;
-            using (var sha = SHA256.Create()) contentHash = sha.ComputeHash(content);
+            using (var stream = File.OpenRead(filePath))
+            using (var sha = SHA256.Create()) contentHash = sha.ComputeHash(stream);
             merger.TransformBlock(contentHash, 0, contentHash.Length, null, 0);
         }
 

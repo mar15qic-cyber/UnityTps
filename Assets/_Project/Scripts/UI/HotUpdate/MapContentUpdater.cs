@@ -24,46 +24,66 @@ namespace Game.UI
                 if (File.Exists(path)) return path;
             }
             var fallback = HotUpdateRuntime.HotFilesRoot;
-            return string.IsNullOrEmpty(fallback) ? null : Path.Combine(fallback, "maps", scene + ".bundle");
+            return string.IsNullOrEmpty(fallback) ? null : Path.Combine(fallback, "maps", scene.ToLowerInvariant() + ".bundle");
         }
         private static HotUpdateManifest Installed()
         {
             try { return JsonUtility.FromJson<HotUpdateManifest>(File.ReadAllText(Path.Combine(Root, "installed.json"))); }
             catch { return null; }
         }
+        public static string ResolveBaseUrl(Game.Core.ClientReleaseEnvironment environment, string urlOverride)
+        {
+            if (environment?.RequiresReleaseValidation == true) return environment.hotUpdateBaseUrl.TrimEnd('/');
+            if (string.Equals(urlOverride, "off", StringComparison.OrdinalIgnoreCase)) return null;
+            return (string.IsNullOrWhiteSpace(urlOverride)
+                ? environment?.hotUpdateBaseUrl ?? HotUpdateBootstrap.DefaultBaseUrl : urlOverride).TrimEnd('/');
+        }
+
+        public static bool IsCompatible(HotUpdateManifest manifest, Game.Core.ClientReleaseEnvironment environment)
+            => HotUpdateInstaller.ValidateManifest(manifest) == null
+                && manifest.releaseId == (environment?.releaseId ?? "")
+                && manifest.protocolId == Game.Gameplay.Network.GameProtocolIdentity.ProtocolId
+                && manifest.files.Length > 0
+                && manifest.files.All(f => f.path.StartsWith("maps/", StringComparison.Ordinal)
+                    && f.path.EndsWith(".bundle", StringComparison.Ordinal));
+
         public static async Task<bool> CheckAsync(CancellationToken token)
         {
             if (Busy) return false;
             var env = Game.Core.ClientReleaseEnvironment.Current;
-            if (env == null) return false;
+            var baseUrl = ResolveBaseUrl(env, HotUpdateBootstrap.ResolveUrlOverride());
+            if (baseUrl == null) { Status = "地图自动更新已关闭"; return false; }
             Busy = true;
             try
             {
                 Status = "正在检查地图更新…";
-                var data = await Download(env.hotUpdateBaseUrl.TrimEnd('/') + "/maps-manifest.json", token);
+                var data = await Download(baseUrl + "/maps-manifest.json", token);
                 var json = System.Text.Encoding.UTF8.GetString(data).TrimStart('\uFEFF');
                 var remote = JsonUtility.FromJson<HotUpdateManifest>(json);
-                if (HotUpdateInstaller.ValidateManifest(remote) != null || remote.releaseId != env.releaseId
-                    || remote.protocolId != Game.Gameplay.Network.GameProtocolIdentity.ProtocolId
-                    || remote.files.Any(f => !f.path.StartsWith("maps/", StringComparison.Ordinal) || !f.path.EndsWith(".bundle", StringComparison.Ordinal)))
+                if (!IsCompatible(remote, env))
                     throw new InvalidOperationException("地图更新不兼容");
                 var old = Installed();
                 var plan = HotUpdatePlan.Decide(remote, old, HotUpdateRuntime.ClientVersion);
-                if (plan.Kind == HotUpdatePlan.DecisionKind.UpToDate) { Status = "地图已是最新"; return true; }
-                if (plan.Kind != HotUpdatePlan.DecisionKind.Download || old != null && HotUpdatePlan.CompareHotVersion(remote.version, old.version) <= 0)
+                var installedDirectory = old == null ? null : Path.Combine(Root, old.version);
+                bool repair = plan.Kind == HotUpdatePlan.DecisionKind.UpToDate
+                    && !await Task.Run(() => HotUpdateInstaller.DirectoryMatches(installedDirectory, old), token);
+                if (plan.Kind == HotUpdatePlan.DecisionKind.UpToDate && !repair) { Status = "地图已是最新"; return true; }
+                if (repair) plan.Kind = HotUpdatePlan.DecisionKind.Download;
+                if (plan.Kind != HotUpdatePlan.DecisionKind.Download || old != null
+                    && HotUpdatePlan.CompareHotVersion(remote.version, old.version) <= 0 && !HotUpdateInstaller.SameContentIdentity(remote, old))
                     throw new InvalidOperationException("地图版本不兼容，请联系主机");
                 int done = 0;
                 var result = await HotUpdateInstaller.InstallAsync(remote, json, Root, old,
                     old == null ? null : Path.Combine(Root, old.version), async file =>
                     {
                         Status = "正在下载地图 " + (++done) + "/" + remote.files.Length;
-                        return await Download(env.hotUpdateBaseUrl.TrimEnd('/') + "/" + remote.version + "/" + file.path, token);
+                        return await Download(baseUrl + "/" + remote.version + "/" + file.path, token);
                     }, token);
                 if (!result.Success) throw new InvalidOperationException("地图下载未完成，原版本已保留");
                 Status = "地图更新完成"; return true;
             }
             catch (OperationCanceledException) { Status = "地图更新已取消"; return false; }
-            catch { Status = "地图更新暂不可用，已保留当前版本"; return false; }
+            catch (Exception e) { Debug.LogWarning("[MapContent] update failed: " + e.Message); Status = "地图更新暂不可用，已保留当前版本"; return false; }
             finally { Busy = false; }
         }
         private static async Task<byte[]> Download(string url, CancellationToken token)

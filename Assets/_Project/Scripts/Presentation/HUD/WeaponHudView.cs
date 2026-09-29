@@ -20,7 +20,7 @@ namespace Game.Presentation.HUD
         [SerializeField] private Text weaponText;
         [SerializeField] private Text hintText;
 
-        // Docs/23 P0-3（G1c）：本地玩家（Owner）的网络武器状态——在线时弹药显示读服务器权威 SyncVar
+        // Used to locate the owner; Runtime is the predicted and server-reconciled HUD source.
         private Game.Gameplay.Network.NetworkWeaponState _netWeaponState;
         private float _netScanTimer;
 
@@ -205,58 +205,39 @@ namespace Game.Presentation.HUD
                 return;
             }
             if (_showingThrowable) { _showingThrowable = false; Refresh(); }
-            // 换弹进度（原 OnGUI 的 RELOAD % 行；本地 Runtime 为预测值，进度条属表现）
-            if (TryGetAuthoritativeAmmo(out int current, out int reserve))
-            {
-                SetAmmo(current, reserve, false); // 在线：服务器权威弹药（同时触发 Owner 重绑）
-                return;
-            }
-
-            if (controller != null && controller.Runtime != null)
-                SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
-                    controller.Runtime.State == WeaponRuntimeState.Reloading);
+            ResolveOwnerWeapon();
+            RefreshAmmo();
         }
 
-        /// <summary>HUD 弹药数据源判定（纯函数，可测；Docs/23 离线回归修复）：
-        /// 网络已启动且已定位本地玩家网络状态 → 读服务器权威值；否则回退本地事件路径。
-        /// 网络未启动时即使引用残留也必须回本地——authored player 直接读 FishNet 所有权会 NRE。</summary>
-        public static bool ShouldReadAuthoritativeAmmo(bool networkActive, bool hasOwnerNetworkState)
+        public static bool ShouldBindOwnerState(bool networkActive, bool hasOwnerNetworkState)
             => networkActive && hasOwnerNetworkState;
 
-        /// <summary>查找本地玩家（Owner）的 NetworkWeaponState 并读权威弹药。找不到（离线/未生成）
-        /// 时低频重扫避免每帧开销；断线后组件随网络对象销毁，引用失效自动回退本地事件路径（F3 语义）。
-        /// 所有权判定一律走 NetworkWeaponState.IsOwnerPlayerSafe（生命周期安全）。</summary>
-        private bool TryGetAuthoritativeAmmo(out int current, out int reserve)
+        private void ResolveOwnerWeapon()
         {
+            if (!Game.Gameplay.Network.FishNetLifecycleGuard.IsNetworkActive()) return;
+            if (_netWeaponState != null && !_netWeaponState.IsOwnerPlayerSafe) _netWeaponState = null;
             if (_netWeaponState == null)
             {
                 _netScanTimer -= Time.unscaledDeltaTime;
-                if (_netScanTimer <= 0f)
+                if (_netScanTimer > 0f) return;
+                _netScanTimer = 0.5f;
+                foreach (var state in FindObjectsByType<Game.Gameplay.Network.NetworkWeaponState>(FindObjectsSortMode.None))
                 {
-                    _netScanTimer = 0.5f;
-                    foreach (var state in FindObjectsByType<Game.Gameplay.Network.NetworkWeaponState>(FindObjectsSortMode.None))
-                    {
-                        if (state.IsOwnerPlayerSafe)
-                        {
-                            _netWeaponState = state;
-                            RebindToOwnerPlayer(state);
-                            break;
-                        }
-                    }
+                    if (!state.IsOwnerPlayerSafe) continue;
+                    _netWeaponState = state;
+                    break;
                 }
             }
-            // 数据源门（纯函数）：离线/网络未启动 → 不读网络状态（哪怕引用残留），走本地路径
-            if (!ShouldReadAuthoritativeAmmo(
-                    Game.Gameplay.Network.FishNetLifecycleGuard.IsNetworkActive(),
-                    _netWeaponState != null))
-            {
-                current = 0;
-                reserve = 0;
-                return false;
-            }
-            current = _netWeaponState.CurrentAmmo;
-            reserve = _netWeaponState.ReserveAmmo;
-            return true;
+            if (ShouldBindOwnerState(true, _netWeaponState != null)) RebindToOwnerPlayer(_netWeaponState);
+        }
+
+        private void RefreshAmmo()
+        {
+            if (controller?.Runtime == null) return;
+            // Snapshot ACKs already reconcile Runtime and replay pending shot debt.
+            // Polling the raw SyncVar here would overwrite that prediction every frame.
+            SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
+                controller.Runtime.State == WeaponRuntimeState.Reloading);
         }
 
         /// <summary>Owner 网络玩家重绑（2026-09-08 追加 P0 §6 二.4，审计 §5.1 缺口 2）：
@@ -278,9 +259,7 @@ namespace Game.Presentation.HUD
 
         private void HandleAmmo(int current, int reserve)
         {
-            // 在线时由 Update 轮询权威 SyncVar；预测事件不能覆盖服务器显示。
-            if (_netWeaponState != null) return;
-            SetAmmo(current, reserve, false);
+            SetAmmo(current, reserve, controller?.Runtime?.State == WeaponRuntimeState.Reloading);
         }
         private void HandleReloadEnd() => Refresh();
         private void HandleReloadInterrupted(Game.Gameplay.Action.ActionInterruptReason _) => Refresh();

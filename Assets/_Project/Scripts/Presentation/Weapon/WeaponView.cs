@@ -9,7 +9,7 @@ namespace Game.Presentation.Weapon
     /// <summary>WeaponController 事件的只读表现端：弹道、枪口光、Day4 枪口特效/弹壳/命中反馈、Day2 调试 HUD。
     /// Owner 的短时枪口曳光只有一个写入者：LateUpdate 用当前可见枪口与本发世界落点
     /// 构造一条世界直线，起点经 FP→世界屏幕匹配。不拼接两种相机的线段，不等 RTT 后重放旧枪声。</summary>
-    [DefaultExecutionOrder(30)]
+    [DefaultExecutionOrder(100)] // After gun pose (30), hand IK (40/45), and magazine presentation (50).
     public sealed class WeaponView : MonoBehaviour
     {
         [SerializeField] private WeaponController controller;
@@ -71,6 +71,8 @@ namespace Game.Presentation.Weapon
             public float Timer;
             public Vector3 EndPoint;
             public uint RequestId;
+            public int PelletIndex;
+            public bool Hidden;
         }
 
         private readonly struct PendingTracer
@@ -78,12 +80,14 @@ namespace Game.Presentation.Weapon
             public readonly Vector3 FallbackStart;
             public readonly Vector3 EndPoint;
             public readonly uint RequestId;
+            public readonly int PelletIndex;
 
-            public PendingTracer(Vector3 fallbackStart, Vector3 endPoint, uint requestId = 0)
+            public PendingTracer(Vector3 fallbackStart, Vector3 endPoint, uint requestId = 0, int pelletIndex = 0)
             {
                 FallbackStart = fallbackStart;
                 EndPoint = endPoint;
                 RequestId = requestId;
+                PelletIndex = pelletIndex;
             }
         }
 
@@ -97,10 +101,12 @@ namespace Game.Presentation.Weapon
         private Transform _cachedMuzzleAttachment;
         private Vector3 _cachedAttachmentTipLocal;
         private bool _cachedAttachmentTipValid;
+        private Transform _barePresentationMuzzle;
         // OnShotFired 发生在 Update；Main/FP camera、玩家跳跃位移与 FPWeaponMotion 的最终
         // 渲染姿态在 LateUpdate 才稳定。这里只冻结权威终点，不冻结世界坐标枪口；绘制帧末
         // 从当前可见枪口重采样起点，避免跳跃/向前移动后曳光仍从开火前旧位置冒出。
         private readonly List<PendingTracer> _pendingTracers = new(12);
+        private readonly TracerVisibility _visibility = new();
 
         // ---- S2（2026-09-19 ADS 审计）：Owner 预测→服务器确认闭环 ----
         // 纯客户端 Owner 时：本地预测表现登记入队；服务器确认（接受→按偏差纠偏弹孔 /
@@ -112,7 +118,6 @@ namespace Game.Presentation.Weapon
         private void Awake()
         {
             if (controller == null) controller = GetComponentInParent<WeaponController>();
-            if (muzzle == null) muzzle = transform;
             BuildEffects();
         }
 
@@ -136,16 +141,18 @@ namespace Game.Presentation.Weapon
 
         private void OnDisable()
         {
-            if (controller == null) return;
-            controller.OnShotFired -= HandleLocalAuthoritativeShot;
-            controller.OnDryFire -= HandleDryFire;
+            if (controller != null)
+            {
+                controller.OnShotFired -= HandleLocalAuthoritativeShot;
+                controller.OnDryFire -= HandleDryFire;
+            }
             if (_authority != null)
             {
                 _authority.OnShotConfirmed -= HandleShotConfirmed;
                 _authority.OnOwnerPredictedShot -= HandleOwnerPredictedShot;
             }
             _consumeConfirmations = false;
-            _registry?.Clear(); // 生命/视图边界：跨生命残留登记一律作废（epoch 双保险）
+            _registry?.Clear(destroyPending: true);
             _pendingTracers.Clear();
             foreach (var segment in _overlayTracers)
                 if (segment != null)
@@ -161,12 +168,14 @@ namespace Game.Presentation.Weapon
         {
             _flashTimer -= Time.deltaTime;
             TickPool(_overlayTracers);
-            if (_muzzleLight != null) _muzzleLight.enabled = _flashTimer > 0f;
+            if (_muzzleLight != null) _muzzleLight.enabled = _flashTimer > 0f
+                && muzzle != null && muzzle.gameObject.activeInHierarchy;
         }
 
         private void LateUpdate()
         {
             ResolveCameras();
+            if (_muzzleLight != null) _muzzleLight.transform.position = ResolveTracerStart();
             // The short-lived muzzle streak stays attached to the visible barrel, while its
             // impact stays in world space. Reproject each visible frame (jump/recoil included).
             foreach (var segment in _overlayTracers)
@@ -175,7 +184,7 @@ namespace Game.Presentation.Weapon
             foreach (var tracer in _pendingTracers)
             {
                 Vector3 start = ResolveTracerStart(tracer.FallbackStart);
-                SpawnTracer(start, tracer.EndPoint, tracer.RequestId);
+                SpawnPelletTracer(start, tracer.EndPoint, tracer.RequestId, tracer.PelletIndex);
             }
             _pendingTracers.Clear();
         }
@@ -185,9 +194,26 @@ namespace Game.Presentation.Weapon
 
         private Vector3 ResolveTracerStart(Vector3 fallback)
         {
+            Transform exit = ResolvePresentationMuzzle();
+            return exit != null ? exit.position : fallback;
+        }
+
+        /// <summary>One authored exit for tracer, flash and light. Attachments own their exit frame.</summary>
+        internal Transform ResolvePresentationMuzzle()
+        {
+            if (muzzle == null) return null;
+            if (_barePresentationMuzzle == null)
+                _barePresentationMuzzle = muzzle.Find("MuzzleExit");
             Vector3 bareBore = hasCalibratedBarrelTip && muzzle != null
                 ? muzzle.TransformPoint(barrelTipMuzzleLocal)
-                : ResolveVisualTracerStart(muzzle, fallback, tracerMuzzleInsetMeters);
+                : ResolveVisualTracerStart(muzzle, transform.position, tracerMuzzleInsetMeters);
+            if (_barePresentationMuzzle == null)
+            {
+                _barePresentationMuzzle = new GameObject("Runtime_MuzzleExit").transform;
+                _barePresentationMuzzle.SetParent(muzzle, false);
+                _barePresentationMuzzle.position = bareBore;
+                _barePresentationMuzzle.gameObject.layer = gameObject.layer;
+            }
             var attachmentView = GetComponent<WeaponAttachmentView>();
             var socket = attachmentView != null ? attachmentView.GetSocketTransform(AttachmentSlotType.Muzzle) : null;
             Transform attached = null;
@@ -195,14 +221,21 @@ namespace Game.Presentation.Weapon
                 foreach (Transform child in socket)
                     if (child.name.StartsWith("Att_", System.StringComparison.Ordinal) && child.gameObject.activeInHierarchy)
                     { attached = child; break; }
-            if (attached == null || muzzle == null) return bareBore;
+            if (attached == null) return _barePresentationMuzzle;
+            var authoredExit = attached.Find("MuzzleExit");
+            if (authoredExit != null) return authoredExit;
             if (attached != _cachedMuzzleAttachment)
                 CacheAttachmentTip(attached);
-            if (!_cachedAttachmentTipValid) return bareBore;
+            if (!_cachedAttachmentTipValid) return _barePresentationMuzzle;
             Vector3 tip = attached.TransformPoint(_cachedAttachmentTipLocal);
             // A fitted suppressor or brake extends beyond the original animated muzzle marker.
             // Fire from its visible aperture; retain the bare-bore point for cosmetic parts behind it.
-            return Vector3.Dot(tip - bareBore, muzzle.forward) > .005f ? tip : bareBore;
+            if (Vector3.Dot(tip - bareBore, muzzle.forward) <= .005f) return _barePresentationMuzzle;
+            var legacyExit = new GameObject("MuzzleExit").transform;
+            legacyExit.SetParent(attached, false);
+            legacyExit.SetPositionAndRotation(tip, muzzle.rotation);
+            legacyExit.gameObject.layer = gameObject.layer;
+            return legacyExit;
         }
 
         private void CacheAttachmentTip(Transform attached)
@@ -215,6 +248,12 @@ namespace Game.Presentation.Weapon
         {
             localTip = default;
             if (muzzle == null || attached == null) return false;
+            var authored = attached.Find("MuzzleExit");
+            if (authored != null)
+            {
+                localTip = attached.InverseTransformPoint(authored.position);
+                return true;
+            }
             Vector3 axis = attached.InverseTransformDirection(muzzle.forward).normalized;
             var vertices = new List<Vector3>();
             foreach (var filter in attached.GetComponentsInChildren<MeshFilter>(true))
@@ -267,7 +306,7 @@ namespace Game.Presentation.Weapon
                 if (segment.Timer > 0f)
                 {
                     segment.Timer -= Time.deltaTime;
-                    if (segment.Line != null) segment.Line.enabled = segment.Timer > 0f;
+                    if (segment.Line != null) segment.Line.enabled = segment.Timer > 0f && !segment.Hidden;
                 }
             }
         }
@@ -302,10 +341,11 @@ namespace Game.Presentation.Weapon
             for (int i = 0; i < count; i++)
             {
                 var result = hasPellets ? shot.Pellets[i] : shot.Result;
-                _pendingTracers.Add(new PendingTracer(fallbackStart, result.Point, shotRequestId));
+                if (muzzle != null && muzzle.gameObject.activeInHierarchy)
+                    _pendingTracers.Add(new PendingTracer(fallbackStart, result.Point, shotRequestId, i));
             }
 
-            _muzzleLight.enabled = true;
+            _muzzleLight.enabled = muzzle != null && muzzle.gameObject.activeInHierarchy;
             _flashTimer = muzzleFlashDuration;
 
             if (debugShotDiagnostics)
@@ -325,8 +365,9 @@ namespace Game.Presentation.Weapon
                 for (int i = 0; i < count; i++)
                 {
                     var hit = shot.Pellets[i];
-                    pelletDecals[i] = SpawnImpactAt(hit.Hit, hit.Target != null, hit.Point, hit.Normal,
-                        hit.Target != null ? hit.Target.transform : null);
+                    bool showContact = hit.Target == null || !_consumeConfirmations && hit.DamageAmount > 0;
+                    pelletDecals[i] = SpawnImpactAt(hit.Hit && showContact, hit.Target != null,
+                        hit.Point, hit.Normal, null);
                 }
             }
             else decal = SpawnImpact(shot);
@@ -347,8 +388,8 @@ namespace Game.Presentation.Weapon
         }
 
         /// <summary>服务器确认消费（S2）：去重 → FIFO 消费预测登记 → 接受按偏差纠偏持久表现 /
-        /// 拒绝撤销（弹孔不得留存）。曳光寿命（45ms）短于 RTT，确认只纠偏持久表现——
-        /// 预测暂态偏差符合票据"延迟允许暂态，确认后不得持续错误落点"。</summary>
+        /// 拒绝撤销（弹孔不得留存）。确认同时修正尚在队列或仍存活的逐弹丸曳光，
+        /// 对已经过期的曳光不重播。</summary>
         private void HandleShotConfirmed(RemoteShotPresentation shot, bool accepted)
         {
             if (!_consumeConfirmations || _registry == null) return;
@@ -372,71 +413,98 @@ namespace Game.Presentation.Weapon
                     { segment.Timer = 0f; if (segment.Line != null) segment.Line.enabled = false; }
                 return;
             }
+            CorrectTracerEndpoints(shot);
             if (entry.PelletDecals != null)
             {
                 for (int i = 0; i < entry.PelletDecals.Length; i++)
                 {
-                    var fx = entry.PelletDecals[i];
-                    if (shot.PelletPoints == null || shot.PelletHits == null || shot.PelletNormals == null
-                        || shot.PelletCharacters == null || i >= shot.PelletCount || i >= shot.PelletPoints.Length
-                        || i >= shot.PelletHits.Length || i >= shot.PelletNormals.Length || i >= shot.PelletCharacters.Length)
-                    { if (fx != null) Destroy(fx); continue; }
-                    if (!shot.PelletHits[i]) { if (fx != null) Destroy(fx); continue; }
-                    if (fx != null && entry.PelletCharacters != null && entry.PelletCharacters[i] == shot.PelletCharacters[i])
-                    {
-                        fx.transform.position = shot.PelletPoints[i] + shot.PelletNormals[i] * .01f;
-                        if (shot.PelletNormals[i].sqrMagnitude > .001f)
-                            fx.transform.rotation = Quaternion.LookRotation(shot.PelletNormals[i]);
-                    }
-                    else
-                    {
-                        if (fx != null) Destroy(fx);
-                        SpawnImpactAt(true, shot.PelletCharacters[i], shot.PelletPoints[i], shot.PelletNormals[i], null);
-                    }
+                    bool valid = shot.PelletPoints != null && shot.PelletHits != null
+                        && shot.PelletNormals != null && shot.PelletCharacters != null
+                        && i < shot.PelletCount && i < shot.PelletPoints.Length
+                        && i < shot.PelletHits.Length && i < shot.PelletNormals.Length
+                        && i < shot.PelletCharacters.Length;
+                    if (!valid)
+                    { DiscardImpact(entry.PelletDecals[i]); continue; }
+                    bool damaged = shot.PelletDamageAmounts != null && i < shot.PelletDamageAmounts.Length
+                        && shot.PelletDamageAmounts[i] > 0;
+                    CorrectConfirmedImpact(entry.PelletDecals[i],
+                        entry.PelletCharacters != null && i < entry.PelletCharacters.Length && entry.PelletCharacters[i],
+                        shot.PelletHits[i], shot.PelletCharacters[i], damaged,
+                        shot.PelletPoints[i], shot.PelletNormals[i]);
                 }
                 return;
             }
-            if (!shot.FinalHit && entry.Hit && entry.Decal != null)
-            {
-                Destroy(entry.Decal); // 权威判 miss（本地预测命中被推翻）
-            }
-            if (shot.FinalHit && entry.CharacterHit != shot.FinalHitCharacter)
-            {
-                if (entry.Decal != null) Destroy(entry.Decal);
-                entry.Decal = null;
-            }
-            if (shot.FinalHit && !shot.FinalHitCharacter && entry.Decal == null && impactPrefab != null)
-                entry.Decal = Instantiate(impactPrefab, shot.FinalPoint + shot.FinalNormal * .01f,
-                    Quaternion.LookRotation(shot.FinalNormal), null);
-            if (shot.FinalHit && entry.Decal != null)
-            {
-                float deviationSq = (shot.FinalPoint - entry.PredictedPoint).sqrMagnitude;
-                if (deviationSq > 0.000001f)
-                {
-                    // 纠偏：父节点（命中角色时）保持，位置/朝向改到权威落点
-                    entry.Decal.transform.position = shot.FinalPoint + shot.FinalNormal * 0.01f;
-                    if (shot.FinalNormal.sqrMagnitude > 0.5f)
-                        entry.Decal.transform.rotation = Quaternion.LookRotation(shot.FinalNormal, Vector3.up);
-                }
-            }
+            entry.Decal = CorrectConfirmedImpact(entry.Decal, entry.CharacterHit,
+                shot.FinalHit, shot.FinalHitCharacter, shot.DamageAmount > 0,
+                shot.FinalPoint, shot.FinalNormal);
+        }
 
-            // 同 id 的唯一 Owner 曳光严格消费服务器最终点；RemoteShotFxView 会过滤 Owner，
-            // 因此不会和观察者世界段双画。
-            if (shot.PelletCount <= 1)
+        private static void DiscardImpact(GameObject effect)
+        {
+            if (effect == null) return;
+            if (Application.isPlaying) Destroy(effect);
+            else DestroyImmediate(effect);
+        }
+
+        private GameObject CorrectConfirmedImpact(GameObject effect, bool predictedCharacter,
+            bool hit, bool character, bool damaged, Vector3 point, Vector3 normal)
+        {
+            if (!hit || character || predictedCharacter)
+            { DiscardImpact(effect); effect = null; }
+            if (!hit || character && !damaged) return null;
+            // Blood is emitted only for authoritative HP loss. A short burst stays in world
+            // space, so correcting A to B can never leave it parented to predicted victim A.
+            if (effect == null) return SpawnImpactAt(true, character, point, normal, null);
+            effect.transform.SetParent(null, true);
+            effect.transform.position = point + normal * .01f;
+            if (normal.sqrMagnitude > .001f) effect.transform.rotation = Quaternion.LookRotation(normal);
+            return effect;
+        }
+
+        private static bool TryConfirmedEndpoint(RemoteShotPresentation shot, int pellet, out Vector3 end)
+        {
+            end = shot.FinalPoint;
+            if (shot.PelletCount <= 1) return pellet == 0;
+            if (shot.PelletPoints == null || pellet >= shot.PelletCount || pellet >= shot.PelletPoints.Length)
+                return false;
+            end = shot.PelletPoints[pellet];
+            return true;
+        }
+
+        private void CorrectTracerEndpoints(RemoteShotPresentation shot)
+        {
+            // ACK can precede the first LateUpdate. Correct queued pellets too; never replay expired ones.
+            for (int i = _pendingTracers.Count - 1; i >= 0; i--)
             {
-                foreach (var segment in _overlayTracers)
-                    if (segment != null && segment.Timer > 0f && segment.RequestId == shotRequestId)
-                        segment.EndPoint = shot.FinalPoint;
+                var pending = _pendingTracers[i];
+                if (pending.RequestId != shot.ShotRequestId) continue;
+                if (!TryConfirmedEndpoint(shot, pending.PelletIndex, out var end))
+                    _pendingTracers.RemoveAt(i);
+                else _pendingTracers[i] = new PendingTracer(pending.FallbackStart, end,
+                    pending.RequestId, pending.PelletIndex);
+            }
+            foreach (var segment in _overlayTracers)
+            {
+                if (segment == null || segment.Timer <= 0f || segment.RequestId != shot.ShotRequestId) continue;
+                if (!TryConfirmedEndpoint(shot, segment.PelletIndex, out var end)) segment.Hidden = true;
+                else segment.EndPoint = end;
+                UpdateTracerGeometry(segment, ResolveTracerStart());
             }
         }
 
         /// <summary>本发唯一短时曳光；起点在绘制时按可见枪口投影匹配，终点保持本发世界落点。</summary>
         private void SpawnTracer(Vector3 start, Vector3 endPoint, uint requestId)
+            => SpawnPelletTracer(start, endPoint, requestId, 0);
+
+        private void SpawnPelletTracer(Vector3 start, Vector3 endPoint, uint requestId, int pelletIndex)
         {
+            if (muzzle == null || !muzzle.gameObject.activeInHierarchy) return;
             var segment = AcquireSegment(_overlayTracers);
             if (segment == null || segment.Line == null) return;
             segment.EndPoint = endPoint;
             segment.RequestId = requestId;
+            segment.PelletIndex = pelletIndex;
+            segment.Hidden = false;
             segment.Timer = tracerDuration;
             segment.Line.enabled = true;
             UpdateTracerGeometry(segment, start);
@@ -444,6 +512,17 @@ namespace Game.Presentation.Weapon
 
         private void UpdateTracerGeometry(TracerSegment segment, Vector3 start)
         {
+            // FPWeaponRig assigns its view layer recursively after Instantiate/Awake.
+            // The tracer pool already exists by then, so its world layer is overwritten.
+            // These vertices are projected for the world camera: restore ownership of
+            // their layer before every draw, including cached views and attachment swaps.
+            segment.Line.gameObject.layer = 0;
+            if (segment.Hidden || muzzle == null || !muzzle.gameObject.activeInHierarchy)
+            {
+                segment.Hidden = true;
+                segment.Line.enabled = false;
+                return;
+            }
             Vector3 endPoint = segment.EndPoint;
             Vector3 worldStart = start;
             if (_worldCamera != null && _fpCamera != null)
@@ -461,6 +540,12 @@ namespace Game.Presentation.Weapon
                 endPoint = start + direction * Mathf.Clamp(projected, 0f, maxTracerLength);
             }
 
+            // Check the projected world start against the full result, not the shortened fallback streak.
+            segment.Hidden = !_visibility.CanShow(worldStart, segment.EndPoint,
+                controller != null ? controller.transform.root : transform.root,
+                controller != null ? controller.ShotCollisionMask : Physics.DefaultRaycastLayers);
+            segment.Line.enabled = !segment.Hidden && segment.Timer > 0f;
+            if (segment.Hidden) return;
             // One line on Default: real world endpoint, screen-matched cosmetic muzzle.
             // World depth testing and magnified scope RT still see it; there is no seam.
             segment.Line.SetPosition(0, worldStart);
@@ -486,7 +571,9 @@ namespace Game.Presentation.Weapon
         private void SpawnMuzzleFlash()
         {
             if (muzzleFlashPrefab == null || muzzle == null) return;
-            var flash = Instantiate(muzzleFlashPrefab, muzzle.position, muzzle.rotation, muzzle);
+            var exit = ResolvePresentationMuzzle();
+            if (exit == null) return;
+            var flash = Instantiate(muzzleFlashPrefab, exit.position, exit.rotation, exit);
             flash.transform.localPosition = Vector3.zero;
             flash.transform.localRotation = Quaternion.identity;
             // 火光必须与武器同层（FirstPersonView，overlay 相机渲染）。muzzle 挂点若被误配到
@@ -498,7 +585,7 @@ namespace Game.Presentation.Weapon
             // LPFP 枪口粒子 playOnAwake=false（原版靠脚本启停），这里显式触发
             var particle = flash.GetComponent<ParticleSystem>();
             if (particle != null) particle.Play();
-            Destroy(flash, muzzleFlashDespawnSeconds);
+            if (Application.isPlaying) Destroy(flash, muzzleFlashDespawnSeconds);
         }
 
         private void SpawnShellCasing()
@@ -522,11 +609,12 @@ namespace Game.Presentation.Weapon
             // 因此角色只播短时命中反馈；没配角色反馈就不生成，而不是退回弹孔。
             if (shot.Result.Target != null)
             {
+                if (_consumeConfirmations || shot.Result.DamageAmount <= 0) return null;
                 if (damagedImpactPrefab == null) return null;
                 // Only a brief blood burst: target is the gameplay root, not an animated bone.
                 // Persistent wound decals cannot be attached here (they float when the body falls).
                 var characterFx = Instantiate(damagedImpactPrefab, shot.Result.Point + shot.Result.Normal * 0.01f,
-                    Quaternion.LookRotation(shot.Result.Normal), shot.Result.Target.transform);
+                    Quaternion.LookRotation(shot.Result.Normal), null);
                 LogImpactDiagnostics(shot, "character");
                 return characterFx;
             }
@@ -583,7 +671,7 @@ namespace Game.Presentation.Weapon
                     0.012f, 0.003f);
 
             var lightObject = new GameObject("Runtime_MuzzleFlash");
-            lightObject.transform.SetParent(muzzle, false);
+            lightObject.transform.SetParent(muzzle != null ? muzzle : transform, false);
             lightObject.layer = firstPersonLayer;
             _muzzleLight = lightObject.AddComponent<Light>();
             _muzzleLight.type = LightType.Point;

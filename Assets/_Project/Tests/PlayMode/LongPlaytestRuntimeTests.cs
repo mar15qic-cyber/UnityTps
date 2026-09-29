@@ -86,7 +86,7 @@ namespace Game.Gameplay.PlayModeTests
                 if (held != null && Vector3.Distance(first, held.transform.position) < .01f)
                     errors.Add(weapon.itemId + ": throw hand did not animate");
                 yield return Capture("throw-" + weapon.itemId);
-                yield return new WaitForSeconds(.65f);
+                yield return new WaitForSeconds(throwable.ThrowActionSeconds);
                 Assert.False(throwable.IsEquipped, weapon.itemId);
                 Assert.AreEqual(0, throwable.Count(ThrowableType.Frag), weapon.itemId);
                 Assert.False(actions.IsBusy, weapon.itemId);
@@ -102,7 +102,7 @@ namespace Game.Gameplay.PlayModeTests
                 SetInput(input, "FirePressed", true); yield return null; SetInput(input, "FirePressed", false);
                 yield return new WaitForSeconds(.22f);
                 yield return Capture("throw-" + type);
-                yield return new WaitForSeconds(.65f);
+                yield return new WaitForSeconds(throwable.ThrowActionSeconds);
                 Assert.AreEqual(0, throwable.Count(type));
                 Assert.False(throwable.IsEquipped);
             }
