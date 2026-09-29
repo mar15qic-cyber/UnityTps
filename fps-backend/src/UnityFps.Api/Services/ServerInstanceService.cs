@@ -73,6 +73,8 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                     instance = new ServerInstance { InstanceId = instanceId, RegisteredAtUtc = now };
                     db.ServerInstances.Add(instance);
                 }
+                if (instance.State == InstanceState.Fenced)
+                    throw new ApiException(409, ApiErrorCodes.ServerInstanceStateConflict, "实例身份已隔离，请以新实例 ID 启动进程");
                 instance.Address = request.Address.Trim();
                 instance.Port = request.Port;
                 instance.Capacity = request.Capacity;
@@ -164,6 +166,8 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                     .SingleOrDefaultAsync(x => x.InstanceId == instanceId, cancellationToken)
                     ?? throw new ApiException(StatusCodes.Status404NotFound, ApiErrorCodes.ServerInstanceNotFound, "实例未注册");
 
+                if (instance.State == InstanceState.Fenced)
+                    throw new ApiException(409, ApiErrorCodes.ServerInstanceStateConflict, "实例身份已隔离");
                 if (instance.State == "Maintenance")
                     throw new ApiException(409, "INSTANCE_MAINTENANCE", "实例正在更新，旧心跳不能恢复入场");
                 // 存活证明先落库：无论转换是否合法，TTL 都要刷新
@@ -313,7 +317,7 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
             {
                 var instance = await db.ServerInstances.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.InstanceId == request.InstanceId, cancellationToken);
-                if (instance is null)
+                if (instance is null || instance.State == InstanceState.Fenced)
                 {
                     if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
                     return Mismatch();

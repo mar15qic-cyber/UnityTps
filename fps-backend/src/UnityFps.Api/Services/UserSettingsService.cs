@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using UnityFps.Api.Common;
 using UnityFps.Api.Data;
@@ -14,11 +15,13 @@ namespace UnityFps.Api.Services;
 public sealed class UserSettingsService(AppDbContext db)
 {
     private const int MaxKeysPerRequest = 128;
+    private const int MaxKeysPerUser = 128;
 
     public async Task<UserSettingsDto> GetAsync(long userId, CancellationToken cancellationToken = default)
     {
         var rows = await db.UserSettings.AsNoTracking()
             .Where(x => x.UserId == userId)
+            .OrderBy(x => x.SettingKey).Take(MaxKeysPerUser)
             .Select(x => new { x.SettingKey, x.SettingValue })
             .ToListAsync(cancellationToken);
         return new UserSettingsDto(rows.ToDictionary(x => x.SettingKey, x => x.SettingValue, StringComparer.Ordinal));
@@ -40,12 +43,32 @@ public sealed class UserSettingsService(AppDbContext db)
                     "设置值必须不超过 256 个字符");
         }
 
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = db.Database.IsRelational()
+                ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+            var result = await SaveValidatedAsync(userId, values, cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
+            return result;
+        });
+    }
+
+    private async Task<UserSettingsDto> SaveValidatedAsync(long userId,
+        IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+    {
         if (values.Count > 0)
         {
             var keys = values.Keys.ToList();
             var existing = await db.UserSettings
                 .Where(x => x.UserId == userId && keys.Contains(x.SettingKey))
                 .ToListAsync(cancellationToken);
+            var addedKeys = values.Keys.Count(key => existing.All(row => row.SettingKey != key));
+            var totalKeys = await db.UserSettings.CountAsync(x => x.UserId == userId, cancellationToken);
+            if (addedKeys > 0 && totalKeys + addedKeys > MaxKeysPerUser)
+                throw new ApiException(StatusCodes.Status422UnprocessableEntity, "SETTINGS_TOO_MANY",
+                    $"每个账户最多保存 {MaxKeysPerUser} 个设置键");
             var now = DateTime.UtcNow;
             foreach (var (key, value) in values)
             {

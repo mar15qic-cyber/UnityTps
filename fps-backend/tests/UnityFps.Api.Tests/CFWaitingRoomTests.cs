@@ -17,6 +17,37 @@ namespace UnityFps.Api.Tests;
 /// </summary>
 public sealed class CFWaitingRoomTests
 {
+    [Fact]
+    public async Task SwitchingModeMigratesAllMembersAndStartRoster()
+    {
+        using var factory = ServerApiFactory.WithConfig(new Dictionary<string, string?>());
+        var client = factory.CreateClient();
+        await ServerTest.RegisterInstanceAsync(client);
+        var (host, _) = await ServerTest.RegisterUserAsync(client);
+        var created = await ServerTest.CreateRoomAsync(client, host, maxPlayers: 4, mode: "KillRace", killTarget: 20);
+        var code = ServerTest.HostRoomCode(created.GetProperty("room"));
+        var (guest, _) = await ServerTest.RegisterUserAsync(client);
+        await ServerTest.JoinRoomAsync(client, guest, code);
+        foreach (var mode in new[] { "TDM", "KillRace", "TDM" })
+        {
+            var response = await ServerTest.Authorized(client, host).PostAsJsonAsync(
+                $"/api/rooms/{ServerTest.PublicRoomId(code)}/settings", new { mode, killTarget = mode == "TDM" ? 50 : 20 });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var scope = factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var members = await db.GameRoomMembers.Where(x => x.Room.RoomCode == code).ToListAsync();
+            if (mode == "TDM") Assert.Equal(new[] { Teams.Blue, Teams.Red }, members.Select(x => x.TeamId).Order().ToArray());
+            else Assert.All(members, x => Assert.Equal(Teams.None, x.TeamId));
+            Assert.All(members, x => Assert.False(x.IsReady));
+        }
+        await ServerTest.ReadyAsync(client, guest, code);
+        var started = await ServerTest.StartRoomAsync(client, host, code);
+        using var finalScope = factory.Services.CreateScope();
+        var finalDb = finalScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var match = started.GetProperty("matchId").GetString();
+        var teams = await finalDb.RoomMatchRosters.Where(x => x.MatchId == match).Select(x => x.TeamId).ToArrayAsync();
+        Assert.Equal(new[] { Teams.Blue, Teams.Red }, teams.Order().ToArray());
+    }
     /// <summary>把房间状态迁移时间回拨（超时懒判定用）：直接改库再触发一次维护扫描。</summary>
     private static async Task RewindRoomStateClockAsync(ServerApiFactory factory, string roomCode, TimeSpan back)
     {

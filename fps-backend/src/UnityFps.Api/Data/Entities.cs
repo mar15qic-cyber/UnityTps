@@ -269,6 +269,8 @@ public static class InstanceState
     public const string Reserved = "Reserved";
     public const string InMatch = "InMatch";
     public const string Offline = "Offline";
+    // Backend-only tombstone. An expired battle process must use a new identity after restart.
+    public const string Fenced = "Fenced";
     /// <summary>退役中（A03，V0）：比赛已终局/返房，DS 旧连接清理与重臂未获权威确认——不可租用；
     /// 仅 DS 重臂后的 Ready 心跳（CurrentPlayers=0）才翻回 Ready 并清绑定回池。</summary>
     public const string Draining = "Draining";

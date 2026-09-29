@@ -75,6 +75,24 @@ public sealed class UserSettingsTests
         Assert.Equal(128, ok.Values.Count);
     }
 
+    [Fact]
+    public async Task Save_TotalLimitPersistsAcrossRequests_AndAllowsExistingKeyUpdates()
+    {
+        await using var db = CreateDb();
+        var user = AddUser(db, "bounded-user");
+        var service = new UserSettingsService(db);
+        await service.SaveAsync(user.Id, Enumerable.Range(0, 128).ToDictionary(i => "k" + i, _ => "v"));
+        var error = await Assert.ThrowsAsync<ApiException>(() => service.SaveAsync(user.Id,
+            new Dictionary<string, string> { ["overflow"] = "v", ["k0"] = "should-not-write" }));
+        Assert.Equal("SETTINGS_TOO_MANY", error.Code);
+        var original = await service.GetAsync(user.Id);
+        Assert.Equal(128, original.Values.Count);
+        Assert.Equal("v", original.Values["k0"]);
+        var updated = await service.SaveAsync(user.Id, new Dictionary<string, string> { ["k0"] = "changed" });
+        Assert.Equal("changed", updated.Values["k0"]);
+        Assert.Equal(128, updated.Values.Count);
+    }
+
     private static AppDbContext CreateDb() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 

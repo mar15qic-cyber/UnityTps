@@ -351,6 +351,18 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                 request.Mode ?? room.Mode, request.MapId ?? room.MapId,
                 request.KillTarget ?? room.KillTarget, request.TimeLimitMinutes ?? room.TimeLimitMinutes,
                 request.MaxPlayers ?? room.MaxPlayers);
+            if (room.Members.Count > settings.MaxPlayers)
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "房间人数超过所选容量");
+            if (room.Mode != settings.Mode)
+            {
+                var ordered = room.Members.OrderBy(x => x.JoinedAtUtc).ThenBy(x => x.UserId).ToArray();
+                for (var i = 0; i < ordered.Length; i++)
+                    ordered[i].TeamId = GameModes.IsTeamMode(settings.Mode)
+                        ? (i % 2 == 0 ? Teams.Red : Teams.Blue) : Teams.None;
+            }
+            if (GameModes.IsTeamMode(settings.Mode) && room.Members.GroupBy(x => x.TeamId)
+                .Any(g => g.Count() > RoomSettingRules.PerTeamCapacity(settings.MaxPlayers)))
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.TeamFull, "现有队伍人数超过所选容量");
             room.Mode = settings.Mode;
             room.MapId = settings.MapId;
             room.KillTarget = settings.KillTarget;
@@ -431,6 +443,9 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
 
             // The host may start alone. Only the host and ready guests enter this roster.
             var participants = room.Members.Where(x => x.UserId == room.HostUserId || x.IsReady).ToArray();
+            if (participants.Any(x => GameModes.IsTeamMode(room.Mode)
+                ? x.TeamId is not (Teams.Red or Teams.Blue) : x.TeamId != Teams.None))
+                throw new ApiException(StatusCodes.Status409Conflict, ApiErrorCodes.RoomStateConflict, "玩家队伍与比赛模式不一致，请重新选择模式");
 
             // 原子租用（沿用 Docs/27 旧 §2.4 纪律 + P0-A 协议筛选 + Phase 8 地图匹配）：只租心跳新鲜、
             // 容量足够、应用协议与房间冻结期望一致、且绑定地图与房间 mapId 一致的 Ready 实例；
@@ -1287,7 +1302,7 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
                 .Include(x => x.ServerInstance)
                 .Where(x => x.Status != RoomStatus.Closed)
                 .Where(x =>
-                    ((x.Status == RoomStatus.Starting || x.Status == RoomStatus.InMatch)
+                    ((x.Status == RoomStatus.Starting || x.Status == RoomStatus.InMatch || x.Status == RoomStatus.Returning)
                         && (x.ServerInstanceId == null || x.ServerInstance.LastHeartbeatUtc < instanceCutoff))
                     || (x.Status == RoomStatus.Starting && x.StateChangedAtUtc <= startCutoff)
                     || (x.Status == RoomStatus.Returning && x.StateChangedAtUtc <= returningCutoff)
@@ -1388,6 +1403,27 @@ public sealed class RoomService(AppDbContext db, ServerInstanceService instances
         }
         else if (status == RoomStatus.Returning)
         {
+            if (room.ServerInstance == null || room.ServerInstance.LastHeartbeatUtc < now - instances.InstanceTtl)
+            {
+                // Fencing is permanent for this process identity: late heartbeats/registers cannot
+                // revive it and acknowledge a new lease while old battle connections still exist.
+                var expired = room.ServerInstance;
+                if (expired != null)
+                {
+                    expired.State = InstanceState.Fenced;
+                    expired.Version++;
+                    expired.RoomCode = null;
+                    expired.CurrentPlayers = 0;
+                }
+                var rows = await db.RoomMatchRosters.Where(x => x.RoomId == room.Id
+                    && x.MatchId == room.CurrentMatchId && x.LeftAtUtc == null).ToListAsync(cancellationToken);
+                foreach (var row in rows) row.LeftAtUtc = now;
+                room.ServerInstance = null;
+                room.ServerInstanceId = null;
+                ReturnToWaitingUnsafe(room, now);
+                logger.LogWarning("[RoomFlow] RETURNING_FENCED room={RoomCode} instance={InstanceId}", room.RoomCode, expired?.InstanceId);
+                return;
+            }
             if (room.StateChangedAtUtc <= now - instances.ReturningTimeout)
             {
                 // F1：超时只证明客户端没有按预期完成返房，不能证明已消费票据的 DS

@@ -19,6 +19,38 @@ namespace UnityFps.Api.Tests;
 /// </summary>
 public sealed class CFV0SettlementAndLeaseTests
 {
+    [Fact]
+    public async Task ReturningWithExpiredProcess_ArchivesAndPermanentlyFencesIdentity()
+    {
+        var setup = await StartRoomWithInstanceAsync("TDM");
+        using var factory = setup.Factory;
+        var client = factory.CreateClient();
+        await ReportResultAsync(client, setup.InstanceId, BuildReport(setup.MatchId, null, setup.Roster));
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var server = await db.ServerInstances.SingleAsync(x => x.InstanceId == setup.InstanceId);
+            server.LastHeartbeatUtc = DateTime.UtcNow.AddHours(-1);
+            await db.SaveChangesAsync();
+        }
+        var detail = await ServerTest.Authorized(client, setup.HostToken).GetAsync($"/api/rooms/{ServerTest.PublicRoomId(setup.RoomCode)}");
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var room = await db.GameRooms.SingleAsync(x => x.RoomCode == setup.RoomCode);
+            Assert.Equal(RoomStatus.Waiting, room.Status);
+            Assert.Null(room.CurrentMatchId);
+            Assert.Null(room.ServerInstanceId);
+            Assert.All(await db.RoomMatchRosters.Where(x => x.MatchId == setup.MatchId).ToArrayAsync(), x => Assert.NotNull(x.LeftAtUtc));
+            Assert.Equal(InstanceState.Fenced, (await db.ServerInstances.SingleAsync(x => x.InstanceId == setup.InstanceId)).State);
+        }
+        Assert.Equal(HttpStatusCode.Conflict, (await HeartbeatAsync(client, setup.InstanceId, "Ready", null, 0)).StatusCode);
+        var register = await ServerTest.SendWithKeyAsync(client, HttpMethod.Post, "/api/server-instances/register", ServerTest.ServerKey,
+            new { instanceId = setup.InstanceId, address = "10.1.0.5", port = 7770, capacity = 8, buildVersion = "test" });
+        Assert.Equal(HttpStatusCode.Conflict, register.StatusCode);
+        await ServerTest.RegisterInstanceAsync(client); // A new process identity remains admissible.
+    }
     private static async Task<JsonElement> ReportResultAsync(HttpClient client, string instanceId, object payload)
         => await (await ServerTest.SendWithKeyAsync(client, HttpMethod.Post,
             $"/api/server-instances/{instanceId}/match-result", ServerTest.ServerKey, payload))
