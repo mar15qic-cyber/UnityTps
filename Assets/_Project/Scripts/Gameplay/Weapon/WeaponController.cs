@@ -173,6 +173,37 @@ namespace Game.Gameplay.Weapon
         public event System.Action OnDryFire;
         public event System.Action<int, int> OnAmmoChanged;
         public event System.Action OnReloadStarted;
+        private readonly ShellReloadState _shellReload = new();
+        private bool _queuedReloadShot;
+        private uint _pendingReloadCommand;
+        public bool UsesShellReload => definition != null && definition.WeaponId == "shotgun.01";
+        public ShellReloadPhase ReloadPhase => _shellReload.Phase;
+        public float ReloadPhaseElapsed => _shellReload.PhaseElapsed;
+        public uint ReloadGeneration => _shellReload.Generation;
+        public bool ReloadFinishRequested => _shellReload.FinishRequested;
+        public event System.Action OnShellReloadPhaseChanged;
+        public bool RequestShellReloadFinish(bool queueShot = true, bool submit = true)
+        {
+            if (!UsesShellReload || Runtime == null || Runtime.State != WeaponRuntimeState.Reloading || _shellReload.Phase == ShellReloadPhase.None) return false;
+            if(_shellReload.FinishRequested) return true;
+            _queuedReloadShot = queueShot;
+            _shellReload.RequestFinish(actionSystem.Elapsed, Runtime.HasAmmo);
+            actionSystem.SetEndTime(actionSystem.Elapsed + _shellReload.Remaining(actionSystem.Elapsed));
+            OnShellReloadPhaseChanged?.Invoke();
+            if(submit) _pendingReloadCommand=GetComponent<NetworkCombatAuthority>()?.SubmitShellReloadFinish()??0;
+            return true;
+        }
+        private void AdvanceShellReload(PlayerActionType action,float elapsed)
+        {
+            if(action != PlayerActionType.Reload || !UsesShellReload || Runtime == null || Runtime.State != WeaponRuntimeState.Reloading) return;
+            var previous=_shellReload.Phase;
+            int moved=_shellReload.Advance(elapsed, Runtime.HasAmmo);
+            for(int i=0;i<moved;i++) Runtime.InsertShell();
+            float remaining=_shellReload.Remaining(elapsed);
+            Runtime.SyncReloadRemaining(remaining); actionSystem.SetEndTime(elapsed+remaining);
+            if(previous!=_shellReload.Phase || moved>0) OnShellReloadPhaseChanged?.Invoke();
+            if(moved>0) OnAmmoChanged?.Invoke(Runtime.CurrentAmmo,Runtime.ReserveAmmo);
+        }
         public event System.Action OnReloadCompleted;
         public event System.Action<ActionInterruptReason> OnReloadInterrupted;
         public event System.Action<WeaponDefinition> OnWeaponEquipped;
@@ -227,6 +258,7 @@ namespace Game.Gameplay.Weapon
         {
             if (actionSystem == null) actionSystem = GetComponent<ActionSystem>();
             actionSystem.OnActionCompleted += HandleActionCompleted;
+            actionSystem.OnActionAdvanced += AdvanceShellReload;
             actionSystem.OnActionInterrupted += HandleActionInterrupted;
         }
 
@@ -251,6 +283,7 @@ namespace Game.Gameplay.Weapon
         {
             if (actionSystem == null) return;
             actionSystem.OnActionCompleted -= HandleActionCompleted;
+            actionSystem.OnActionAdvanced -= AdvanceShellReload;
             actionSystem.OnActionInterrupted -= HandleActionInterrupted;
         }
 
@@ -268,6 +301,7 @@ namespace Game.Gameplay.Weapon
             { _triggerWasActive = false; Runtime.DiscardOverdueCooldown(); return; }
             bool wantsFire = definition.FireMode == WeaponFireMode.Automatic ? input.FireHeld : input.FirePressed;
             if (!_triggerWasActive || !wantsFire) Runtime.DiscardOverdueCooldown();
+            if (wantsFire && UsesShellReload && Runtime.State == WeaponRuntimeState.Reloading) RequestShellReloadFinish();
             if (wantsFire)
             {
                 int limit = definition.FireMode == WeaponFireMode.Automatic ? 3 : 1;
@@ -412,7 +446,27 @@ namespace Game.Gameplay.Weapon
             if (Runtime == null || definition == null
                 || !string.Equals(definition.WeaponId, snapshot.WeaponId, StringComparison.Ordinal)) return;
 
-            Runtime.ReconcileAuthoritativeAmmo(current, reserve, snapshot.ReloadState, snapshot.ReloadRemaining);
+            bool reloadConfirmed = !UsesShellReload || _pendingReloadCommand==0 || snapshot.LastProcessedActionCommandId>=_pendingReloadCommand;
+            var authoritativeState=reloadConfirmed?snapshot.ReloadState:Runtime.State;
+            Runtime.ReconcileAuthoritativeAmmo(current, reserve, authoritativeState, reloadConfirmed?snapshot.ReloadRemaining:Runtime.ReloadRemaining);
+            if(UsesShellReload && reloadConfirmed)
+            {
+                _pendingReloadCommand=0;
+                if(snapshot.ReloadState==WeaponRuntimeState.Ready)
+                {
+                    bool queued=_queuedReloadShot && _shellReload.Phase==ShellReloadPhase.Close;
+                    Runtime.CancelReload(); _shellReload.Cancel();
+                    if(actionSystem.CurrentAction==PlayerActionType.Reload) actionSystem.Interrupt(ActionInterruptReason.AuthorityRejected);
+                    if(queued && !Game.Gameplay.Menu.GameplayInputGate.InputBlocked && !MatchLifecycle.InputFrozen) TryFire();
+                }
+                else
+                {
+                    _shellReload.Restore(snapshot.ReloadPhase,snapshot.ReloadPhaseElapsed,snapshot.ReloadGeneration,Mathf.Min(Runtime.MagazineSize-current,reserve),snapshot.ReloadFinishRequested);
+                    if(actionSystem.CurrentAction!=PlayerActionType.Reload) actionSystem.TryStart(PlayerActionType.Reload,snapshot.ReloadRemaining);
+                    actionSystem.RestoreTimer(snapshot.ReloadRemaining);
+                    OnShellReloadPhaseChanged?.Invoke();
+                }
+            }
             Runtime.ApplyPredictedAmmoDebt(pending);
             // A late Reloading snapshot can arrive after local completion. Restore its
             // timer too, otherwise Runtime remains Reloading forever with no action to end it.
@@ -656,30 +710,42 @@ namespace Game.Gameplay.Weapon
         public bool TryReload()
         {
             if (Runtime == null || !Runtime.CanReload) return false;
-            if (!actionSystem.TryStart(PlayerActionType.Reload, Stat.ReloadTime)) return false;
-            if (!Runtime.BeginReload(Stat.ReloadTime))
+            float duration=Stat.ReloadTime;
+            if(UsesShellReload)
+            {
+                _shellReload.Begin(Runtime.MagazineSize-Runtime.CurrentAmmo,Runtime.ReserveAmmo);
+                duration=_shellReload.Duration; _queuedReloadShot=false;
+            }
+            if (!actionSystem.TryStart(PlayerActionType.Reload, duration)) return false;
+            if (!Runtime.BeginReload(duration))
             {
                 actionSystem.Interrupt(ActionInterruptReason.External);
                 return false;
             }
             OnReloadStarted?.Invoke();
-            if (!_serverAimOverride) GetComponent<NetworkCombatAuthority>()?.SubmitReloadRequest();
+            if (!_serverAimOverride) _pendingReloadCommand=GetComponent<NetworkCombatAuthority>()?.SubmitReloadRequest()??0;
+            if(UsesShellReload) OnShellReloadPhaseChanged?.Invoke();
             return true;
         }
 
         private void HandleActionCompleted(PlayerActionType action)
         {
             if (action != PlayerActionType.Reload || Runtime == null) return;
-            Runtime.CompleteReload();
+            bool queued=UsesShellReload && _queuedReloadShot;
+            if(UsesShellReload){ Runtime.CancelReload(); _shellReload.Cancel(); _queuedReloadShot=false; }
+            else Runtime.CompleteReload();
             OnAmmoChanged?.Invoke(Runtime.CurrentAmmo, Runtime.ReserveAmmo);
             OnReloadCompleted?.Invoke();
+            if(queued && !Game.Gameplay.Menu.GameplayInputGate.InputBlocked && !MatchLifecycle.InputFrozen) TryFire();
         }
 
         private void HandleActionInterrupted(PlayerActionType action, ActionInterruptReason reason)
         {
             if (action != PlayerActionType.Reload || Runtime == null) return;
             Runtime.CancelReload();
+            _shellReload.Cancel(); _queuedReloadShot=false;
             OnReloadInterrupted?.Invoke(reason);
+            OnAmmoChanged?.Invoke(Runtime.CurrentAmmo,Runtime.ReserveAmmo);
         }
 
         /// <summary>弹道锥取样（可播种随机源为参数——网络回放/测试确定性；几何=CP0 基线）。</summary>

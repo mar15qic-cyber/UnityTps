@@ -38,11 +38,11 @@ namespace Game.Gameplay.Tests
         [TestCase("weapon.handgun02")]
         [TestCase("weapon.handgun03")]
         [TestCase("weapon.handgun04")]
-        public void PistolsRejectBothHolographicOptionsEvenFromStaleLoadouts(string id)
+        public void PistolsAcceptBothNewOneTimesOptics(string id)
         {
             var catalog = Resources.Load<AttachmentAssetCatalog>("AttachmentAssetCatalog");
             foreach (var item in new[] { "attach.rifle.optic", "attach.lpfp.optic.02" })
-                Assert.False(AttachmentCompatibilityPolicy.IsAllowed(id, catalog.Find(item)), item);
+                Assert.True(AttachmentCompatibilityPolicy.IsAllowed(id, catalog.Find(item)), item);
             foreach (var item in new[] { "attach.lpfp.optic.01", "attach.lpfp.optic.03" })
                 Assert.True(AttachmentCompatibilityPolicy.IsAllowed(id, catalog.Find(item)), item);
         }

@@ -122,7 +122,8 @@ namespace Game.Gameplay.Tests
             var catalog = Resources.Load<WeaponAssetCatalog>("WeaponAssetCatalog");
             catalog.TryGet(session.Loadout.primaryWeaponId, out var entry);
             Assert.That(Get<Image>("primaryIcon").sprite, Is.SameAs(entry.icon));
-            Assert.That(Get<TMP_Text>("primaryLabel").text, Is.EqualTo(entry.definition.DisplayName));
+            // 背包装配卡（Phase D）：主武器行带「主  」前缀（主/副/投掷三行结构）
+            Assert.That(Get<TMP_Text>("primaryLabel").text, Is.EqualTo("主  " + entry.definition.DisplayName));
         }
 
         [Test]

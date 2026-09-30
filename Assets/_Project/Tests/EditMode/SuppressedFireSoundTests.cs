@@ -67,7 +67,7 @@ namespace Game.Gameplay.Tests
         }
 
         [Test]
-        public void Catalog_SuppressorFlags_ExactlyFiveMuzzleEntries()
+        public void Catalog_SuppressorFlags_OnlyActiveMuzzleEntries()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<AttachmentAssetCatalog>(
                 "Assets/_Project/Resources/AttachmentAssetCatalog.asset");
@@ -78,7 +78,6 @@ namespace Game.Gameplay.Tests
             Assert.That(flagged, Is.EquivalentTo(new[]
             {
                 "attach.lpfp.muffler.01",  // 经典消音器（原生武器）
-                "attach.rifle.muzzle",     // 通行证步枪消音器
                 "attach.pistol.muzzle",    // 通行证手枪消音器
             }));
             foreach (var e in catalog.Entries)

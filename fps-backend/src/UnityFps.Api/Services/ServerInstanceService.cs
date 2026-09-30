@@ -397,12 +397,17 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                 // 从 PlayerLoadout 读取——Dedicated Server 据此把网络玩家 Arsenal 严格配置为账号实际两槽
                 //（primary/secondary + 影响属性/枪模的附件）。读不到行属异常态（注册必建行）：返回 null，
                 // 由 DS 侧 fail closed（拒绝生成），绝不回退调试 Arsenal。
-                var loadout = await db.Loadouts.AsNoTracking()
+                // CF 三背包（2026-09-30 Phase A）：一并携带三背包全集（懒默认合成），DS 据此支持对局内
+                // 按规则换背包；Loadout 字段保留 = 活动背包（index 0）镜像给旧版 DS。
+                var loadoutRows = await db.Loadouts.AsNoTracking()
                     .Include(x => x.Attachments)
-                    .SingleOrDefaultAsync(x => x.UserId == ticket.UserId, cancellationToken);
-                var loadoutDto = loadout?.ToDto();
+                    .Where(x => x.UserId == ticket.UserId)
+                    .ToListAsync(cancellationToken);
+                var loadoutDto = loadoutRows.FirstOrDefault(x => x.BackpackIndex == 0)?.ToDto()
+                    ?? loadoutRows.FirstOrDefault()?.ToDto();
                 if (loadoutDto is null)
                     logger.LogWarning("[ServerRegistry] TICKET_CONSUME_LOADOUT_MISSING user={UserId}——配装行缺失，DS 应拒绝生成", ticket.UserId);
+                var backpackDtos = loadoutRows.Count == 0 ? null : BackpackPolicy.BuildBackpackSet(loadoutRows);
 
                 ticket.ConsumedAtUtc = DateTime.UtcNow;
                 ticket.Version++; // 并发令牌：双并发 consume 只有一方落库成功，另一方按 REPLAYED 拒绝
@@ -412,7 +417,8 @@ public sealed class ServerInstanceService(AppDbContext db, IOptions<ServerInstan
                     request.InstanceId, ticket.RoomCode, ticket.UserId);
                 return new JoinTicketConsumeDto(true, ticket.RoomCode, ticket.UserId, ticket.Username, ticket.ExpiresAtUtc,
                     ticket.Id, null, loadoutDto, ticket.MatchId, ticket.MatchGeneration, rosterTeam ?? member.TeamId,
-                    room.Mode, room.KillTarget, room.TimeLimitMinutes, room.MaxPlayers);
+                    room.Mode, room.KillTarget, room.TimeLimitMinutes, room.MaxPlayers,
+                    backpackDtos, BackpackPolicy.DefaultActiveIndex);
             }
             catch (DbUpdateConcurrencyException)
             {

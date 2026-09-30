@@ -43,7 +43,13 @@ namespace Game.RuntimeAudit
             public int objectId, health, ammo, reserve, enabledDamageVolumes, damageVolumes, kills, deaths;
             public uint inputTick, life, respawnTick;
             public bool owner, server, dead, protectedNow, grounded;
-            public string name, weapon, action, runtimeState, team;
+            public string name, weapon, action, runtimeState, team, reloadPhase, backpackEligibility;
+            public int activeBackpack;
+            public uint reloadGeneration;
+            public float reloadPhaseElapsed;
+            public bool reloadFinishRequested;
+            public string[] backpackManifest, throwableItems;
+            public int[] throwableCounts;
             public uint submittedEquipment, executedEquipment;
             public string[] slots;
             public float actionRemaining, spread, bloom, ads, cooldown, speed, vertical, pitch, presentedTick;
@@ -108,6 +114,7 @@ namespace Game.RuntimeAudit
             Application.logMessageReceived += driver.OnLog;
             driver.Write(new Record { kind = "probe-start", message = "FPS_RUNTIME_AUDIT: explicit local test driver; evidenceDirectory="
                 + Application.persistentDataPath + "; telemetry=" + PublicTestTelemetry.Enabled });
+            if (role != "server") driver.StartCoroutine(driver.CaptureBootFrames());
         }
 
         private void Update()
@@ -177,9 +184,14 @@ namespace Game.RuntimeAudit
                 else Invoke(presenter, "StartOnlineRoomAsync", File.ReadAllText(Path.Combine(_dir, "room-code.txt")).Trim(), true);
                 return;
             }
+            if (c.op == "key") { StartCoroutine(PressKey(c.name)); return; }
+            if (c.op == "ui") { StartCoroutine(ClickUi(c.name)); return; }
+            if (c.op == "ui-list") { CaptureUi(); return; }
             if (c.op == "screenshot") { StartCoroutine(Capture(c.name ?? ("frame-" + _seq))); return; }
             if (c.op == "visual") { StartCoroutine(PreviewVisualProbe.Capture(_dir, _role, c.caseId, c.duration)); return; }
             if (c.op == "map-visual") { PreviewVisualProbe.Map(_dir, _role); return; }
+            if (c.op == "rework-view") { StartCoroutine(ReworkViewProbe.Capture(_dir, _role, c.name, c.duration)); return; }
+            if (c.op == "shadow-fixture") { ReworkViewProbe.ShadowFixture(c.name); return; }
             if (c.op == "geometry") { Geometry(c); return; }
             if (c.op == "end-match")
             {
@@ -192,6 +204,12 @@ namespace Game.RuntimeAudit
                 .Where(p => c.target >= 0 ? p.OwnerClientId == c.target : p.IsOwnerPlayer))
             {
                 var w = p.GetComponent<WeaponController>(); var motor = p.GetComponent<Locomotor>();
+                if (c.op == "ammo")
+                {
+                    w.Actions.Interrupt(ActionInterruptReason.External);
+                    Invoke(w.Runtime,"RestoreAmmo",c.slot,c.health);
+                    Write(new Record {kind="ammo-fixture",connection=p.OwnerClientId,ammo=c.slot,reserve=c.health});
+                }
                 if (c.op == "attachment")
                 {
                     var catalog = Resources.Load<AttachmentAssetCatalog>("AttachmentAssetCatalog");
@@ -201,9 +219,23 @@ namespace Game.RuntimeAudit
                     {
                         var attachments = view.GetComponent<WeaponAttachmentView>() ?? view.gameObject.AddComponent<WeaponAttachmentView>();
                         attachments.ApplyAttachments(catalog, w.Definition.CatalogItemId,
-                            string.IsNullOrEmpty(c.name) ? Array.Empty<AttachmentAssetEntry>() : new[] { catalog.Entries.First(e => e.itemId == c.name) }, false);
+                            string.IsNullOrEmpty(c.name) ? Array.Empty<AttachmentAssetEntry>() : new[] { catalog.Entries.First(e => e.itemId == c.name) },
+                            view.GetComponent<Game.Presentation.Animation.FPWeaponAnimator>() != null);
                         foreach (var spawned in attachments.Spawned)
                             if (spawned != null) foreach (var t in spawned.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = view.gameObject.layer;
+                    }
+                    // Explicit fixture counterpart for rigid TP views (which have no WeaponView).
+                    foreach (var swapper in p.GetComponentsInChildren<Game.Presentation.Animation.TPWeaponMeshSwapper>(true))
+                    {
+                        var tp = swapper.CurrentInstance;
+                        if (tp == null) continue;
+                        var attachments = tp.GetComponent<WeaponAttachmentView>() ?? tp.AddComponent<WeaponAttachmentView>();
+                        attachments.ApplyAttachments(catalog,w.Definition.CatalogItemId,
+                            string.IsNullOrEmpty(c.name) ? Array.Empty<AttachmentAssetEntry>() : new[] {catalog.Entries.First(e=>e.itemId==c.name)},false);
+                        foreach(var spawned in attachments.Spawned)
+                            if(spawned!=null)foreach(var t in spawned.GetComponentsInChildren<Transform>(true))t.gameObject.layer=tp.layer;
+                        foreach(var device in tp.GetComponentsInChildren<TacticalFlashlight>(true))
+                            Game.Presentation.Weapon.TacticalFlashlightShadowFilter.Bind(device,tp);
                     }
                 }
                 if (c.op == "select-throw") p.GetComponent<ThrowableController>().SelectNext();
@@ -265,6 +297,59 @@ namespace Game.RuntimeAudit
             }
         }
 
+        private IEnumerator PressKey(string keyName)
+        {
+            var keyboard=UnityEngine.InputSystem.Keyboard.current;
+            if(keyboard==null)throw new InvalidOperationException("Keyboard unavailable");
+            var key=(UnityEngine.InputSystem.Key)Enum.Parse(typeof(UnityEngine.InputSystem.Key),keyName,true);
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(key));
+            yield return null;yield return null;
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState());
+            Write(new Record{kind="keyboard-input",message=keyName});
+        }
+
+        [Serializable] private sealed class UiButtonEvidence { public string name, text; public Vector2 point; public bool interactable; }
+        [Serializable] private sealed class UiEvidence { public bool eventSystem; public UiButtonEvidence[] buttons; }
+        private void CaptureUi()
+        {
+            var buttons = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Where(b => b.gameObject.activeInHierarchy).Select(b =>
+                new UiButtonEvidence { name = b.name, text = b.GetComponentInChildren<TMPro.TMP_Text>()?.text,
+                    interactable = b.interactable, point = UnityEngine.RectTransformUtility.WorldToScreenPoint(null,
+                        ((RectTransform)b.transform).TransformPoint(((RectTransform)b.transform).rect.center)) }).ToArray();
+            File.WriteAllText(Path.Combine(_dir, _role + ".ui.json"), JsonUtility.ToJson(new UiEvidence {
+                eventSystem = UnityEngine.EventSystems.EventSystem.current != null, buttons = buttons }, true));
+        }
+        private IEnumerator ClickUi(string name)
+        {
+            CaptureUi();
+            var button = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).First(b => b.gameObject.activeInHierarchy
+                && (b.name == name || b.GetComponentInChildren<TMPro.TMP_Text>()?.text == name));
+            var point = UnityEngine.RectTransformUtility.WorldToScreenPoint(null, ((RectTransform)button.transform).TransformPoint(((RectTransform)button.transform).rect.center));
+            var mouse = UnityEngine.InputSystem.Mouse.current ?? UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Mouse>();
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
+            yield return null; yield return null;
+            var raycasts = new List<UnityEngine.EventSystems.RaycastResult>();
+            var events = UnityEngine.EventSystems.EventSystem.current;
+            if (events != null) events.RaycastAll(new UnityEngine.EventSystems.PointerEventData(events) { position = point }, raycasts);
+            Write(new Record { kind = "ui-pointer", message = name + " hits=" + string.Join(",", raycasts.Select(r => r.gameObject.name)) });
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point }.WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Left));
+            yield return null; yield return null;
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
+        }
+        private IEnumerator CaptureBootFrames()
+        {
+            while (!UnityEngine.Rendering.SplashScreen.isFinished) yield return null;
+            for (int i = 0; i < 24; i++)
+            {
+                yield return new WaitForEndOfFrame();
+                var image = ScreenCapture.CaptureScreenshotAsTexture();
+                File.WriteAllBytes(Path.Combine(_dir, _role + "-boot-" + i.ToString("D2") + ".png"), image.EncodeToPNG());
+                Destroy(image);
+                Write(new Record { kind = "boot-frame", message = SceneManager.GetActiveScene().name });
+                yield return new WaitForSecondsRealtime(.1f);
+            }
+        }
+
         private void DriveInput(NetworkCombatAuthority p, double now)
         {
             var input = p.GetComponent<InputReader>(); if (input == null) return;
@@ -278,7 +363,9 @@ namespace Game.RuntimeAudit
             bool click = c != null && c.fire && (Time.frameCount == _inputFrame || c.clickInterval > 0 && now - _lastClick >= c.clickInterval);
             SetInput(input, "FirePressed", click);
             if (click) _lastClick = now;
-            SetInput(input, "ReloadPressed", c != null && c.reload && Time.frameCount == _inputFrame);
+            // Keep an explicit reload intent for its bounded command duration. A one-render-frame
+            // reflection pulse can fall between player ticks while PNG capture blocks rendering.
+            SetInput(input, "ReloadPressed", c != null && c.reload);
             SetInput(input, "SlotPressed", c != null && Time.frameCount == _inputFrame ? c.slot : -1);
             SetInput(input, "SwapAxis", 0f);
             SetInput(input, "QuickSwapPressed", false);
@@ -355,7 +442,7 @@ namespace Game.RuntimeAudit
             snapshot.players = (players ?? Object.FindObjectsByType<NetworkCombatAuthority>(FindObjectsSortMode.None)).Where(p => p.IsSpawned).Select(p =>
             {
                 var w = p.GetComponent<WeaponController>(); var m = p.GetComponent<Locomotor>(); var ms = m != null ? m.CaptureSnapshot() : default;
-                var a = p.GetComponent<PlayerNetworkAdapter>(); var damage = p.GetComponentsInChildren<Collider>(true)
+                var a = p.GetComponent<PlayerNetworkAdapter>(); var throwable=p.GetComponent<ThrowableController>(); var damage = p.GetComponentsInChildren<Collider>(true)
                     .Where(c => c.GetComponent<HitVolumeTag>()?.Role == HitVolumeRole.DamageSurface).ToArray();
                 var head = damage.FirstOrDefault(c => c.name.IndexOf("Head", StringComparison.OrdinalIgnoreCase) >= 0);
                 return new PlayerState { connection = p.OwnerClientId, objectId = p.ObjectId, name = p.DisplayName, owner = p.IsOwnerPlayer,
@@ -366,6 +453,10 @@ namespace Game.RuntimeAudit
                     vertical = ms.VerticalVelocity, inputTick = a != null ? (p.IsServerInitialized ? a.ServerInputTick : a.LocalInputTick) : 0, weapon = w?.Definition?.WeaponId,
                     ammo = w?.Runtime?.CurrentAmmo ?? -1, reserve = w?.Runtime?.ReserveAmmo ?? -1,
                     action = w?.Actions?.CurrentAction.ToString(), actionRemaining = w?.Actions?.Remaining ?? 0,
+                    reloadPhase=w?.ReloadPhase.ToString(),reloadPhaseElapsed=w?.ReloadPhaseElapsed??0,reloadGeneration=w?.ReloadGeneration??0,reloadFinishRequested=w!=null&&w.ReloadFinishRequested,
+                    activeBackpack=p.GetComponent<NetworkWeaponState>()?.ActiveBackpackIndex??-1,backpackEligibility=p.OwnerBackpackEligibility.ToString(),backpackManifest=a?.OwnerBackpackManifest,
+                    throwableItems=throwable!=null?new[]{throwable.Inventory.Item(0),throwable.Inventory.Item(1),throwable.Inventory.Item(2)}:null,
+                    throwableCounts=throwable!=null?new[]{throwable.Inventory.Count(0),throwable.Inventory.Count(1),throwable.Inventory.Count(2)}:null,
                     runtimeState = w?.Runtime?.State.ToString(), spread = w?.CurrentSpreadDegrees ?? 0, cooldown = w?.Runtime?.CooldownRemaining ?? 0,
                     recoil = w?.CurrentRecoilOffset ?? Vector2.zero, debt = w?.RecoilCompensationDebt ?? Vector2.zero,
                     eye = w?.AimOrigin ?? Vector3.zero, direction = w?.AimDirection ?? Vector3.forward,

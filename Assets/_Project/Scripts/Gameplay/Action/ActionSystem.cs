@@ -37,6 +37,9 @@ namespace Game.Gameplay.Action
 
         public event Action<PlayerActionType, float> OnActionStarted;
         public event Action<PlayerActionType> OnActionCompleted;
+        public event Action<PlayerActionType, float> OnActionAdvanced;
+        internal void SetEndTime(float duration) => Duration = Mathf.Max(Elapsed, duration);
+        internal void RestoreTimer(float remaining) { Duration = Mathf.Max(0, remaining); Elapsed = 0; }
         public event Action<PlayerActionType, ActionInterruptReason> OnActionInterrupted;
 
         private void Update() => Tick(Time.deltaTime);
@@ -74,6 +77,7 @@ namespace Game.Gameplay.Action
         {
             if (!IsBusy || deltaTime <= 0f) return;
             Elapsed += deltaTime;
+            OnActionAdvanced?.Invoke(CurrentAction, Elapsed);
             if (Elapsed >= Duration) CompleteCurrent();
         }
 

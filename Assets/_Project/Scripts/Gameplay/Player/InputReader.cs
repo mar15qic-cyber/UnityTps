@@ -53,6 +53,9 @@ namespace Game.Gameplay.Player
         public bool ThrowFragPressed { get; private set; }
         public bool ThrowFlashPressed { get; private set; }
         public bool ThrowSmokePressed { get; private set; }
+        /// <summary>更换背包键（默认 B，SettingsKeyMap.Action.Backpacks 可重绑）本帧按下——
+        /// 对局内背包浮层开关（CF 三背包 2026-09-30 Phase D）。</summary>
+        public bool BackpacksPressed { get; private set; }
         public sbyte LeanIntent { get; private set; }
 
         /// <summary>缓冲窗口内存在未消费的跳跃请求。</summary>
@@ -134,6 +137,7 @@ namespace Game.Gameplay.Player
             QuickSwapPressed = false;
             SelectThrowablePressed = false;
             ThrowFragPressed = ThrowFlashPressed = ThrowSmokePressed = false;
+            BackpacksPressed = false;
             AimHeld = false;
             LeanIntent = 0;
 
@@ -203,6 +207,7 @@ namespace Game.Gameplay.Player
             }
             ReloadPressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Reload)].wasPressedThisFrame;
             SelectThrowablePressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.SelectThrowable)].wasPressedThisFrame;
+            BackpacksPressed = kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Backpacks)].wasPressedThisFrame;
             if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot1)].wasPressedThisFrame) SlotPressed = 0;
             else if (kb[SettingsKeyMap.Get(SettingsKeyMap.Action.Slot2)].wasPressedThisFrame) SlotPressed = 1;
             else if (kb.digit4Key.wasPressedThisFrame) SlotPressed = 3;

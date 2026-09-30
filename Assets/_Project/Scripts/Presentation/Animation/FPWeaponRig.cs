@@ -65,6 +65,7 @@ namespace Game.Presentation.Animation
             // R4 审计修复：实体镜唯一挂载入口（幂等；Dedicated 构建内不挂载）——此前 PhysicalScopeView
             // 只有类定义没有任何运行时挂载路径，正式玩家永远不会启用实体镜表现
             Game.Presentation.Camera.PhysicalScopeView.EnsureMounted(this);
+            Game.Presentation.Camera.FPWeaponCameraFraming.EnsureMounted(this);
         }
 
         private void OnEnable()
@@ -157,7 +158,7 @@ namespace Game.Presentation.Animation
         {
             if (view == null) return;
             foreach (var renderer in view.GetComponentsInChildren<Renderer>(true))
-                _visibility.Register(renderer);
+                RegisterViewRenderer(renderer);
         }
 
         private void ApplyPersistedAttachments(GameObject view, WeaponDefinition definition)
@@ -205,7 +206,7 @@ namespace Game.Presentation.Animation
             foreach (var spawned in attachments.Spawned)
                 if (spawned != null)
                     foreach (var renderer in spawned.GetComponentsInChildren<Renderer>(true))
-                        _visibility.Register(renderer);
+                        RegisterViewRenderer(renderer);
             if (controller != null && controller.IsInitialized)
                 controller.SetAttachments(entries);   // 装备期重算：含加长弹匣的弹容量重建
 
@@ -293,7 +294,14 @@ namespace Game.Presentation.Animation
             => _visibility.SetHidden(FPViewHideReason.ScopeOverlay, hidden);
 
         /// <summary>注册一个 Renderer 到受控基线（视图创建/动态配件挂载时调用；重复注册安全）。</summary>
-        public void RegisterViewRenderer(Renderer renderer) => _visibility.Register(renderer);
+        public void RegisterViewRenderer(Renderer renderer)
+        {
+            if (renderer == null) return;
+            // Overlay geometry is framed by another camera. World shadow maps
+            // must use TP geometry, or the flashlight housing projects into its cone.
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _visibility.Register(renderer);
+        }
 
         public void SetThrowableRendererHidden(Renderer renderer, bool hidden)
             => _visibility.SetThrowableHidden(renderer, hidden);

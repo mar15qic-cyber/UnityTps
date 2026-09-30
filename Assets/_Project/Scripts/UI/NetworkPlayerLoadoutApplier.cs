@@ -73,5 +73,17 @@ namespace Game.UI
             }
             return true;
         }
+
+        /// <summary>CF 三背包（2026-09-30 Phase D）：itemId → 展示名（对局内背包浮层渲染；
+        /// Game.Presentation 经 Game.Gameplay 反射桥调用——asmdef 不直接引用 Game.UI）。
+        /// 解析失败返回 itemId 原样（诚实呈现，不猜名字）。</summary>
+        public static string ResolveDisplayName(string itemId)
+        {
+            if (string.IsNullOrWhiteSpace(itemId)) return string.Empty;
+            var catalog = WeaponAssetCatalog.LoadOrDefault();
+            if (catalog != null && catalog.TryResolveDefinition(itemId, out var definition) && definition != null)
+                return definition.DisplayName;
+            return itemId;
+        }
     }
 }

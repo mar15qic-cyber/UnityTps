@@ -64,6 +64,12 @@ namespace Game.Gameplay.Weapon
                 ReloadRemaining = Math.Max(0f, remaining);
         }
 
+        internal bool InsertShell()
+        {
+            if (State != WeaponRuntimeState.Reloading || CurrentAmmo >= MagazineSize || ReserveAmmo <= 0) return false;
+            CurrentAmmo++; ReserveAmmo--; return true;
+        }
+
         internal int CompleteReload()
         {
             if (State != WeaponRuntimeState.Reloading) return 0;

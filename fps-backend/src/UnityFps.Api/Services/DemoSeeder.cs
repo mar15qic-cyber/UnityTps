@@ -22,10 +22,12 @@ public static class DemoSeeder
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
             CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
             Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };
+        user.Loadouts.Add(new PlayerLoadout { BackpackIndex = 0, ThrowableId = BackpackPolicy.DefaultThrowableItemId, UpdatedAtUtc = DateTime.UtcNow });
         foreach (var itemId in CatalogSeeder.InitialWeapons)
+            user.Inventory.Add(new PlayerInventoryItem { ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
+        foreach (var itemId in CatalogSeeder.InitialThrowables)
             user.Inventory.Add(new PlayerInventoryItem { ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         db.Users.Add(user);
         await db.SaveChangesAsync();

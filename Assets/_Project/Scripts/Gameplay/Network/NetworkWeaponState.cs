@@ -32,6 +32,9 @@ namespace Game.Gameplay.Network
         //（调试 Host 十槽/离线）→ 客户端回退本机 WeaponAttachmentStore，离线单人行为不变。
         private readonly SyncVar<string> _primaryAttachments = new();
         private readonly SyncVar<string> _secondaryAttachments = new();
+        // CF 三背包（2026-09-30 Phase C，协议 v24 SyncVar 新增）：活动背包下标 0/1/2。
+        // ServerPublishBackpack 单写者（生成 + 对局内换背包）；HUD 徽标与背包浮层只读。
+        private readonly SyncVar<int> _activeBackpackIndex = new();
 
         private WeaponController _controller;
         private Arsenal _arsenal;
@@ -53,6 +56,7 @@ namespace Game.Gameplay.Network
                 _controller.OnWeaponEquipped += HandleServerWeaponEquipped;
                 _controller.OnShotFired += HandleServerShotFired;
                 _controller.OnReloadStarted += HandleServerReloadStarted;
+                _controller.OnShellReloadPhaseChanged += HandleServerAmmoChangedForReload;
                 // 弹药权威采集：初始值 + 后续变化（Docs/23 P0-3）
                 PublishAuthoritativeAmmoSnapshot(0u);
                 _controller.OnAmmoChanged += HandleServerAmmoChanged;
@@ -65,21 +69,36 @@ namespace Game.Gameplay.Network
             // 调试 Host/旁路（十槽）不写——空串=客户端保留本地槽位（服务器仍权威验证切槽）。
             if (_arsenal != null && _arsenal.SlotCount == 2)
             {
-                _primaryWeaponId.Value = _arsenal.Slots[0] != null ? _arsenal.Slots[0].CatalogItemId : string.Empty;
-                _secondaryWeaponId.Value = _arsenal.Slots[1] != null ? _arsenal.Slots[1].CatalogItemId : string.Empty;
-                Debug.Log($"[NetworkWeaponState] AUTHORITATIVE_SLOTS server weapon={NetworkObject?.Owner?.ClientId} primary={_primaryWeaponId.Value} secondary={_secondaryWeaponId.Value}");
-
-                // Gate A-2：权威附件快照广播（同依赖：Adapter.OnStartServer 已先写入
-                // AuthoritativeLoadout）。票据配装在位才写——调试 Host/无档案路径留空 =
-                // 客户端回退本机存储（离线/调试行为不变）。
                 var adapter = GetComponentInParent<PlayerNetworkAdapter>();
-                var loadout = adapter != null ? adapter.AuthoritativeLoadout : null;
-                if (loadout != null)
-                {
-                    _primaryAttachments.Value = AttachmentSnapshotCodec.EncodeForSlot(loadout, NetworkLoadoutPolicy.SlotName(0));
-                    _secondaryAttachments.Value = AttachmentSnapshotCodec.EncodeForSlot(loadout, NetworkLoadoutPolicy.SlotName(1));
-                }
+                var loadout = adapter != null ? adapter.ActiveBackpackSnapshot : null;
+                // 调试 Host/无档案路径（loadout null）不写槽位 SyncVar——空串=客户端保留本地
+                // 槽位（服务器仍权威验证切槽），离线/调试行为不变。
+                ServerPublishBackpack(_arsenal, loadout, adapter != null ? adapter.ActiveBackpackIndex : 0, logInitial: true);
             }
+        }
+
+        /// <summary>CF 三背包（2026-09-30 Phase C）：权威两槽/附件快照/活动下标的唯一服务器写者。
+        /// 生成（OnStartServer）与对局内换背包（PlayerNetworkAdapter.ServerSwitchBackpack）共用；
+        /// 同值幂等（FishNet SyncVar 同值不广播）。loadout null = 无档案（调试 Host）→ 槽位/附件
+        /// 全部留空，仅活动下标仍写（HUD 语义无害）。非服务器调用为安全空操作。</summary>
+        internal void ServerPublishBackpack(Arsenal arsenal, TicketLoadoutSnapshot loadout, int backpackIndex, bool logInitial = false)
+        {
+            if (!IsServerInitialized) return;
+            if (arsenal != null && arsenal.SlotCount == 2)
+            {
+                string primary = arsenal.Slots[0] != null ? arsenal.Slots[0].CatalogItemId : string.Empty;
+                string secondary = arsenal.Slots[1] != null ? arsenal.Slots[1].CatalogItemId : string.Empty;
+                _primaryWeaponId.Value = primary;
+                _secondaryWeaponId.Value = secondary;
+                if (logInitial)
+                    Debug.Log($"[NetworkWeaponState] AUTHORITATIVE_SLOTS server weapon={NetworkObject?.Owner?.ClientId} primary={primary} secondary={secondary}");
+            }
+            if (loadout != null)
+            {
+                _primaryAttachments.Value = AttachmentSnapshotCodec.EncodeForSlot(loadout, NetworkLoadoutPolicy.SlotName(0));
+                _secondaryAttachments.Value = AttachmentSnapshotCodec.EncodeForSlot(loadout, NetworkLoadoutPolicy.SlotName(1));
+            }
+            _activeBackpackIndex.Value = BackpackSwitchPolicy.ClampIndex(backpackIndex);
         }
 
         public override void OnStartClient()
@@ -103,9 +122,9 @@ namespace Game.Gameplay.Network
             // 服务器广播的权威武器与本地不一致（初始错位/非法切枪被拒）时把 Owner 拉回权威武器
             _weaponId.OnChange += HandleWeaponChanged;
             _ammoSnapshot.OnChange += HandleAmmoSnapshotChanged;
-            if (IsOwnerPlayerSafe)
+            if (!IsServerInitialized)
             {
-                ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(_ammoSnapshot.Value.LifeEpoch);
+                if(IsOwnerPlayerSafe) ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(_ammoSnapshot.Value.LifeEpoch);
                 _controller?.ApplyAuthoritativeAmmoSnapshot(_ammoSnapshot.Value);
             }
             // 审计 2026-09-15 §3.4：两槽初值可能晚于 OnStartClient 到达（生成/池化时序）——
@@ -132,6 +151,8 @@ namespace Game.Gameplay.Network
         /// <summary>权威两槽初值（供 HUD/诊断只读）。</summary>
         public string PrimaryWeaponId => _primaryWeaponId.Value;
         public string SecondaryWeaponId => _secondaryWeaponId.Value;
+        /// <summary>活动背包下标（CF 三背包 2026-09-30；供对局内 HUD 徽标/背包浮层只读）。</summary>
+        public int ActiveBackpackIndex => _activeBackpackIndex.Value;
 
         /// <summary>
         /// 当前武器定义 → 权威槽位索引（CatalogItemId 与服务器广播的两槽比对；不属于任一槽 = -1）。
@@ -235,6 +256,8 @@ namespace Game.Gameplay.Network
                 CurrentAmmo = _controller.Runtime.CurrentAmmo,
                 ReserveAmmo = _controller.Runtime.ReserveAmmo,
                 ReloadState = _controller.Runtime.State,
+                ReloadPhase = _controller.ReloadPhase, ReloadPhaseElapsed = _controller.ReloadPhaseElapsed, ReloadGeneration = _controller.ReloadGeneration, ReloadFinishRequested = _controller.ReloadFinishRequested,
+                LastProcessedActionCommandId = authority != null ? authority.LastProcessedActionCommandId : 0,
                 ReloadRemaining = _controller.Runtime.ReloadRemaining
             };
             _ammoSnapshot.Value = snapshot;
@@ -244,8 +267,8 @@ namespace Game.Gameplay.Network
         private void HandleAmmoSnapshotChanged(AuthoritativeAmmoSnapshot previous,
             AuthoritativeAmmoSnapshot next, bool asServer)
         {
-            if (asServer || !IsOwnerPlayerSafe) return;
-            ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(next.LifeEpoch);
+            if (asServer) return;
+            if(IsOwnerPlayerSafe) ResolveCombatAuthority()?.ObserveOwnerAmmoLifeEpoch(next.LifeEpoch);
             _controller?.ApplyAuthoritativeAmmoSnapshot(next);
         }
 
@@ -262,6 +285,7 @@ namespace Game.Gameplay.Network
 
         private void HandleServerShotFired(WeaponShot _) => BroadcastFire();
         private void HandleServerReloadStarted() => BroadcastReload();
+        private void HandleServerAmmoChangedForReload() => PublishAuthoritativeAmmoSnapshot(ResolveCombatAuthority()?.LastProcessedShotRequestId??0);
 
         private void HandleWeaponChanged(string prev, string next, bool asServer)
         {

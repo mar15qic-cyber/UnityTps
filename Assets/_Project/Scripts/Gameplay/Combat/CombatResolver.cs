@@ -538,7 +538,7 @@ namespace Game.Gameplay.Combat
         {
             if (collider == null) return false;
             var tag = collider.GetComponent<HitVolumeTag>();
-            return tag != null && tag.Role == HitVolumeRole.MovementBlocker;
+            return collider.GetComponent<MapMovementBarrier>() != null || tag != null && tag.Role == HitVolumeRole.MovementBlocker;
         }
 
         /// <summary>把一条 RaycastHit 转成带碰撞体归属信息的几何命中（审计 §6.1）。</summary>

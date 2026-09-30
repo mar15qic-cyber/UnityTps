@@ -254,6 +254,18 @@ public sealed class ServerInstanceApiTests : IClassFixture<ServerApiFactory>
         Assert.True(loadout.GetProperty("version").GetInt64() >= 1);
         Assert.Equal(JsonValueKind.Array, loadout.GetProperty("attachments").ValueKind); // 附件数组必须存在（可空内容）
 
+        // CF 三背包（2026-09-30 Phase A）：consume 必须同时携带三背包全集 + 活动下标，
+        // 各背包带 backpackIndex 标识；失败响应不得携带（防泄露）。
+        var backpacks = consume.GetProperty("backpacks");
+        Assert.Equal(JsonValueKind.Array, backpacks.ValueKind);
+        Assert.Equal(3, backpacks.GetArrayLength());
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Equal(i, backpacks[i].GetProperty("backpackIndex").GetInt32());
+            Assert.False(string.IsNullOrEmpty(backpacks[i].GetProperty("primaryWeaponId").GetString()));
+        }
+        Assert.Equal(0, consume.GetProperty("activeBackpackIndex").GetInt32());
+
         var replay = await ServerTest.ConsumeTicketAsync(client, instanceId, ticket);
         Assert.False(replay.GetProperty("valid").GetBoolean());
         Assert.Equal(JsonValueKind.Null, replay.GetProperty("loadout").ValueKind); // 失败响应不得携带配装;

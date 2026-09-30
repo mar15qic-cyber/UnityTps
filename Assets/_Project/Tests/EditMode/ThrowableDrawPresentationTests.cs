@@ -30,6 +30,7 @@ namespace Game.Gameplay.Tests
             _owner=new GameObject("DrawTestOwner"); _owner.SetActive(false);
             _throwables=_owner.AddComponent<ThrowableController>();
             typeof(ThrowableController).GetField("_catalog",Hidden).SetValue(_throwables,Resources.Load<ThrowableCatalog>("ThrowableCatalog"));
+            _throwables.ResetOfflineInventory();
             _fp=_root.GetComponent<FPWeaponAnimator>(); _graph=_root.GetComponent<AnimancerComponent>();
             _graph.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
             _graph.Graph.UpdateMode=DirectorUpdateMode.Manual;
@@ -50,6 +51,7 @@ namespace Game.Gameplay.Tests
         {
             typeof(ThrowableController).GetField("<IsEquipped>k__BackingField",Hidden).SetValue(_throwables,true);
             typeof(ThrowableController).GetField("<SelectedType>k__BackingField",Hidden).SetValue(_throwables,kind);
+            typeof(ThrowableController).GetField("<SelectedSlot>k__BackingField",Hidden).SetValue(_throwables,(int)kind);
             Call("HandleThrowableSelection");
         }
 

@@ -191,7 +191,7 @@ public sealed class FriendsServiceTests
             CreatedAtUtc = DateTime.UtcNow,
             LastSeenUtc = lastSeenUtcUtc,
             Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
+            Loadouts = { new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow } },
             Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };
         db.Users.Add(user);

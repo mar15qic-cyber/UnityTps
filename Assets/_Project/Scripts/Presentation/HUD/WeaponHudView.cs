@@ -28,6 +28,7 @@ namespace Game.Presentation.HUD
         private TMP_Text _ammoLine;
         private TMP_Text _weaponNameText;
         private TMP_Text _buildLabel;
+        private TMP_Text _packBadge;
         private Image _weaponIcon;
         private bool _showingThrowable;
         private static readonly Color TextMuted = new Color32(0x9A, 0xA7, 0xB8, 0xFF);
@@ -87,6 +88,10 @@ namespace Game.Presentation.HUD
             _weaponNameText = CreateTmpText("WeaponName", cluster.transform, "", 18, TextMuted,
                 TextAlignmentOptions.BottomRight);
             Stretch(_weaponNameText.rectTransform, 0.34f, 1f, 0.66f, 1f);
+            // CF 三背包徽标（2026-09-30 Phase D）：活动背包号（PACK N，NetworkWeaponState.SyncVar）
+            _packBadge = CreateTmpText("PackBadge", cluster.transform, "", 15, TextMuted,
+                TextAlignmentOptions.TopRight);
+            Stretch(_packBadge.rectTransform, 0.34f, 0.94f, 0.96f, 1f);
             _ammoLine = CreateTmpText("AmmoLine", cluster.transform, "", 46, Color.white,
                 TextAlignmentOptions.BottomRight);
             // 右边界留 6% 内缩：贴边时 TMP 的最后一字形会被画布边缘切掉（实机 00:55 帧复现）
@@ -206,6 +211,7 @@ namespace Game.Presentation.HUD
             }
             if (_showingThrowable) { _showingThrowable = false; Refresh(); }
             ResolveOwnerWeapon();
+            RefreshPackBadge();
             RefreshAmmo();
         }
 
@@ -275,9 +281,26 @@ namespace Game.Presentation.HUD
                     ? $"{arsenal.ActiveIndex + 1:00}  /  {controller.Definition.DisplayName}"
                     : controller.Definition.DisplayName;
             RefreshWeaponIcon(controller.Definition);
+            RefreshPackBadge();
             SetAmmo(controller.Runtime.CurrentAmmo, controller.Runtime.ReserveAmmo,
                 controller.Runtime.State == WeaponRuntimeState.Reloading);
         }
+
+        /// <summary>背包徽标（Phase D）：活动背包号读本地 Owner 的 NetworkWeaponState.SyncVar——
+        /// 服务器换背包后全端自动跟随；无网络武器状态（离线/旧存档）隐藏徽标。
+        /// Update 每帧轮询（SyncVar 到达时序晚于武器事件，事件驱动会短暂显示旧包号）。</summary>
+        private void RefreshPackBadge()
+        {
+            if (_packBadge == null) return;
+            int active = -1;
+            if (_netWeaponState != null && _netWeaponState.IsOwnerPlayerSafe)
+                active = _netWeaponState.ActiveBackpackIndex;
+            if (active == _lastPackBadge) return;
+            _lastPackBadge = active;
+            _packBadge.text = active >= 0 ? $"PACK {active + 1}" : string.Empty;
+        }
+
+        private int _lastPackBadge = -2;
 
         private void RefreshWeaponIcon(WeaponDefinition definition)
         {

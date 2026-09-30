@@ -24,7 +24,11 @@ namespace Game.UI
             if (map != null && map.availability == "preparing") return map.displayName + "（准备中）";
             return !string.IsNullOrEmpty(map?.displayName) ? map.displayName : id switch { "arena"=>"Arena", "map_01"=>"Stackyard", "map_02"=>"Depot 55", "map_03"=>"Ridgeline", "map_04"=>"Training Yard", "map_05"=>"Night Relay", _=>id??"未知地图" };
         }
-        private static bool RoomCanJoin(GameRoomDto room) => room != null && room.status == "Waiting" && room.joinedPlayers < room.maxPlayers;
+        // 加入谓词（方案A，FD-0020）：后端 InMatch 补人链路完整（RoomService.L194-238），前端只放行入口；
+        // Starting/Returning 仍拒绝（后端 409 兜底），Waiting/InMatch 满员均不可加入。
+        private static bool RoomCanJoin(GameRoomDto room) => room != null
+            && room.joinedPlayers < room.maxPlayers
+            && (room.status == "Waiting" || room.status == "InMatch");
 
         private void RenderOnlineJoin()
         {
@@ -103,7 +107,7 @@ namespace Game.UI
                 RoomCell(row.transform,MapLabel(room.mapId),0,.29f); RoomCell(row.transform,room.leaderUsername,.29f,.55f);
                 RoomCell(row.transform,room.mode=="TDM"?"团队竞技":"击杀竞赛",.55f,.73f);
                 RoomCell(row.transform,$"{room.joinedPlayers}/{room.maxPlayers}",.73f,.84f);
-                RoomCell(row.transform,room.status=="Waiting"?(RoomCanJoin(room)?"等待中":"已满员"):room.status=="InMatch"?"对局中":"准备/结算",.84f,1);
+                RoomCell(row.transform,room.status=="Waiting"?(RoomCanJoin(room)?"等待中":"已满员"):room.status=="InMatch"?(RoomCanJoin(room)?"对局中·可补人":"对局中"):"准备/结算",.84f,1);
             }
             if(rows.Length==0) { var empty=StyledText(content,"暂无匹配房间",UITheme.FontBody,UITheme.TextMuted,Vector2.zero,Vector2.one); empty.gameObject.AddComponent<LayoutElement>().preferredHeight=60; }
             var selected=rows.FirstOrDefault(r=>r.roomId==selectedRoomId);
@@ -115,7 +119,16 @@ namespace Game.UI
         private void JoinSelectedRoom()
         {
             var selected=cachedRoomRows.FirstOrDefault(r=>r.roomId==selectedRoomId);
-            if(RoomCanJoin(selected)) _=StartOnlineRoomAsync(selected.roomId.ToString());
+            if(selected==null)return;
+            if(RoomCanJoin(selected)){_=StartOnlineRoomAsync(selected.roomId.ToString());return;}
+            // 拒绝不再静默（FD-0020）：原实现双击/点按钮无任何提示，用户误判"点了没反应"
+            if(status!=null) status.text=selected.status switch
+            {
+                "Starting"=>"该房间正在启动比赛，暂不能加入",
+                "Returning"=>"该房间正在结算返房，暂不能加入",
+                "Closed"=>"该房间已关闭",
+                _=>"该房间已满员",
+            };
         }
         private Transform RoomDialog(string title)
         {

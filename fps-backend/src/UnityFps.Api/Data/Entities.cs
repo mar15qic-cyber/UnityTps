@@ -21,7 +21,10 @@ public sealed class UserAccount
     /// 在场判定：房间成员资格（房间中/对局中）优先于该时间（120s 内=在线）。</summary>
     public DateTime? LastSeenUtc { get; set; }
     public PlayerProfile? Profile { get; set; }
-    public PlayerLoadout? Loadout { get; set; }
+    /// <summary>CF 三背包配装（2026-09-30 背包系统 Phase A）：每用户 3 行 PlayerLoadout
+    ///（BackpackIndex 0/1/2，(UserId, BackpackIndex) 唯一）；背包 0 注册即建行，背包 1/2 懒创建
+    ///（读取时按 BackpackPolicy 合成默认，首次 PUT 落库）。</summary>
+    public List<PlayerLoadout> Loadouts { get; set; } = [];
     public PlayerWallet? Wallet { get; set; }
     public List<PlayerInventoryItem> Inventory { get; set; } = [];
     public List<ShopPurchase> Purchases { get; set; } = [];
@@ -42,13 +45,17 @@ public sealed class PlayerLoadout
 {
     public long Id { get; set; }
     public long UserId { get; set; }
+    /// <summary>背包下标（0/1/2 = 背包 1/2/3）；存量行迁移默认 0。与 UserId 复合唯一。</summary>
+    public int BackpackIndex { get; set; }
     public string PrimaryWeaponId { get; set; } = "weapon.m4";
     public string SecondaryWeaponId { get; set; } = "weapon.service_pistol";
+    /// <summary>投掷物槽（2026-09-30 解冻）：CatalogItem ItemType/SlotType="Throwable"；null = 不带雷。</summary>
     public string? ThrowableId { get; set; }
     public long Version { get; set; } = 1;
     public DateTime UpdatedAtUtc { get; set; }
     public UserAccount User { get; set; } = null!;
     public List<PlayerLoadoutAttachment> Attachments { get; set; } = [];
+    public List<PlayerLoadoutThrowable> Throwables { get; set; } = [];
 }
 
 public sealed class CatalogItem
@@ -468,4 +475,12 @@ public sealed class Friendship
     public long UserId { get; set; }
     public long FriendId { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+}
+
+public sealed class PlayerLoadoutThrowable
+{
+    public long LoadoutId { get; set; }
+    public int SlotIndex { get; set; }
+    public string? ItemId { get; set; }
+    public PlayerLoadout Loadout { get; set; } = null!;
 }

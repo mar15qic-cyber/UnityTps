@@ -8,7 +8,15 @@ public sealed class AccountSession
     public string Token { get; private set; }
     public DateTime? ExpiresAtUtc { get; private set; }
     public PlayerProfileDto Profile { get; private set; }
+    /// <summary>活动背包配装（CF 三背包，2026-09-30）：恒等于 Backpacks[ActiveBackpackIndex]。
+    /// 存量消费点（大厅预览/枪匠默认值/离线 Arena/补拉缓存）继续只读本属性即可，语义不变。</summary>
     public LoadoutDto Loadout { get; private set; }
+    /// <summary>CF 三背包全集（后端懒默认恒长 3；旧后端登录响应不含 backpacks 字段时为 null）。
+    /// 仓库/大厅背包页签读本属性；ActiveIndex 本轮恒 0。</summary>
+    public BackpackSetDto Backpacks { get; private set; }
+    /// <summary>活动背包下标（0/1/2；无全集时回退 0）。</summary>
+    public int ActiveBackpackIndex => Backpacks != null
+        ? System.Math.Clamp(Backpacks.activeIndex, 0, 2) : 0;
     public bool IsAuthenticated => !string.IsNullOrWhiteSpace(Token) && ExpiresAtUtc > DateTime.UtcNow;
     public string GameplayError { get; private set; }
 
@@ -24,6 +32,7 @@ public sealed class AccountSession
         ExpiresAtUtc = DateTime.TryParse(session.expiresAtUtc, out var expiry) ? expiry.ToUniversalTime() : DateTime.UtcNow.AddHours(12);
         Profile = session.profile;
         Loadout = session.loadout;
+        if (session.backpacks != null) ApplyBackpackSet(session.backpacks, invokeChanged: false);
         Changed?.Invoke();
     }
 
@@ -33,22 +42,63 @@ public sealed class AccountSession
         Changed?.Invoke();
     }
 
+    /// <summary>三背包全集写入：Loadout 同步为活动背包（单写者——任何背包更新最终经此或
+    /// ApplyLoadout(backpackIndex) 落会话，保证两个视图永不漂移）。</summary>
+    public void ApplyBackpackSet(BackpackSetDto set, bool invokeChanged = true)
+    {
+        if (set == null || set.backpacks == null || set.backpacks.Length == 0) return;
+        Backpacks = set;
+        int active = ActiveBackpackIndex;
+        Loadout = set.backpacks[active];
+        if (invokeChanged) Changed?.Invoke();
+    }
+
+    /// <summary>按背包下标读取配装（越界/无全集回退活动背包——组件不需要自己判空）。</summary>
+    public LoadoutDto LoadoutForBackpack(int index)
+    {
+        if (Backpacks != null && Backpacks.backpacks != null
+            && index >= 0 && index < Backpacks.backpacks.Length
+            && Backpacks.backpacks[index] != null)
+            return Backpacks.backpacks[index];
+        return Loadout;
+    }
+
     public void ApplyLoadout(LoadoutDto loadout)
     {
-        Loadout = loadout;
+        ApplyLoadout(loadout, -1);
         Changed?.Invoke();
+    }
+
+    /// <summary>单背包更新（仓库/枪匠保存成功回写）：backpackIndex&lt;0 时按 dto 自带下标（无则活动背包）。</summary>
+    public void ApplyLoadout(LoadoutDto loadout, int backpackIndex)
+    {
+        if (loadout == null) return;
+        int index = backpackIndex >= 0 ? backpackIndex : loadout.backpackIndex;
+        if (Backpacks != null && Backpacks.backpacks != null
+            && index >= 0 && index < Backpacks.backpacks.Length)
+            Backpacks.backpacks[index] = loadout;
+        if (index == ActiveBackpackIndex || Backpacks == null)
+            Loadout = loadout;
     }
 
     /// <summary>
     /// 配件保存接口只返回版本与配件数组；必须把它合并回当前会话，否则下一次更换武器仍会
     /// 携带旧 expectedVersion，后端会误判为“配装已被其他窗口修改”。武器槽位保持不变。
+    /// backpackIndex&lt;0 = 活动背包（三背包 Phase B 增参，旧调用零改动）。
     /// </summary>
-    public void ApplyLoadoutAttachments(LoadoutAttachmentsDto update)
+    public void ApplyLoadoutAttachments(LoadoutAttachmentsDto update, int backpackIndex = -1)
     {
         if (update == null) throw new ArgumentNullException(nameof(update));
-        if (Loadout == null) Loadout = new LoadoutDto();
-        Loadout.version = update.version;
-        Loadout.attachments = update.attachments ?? Array.Empty<LoadoutAttachmentDto>();
+        int index = backpackIndex >= 0 ? backpackIndex : ActiveBackpackIndex;
+        var target = LoadoutForBackpack(index);
+        if (target == null)
+        {
+            if (index != ActiveBackpackIndex) return; // 目标背包尚未在会话（理论不可达：后端恒下发全集）
+            target = Loadout = new LoadoutDto { backpackIndex = index };
+        }
+        target.version = update.version;
+        target.attachments = update.attachments ?? Array.Empty<LoadoutAttachmentDto>();
+        ApplyLoadout(target, index);
         Changed?.Invoke();
     }
 
@@ -146,6 +196,7 @@ public sealed class AccountSession
         ExpiresAtUtc = null;
         Profile = null;
         Loadout = null;
+        Backpacks = null;
         GameplayError = null;
         Room = null;
         Changed?.Invoke();

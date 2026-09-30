@@ -115,10 +115,10 @@ namespace Game.Gameplay.Tests
             => Assert.That(MapContentUpdater.ResolveBaseUrl(null, "off"), Is.Null);
         [Test] public void PrivateEnvironment_IgnoresEndpointOverride()
             => Assert.That(MapContentUpdater.ResolveBaseUrl(new ClientReleaseEnvironment { networkMode = "private-overlay", hotUpdateBaseUrl = "http://10.1.1.1/hotupdate/" }, "off"), Is.EqualTo("http://10.1.1.1/hotupdate"));
-        [TestCase("", "fps-net-v23", "maps/map_nightrelay.bundle", true)]
-        [TestCase("other-release", "fps-net-v23", "maps/map_nightrelay.bundle", false)]
-        [TestCase("", "fps-net-v22", "maps/map_nightrelay.bundle", false)]
-        [TestCase("", "fps-net-v23", "bootstrap.lua", false)]
+        [TestCase("", "fps-net-v25", "maps/map_nightrelay.bundle", true)]
+        [TestCase("other-release", "fps-net-v25", "maps/map_nightrelay.bundle", false)]
+        [TestCase("", "fps-net-v23", "maps/map_nightrelay.bundle", false)] // v23 随 v24 发布退役——旧热更包不再可装
+        [TestCase("", "fps-net-v25", "bootstrap.lua", false)]
         public void LocalChannel_StillChecksIdentity(string release, string protocol, string path, bool expected)
         {
             var manifest = new HotUpdateManifest { version = "10", releaseId = release, protocolId = protocol,

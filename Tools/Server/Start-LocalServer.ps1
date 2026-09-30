@@ -488,9 +488,16 @@ $tmpState = $stateFile + '.tmp'
 $state | ConvertTo-Json | Set-Content -Path $tmpState -Encoding ASCII
 Move-Item -Force -Path $tmpState -Destination $stateFile
 
+# Map-server ownership records are only written when this run actually started map
+# instances (-AllMaps). With maps=off an empty record set produces no pipeline output,
+# so Set-Content never creates the tmp file and the Move below would fail. A stale
+# map-servers.json from an earlier -AllMaps run must be preserved here: it is the only
+# stop handle for those still-running instances (Stop-LocalServer.ps1 removes it).
 $tmpMapState = $mapStateFile + '.tmp'
-$mapRecords | ConvertTo-Json | Set-Content -Path $tmpMapState -Encoding ASCII
-Move-Item -Force -Path $tmpMapState -Destination $mapStateFile
+if (@($mapRecords).Count -gt 0) {
+    $mapRecords | ConvertTo-Json | Set-Content -Path $tmpMapState -Encoding ASCII
+    Move-Item -Force -Path $tmpMapState -Destination $mapStateFile
+}
 
 if ($mapFailures.Count -gt 0) {
     Fail 'MAP_DS_NOT_ALL_READY' ("maps failed: " + ($mapFailures -join ',') + "; healthy instances are recorded in $mapStateFile and can be stopped with the stop script")

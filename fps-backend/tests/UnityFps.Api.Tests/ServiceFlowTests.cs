@@ -20,7 +20,7 @@ public sealed class ServiceFlowTests
         Assert.Equal("weapon.service_pistol", session.Loadout.SecondaryWeaponId);
         Assert.Equal(1, session.Loadout.Version);
         Assert.Equal(CatalogSeeder.InitialCoins, session.Coins);
-        Assert.Equal(3, await db.InventoryItems.CountAsync());
+        Assert.Equal(6, await db.InventoryItems.CountAsync()); // 3 初始武器 + 1 初始投掷物（2026-09-30 背包系统）
         Assert.Null(typeof(PlayerProfileDto).GetProperty("SkillPoints"));
         var pass = await db.PlayerPasses.SingleAsync();
         Assert.Equal(PassSeeder.SeasonId, pass.SeasonId);
@@ -59,7 +59,7 @@ public sealed class ServiceFlowTests
             PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
+            Loadouts = { new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow } },
             Wallet = new PlayerWallet { Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow }
         };
         db.Users.Add(user);

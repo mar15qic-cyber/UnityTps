@@ -45,7 +45,7 @@ namespace Game.Presentation.Animation
         private ThrowableController _throwables;
         private TPWeaponMeshSwapper _weaponSwapper;
         private GameObject _heldThrowable;
-        private ThrowableType _heldThrowableType;
+        private string _heldThrowableItemId;
         private uint _throwPoseSequence;
         private ThrowablePosePhase _throwPosePhase;
         private CartesianMixerState _walkMixer;
@@ -389,7 +389,7 @@ namespace Game.Presentation.Animation
             var state = _animancer.Layers[ActionLayer].Play(clip, actionFadeSeconds, FadeMode.FromStart);
             // ActionSystem remains authoritative at Stat.ReloadTime. Fit the entire clip
             // into that window so the completion callback never cuts a long rifle reload.
-            state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.Stat.ReloadTime);
+            state.Speed = ReloadAnimationTiming.GetPlaybackSpeed(clip, controller.UsesShellReload ? controller.Runtime.ReloadRemaining : controller.Stat.ReloadTime);
             state.Events(this).OnEnd = FadeOutActionLayer;
         }
 
@@ -440,7 +440,7 @@ namespace Game.Presentation.Animation
                 if (state != null) state.Time = Mathf.Clamp(ElapsedPoseSeconds(pose), 0f, state.Length);
                 return;
             }
-            EnsureHeldThrowable(pose.Type);
+            EnsureHeldThrowable(string.IsNullOrEmpty(pose.ItemId) ? ThrowableSlots.DefaultId(pose.Type) : pose.ItemId);
             if (pose.Phase == ThrowablePosePhase.Selected) PlayThrowHold();
             else if (pose.Phase == ThrowablePosePhase.Started)
             {
@@ -481,20 +481,20 @@ namespace Game.Presentation.Animation
             if (state != null) { state.Time = state.Length * .5f; state.Speed = 0f; }
         }
 
-        private void EnsureHeldThrowable(ThrowableType type)
+        private void EnsureHeldThrowable(string itemId)
         {
-            if (_heldThrowable != null && _heldThrowableType == type)
+            if (_heldThrowable != null && _heldThrowableItemId == itemId)
             {
                 _heldThrowable.SetActive(true);
                 return;
             }
             if (_heldThrowable != null) Destroy(_heldThrowable);
             _heldThrowable = null;
-            var definition = Resources.Load<ThrowableCatalog>("ThrowableCatalog")?.Get(type);
+            var definition = Resources.Load<ThrowableCatalog>("ThrowableCatalog")?.Get(itemId);
             var hand = _animancer != null ? _animancer.Animator.GetBoneTransform(HumanBodyBones.RightHand) : null;
             if (hand == null || definition?.ModelPrefab == null) return;
             _heldThrowable = Instantiate(definition.ModelPrefab, hand, false);
-            _heldThrowableType = type;
+            _heldThrowableItemId = itemId;
             _heldThrowable.name = "TP_HeldThrowable";
             _heldThrowable.transform.localPosition = new Vector3(0f, .035f, 0f);
             foreach (var item in _heldThrowable.GetComponentsInChildren<Transform>(true)) item.gameObject.layer = hand.gameObject.layer;

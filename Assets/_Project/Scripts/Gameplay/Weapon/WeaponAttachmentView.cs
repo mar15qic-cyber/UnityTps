@@ -297,6 +297,7 @@ namespace Game.Gameplay.Weapon
             foreach (var slot in AllSlots)
             {
                 var id = slotToItemId != null && slotToItemId.TryGetValue(slot, out var value) ? value : string.Empty;
+                if(id=="attach.rifle.muzzle") id="attach.lpfp.muffler.01";
                 PlayerPrefs.SetString(PrefKeyPrefix + weaponItemId + "." + slot,
                     IsRetiredAttachmentId(id) ? string.Empty : id);
             }
@@ -311,6 +312,7 @@ namespace Game.Gameplay.Weapon
             {
                 var key = PrefKeyPrefix + weaponItemId + "." + slot;
                 var id = PlayerPrefs.GetString(key, string.Empty);
+                if(id=="attach.rifle.muzzle") { id="attach.lpfp.muffler.01"; PlayerPrefs.SetString(key,id); }
                 if (IsRetiredAttachmentId(id))
                 {
                     PlayerPrefs.DeleteKey(key);
@@ -357,6 +359,7 @@ namespace Game.Gameplay.Weapon
                 if (kv.Length != 2) continue;
                 var slot = kv[0].Trim('"');
                 var id = kv[1].Trim('"');
+                if(id=="attach.rifle.muzzle") { id="attach.lpfp.muffler.01"; repaired=true; }
                 if (WeaponAttachmentStore.IsRetiredAttachmentId(id))
                 {
                     repaired = true;

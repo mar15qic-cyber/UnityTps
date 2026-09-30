@@ -16,6 +16,7 @@ namespace Game.Gameplay.Menu
         private static bool _hardLocked;
         private static bool _dead;
         private static bool _chatFocused;
+        private static bool _backpackUiOpen;
         private static int _resumeGraceFrames;
 
         /// <summary>菜单是否打开（InputReader 据此清 ADS 切换意图等内部态）。</summary>
@@ -30,11 +31,16 @@ namespace Game.Gameplay.Menu
         /// <summary>聊天输入聚焦（Docs/27 §11 独立占用原因：封锁移动/视角/开火/ADS/换弹/切枪，不重构既有枚举）。</summary>
         public static bool ChatFocused => _chatFocused;
 
+        /// <summary>对局内背包浮层打开（CF 三背包 2026-09-30 Phase D，独立占用原因同 ChatFocused 先例）：
+        /// 封锁战斗输入（数字键切枪/开火/视角），光标归背包浮层（EnforceCursorState 豁免）。</summary>
+        public static bool BackpackUiOpen => _backpackUiOpen;
+
         /// <summary>恢复宽限帧剩余数（关闭菜单后短暂屏蔽，防止「返回游戏」的点击误开火/误视角）。</summary>
         public static int ResumeGraceFrames => _resumeGraceFrames;
 
         /// <summary>游戏输入是否被禁止（任一原因命中即为 true）。</summary>
-        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _chatFocused || _resumeGraceFrames > 0
+        public static bool InputBlocked => _menuOpen || _hardLocked || _dead || _chatFocused || _backpackUiOpen
+            || _resumeGraceFrames > 0
             || Game.Gameplay.Network.MatchLoadingScreen.Active;
 
         /// <summary>菜单开合（GameplayMenuController 调用；开=屏蔽输入+解锁光标由控制器做）。</summary>
@@ -53,6 +59,9 @@ namespace Game.Gameplay.Menu
 
         /// <summary>聊天输入聚焦（ChatHudView 调用；关闭只释放该原因，其他原因不变）。</summary>
         public static void SetChatFocused(bool focused) => _chatFocused = focused;
+
+        /// <summary>背包浮层开合（BackpackSwitchHudView 调用；关闭只释放该原因）。</summary>
+        public static void SetBackpackUiOpen(bool open) => _backpackUiOpen = open;
 
         /// <summary>硬锁（终局/场景切换）。锁死后即便「关闭菜单」也保持屏蔽，直到显式 Reset。</summary>
         public static void SetHardLocked(bool locked)
@@ -80,6 +89,7 @@ namespace Game.Gameplay.Menu
             _hardLocked = false;
             _dead = false;
             _chatFocused = false;
+            _backpackUiOpen = false;
             _resumeGraceFrames = 0;
         }
     }

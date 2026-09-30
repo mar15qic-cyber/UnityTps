@@ -165,7 +165,8 @@ namespace Game.Gameplay.Weapon
                 if (entry.itemId == "attach.sniper.magazine" || entry.itemId == "attach.pistol.magazine") return false;
             }
             return !pistol || entry.slot != AttachmentSlotType.Optic
-                || entry.itemId == "attach.lpfp.optic.01" || entry.itemId == "attach.lpfp.optic.03";
+                || entry.itemId == "attach.lpfp.optic.01" || entry.itemId == "attach.lpfp.optic.03"
+                || entry.itemId == "attach.rifle.optic" || entry.itemId == "attach.lpfp.optic.02";
         }
 
         public static int RemoveUnsupported(WeaponDefinition definition, List<AttachmentAssetEntry> entries)

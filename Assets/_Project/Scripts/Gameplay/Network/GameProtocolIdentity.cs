@@ -55,7 +55,12 @@ namespace Game.Gameplay.Network
         // v22: ordered combat commands, weapon/command identity, subframe shot clock,
         // timestamped ADS intents, shared display clock and authoritative per-pellet damage.
         // v23: reliable combat-action acceptance/rejection and equipment-epoch rollback.
-        public const string ProtocolId = "fps-net-v23";
+        // v24: CF backpacks — NetworkWeaponState adds SyncVar<int> _activeBackpackIndex;
+        // NetworkCombatAuthority adds ServerBackpackSwitchRequest(int) ServerRpc and
+        // TargetBackpackSwitchResult(connection,int,bool,byte) TargetRpc;
+        // PlayerNetworkAdapter adds TargetOwnerBackpackManifest(connection,string[]) TargetRpc
+        //（2026-09-30 背包系统 Phase C/D）。
+        public const string ProtocolId = "fps-net-v25";
 
         /// <summary>协议不匹配的冻结错误码（DS 拒绝广播 + 后端入房筛选共用字面值）。</summary>
         public const string ProtocolMismatchCode = "PROTOCOL_MISMATCH";

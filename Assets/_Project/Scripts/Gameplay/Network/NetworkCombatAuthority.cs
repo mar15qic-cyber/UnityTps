@@ -163,7 +163,7 @@ namespace Game.Gameplay.Network
         [ServerRpc(RequireOwnership = true)]
         private void ServerFireRequest(TimedFireRequest request)
         {
-            if (request.CommandId != _lastCombatCommandId + 1 || request.Kind > 2) return;
+            if (request.CommandId != _lastCombatCommandId + 1 || request.Kind > 3) return;
             _lastCombatCommandId = request.CommandId;
             if (request.Kind == 0 && (request.ShotId == 0 || request.ShotId <= _lastReceivedShotId))
             {
@@ -203,6 +203,7 @@ namespace Game.Gameplay.Network
                     bool accepted = request.LifeEpoch == CurrentLifeEpoch && !_dead.Value && MatchLifecycle.AllowsCombat(true)
                         && Time.unscaledTimeAsDouble - pending.arrived <= ShotTimingPolicy.MaxWaitSeconds
                         && ExecuteCombatAction(request);
+                    LastProcessedActionCommandId=request.CommandId;
                     ReplyCombatAction(request, accepted);
                     continue;
                 }
@@ -335,6 +336,9 @@ namespace Game.Gameplay.Network
             else
             {
                 _lastTimedShotAccepted = true;
+                // CF 三背包（Phase C）：实际开火置位本生命锁存（TDM"离开+开火"双条件之一；
+                // KillRace"开火即锁"）。拒发（冷却/弹药/死亡）不置位。
+                _backpackHasFiredThisLife = true;
                 // OnAmmoChanged already publishes the normal SyncVar update. This direct
                 // owner delivery closes the prediction loop in the same RPC response path.
                 var state = GetComponent<NetworkWeaponState>();
@@ -405,15 +409,18 @@ namespace Game.Gameplay.Network
 
         /// <summary>远端客户端调用（Owner 专属）：把换弹意图发服务器验证；服务器 ActionSystem
         /// 自带忙碌/弹满闸。Owner 本地 TryReload（预测）与服务器通道都跑是设计意图（Docs/04 §8）。</summary>
-        public void SubmitReloadRequest()
+        public uint LastProcessedActionCommandId { get; private set; }
+        public uint SubmitReloadRequest()
         {
-            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return 0;
             NetworkObject networkObject = NetworkObject;
-            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
-                SubmitCombatAction(1, -1);
+            return networkObject.IsOwner && !networkObject.IsServerInitialized ? SubmitCombatAction(1, -1) : 0;
         }
 
-        private void SubmitCombatAction(byte kind, int slot)
+        public uint SubmitShellReloadFinish()
+        { return FishNetLifecycleGuard.CanSubmitRpc(this) && IsOwnerPlayer && !IsServerInitialized ? SubmitCombatAction(3,-1) : 0; }
+
+        private uint SubmitCombatAction(byte kind, int slot)
         {
             var adapter = GetComponent<PlayerNetworkAdapter>();
             uint commandId = ++_nextCombatCommandId;
@@ -426,6 +433,7 @@ namespace Game.Gameplay.Network
                 LifeEpoch = adapter != null ? adapter.KnownLifeEpoch : 0,
                 WeaponId = _controller != null && _controller.Definition != null ? _controller.Definition.WeaponId : "",
                 ShotSeconds = Time.timeAsDouble });
+            return commandId;
         }
 
         /// <summary>远端客户端调用（Owner 专属）：把切枪意图发服务器验证；服务器合法则
@@ -437,6 +445,152 @@ namespace Game.Gameplay.Network
             if (networkObject.IsOwner && !networkObject.IsServerInitialized)
                 SubmitCombatAction(2, slot);
         }
+
+        // ---- CF 三背包：对局内权威切换（2026-09-30 Phase C） ----
+
+        /// <summary>本生命内实际开过火（枪械接受弹 + 投掷物出手都置位；重生复位）。</summary>
+        private bool _backpackHasFiredThisLife;
+        /// <summary>本生命内曾离开过切换区域（TDM 大本营/KillRace 出生圈；重生复位）。</summary>
+        private bool _backpackLeftZoneThisLife;
+        /// <summary>本生命切换区域锚点（TDM=本队出生簇质心；KillRace=上次出生点）。</summary>
+        private Vector3 _backpackZoneAnchor;
+        /// <summary>锚点是否已捕获（首命在首个服务器 Update 捕获；重生在 ServerRespawn 捕获）。</summary>
+        private bool _backpackZoneCaptured;
+        private PlayerNetworkAdapter _backpackAdapter;
+
+        /// <summary>Owner 本端切换结果（对局内背包 UI 订阅：成功刷新徽标，失败展示原因文案）。
+        /// 命名空间遮蔽纪律：System.Action 全限定。</summary>
+        public event System.Action<int, bool, BackpackSwitchPolicy.DenyReason> OnBackpackSwitchResult;
+        private readonly FishNet.Object.Synchronizing.SyncVar<BackpackSwitchPolicy.DenyReason> _backpackEligibility = new(BackpackSwitchPolicy.DenyReason.NotInMatch);
+        public BackpackSwitchPolicy.DenyReason OwnerBackpackEligibility => _backpackEligibility.Value;
+        private void PublishBackpackEligibility()
+        {
+            var adapter = ResolveBackpackAdapter();
+            int candidate = adapter != null ? (adapter.ActiveBackpackIndex + 1) % 3 : 0;
+            _backpackEligibility.Value = EvaluateBackpackSwitchGate(candidate);
+        }
+
+        /// <summary>Owner（对局内背包浮层）调用：请求切到背包 backpackIndex（0/1/2）。
+        /// 服务器按 BackpackSwitchPolicy 全矩阵权威校验；结果经 TargetRpc 回投。</summary>
+        public void SubmitBackpackSwitch(int backpackIndex)
+        {
+            if (!FishNetLifecycleGuard.CanSubmitRpc(this)) return;
+            NetworkObject networkObject = NetworkObject;
+            if (networkObject.IsOwner && !networkObject.IsServerInitialized)
+                ServerBackpackSwitchRequest(backpackIndex);
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void ServerBackpackSwitchRequest(int backpackIndex) => HandleServerBackpackSwitch(backpackIndex);
+
+        /// <summary>服务器切换执行（薄壳，供 EditMode 直驱测试）。公共闸→区域/锁存闸→重配→结果回投。</summary>
+        internal void HandleServerBackpackSwitch(int backpackIndex)
+        {
+            var nob = NetworkObject;
+            if (nob == null || !nob.IsServerInitialized) return;
+            if (backpackIndex < 0 || backpackIndex >= BackpackSwitchPolicy.BackpackCount)
+            {
+                DeliverBackpackSwitchResult(backpackIndex, false, BackpackSwitchPolicy.DenyReason.NoBackpackData);
+                return;
+            }
+            var reason = EvaluateBackpackSwitchGate(backpackIndex);
+            if (reason != BackpackSwitchPolicy.DenyReason.None)
+            {
+                Debug.Log($"[BackpackTrace] switch reject conn={OwnerClientId} backpack={backpackIndex + 1} reason={reason} " +
+                    $"fired={_backpackHasFiredThisLife} left={_backpackLeftZoneThisLife} match={MatchLifecycle.ClientMatchId}");
+                DeliverBackpackSwitchResult(backpackIndex, false, reason);
+                return;
+            }
+            var adapter = ResolveBackpackAdapter();
+            string error = adapter != null ? adapter.ServerSwitchBackpack(backpackIndex) : "adapter-missing";
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogWarning($"[BackpackTrace] switch execute failed conn={OwnerClientId} backpack={backpackIndex + 1}：{error}");
+                DeliverBackpackSwitchResult(backpackIndex, false, BackpackSwitchPolicy.DenyReason.NoBackpackData);
+                return;
+            }
+            Debug.Log($"[BackpackTrace] switch accept conn={OwnerClientId} backpack={backpackIndex + 1} match={MatchLifecycle.ClientMatchId}");
+            DeliverBackpackSwitchResult(backpackIndex, true, BackpackSwitchPolicy.DenyReason.None);
+        }
+
+        /// <summary>切换门禁全矩阵求值（服务器权威；纯判定组装，EditMode 可经接缝直驱）。</summary>
+        internal BackpackSwitchPolicy.DenyReason EvaluateBackpackSwitchGate(int backpackIndex)
+        {
+            // 公共闸：存活 + 比赛进行中（倒计时输入冻结期不可换包）
+            if (_dead.Value) return BackpackSwitchPolicy.DenyReason.NotAlive;
+            if (MatchLifecycle.Phase != MatchPhase.InProgress) return BackpackSwitchPolicy.DenyReason.NotInMatch;
+            var adapter = ResolveBackpackAdapter();
+            if (adapter == null || !adapter.HasBackpackData) return BackpackSwitchPolicy.DenyReason.NoBackpackData;
+            if (backpackIndex == adapter.ActiveBackpackIndex) return BackpackSwitchPolicy.DenyReason.AlreadyActive;
+            // 区域/锁存闸（BackpackSwitchPolicy 规则矩阵唯一真相）
+            if (!_backpackZoneCaptured) CaptureBackpackZoneAnchor(transform.position);
+            bool isTeamMatch = MatchLifecycle.IsTeamMatch();
+            bool inZone = BackpackSwitchPolicy.IsInZone(transform.position, _backpackZoneAnchor,
+                BackpackSwitchPolicy.ZoneRadius(isTeamMatch));
+            // Busy can only restrict an otherwise eligible player. Returning it
+            // first revived the availability icon during reload after zone/life locks.
+            bool busy = _timedShots.Count > 0 || _controller != null && _controller.Actions != null && _controller.Actions.IsBusy;
+            return BackpackSwitchPolicy.EvaluateAvailability(isTeamMatch, inZone, _backpackHasFiredThisLife,
+                _backpackLeftZoneThisLife, busy);
+        }
+
+        /// <summary>投掷物出手计入背包开火锁存（Phase C：防"扔完雷回出生点换包补雷"）。</summary>
+        public void MarkBackpackFiredThisLife()
+        {
+            if (NetworkObject != null && NetworkObject.IsServerInitialized)
+                _backpackHasFiredThisLife = true;
+        }
+
+        /// <summary>每 tick 廉价维护"离开区域"锁存（无背包数据的实例零开销；锁存后不再计算）。</summary>
+        private void UpdateBackpackZoneTracking()
+        {
+            if (_dead.Value || _backpackLeftZoneThisLife) return;
+            var adapter = ResolveBackpackAdapter();
+            if (adapter == null || !adapter.HasBackpackData) return;
+            if (!_backpackZoneCaptured)
+            {
+                CaptureBackpackZoneAnchor(transform.position);
+                return;
+            }
+            if (!BackpackSwitchPolicy.IsInZone(transform.position, _backpackZoneAnchor,
+                BackpackSwitchPolicy.ZoneRadius(MatchLifecycle.IsTeamMatch())))
+                _backpackLeftZoneThisLife = true;
+        }
+
+        /// <summary>捕获本生命切换区域锚点：TDM=本队出生簇质心（与 TeamSpawnDirectory 同一切分）；
+        /// 其余（KillRace/无队伍）= 本人出生点。首命由 Update 兜底捕获（生成位姿定稿后），
+        /// 重生由 ServerRespawn 显式传入 respawn 位置。</summary>
+        private void CaptureBackpackZoneAnchor(Vector3 spawnPosition)
+        {
+            _backpackZoneAnchor = spawnPosition;
+            var spawns = SceneSpawnPoints.Current();
+            if (spawns != null && spawns.Length > 0 && MatchLifecycle.IsTeamMatch())
+            {
+                var positions = new Vector3[spawns.Length];
+                for (int i = 0; i < spawns.Length; i++) positions[i] = spawns[i].position;
+                if (BackpackSwitchPolicy.TryResolveTeamBaseCenter(positions, TeamId, out var center))
+                    _backpackZoneAnchor = center;
+            }
+            _backpackZoneCaptured = true;
+        }
+
+        private PlayerNetworkAdapter ResolveBackpackAdapter()
+        {
+            if (_backpackAdapter == null) _backpackAdapter = GetComponent<PlayerNetworkAdapter>();
+            return _backpackAdapter;
+        }
+
+        private void DeliverBackpackSwitchResult(int backpackIndex, bool accepted, BackpackSwitchPolicy.DenyReason reason)
+        {
+            var nob = NetworkObject;
+            if (nob == null || nob.Owner == null) return;
+            TargetBackpackSwitchResult(nob.Owner, backpackIndex, accepted, (byte)reason);
+        }
+
+        [TargetRpc]
+        private void TargetBackpackSwitchResult(FishNet.Connection.NetworkConnection connection,
+            int backpackIndex, bool accepted, byte reason)
+            => OnBackpackSwitchResult?.Invoke(backpackIndex, accepted, (BackpackSwitchPolicy.DenyReason)reason);
 
         private bool ExecuteCombatAction(TimedFireRequest request)
         {
@@ -451,6 +605,7 @@ namespace Game.Gameplay.Network
                 }
                 return false;
             }
+            if(request.Kind==3) return request.WeaponId==_controller.Definition.WeaponId && _controller.RequestShellReloadFinish(false,false);
             int slot = request.Slot;
             var arsenal = _controller.GetComponentInParent<Arsenal>();
             if (arsenal == null) return false;
@@ -478,7 +633,7 @@ namespace Game.Gameplay.Network
             if (NetworkObject == null || NetworkObject.Owner == null) return;
             TargetCombatActionResult(NetworkObject.Owner, request.LifeEpoch, request.CommandId, request.Kind,
                 accepted, _executedEquipmentCommand, _controller?.Definition?.WeaponId ?? "");
-            if (!accepted && request.LifeEpoch == CurrentLifeEpoch)
+            if (request.LifeEpoch == CurrentLifeEpoch)
             {
                 var state = GetComponent<NetworkWeaponState>();
                 if (state != null) TargetAuthoritativeAmmoSnapshot(NetworkObject.Owner,
@@ -544,8 +699,13 @@ namespace Game.Gameplay.Network
             MatchLifecycle.ServerSyncPlayerTeam(this);
             _displayName.Value = MatchLifecycle.ResolveDisplayName(this);
             _timedShots.Clear(); _lastReceivedShotId = 0; _lastExecutedInputTick = _lastExecutedInputLife = 0;
-            _lastCombatCommandId = 0; _combatClockOffset = _actionStartedSeconds = double.NaN;
+            _lastCombatCommandId = 0; LastProcessedActionCommandId=0; _combatClockOffset = _actionStartedSeconds = double.NaN;
             _executedEquipmentCommand = 0;
+            // CF 三背包（Phase C）：每连接生命锁存复位；首命锚点在首个服务器 Update 捕获
+            //（生成位姿此时已定稿，避免 OnStartServer 与位置写入的时序竞态）。
+            _backpackHasFiredThisLife = false;
+            _backpackLeftZoneThisLife = false;
+            _backpackZoneCaptured = false;
             _serverAimTimeline.Reset();
             _shotCadence.Reset(); _cadenceLife = 0;
             _seenShotRequestIds.Clear(); _seenShotRequestIdOrder.Clear();
@@ -803,6 +963,9 @@ namespace Game.Gameplay.Network
             {
                 // 重生到点消费（Phase 1）：tick 驱动、单次执行，替代历史 Invoke(ServerRespawn, 3f)
                 TryConsumeRespawnDue();
+                // CF 三背包（Phase C）：每 tick 廉价维护"离开区域"锁存（有背包数据的实例才计算）
+                UpdateBackpackZoneTracking();
+                PublishBackpackEligibility();
                 if (_target == null)
                 {
                     _target = GetComponentInChildren<DamageableTarget>(true);
@@ -978,7 +1141,14 @@ namespace Game.Gameplay.Network
             var weaponControllers = GetComponentsInChildren<WeaponController>(true);
             for (int i = 0; i < weaponControllers.Length; i++)
                 weaponControllers[i].ServerResetAmmoToLoadoutDefault();
-            GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerResetInventory();
+            // CF 三背包（Phase C）：重生=解锁换包（锁存复位+锚点重捕=本次出生点/大本营）+
+            // 投掷配包按当前活动背包装载（无档案调试路径回退默认库存）。
+            _backpackHasFiredThisLife = false;
+            _backpackLeftZoneThisLife = false;
+            CaptureBackpackZoneAnchor(spawnPosition);
+            var throwableAdapter = GetComponent<PlayerNetworkAdapter>();
+            if (throwableAdapter != null) throwableAdapter.ServerApplyActiveBackpackThrowable();
+            else GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerResetInventory();
             // F13（2026-09-19 审计）：服务器权威侧同步重种后坐随机流（与 Owner 同键：
             // weaponId+ownerClientId+新生命代际）——两端 stream 起点一致
             GetComponent<PlayerNetworkAdapter>()?.ApplyDeterministicRecoilSeeds();

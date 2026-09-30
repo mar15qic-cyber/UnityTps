@@ -64,9 +64,11 @@ namespace Game.Gameplay.Network
     {
         public string primaryWeaponId;
         public string secondaryWeaponId;
-        public string throwableId;
+        public string throwableId; public string[] throwableIds;
         public long version;
         public TicketLoadoutAttachment[] attachments;
+        /// <summary>背包下标（CF 三背包 2026-09-30）：0/1/2 = 背包 1/2/3；旧后端无字段时 JsonUtility 得 0，语义兼容。</summary>
+        public int backpackIndex;
     }
 
     [Serializable]
@@ -100,6 +102,10 @@ namespace Game.Gameplay.Network
         public int killTarget;
         public int timeLimitMinutes;
         public int maxPlayers;
+        // ---- CF 三背包（2026-09-30 Phase A/B）：三背包全集 + 活动下标；旧后端无字段时
+        // backpacks=null/activeBackpackIndex=0——DS 回退单配装语义（loadout 镜像字段仍携带）。
+        public TicketLoadoutSnapshot[] backpacks;
+        public int activeBackpackIndex;
     }
 
     // ============================================================================
@@ -247,6 +253,11 @@ namespace Game.Gameplay.Network
         /// 之前从 AcceptedUsers 按本连接取档，把网络玩家 Arsenal 严格配置为账号实际两槽。
         /// null = 无快照（旧版后端/异常态）——服务器侧 fail closed 拒绝生成，绝不回退调试 Arsenal。</summary>
         public TicketLoadoutSnapshot Loadout;
+        /// <summary>CF 三背包全集（2026-09-30 Phase A/B）：恒长 3（后端懒默认合成）；null = 旧版后端
+        /// → 对局内换背包不可用（DS 按单配装语义运行，Loadout 字段仍 = 活动背包）。</summary>
+        public TicketLoadoutSnapshot[] Backpacks;
+        /// <summary>活动背包下标（0/1/2；本轮后端恒 0）。</summary>
+        public int ActiveBackpackIndex;
         /// <summary>true = 经 -allowUnsafeLocalDebugAuth 的本地调试放行（仅 Editor/Development 服务器）。</summary>
         public bool DebugBypass;
         // ---- CF 比赛身份与规则快照（C3/Q04；空/0 = 旧票据语义）----
@@ -261,7 +272,8 @@ namespace Game.Gameplay.Network
         public static TicketConsumeResult AcceptedFromBackend(string roomCode, string userId, string username,
             long sessionId = 0, TicketLoadoutSnapshot loadout = null,
             string matchId = "", int matchGeneration = 0, string teamId = "",
-            string matchMode = "", int killTarget = 0, int timeLimitMinutes = 0, int maxPlayers = 0) => new()
+            string matchMode = "", int killTarget = 0, int timeLimitMinutes = 0, int maxPlayers = 0,
+            TicketLoadoutSnapshot[] backpacks = null, int activeBackpackIndex = 0) => new()
         {
             Accepted = true,
             RoomCode = roomCode ?? string.Empty,
@@ -269,6 +281,8 @@ namespace Game.Gameplay.Network
             Username = username ?? string.Empty,
             SessionId = sessionId,
             Loadout = loadout,
+            Backpacks = backpacks,
+            ActiveBackpackIndex = activeBackpackIndex,
             MatchId = matchId ?? string.Empty,
             MatchGeneration = matchGeneration,
             TeamId = string.IsNullOrEmpty(teamId) ? MatchRules.TeamNone : teamId,
@@ -405,7 +419,8 @@ namespace Game.Gameplay.Network
                     ? TicketConsumeResult.AcceptedFromBackend(response.roomCode, response.userId, response.username,
                         response.sessionId, response.loadout,
                         response.matchId, response.matchGeneration, response.teamId,
-                        response.matchMode, response.killTarget, response.timeLimitMinutes, response.maxPlayers)
+                        response.matchMode, response.killTarget, response.timeLimitMinutes, response.maxPlayers,
+                        response.backpacks, response.activeBackpackIndex)
                     : TicketConsumeResult.Rejected(string.IsNullOrEmpty(response.errorCode) ? "TICKET_INVALID" : response.errorCode);
             }
             catch (ControlPlaneRequestException)

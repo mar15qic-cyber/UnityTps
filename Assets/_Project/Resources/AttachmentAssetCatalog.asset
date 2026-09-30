@@ -160,30 +160,6 @@ MonoBehaviour:
     - stat: 3
       op: 1
       value: 0.9
-  - itemId: attach.rifle.muzzle
-    displayName: "\u6B65\u67AA\u6D88\u97F3\u5668"
-    description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u901A\u7528\u6D88\u97F3\u5668"
-    slot: 1
-    aimTier: 0
-    isSuppressor: 1
-    adsFovOverride: 0
-    magnification: 0
-    scopeApertureCenter: {x: 0, y: 0, z: 0}
-    scopeApertureRadius: 0
-    prefab: {fileID: 219522665636050988, guid: 5696b489107354c4695acb2098767d7c, type: 3}
-    prefabPath: Assets/_Project/Prefabs/Attachments/Silencer_Visual.prefab
-    mountEuler: {x: 0, y: 90, z: 0}
-    mountOffset: {x: -0.1112973, y: 0, z: 0}
-    modifiers:
-    - stat: 0
-      op: 1
-      value: 0.92
-    - stat: 1
-      op: 1
-      value: 0.92
-    - stat: 3
-      op: 1
-      value: 1.05
   - itemId: attach.rifle.magazine
     displayName: "\u6B65\u67AA\u52A0\u957F\u5F39\u5323"
     description: "\u901A\u884C\u8BC1\u5956\u52B1\uFF1B\u5F39\u5BB9\u91CF +8"

@@ -30,7 +30,7 @@ public static class PassSeeder
         ("Coins", null, 200),                                  // 1
         ("Attachment", "attach.rifle.optic", 0),               // 2
         ("Coins", null, 300),                                  // 3
-        ("Attachment", "attach.rifle.muzzle", 0),              // 4
+        ("Attachment", "attach.lpfp.muffler.01", 0),              // 4
         ("Coins", null, 300),                                  // 5
         ("Attachment", "attach.rifle.magazine", 0),            // 6
         ("Coins", null, 400),                                  // 7
@@ -98,7 +98,8 @@ public static class PassSeeder
                 item.SlotType = slotType; item.DisplayName = displayName; item.AssetKey = assetKey;
                 item.IsImplemented = true;
                 item.CalibrationKey = slotType == "Magazine" ? "stat-only" : "socket-v2";
-                item.AcquisitionSource = "PassReward";
+                if (itemId is not "attach.rifle.optic" and not "attach.pistol.magazine") item.AcquisitionSource = "PassReward";
+                if (itemId == "attach.rifle.muzzle") item.IsActive = false;
             }
         }
     }

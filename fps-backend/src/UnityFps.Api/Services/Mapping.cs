@@ -10,7 +10,8 @@ public static class Mapping
 
     public static LoadoutDto ToDto(this PlayerLoadout loadout) =>
         new(loadout.PrimaryWeaponId, loadout.SecondaryWeaponId, loadout.ThrowableId, loadout.Version,
-            loadout.Attachments.Select(x => new LoadoutAttachmentDto(x.WeaponSlot, x.AttachmentSlot, x.AttachmentItemId)).ToArray());
+            loadout.Attachments.Select(x => new LoadoutAttachmentDto(x.WeaponSlot, x.AttachmentSlot, x.AttachmentItemId)).ToArray(),
+            loadout.BackpackIndex, ThrowableSlotPolicy.Read(loadout));
 
     public static CatalogItemDto ToDto(this CatalogItem item, bool owned) =>
         new(item.ItemId, item.ItemType, item.SlotType, item.DisplayName, item.Description, item.AssetKey,

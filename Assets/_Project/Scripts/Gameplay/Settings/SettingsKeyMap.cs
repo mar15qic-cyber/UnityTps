@@ -20,6 +20,7 @@ namespace Game.Gameplay.Settings
             ThrowFrag, ThrowFlash, ThrowSmoke,
             SelectThrowable,
             LeanLeft, LeanRight,
+            Backpacks,
         }
 
         public sealed class Binding
@@ -44,6 +45,7 @@ namespace Game.Gameplay.Settings
             new() { action = Action.SelectThrowable, label = "选择 / 切换投掷物", defaultKey = Key.Digit3, prefsKey = "unityfps.key.selectThrowable" },
             new() { action = Action.LeanLeft, label = "左探头", defaultKey = Key.Q, prefsKey = "unityfps.key.leanLeft" },
             new() { action = Action.LeanRight, label = "右探头", defaultKey = Key.E, prefsKey = "unityfps.key.leanRight" },
+            new() { action = Action.Backpacks, label = "更换背包", defaultKey = Key.B, prefsKey = "unityfps.key.backpacks" },
         };
 
         private static readonly Dictionary<Action, Key> cache = new();

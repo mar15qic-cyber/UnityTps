@@ -9,10 +9,12 @@ public partial interface IApiClient
     Task<ApiResult<AuthSessionDto>> RegisterAsync(string username, string password, CancellationToken cancellationToken = default);
     Task<ApiResult<AuthSessionDto>> LoginAsync(string username, string password, CancellationToken cancellationToken = default);
     Task<ApiResult<PlayerProfileDto>> GetProfileAsync(CancellationToken cancellationToken = default);
-    Task<ApiResult<LoadoutDto>> GetLoadoutAsync(CancellationToken cancellationToken = default);
-    Task<ApiResult<LoadoutDto>> UpdateLoadoutAsync(LoadoutRequest request, CancellationToken cancellationToken = default);
-    Task<ApiResult<LoadoutAttachmentsDto>> GetLoadoutAttachmentsAsync(CancellationToken cancellationToken = default);
-    Task<ApiResult<LoadoutAttachmentsDto>> UpdateLoadoutAttachmentsAsync(LoadoutAttachmentsRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResult<LoadoutDto>> GetLoadoutAsync(int backpack = 1, CancellationToken cancellationToken = default);
+    Task<ApiResult<LoadoutDto>> UpdateLoadoutAsync(LoadoutRequest request, int backpack = 1, CancellationToken cancellationToken = default);
+    Task<ApiResult<LoadoutAttachmentsDto>> GetLoadoutAttachmentsAsync(int backpack = 1, CancellationToken cancellationToken = default);
+    Task<ApiResult<LoadoutAttachmentsDto>> UpdateLoadoutAttachmentsAsync(LoadoutAttachmentsRequest request, int backpack = 1, CancellationToken cancellationToken = default);
+    /// <summary>三背包全集（CF 背包系统 2026-09-30）：大厅/仓库一次拉取；恒长 3（后端懒默认合成）。</summary>
+    Task<ApiResult<BackpackSetDto>> GetBackpackSetAsync(CancellationToken cancellationToken = default);
     Task<ApiResult<AttachmentCompatibilityDto[]>> GetAttachmentCompatibilityAsync(CancellationToken cancellationToken = default);
     Task<ApiResult<ShopCatalogDto>> GetShopCatalogAsync(CancellationToken cancellationToken = default);
     Task<ApiResult<InventoryDto>> GetInventoryAsync(CancellationToken cancellationToken = default);

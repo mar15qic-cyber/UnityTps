@@ -46,6 +46,7 @@ namespace Game.Gameplay.Tests
             _weapon = _owner.AddComponent<WeaponController>(); Set(_weapon, "definition", _definition);
             _throwable = _owner.AddComponent<ThrowableController>();
             Set(_throwable, "_catalog", Resources.Load<ThrowableCatalog>("ThrowableCatalog"));
+            _throwable.ResetOfflineInventory();
             Set(_throwable, "_actions", _actions); Call(_throwable, "OnEnable");
             _fp = _root.GetComponent<FPWeaponAnimator>(); _graph = _root.GetComponent<AnimancerComponent>();
             _graph.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -71,7 +72,8 @@ namespace Game.Gameplay.Tests
         private void Select(ThrowableType type)
         {
             Set(_throwable, "<IsEquipped>k__BackingField", true);
-            Set(_throwable, "<SelectedType>k__BackingField", type); SelectionChanged();
+            Set(_throwable, "<SelectedType>k__BackingField", type);
+            Set(_throwable, "<SelectedSlot>k__BackingField", (int)type); SelectionChanged();
             for (int i = 0; i < 60; i++) { _graph.Evaluate(1f/120f); _fp.TickThrowablePresentation(1f/120f, false); }
         }
 

@@ -1,0 +1,10 @@
+# Preserve the exact bytes used by the sealed Unity and backend builds.
+# Do not apply autocrlf to source, assets, packages, settings or build tools.
+*.md text eol=lf
+Assets/** -text
+Packages/** -text
+ProjectSettings/** -text
+fps-backend/** -text
+Tools/** -text
+.gitignore text eol=lf
+.gitattributes text eol=lf

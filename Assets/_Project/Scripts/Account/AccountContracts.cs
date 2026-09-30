@@ -12,10 +12,14 @@ namespace Game.Account
 [Serializable] public sealed class LoadoutAttachmentDto { public string weaponSlot; public string attachmentSlot; public string attachmentItemId; }
 [Serializable] public sealed class LoadoutDto
 {
-    public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public long version; public LoadoutAttachmentDto[] attachments;
+    public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public string[] throwableIds; public long version; public LoadoutAttachmentDto[] attachments;
+    /// <summary>背包下标（2026-09-30 三背包）：0/1/2 = 背包 1/2/3；旧后端无此字段时 JsonUtility 反序列化得 0，语义兼容。</summary>
+    public int backpackIndex;
 }
-[Serializable] public sealed class AuthSessionDto { public string token; public string expiresAtUtc; public PlayerProfileDto profile; public LoadoutDto loadout; public long coins; }
-[Serializable] public sealed class LoadoutRequest { public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public long expectedVersion; }
+/// <summary>CF 三背包集合（2026-09-30 Phase A/B）：backpacks 恒长 3（后端懒默认合成），activeIndex 本轮恒 0。</summary>
+[Serializable] public sealed class BackpackSetDto { public LoadoutDto[] backpacks; public int activeIndex; }
+[Serializable] public sealed class AuthSessionDto { public string token; public string expiresAtUtc; public PlayerProfileDto profile; public LoadoutDto loadout; public long coins; public BackpackSetDto backpacks; }
+[Serializable] public sealed class LoadoutRequest { public string primaryWeaponId; public string secondaryWeaponId; public string throwableId; public string[] throwableIds; public long expectedVersion; }
 [Serializable] public sealed class AttachmentSelectionRequest { public string attachmentSlot; public string attachmentItemId; }
 [Serializable] public sealed class LoadoutAttachmentsRequest { public long expectedVersion; public string weaponSlot; public string weaponItemId; public AttachmentSelectionRequest[] attachments; }
 [Serializable] public sealed class CatalogItemDto

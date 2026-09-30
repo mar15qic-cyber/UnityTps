@@ -13,6 +13,7 @@ namespace Game.Gameplay.Combat
     [RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
     public sealed class ThrowableProjectile : NetworkBehaviour
     {
+        private readonly SyncVar<string> _itemId = new();
         private readonly SyncVar<ThrowableType> _type = new();
         private readonly SyncVar<bool> _detonated = new();
         private readonly SyncVar<Vector3> _effectPosition = new();
@@ -45,8 +46,11 @@ namespace Game.Gameplay.Combat
             _body.interpolation = RigidbodyInterpolation.Interpolate;
         }
 
-        public void ServerInitialize(ThrowableType type, Vector3 velocity, NetworkCombatAuthority thrower)
+        public void ServerInitialize(ThrowableType type, Vector3 velocity, NetworkCombatAuthority thrower) => ServerInitialize(ThrowableSlots.DefaultId(type), velocity, thrower);
+        public void ServerInitialize(string itemId, Vector3 velocity, NetworkCombatAuthority thrower)
         {
+            _itemId.Value = itemId;
+            var type = _catalog.Get(itemId).Type;
             _offline = false;
             _type.Value = type;
             _detonated.Value = false;
@@ -55,17 +59,20 @@ namespace Game.Gameplay.Combat
             _initialVelocity = velocity;
             _releaseTime = Time.time;
             _lastImpactTime = float.NegativeInfinity;
-            _definition = _catalog.Get(type);
+            _definition = _catalog.Get(itemId);
         }
 
-        public void OfflineInitialize(ThrowableType type, Vector3 velocity, NetworkCombatAuthority thrower)
+        public void OfflineInitialize(ThrowableType type, Vector3 velocity, NetworkCombatAuthority thrower) => OfflineInitialize(ThrowableSlots.DefaultId(type), velocity, thrower);
+        public void OfflineInitialize(string itemId, Vector3 velocity, NetworkCombatAuthority thrower)
         {
+            _itemId.Value = itemId;
+            var type = _catalog.Get(itemId).Type;
             _offline = true;
             _type.Value = type;
             _thrower = thrower;
             _initialVelocity = velocity;
             _releaseTime = Time.time;
-            _definition = _catalog.Get(type);
+            _definition = _catalog.Get(itemId);
             ConfigurePhysics();
             CreateVisual();
             StartCoroutine(Fuse());
@@ -73,7 +80,7 @@ namespace Game.Gameplay.Combat
 
         public override void OnStartServer()
         {
-            if (_definition == null) _definition = _catalog.Get(_type.Value);
+            if (_definition == null) _definition = _catalog.Get(_itemId.Value) ?? _catalog.Get(_type.Value);
             ConfigurePhysics();
             MatchLifecycle.OnServerMatchEnded += ServerMatchEnded;
             StartCoroutine(Fuse());
@@ -104,7 +111,7 @@ namespace Game.Gameplay.Combat
 
         public override void OnStartClient()
         {
-            _definition = _catalog.Get(_type.Value);
+            _definition = _catalog.Get(_itemId.Value) ?? _catalog.Get(_type.Value);
             if (!IsServerInitialized)
             {
                 _body.isKinematic = true;

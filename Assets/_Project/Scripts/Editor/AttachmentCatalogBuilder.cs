@@ -91,8 +91,6 @@ namespace Game.EditorTools
                     M(WeaponStatId.ViewModelKick, ModifierOperation.Multiply, 0.90f)
                 }),
             // —— 通行证通用件（瞄具已并入上方四款正式 Scope 映射）——
-            Suppressor(A("attach.rifle.muzzle", "步枪消音器", "通行证奖励；LPFP 原生消音器", AttachmentSlotType.Muzzle,
-                "Assets/Low Poly FPS Pack/Prefabs/Models_Only/Attachments/Silencer.prefab", SuppressorMountEuler, MuzzleMods())),
             A("attach.rifle.magazine", "步枪加长弹匣", "通行证奖励；弹容量 +8", AttachmentSlotType.Magazine, null,
                 new[] { M(WeaponStatId.MagazineSize, ModifierOperation.Add, 8f) }),
             Suppressor(A("attach.pistol.muzzle", "手枪消音器", "通行证奖励；LPFP 原生消音器", AttachmentSlotType.Muzzle,

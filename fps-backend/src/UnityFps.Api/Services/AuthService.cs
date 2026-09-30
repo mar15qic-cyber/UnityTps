@@ -29,10 +29,14 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         // 单次 SaveChanges 原子操作，事务包裹无必要；唯一约束冲突由 catch 转业务 409。
         var user = new UserAccount { Username = username, NormalizedUsername = normalized, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12), CreatedAtUtc = DateTime.UtcNow, TokenVersion = 1, IdentityTag = GenerateIdentityTag() };
         user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
-        user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
+        // CF 三背包（2026-09-30）：注册建背包 0（默认武器+默认投掷包），背包 1/2 懒创建
+        user.Loadouts.Add(new PlayerLoadout { User = user, BackpackIndex = 0, ThrowableId = BackpackPolicy.DefaultThrowableItemId, UpdatedAtUtc = DateTime.UtcNow });
+        ThrowableSlotPolicy.Write(user.Loadouts[0], ThrowableSlotPolicy.FromLegacy(BackpackPolicy.DefaultThrowableItemId));
         user.Wallet = new PlayerWallet { User = user, Coins = CatalogSeeder.InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
         user.Passes.Add(new PlayerPass { SeasonId = PassSeeder.SeasonId, PassLevel = 1, PassXp = 0, Version = 1, UpdatedAtUtc = DateTime.UtcNow });
         foreach (var itemId in CatalogSeeder.InitialWeapons)
+            user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
+        foreach (var itemId in CatalogSeeder.InitialThrowables)
             user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         db.Users.Add(user);
         try { await db.SaveChangesAsync(cancellationToken); }
@@ -47,7 +51,7 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
         return await strategy.ExecuteAsync(async token =>
         {
             var user = await db.Users.Include(x => x.Profile).Include(x => x.Wallet)
-                .Include(x => x.Loadout!).ThenInclude(x => x.Attachments)
+                .Include(x => x.Loadouts).ThenInclude(x => x.Attachments)
                 .SingleOrDefaultAsync(x => x.NormalizedUsername == normalized, token);
             if (user is null || user.Disabled || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "用户名或密码错误");
@@ -84,10 +88,13 @@ public sealed class AuthService(AppDbContext db, IJwtTokenService jwt, IProgress
     private AuthSessionDto CreateSession(UserAccount user)
     {
         var profile = user.Profile ?? throw new InvalidOperationException("Profile missing");
-        var loadout = user.Loadout ?? throw new InvalidOperationException("Loadout missing");
+        // 背包 0 = 活动背包（AuthSessionDto.Loadout 保留旧语义镜像）；三背包全集走 Backpacks。
+        var loadout = user.Loadouts.FirstOrDefault(x => x.BackpackIndex == 0)
+            ?? throw new InvalidOperationException("Loadout missing");
         var token = jwt.Create(user);
         var coins = user.Wallet?.Coins ?? 0;
-        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user, coins, rules), loadout.ToDto(), coins);
+        return new AuthSessionDto(token.Token, token.ExpiresAtUtc, profile.ToDto(user, coins, rules), loadout.ToDto(), coins,
+            new BackpackSetDto(BackpackPolicy.BuildBackpackSet(user.Loadouts), BackpackPolicy.DefaultActiveIndex));
     }
 
     public static long GetUserId(System.Security.Claims.ClaimsPrincipal principal) =>

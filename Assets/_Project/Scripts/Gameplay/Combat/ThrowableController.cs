@@ -18,6 +18,8 @@ namespace Game.Gameplay.Combat
     {
         public ThrowablePosePhase Phase;
         public ThrowableType Type;
+        public string ItemId;
+        public int SlotIndex;
         public uint StartTick;
         public uint LifeEpoch;
         public uint Sequence;
@@ -27,6 +29,11 @@ namespace Game.Gameplay.Combat
     [DefaultExecutionOrder(-90)]
     public sealed class ThrowableController : NetworkBehaviour
     {
+        private readonly SyncVar<ThrowableSlots> _slots = new();
+        private ThrowableSlots _offlineSlots;
+        public ThrowableSlots Inventory => FishNetLifecycleGuard.IsNetworkActive() ? _slots.Value : _offlineSlots;
+        public int SelectedSlot { get; private set; }
+        public string SelectedItemId => Inventory.Item(SelectedSlot);
         private readonly SyncVar<int> _frag = new();
         private readonly SyncVar<int> _flash = new();
         private readonly SyncVar<int> _smoke = new();
@@ -53,14 +60,17 @@ namespace Game.Gameplay.Combat
         public bool IsEquipped { get; private set; }
         public ThrowableType SelectedType { get; private set; }
         public event System.Action OnSelectionChanged;
-        public ThrowableDefinition SelectedDefinition => _catalog != null ? _catalog.Get(SelectedType) : null;
+        public ThrowableDefinition SelectedDefinition => _catalog != null ? _catalog.Get(SelectedItemId) : null;
         public float ReleaseDelaySeconds => _catalog != null ? _catalog.ReleaseDelaySeconds : 0.35f;
         public bool IsThrowing => _actions != null && _actions.CurrentAction == PlayerActionType.GrenadeThrow;
 
-        public int Count(ThrowableType type) => !FishNetLifecycleGuard.IsNetworkActive() && _offlineCounts != null
-            ? _offlineCounts[(int)type]
-            : type switch { ThrowableType.Frag => _frag.Value, ThrowableType.Flash => _flash.Value,
-                ThrowableType.Smoke => _smoke.Value, _ => 0 };
+        public int Count(ThrowableType type)
+        {
+            int count = 0;
+            for (int i = 0; i < 3; i++)
+                if (_catalog != null && _catalog.Get(Inventory.Item(i)) != null && _catalog.Get(Inventory.Item(i)).Type == type) count += Inventory.Count(i);
+            return count;
+        }
         public float ThrowActionSeconds => _catalog != null ? _catalog.ThrowActionSeconds : 0f;
 
         private void Awake()
@@ -79,6 +89,7 @@ namespace Game.Gameplay.Combat
                 enabled = false;
                 return;
             }
+            _offlineSlots = ThrowableSlots.Create(ThrowableSlots.Legacy("throwable.standard"), _catalog);
             _offlineCounts = new[] { _catalog.Frag.InitialCount, _catalog.Flash.InitialCount,
                 _catalog.Smoke.InitialCount };
         }
@@ -86,14 +97,17 @@ namespace Game.Gameplay.Combat
         public override void OnStartServer()
         {
             _lastRequest = 0;
-            ServerResetInventory();
+            var adapter = GetComponent<PlayerNetworkAdapter>();
+            if (adapter != null && adapter.ActiveBackpackSnapshot != null)
+                ServerApplyLoadout(adapter.ActiveBackpackSnapshot.throwableIds ?? ThrowableSlots.Legacy(adapter.ActiveBackpackSnapshot.throwableId));
+            else ServerResetInventory();
         }
 
         private void SetPose(ThrowablePosePhase phase, ThrowableType type, uint startTick)
         {
             var state = new ThrowablePoseState
             {
-                Phase = phase, Type = type, StartTick = startTick,
+                Phase = phase, Type = type, ItemId = SelectedItemId, SlotIndex = SelectedSlot, StartTick = startTick,
                 LifeEpoch = _combat != null ? _combat.CurrentLifeEpoch : 0u,
                 Sequence = ++_poseSequence,
             };
@@ -144,17 +158,21 @@ namespace Game.Gameplay.Combat
         public void ResetOfflineInventory()
         {
             if (_catalog == null || FishNetLifecycleGuard.IsNetworkActive()) return;
+            _offlineSlots = ThrowableSlots.Create(ThrowableSlots.Legacy("throwable.standard"), _catalog);
             _offlineCounts = new[] { _catalog.Frag.InitialCount, _catalog.Flash.InitialCount,
                 _catalog.Smoke.InitialCount };
         }
 
-        public void ServerResetInventory()
+        public void ServerResetInventory() => ServerApplyLoadout(ThrowableSlots.Legacy("throwable.standard"));
+        public void ServerApplyLoadout(string legacyId) => ServerApplyLoadout(ThrowableSlots.Legacy(legacyId));
+        public void ServerApplyLoadout(string[] ids)
         {
             if (_catalog == null) return;
-            SetPose(ThrowablePosePhase.None, ThrowableType.Frag, CurrentTick);
-            _frag.Value = _catalog.Frag.InitialCount;
-            _flash.Value = _catalog.Flash.InitialCount;
-            _smoke.Value = _catalog.Smoke.InitialCount;
+            ++_throwGeneration;
+            _slots.Value = ThrowableSlots.Create(ids, _catalog);
+            SelectedSlot = 0;
+            SelectedType = _catalog.Get(SelectedItemId) != null ? _catalog.Get(SelectedItemId).Type : ThrowableType.Frag;
+            SetPose(ThrowablePosePhase.None, SelectedType, CurrentTick);
         }
 
         private void Update()
@@ -176,18 +194,21 @@ namespace Game.Gameplay.Combat
         {
             if (_actions == null || _actions.IsBusy || _combat != null && _combat.IsDead
                 || _health != null && !_health.IsAlive || MatchLifecycle.InputFrozen) return false;
-            int start = IsEquipped ? (int)SelectedType + 1 : 0;
+            int start = IsEquipped ? SelectedSlot + 1 : 0;
             for (int i = 0; i < 3; i++)
             {
-                var candidate = (ThrowableType)((start + i) % 3);
-                if (Count(candidate) <= 0) continue;
+                int slot = (start + i) % 3;
+                var definition = _catalog.Get(Inventory.Item(slot));
+                if (Inventory.Count(slot) <= 0 || definition == null) continue;
+                SelectedSlot = slot;
+                var candidate = definition.Type;
                 SelectedType = candidate; IsEquipped = true;
                 _holdRequested = false;
                 if (!FishNetLifecycleGuard.IsNetworkActive())
                     SetPose(ThrowablePosePhase.Selected, candidate, CurrentTick);
                 else if (NetworkObject != null && NetworkObject.IsServerInitialized)
                     SetPose(ThrowablePosePhase.Selected, candidate, CurrentTick);
-                else if (FishNetLifecycleGuard.CanSubmitRpc(this)) ServerSelectThrowable(true, candidate);
+                else if (FishNetLifecycleGuard.CanSubmitRpc(this)) ServerSelectThrowable(true, SelectedSlot);
                 _input?.ResetAimToggle();
                 OnSelectionChanged?.Invoke(); return true;
             }
@@ -204,15 +225,19 @@ namespace Game.Gameplay.Combat
                 SetPose(ThrowablePosePhase.None, SelectedType, CurrentTick);
             else if (NetworkObject != null && NetworkObject.IsServerInitialized)
                 SetPose(ThrowablePosePhase.None, SelectedType, CurrentTick);
-            else if (FishNetLifecycleGuard.CanSubmitRpc(this)) ServerSelectThrowable(false, SelectedType);
+            else if (FishNetLifecycleGuard.CanSubmitRpc(this)) ServerSelectThrowable(false, SelectedSlot);
             OnSelectionChanged?.Invoke();
         }
 
         [ServerRpc(RequireOwnership = true)]
-        private void ServerSelectThrowable(bool selected, ThrowableType type)
+        private void ServerSelectThrowable(bool selected, int slot)
         {
-            if ((uint)type > 2u || _combat != null && _combat.IsDead) return;
-            if (selected && Count(type) <= 0) return;
+            if ((uint)slot > 2u || _combat != null && _combat.IsDead) return;
+            var definition = _catalog.Get(Inventory.Item(slot));
+            if (selected && (definition == null || Inventory.Count(slot) <= 0)) return;
+            SelectedSlot = slot;
+            var type = definition != null ? definition.Type : ThrowableType.Frag;
+            SelectedType = type;
             SetPose(selected ? ThrowablePosePhase.Selected : ThrowablePosePhase.None, type, CurrentTick);
         }
 
@@ -224,6 +249,12 @@ namespace Game.Gameplay.Combat
 
         public void TryThrow(ThrowableType type)
         {
+            if (_catalog.Get(SelectedItemId) == null || _catalog.Get(SelectedItemId).Type != type || Inventory.Count(SelectedSlot) <= 0)
+            {
+                for (int i = 0; i < 3; i++)
+                    if (_catalog.Get(Inventory.Item(i)) != null && _catalog.Get(Inventory.Item(i)).Type == type && Inventory.Count(i) > 0) { SelectedSlot = i; break; }
+            }
+            if (Inventory.Count(SelectedSlot) <= 0) return;
             if ((uint)type > 2u || _catalog == null || _actions == null || _actions.IsBusy || _combat != null && _combat.IsDead
                 || _health != null && !_health.IsAlive
                 || MatchLifecycle.InputFrozen || !IsPlayablePhase(FishNetLifecycleGuard.IsNetworkActive(), MatchLifecycle.Phase)
@@ -237,35 +268,39 @@ namespace Game.Gameplay.Combat
             OnLocalThrowStarted?.Invoke(type);
             if (!FishNetLifecycleGuard.IsNetworkActive())
             {
-                StartCoroutine(ReleaseAfterDelay(type, false, ++_throwGeneration, requestedDirection));
+                StartCoroutine(ReleaseAfterDelay(SelectedSlot, false, ++_throwGeneration, requestedDirection));
                 return;
             }
             if (NetworkObject == null || !NetworkObject.IsSpawned) return;
             if (NetworkObject.IsServerInitialized)
-                StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration, requestedDirection));
+                StartCoroutine(ReleaseAfterDelay(SelectedSlot, true, ++_throwGeneration, requestedDirection));
             else
-                ServerRequestThrow(type, ++_nextRequest, requestedDirection);
+                ServerRequestThrow(SelectedSlot, ++_nextRequest, requestedDirection);
         }
 
         public event System.Action<ThrowableType> OnLocalThrowStarted;
 
         [ServerRpc(RequireOwnership = true)]
-        private void ServerRequestThrow(ThrowableType type, uint requestId, Vector3 requestedDirection)
+        private void ServerRequestThrow(int slot, uint requestId, Vector3 requestedDirection)
         {
             if (!IsNextRequest(_lastRequest, requestId)) return;
             _lastRequest = requestId;
-            if ((int)type < 0 || (int)type > 2 || Count(type) <= 0 || _combat == null
+            var definition = _catalog.Get(Inventory.Item(slot));
+            if (slot < 0 || slot > 2 || definition == null || Inventory.Count(slot) <= 0 || _combat == null
                 || _combat.IsDead || _health != null && !_health.IsAlive
                 || MatchLifecycle.InputFrozen || !IsPlayablePhase(true, MatchLifecycle.Phase)
                 || _actions == null || !_actions.TryStart(PlayerActionType.GrenadeThrow, _catalog.ThrowActionSeconds))
                 return;
+            SelectedSlot = slot;
+            var type = definition.Type;
+            SelectedType = type;
             SetPose(ThrowablePosePhase.Started, type, CurrentTick);
             Vector3 serverDirection = _weapon != null ? _weapon.AimDirection.normalized : transform.forward;
             // Allow ordinary view replication delay, but never trust arbitrary client vectors.
             Vector3 direction = requestedDirection.sqrMagnitude > .9f && requestedDirection.sqrMagnitude < 1.1f
                 && Vector3.Dot(serverDirection, requestedDirection) > .75f
                 ? requestedDirection.normalized : serverDirection;
-            StartCoroutine(ReleaseAfterDelay(type, true, ++_throwGeneration, direction));
+            StartCoroutine(ReleaseAfterDelay(SelectedSlot, true, ++_throwGeneration, direction));
         }
 
         public static bool IsNextRequest(uint lastRequest, uint requestId)
@@ -274,14 +309,16 @@ namespace Game.Gameplay.Combat
         public static bool IsPlayablePhase(bool networkActive, MatchPhase phase)
             => networkActive ? phase == MatchPhase.InProgress : phase != MatchPhase.Ended;
 
-        private IEnumerator ReleaseAfterDelay(ThrowableType type, bool networked, uint generation, Vector3 requestedDirection)
+        private IEnumerator ReleaseAfterDelay(int slot, bool networked, uint generation, Vector3 requestedDirection)
         {
+            string itemId = Inventory.Item(slot);
+            var definition = _catalog.Get(itemId);
+            var type = definition != null ? definition.Type : ThrowableType.Frag;
             yield return new WaitForSeconds(_catalog.ReleaseDelaySeconds);
             if (generation != _throwGeneration || _actions == null || _actions.CurrentAction != PlayerActionType.GrenadeThrow
                 || _combat != null && _combat.IsDead || _health != null && !_health.IsAlive
                 || !IsPlayablePhase(networked, MatchLifecycle.Phase)
-                || Count(type) <= 0) yield break;
-            var definition = _catalog.Get(type);
+                || Inventory.Count(slot) <= 0 || definition == null) yield break;
             Vector3 direction = requestedDirection;
             Vector3 origin = _weapon != null ? _weapon.AimOrigin : transform.position + Vector3.up * 1.5f;
             var locomotor = GetComponent<Locomotor>();
@@ -329,26 +366,28 @@ namespace Game.Gameplay.Combat
                 + horizontal * definition.InheritedHorizontalVelocity;
             if (networked)
             {
-                SetCount(type, Count(type) - 1);
+                SetSlotCount(slot, Inventory.Count(slot) - 1);
                 var instance = Instantiate(_catalog.NetworkProjectilePrefab, release, Quaternion.identity);
                 var projectile = instance.GetComponent<ThrowableProjectile>();
                 if (projectile == null)
                 {
                     Debug.LogError("[ThrowableController] network projectile component missing", instance);
                     Destroy(instance);
-                    SetCount(type, Count(type) + 1);
+                    SetSlotCount(slot, Inventory.Count(slot) + 1);
                     yield break;
                 }
-                projectile.ServerInitialize(type, velocity, _combat);
+                projectile.ServerInitialize(itemId, velocity, _combat);
                 InstanceFinder.NetworkManager.ServerManager.Spawn(instance);
                 SetPose(ThrowablePosePhase.Released, type, CurrentTick);
+                // CF 三背包（Phase C）：投掷出手计入开火锁存——防"扔完雷回出生点换包补雷"
+                _combat?.MarkBackpackFiredThisLife();
             }
             else
             {
-                _offlineCounts[(int)type]--;
+                SetSlotCount(slot, Inventory.Count(slot) - 1);
                 var instance = Instantiate(_catalog.NetworkProjectilePrefab, release, Quaternion.identity);
                 instance.GetComponent<NetworkObject>()?.SetIsNetworked(false);
-                instance.GetComponent<ThrowableProjectile>()?.OfflineInitialize(type, velocity, _combat);
+                instance.GetComponent<ThrowableProjectile>()?.OfflineInitialize(itemId, velocity, _combat);
                 SetPose(ThrowablePosePhase.Released, type, CurrentTick);
             }
         }
@@ -364,6 +403,13 @@ namespace Game.Gameplay.Combat
                 if (hit.collider != null && !hit.collider.transform.IsChildOf(transform)) return true;
             }
             return false;
+        }
+
+        private void SetSlotCount(int slot, int count)
+        {
+            var slots = Inventory;
+            slots.SetCount(slot, count);
+            if (FishNetLifecycleGuard.IsNetworkActive()) _slots.Value = slots; else _offlineSlots = slots;
         }
 
         private void SetCount(ThrowableType type, int count)

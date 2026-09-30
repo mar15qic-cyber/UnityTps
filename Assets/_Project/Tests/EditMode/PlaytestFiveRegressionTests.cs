@@ -38,7 +38,7 @@ namespace Game.Gameplay.Tests
         {
             var catalog = Resources.Load<ThrowableCatalog>("ThrowableCatalog");
             Assert.True(catalog.IsValid(out var reason), reason);
-            Assert.That(catalog.ReleaseDelaySeconds, Is.InRange(.1f, .2f));
+            Assert.That(catalog.ReleaseDelaySeconds, Is.EqualTo(.35f).Within(.0001f));
             Assert.Greater(catalog.ThrowActionSeconds, catalog.ReleaseDelaySeconds);
             foreach (var type in new[] { ThrowableType.Frag, ThrowableType.Flash, ThrowableType.Smoke })
             {

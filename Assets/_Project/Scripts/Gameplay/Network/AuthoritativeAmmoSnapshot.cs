@@ -17,5 +17,10 @@ namespace Game.Gameplay.Network
         public int ReserveAmmo;
         public WeaponRuntimeState ReloadState;
         public float ReloadRemaining;
+        public ShellReloadPhase ReloadPhase;
+        public float ReloadPhaseElapsed;
+        public uint ReloadGeneration;
+        public bool ReloadFinishRequested;
+        public uint LastProcessedActionCommandId;
     }
 }

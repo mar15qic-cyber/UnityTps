@@ -161,6 +161,7 @@ namespace Game.Presentation.Animation
             controller.OnShotFired += HandleShot;
             controller.OnDryFire += HandleDryFire;
             controller.OnReloadStarted += HandleReloadStarted;
+            controller.OnShellReloadPhaseChanged += HandleShellPhase;
             controller.OnReloadCompleted += HandleReloadCompleted;
             controller.OnReloadInterrupted += HandleReloadInterrupted;
             if (_throwables != null) { _throwables.OnLocalThrowStarted += HandleThrowStarted; _throwables.OnSelectionChanged += HandleThrowableSelection; }
@@ -183,6 +184,7 @@ namespace Game.Presentation.Animation
                 controller.OnShotFired -= HandleShot;
                 controller.OnDryFire -= HandleDryFire;
                 controller.OnReloadStarted -= HandleReloadStarted;
+                controller.OnShellReloadPhaseChanged -= HandleShellPhase;
                 controller.OnReloadCompleted -= HandleReloadCompleted;
                 controller.OnReloadInterrupted -= HandleReloadInterrupted;
             }
@@ -412,6 +414,7 @@ namespace Game.Presentation.Animation
             if (!_clipsReady || controller?.Runtime == null) return;
             bool wasOnAimTrack = _aimFsm.IsOnAimTrack;
             _aimFsm.ResetToHip(); // 换弹接管主轨道，aim 状态归零
+            if(controller.UsesShellReload) { _segmentedReload=false; HandleShellPhase(); return; }
             bool empty = controller.Runtime.CurrentAmmo == 0;
             AnimationClip clip = empty ? _clips.ReloadOutOfAmmo : _clips.ReloadAmmoLeft;
             _segmentedReload = false;
@@ -457,6 +460,18 @@ namespace Game.Presentation.Animation
                 events.Add(profile.MagIn.NormalizedTime, () => RaiseStage(WeaponAnimEventType.MagIn, version));
             if (profile.BoltRack.Clip != null && profile.BoltRack.NormalizedTime > 0f)
                 events.Add(profile.BoltRack.NormalizedTime, () => RaiseStage(WeaponAnimEventType.BoltRack, version));
+        }
+
+        private void HandleShellPhase()
+        {
+            if(!_clipsReady || controller==null || !controller.UsesShellReload) return;
+            var phase=controller.ReloadPhase;
+            var clip=phase==Game.Gameplay.Weapon.ShellReloadPhase.Open?_clips.ReloadOpen:phase==Game.Gameplay.Weapon.ShellReloadPhase.Insert?_clips.ReloadInsert:phase==Game.Gameplay.Weapon.ShellReloadPhase.Close?_clips.ReloadClose:null;
+            if(clip==null) return;
+            _reloadState=_animancer.Play(clip,.04f,FadeMode.FromStart);
+            _reloadState.Time=controller.ReloadPhaseElapsed;_reloadState.Speed=1;
+            _reloadState.Events(this).OnEnd=null;
+            RaiseStage(phase==Game.Gameplay.Weapon.ShellReloadPhase.Open?WeaponAnimEventType.MagOut:phase==Game.Gameplay.Weapon.ShellReloadPhase.Insert?WeaponAnimEventType.MagIn:WeaponAnimEventType.BoltRack,++CurrentActionVersion);
         }
 
         private void PlayReloadStage(int stage, int shells, float speed, int version)
@@ -607,7 +622,7 @@ namespace Game.Presentation.Animation
             var hand = transform.Find(ThrowableHandPath);
             if (hand != null && _throwables.SelectedDefinition != null)
             {
-                var visual = Resources.Load<GameObject>("ThrowableViews/" + _throwables.SelectedType);
+                var visual = Resources.Load<GameObject>("ThrowableViews/" + Game.Gameplay.Combat.ThrowableSlots.ViewKey(_throwables.SelectedItemId));
                 _heldThrowable = Instantiate(visual != null ? visual : _throwables.SelectedDefinition.ModelPrefab, hand, false);
                 _heldThrowable.name = "HeldThrowable";
                 _throwPresentation = _heldThrowable.GetComponent<FPThrowablePresentation>();

@@ -30,6 +30,6 @@ MonoBehaviour:
   Bounciness: 0.55
   DynamicFriction: 0.32
   RollStopSpeed: 0.18
-  FragMaxDamage: 100
+  FragMaxDamage: 90
   FlashStrength: 0
   SmokeDensity: 0

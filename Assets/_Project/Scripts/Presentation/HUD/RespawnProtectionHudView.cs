@@ -142,8 +142,9 @@ namespace Game.Presentation.HUD
 
         private static string FormatLabel(Phase phase, float remainingSeconds)
         {
+            // Invincible 追加背包提示（Phase D）：出生保护期正是合法换包窗口（区域内+未开火）
             return phase == Phase.Respawning ? $"RESPAWNING {remainingSeconds:F1}s"
-                : phase == Phase.Invincible ? $"SPAWN PROTECTION {remainingSeconds:F1}s"
+                : phase == Phase.Invincible ? $"SPAWN PROTECTION {remainingSeconds:F1}s  ·  [B] SWAP PACK"
                 : string.Empty;
         }
 

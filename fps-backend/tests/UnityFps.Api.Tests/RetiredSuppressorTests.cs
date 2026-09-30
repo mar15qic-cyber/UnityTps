@@ -18,22 +18,22 @@ public sealed class RetiredSuppressorTests
         var user = new UserAccount {
             Username = "p90-test", NormalizedUsername = "P90-TEST", PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
-            Loadout = new PlayerLoadout { PrimaryWeaponId = "weapon.smg04", SecondaryWeaponId = "weapon.service_pistol",
-                Version = 2, UpdatedAtUtc = DateTime.UtcNow }
+            Loadouts = { new PlayerLoadout { PrimaryWeaponId = "weapon.smg04", SecondaryWeaponId = "weapon.service_pistol",
+                Version = 2, UpdatedAtUtc = DateTime.UtcNow } }
         };
         db.Users.Add(user);
         db.AttachmentCompat.Add(new AttachmentCompat { WeaponItemId = "weapon.smg04",
             AttachmentItemId = "attach.lpw.grip.01", SlotType = "Underbarrel",
             IsImplemented = true, CalibrationKey = "socket-v2" });
-        user.Loadout.Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary",
+        user.Loadouts[0].Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary",
             AttachmentSlot = "Underbarrel", AttachmentItemId = "attach.lpw.grip.01" });
-        user.Loadout.Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary",
+        user.Loadouts[0].Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary",
             AttachmentSlot = "Muzzle", AttachmentItemId = "attach.lpfp.muffler.01" });
         await db.SaveChangesAsync();
         await AttachmentSystemSeeder.SeedAsync(db);
         await AttachmentSystemSeeder.SeedAsync(db);
         Assert.False(await db.AttachmentCompat.AnyAsync(x => x.WeaponItemId == "weapon.smg04" && x.SlotType == "Underbarrel"));
-        Assert.Equal(3, user.Loadout.Version);
+        Assert.Equal(3, user.Loadouts[0].Version);
         var remaining = await db.LoadoutAttachments.ToListAsync();
         Assert.Single(remaining);
         Assert.Equal("attach.lpfp.muffler.01", remaining[0].AttachmentItemId);
@@ -49,8 +49,8 @@ public sealed class RetiredSuppressorTests
         var user = new UserAccount {
             Username = "silencer-test", NormalizedUsername = "SILENCER-TEST", PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
-            Loadout = new PlayerLoadout { PrimaryWeaponId = "weapon.ak", SecondaryWeaponId = "weapon.service_pistol",
-                Version = 2, UpdatedAtUtc = DateTime.UtcNow }
+            Loadouts = { new PlayerLoadout { PrimaryWeaponId = "weapon.ak", SecondaryWeaponId = "weapon.service_pistol",
+                Version = 2, UpdatedAtUtc = DateTime.UtcNow } }
         };
         db.Users.Add(user);
         foreach (var id in new[] { "attach.lpw.muffler.01", "attach.lpw.muffler.02" }) {
@@ -64,14 +64,14 @@ public sealed class RetiredSuppressorTests
             db.Purchases.Add(new ShopPurchase { PurchaseId = id, UserId = user.Id, ItemId = id,
                 Quantity = 1, IdempotencyKey = id, CreatedAtUtc = DateTime.UtcNow });
         }
-        user.Loadout.Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary", AttachmentSlot = "Muzzle",
+        user.Loadouts[0].Attachments.Add(new PlayerLoadoutAttachment { WeaponSlot = "Primary", AttachmentSlot = "Muzzle",
             AttachmentItemId = "attach.lpw.muffler.02" });
         await db.SaveChangesAsync();
         await AttachmentSystemSeeder.SeedAsync(db);
         await AttachmentSystemSeeder.SeedAsync(db);
         Assert.Empty(await db.AttachmentCompat.Where(x => x.AttachmentItemId.StartsWith("attach.lpw.muffler.")).ToListAsync());
         Assert.Empty(await db.LoadoutAttachments.Where(x => x.AttachmentItemId.StartsWith("attach.lpw.muffler.")).ToListAsync());
-        Assert.Equal(3, user.Loadout.Version);
+        Assert.Equal(3, user.Loadouts[0].Version);
         Assert.Equal(2, await db.Purchases.CountAsync());
         Assert.Equal(2, await db.InventoryItems.CountAsync(x => x.ItemId.StartsWith("attach.lpw.muffler.")));
         Assert.All(await db.CatalogItems.Where(x => x.ItemId.StartsWith("attach.lpw.muffler.")).ToListAsync(), x => Assert.False(x.IsActive));

@@ -15,7 +15,7 @@ public sealed class CommerceTests
         await using var db = CreateDb();
         await CatalogSeeder.SeedAsync(db);
         var ids = await db.CatalogItems.Select(x => x.ItemId).ToListAsync();
-        Assert.Equal(45, ids.Count); // 16 LPFP legacy（含 handgun03/04、smg03/04/05、sniper03）+ 29 LPW
+        Assert.Equal(52, ids.Count); // 16 LPFP legacy（含 handgun03/04、smg03/04/05、sniper03）+ 29 LPW + 2 投掷物（2026-09-30 背包系统）
         Assert.Equal(29, ids.Count(x => x.StartsWith("weapon.lpw.")));
         Assert.DoesNotContain(await db.CatalogItems.Select(x => x.AssetKey).ToListAsync(), x =>
             x.StartsWith("lpw/") && !x.EndsWith("_01", StringComparison.Ordinal));
@@ -49,12 +49,12 @@ public sealed class CommerceTests
             new PlayerInventoryItem { UserId = user.Id, ItemId = "weapon.lpw.pistol.01", Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
         await db.SaveChangesAsync();
         var service = new LoadoutService(db);
-        var saved = await service.UpdateAsync(user.Id, new LoadoutRequest
+        var saved = await service.UpdateAsync(user.Id, 0, new LoadoutRequest
         {
             PrimaryWeaponId = "weapon.lpw.rifle.01", SecondaryWeaponId = "weapon.lpw.pistol.01", ExpectedVersion = 1
         }, CancellationToken.None);
         Assert.Equal(2, saved.Version);
-        var stale = await Assert.ThrowsAsync<ApiException>(() => service.UpdateAsync(user.Id, new LoadoutRequest
+        var stale = await Assert.ThrowsAsync<ApiException>(() => service.UpdateAsync(user.Id, 0, new LoadoutRequest
         {
             PrimaryWeaponId = "weapon.lpw.rifle.01", SecondaryWeaponId = "weapon.lpw.pistol.01", ExpectedVersion = 1
         }, CancellationToken.None));
@@ -69,15 +69,15 @@ public sealed class CommerceTests
         {
             Username = "legacy", NormalizedUsername = "LEGACY", PasswordHash = "test", CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { PrimaryWeaponId = "rifle.day3", SecondaryWeaponId = "pistol.day2", Version = 0, UpdatedAtUtc = DateTime.UtcNow }
+            Loadouts = { new PlayerLoadout { PrimaryWeaponId = "rifle.day3", SecondaryWeaponId = "pistol.day2", Version = 0, UpdatedAtUtc = DateTime.UtcNow } }
         };
         db.Users.Add(user); await db.SaveChangesAsync();
         await CatalogSeeder.SeedAsync(db);
-        Assert.Equal("weapon.m4", user.Loadout!.PrimaryWeaponId);
-        Assert.Equal("weapon.service_pistol", user.Loadout.SecondaryWeaponId);
-        Assert.Equal(3, user.Inventory.Count);
+        Assert.Equal("weapon.m4", user.Loadouts[0].PrimaryWeaponId);
+        Assert.Equal("weapon.service_pistol", user.Loadouts[0].SecondaryWeaponId);
+        Assert.Equal(6, user.Inventory.Count);
         await CatalogSeeder.SeedAsync(db);
-        Assert.Equal(3, await db.InventoryItems.CountAsync(x => x.UserId == user.Id));
+        Assert.Equal(6, await db.InventoryItems.CountAsync(x => x.UserId == user.Id));
     }
 
     private static AppDbContext CreateDb() => new(new DbContextOptionsBuilder<AppDbContext>()
@@ -89,7 +89,7 @@ public sealed class CommerceTests
         {
             Username = Guid.NewGuid().ToString("N"), NormalizedUsername = Guid.NewGuid().ToString("N"), PasswordHash = "test", CreatedAtUtc = DateTime.UtcNow,
             Profile = new PlayerProfile { Level = level, UpdatedAtUtc = DateTime.UtcNow },
-            Loadout = new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow },
+            Loadouts = { new PlayerLoadout { UpdatedAtUtc = DateTime.UtcNow } },
             Wallet = new PlayerWallet { Coins = coins, UpdatedAtUtc = DateTime.UtcNow }
         };
         db.Users.Add(user); db.SaveChanges(); return user;

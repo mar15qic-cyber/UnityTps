@@ -180,6 +180,8 @@ namespace Game.Presentation.Animation
                     if (spawned != null)
                         foreach (var t in spawned.GetComponentsInChildren<Transform>(true))
                             t.gameObject.layer = bodyLayer;
+                foreach (var device in _current.GetComponentsInChildren<TacticalFlashlight>(true))
+                    Game.Presentation.Weapon.TacticalFlashlightShadowFilter.Bind(device, _current);
             }
         }
 

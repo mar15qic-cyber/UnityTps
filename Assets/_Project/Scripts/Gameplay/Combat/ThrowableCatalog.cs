@@ -6,6 +6,8 @@ namespace Game.Gameplay.Combat
     public sealed class ThrowableCatalog : ScriptableObject
     {
         public ThrowableDefinition Frag;
+        public ThrowableDefinition Frag2;
+        public ThrowableDefinition Frag3;
         public ThrowableDefinition Flash;
         public ThrowableDefinition Smoke;
         public GameObject NetworkProjectilePrefab;
@@ -18,6 +20,12 @@ namespace Game.Gameplay.Combat
             ThrowableType.Flash => Flash,
             ThrowableType.Smoke => Smoke,
             _ => null
+        };
+
+        public ThrowableDefinition Get(string id) => id switch
+        {
+            "throwable.frag" => Frag, "throwable.frag_02" => Frag2, "throwable.frag_03" => Frag3,
+            "throwable.flash" => Flash, "throwable.smoke" => Smoke, _ => null
         };
 
         public bool IsValid(out string reason)

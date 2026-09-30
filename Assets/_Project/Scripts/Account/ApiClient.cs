@@ -59,17 +59,21 @@ public sealed partial class ApiClient : IApiClient, IDisposable
         SendAsync<PlayerProfileDto>("profile-get", "GET", "/api/profile", null, cancellationToken);
 
 
-    public Task<ApiResult<LoadoutDto>> GetLoadoutAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<LoadoutDto>("loadout-get", "GET", "/api/loadout", null, cancellationToken);
+    public Task<ApiResult<LoadoutDto>> GetLoadoutAsync(int backpack = 1, CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutDto>("loadout-get", "GET", $"/api/loadout?backpack={backpack}", null, cancellationToken);
 
-    public Task<ApiResult<LoadoutDto>> UpdateLoadoutAsync(LoadoutRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<LoadoutDto>("loadout-update", "PUT", "/api/loadout", request, cancellationToken);
+    public Task<ApiResult<LoadoutDto>> UpdateLoadoutAsync(LoadoutRequest request, int backpack = 1, CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutDto>("loadout-update", "PUT", $"/api/loadout?backpack={backpack}", request, cancellationToken);
 
-    public Task<ApiResult<LoadoutAttachmentsDto>> GetLoadoutAttachmentsAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-get", "GET", "/api/loadout/attachments", null, cancellationToken);
+    public Task<ApiResult<LoadoutAttachmentsDto>> GetLoadoutAttachmentsAsync(int backpack = 1, CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-get", "GET", $"/api/loadout/attachments?backpack={backpack}", null, cancellationToken);
 
-    public Task<ApiResult<LoadoutAttachmentsDto>> UpdateLoadoutAttachmentsAsync(LoadoutAttachmentsRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-update", "PUT", "/api/loadout/attachments", request, cancellationToken);
+    public Task<ApiResult<LoadoutAttachmentsDto>> UpdateLoadoutAttachmentsAsync(LoadoutAttachmentsRequest request, int backpack = 1, CancellationToken cancellationToken = default) =>
+        SendAsync<LoadoutAttachmentsDto>("loadout-attachments-update", "PUT", $"/api/loadout/attachments?backpack={backpack}", request, cancellationToken);
+
+    /// <summary>三背包全集（CF 背包系统 2026-09-30）：大厅/仓库一次拉取。</summary>
+    public Task<ApiResult<BackpackSetDto>> GetBackpackSetAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<BackpackSetDto>("loadout-backpacks-get", "GET", "/api/loadout/backpacks", null, cancellationToken);
 
     public Task<ApiResult<AttachmentCompatibilityDto[]>> GetAttachmentCompatibilityAsync(CancellationToken cancellationToken = default) =>
         SendAsync<AttachmentCompatibilityDto[]>("attachment-compatibility-get", "GET", "/api/loadout/compatibility", null, cancellationToken);

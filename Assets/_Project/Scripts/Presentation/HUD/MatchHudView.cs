@@ -72,6 +72,8 @@ namespace Game.Presentation.HUD
             MatchScoreboardView.TryMount(canvas);
             // 复活/出生保护条（Phase 3：同画布独立组件，单一三态机）
             RespawnProtectionHudView.TryMount(canvas);
+            // CF 三背包切换浮层（2026-09-30 Phase D：同画布独立组件，B 键开合）
+            BackpackSwitchHudView.TryMount(canvas);
         }
 
         private void OnEnable() => NetworkCombatAuthority.OnMatchEvent += HandleMatchEvent;

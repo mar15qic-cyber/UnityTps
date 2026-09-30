@@ -918,6 +918,34 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Center.x
+      value: -0.050383046
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Center.y
+      value: 0.25317073
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Center.z
+      value: 0.28577054
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Extent.x
+      value: 0.24514596
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Extent.y
+      value: 0.28747475
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      propertyPath: m_AABB.m_Extent.z
+      value: 0.38415492
+      objectReference: {fileID: 0}
+    - target: {fileID: 13700000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 03ecf8889a246e743b8b08837229b299, type: 2}
@@ -990,6 +1018,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100012, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7601584889203643074}
+    - targetCorrespondingSourceObject: {fileID: 100012, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7924809092694504456}
   m_SourcePrefab: {fileID: 100100000, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}
 --- !u!95 &8749056150229134242 stripped
 Animator:
@@ -1217,6 +1248,19 @@ MonoBehaviour:
   rotationWeight: 0.45
   blendSeconds: 0.1
   solveRightHand: 0
+--- !u!114 &7924809092694504456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8749056150236551278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7517f7be41454cb45b3deb81fb3faaeb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  authoringCameraLocalPosition: {x: -3.4671271e-16, y: 0.0855757, z: -0.17866266}
 --- !u!4 &8749056150236578836 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400086, guid: 8bdb3f4eab1102e49a2d340827a72d6d, type: 3}

@@ -93,7 +93,7 @@ namespace Game.Gameplay.Tests
                 var attachments = root.AddComponent<WeaponAttachmentView>();
                 var catalog = AttachmentAssetCatalog.LoadOrDefault();
                 attachments.ApplyAttachments(catalog, definition.CatalogItemId,
-                    new[] { catalog.Find("attach.rifle.muzzle") });
+                    new[] { catalog.Find("attach.lpfp.muffler.01") });
                 Assert.That(attachments.Spawned.Count, Is.EqualTo(1));
                 var view = root.GetComponent<WeaponView>();
                 var method = typeof(WeaponView).GetMethods(Flags)

@@ -107,7 +107,7 @@ namespace Game.UI
         private static readonly (string Key, string Label)[] ArmoryTabs =
         {
             ("All", "全部"), ("Rifle", "步枪"), ("Smg", "冲锋枪"),
-            ("Sniper", "狙击枪"), ("Shotgun", "霰弹枪"), ("Pistol", "手枪"),
+            ("Sniper", "狙击枪"), ("Shotgun", "霰弹枪"), ("Pistol", "手枪"), ("Throwable", "投掷物"),
         };
         private string armoryFilter = "All";
 
@@ -116,11 +116,14 @@ namespace Game.UI
         /// <summary>仓库大网格卡片（4 列；点击「配件改装」进枪匠，未适配配件的武器落详情页）。</summary>
 
 
-        /// <summary>仓库点击枪械的统一入口（用户拍板 2026-09-16：进该枪枪匠页；未适配配件→详情页）。</summary>
+        /// <summary>仓库点击枪械的统一入口（用户拍板 2026-09-16：进该枪枪匠页；未适配配件→详情页）。
+        /// CF 三背包（Phase D）：枪匠保存作用域 = 打开时的背包（armoryBackpack）。默认 0（活动背包）——
+        /// 从武器详情页等非仓库入口进来时不带背包上下文。</summary>
         private void OpenGunsmithFromArmory(CatalogItemDto item)
         {
             selectedWeapon = item;
             detailsFromShop = false;
+            gunsmithBackpack = currentPage == LobbyPage.Armory ? armoryBackpack : 0;
             weaponAssets.TryGet(item.itemId, out var asset);
             if (asset != null && asset.supportsVerifiedAttachments)
             {
@@ -142,6 +145,7 @@ namespace Game.UI
             "Shotgun" => "霰弹枪",
             "Smg" => "冲锋枪",
             "Sniper" => "狙击枪",
+            "Throwable" => "投掷物",
             _ => "全部",
         };
         // ---------- Weapon details (keeps 3D preview + radar chart) ----------
@@ -224,6 +228,8 @@ namespace Game.UI
         private readonly Dictionary<string, string> gunsmithSelections = new();
         private string gunsmithActiveSlot;
         private long gunsmithLoadoutVersion;
+        /// <summary>枪匠保存作用的背包下标（Phase D：仓库页签选择；0/1/2）。</summary>
+        private int gunsmithBackpack;
         private WeaponPreviewController gunsmithPreview;
 
         /// <summary>
@@ -305,7 +311,7 @@ namespace Game.UI
             }            var token = pageCts.Token;
             var compatibility = await api.GetAttachmentCompatibilityAsync(token);
             var inventory = await api.GetInventoryAsync(token);
-            var loadout = await api.GetLoadoutAttachmentsAsync(token);
+            var loadout = await api.GetLoadoutAttachmentsAsync(gunsmithBackpack + 1, token);
             if (!compatibility.Success || !inventory.Success || !loadout.Success) { status.text = "配件数据加载失败，请重试"; return; }
             cachedCompatibility = compatibility.Data ?? Array.Empty<AttachmentCompatibilityDto>();
             cachedInventory = inventory.Data;
@@ -685,10 +691,10 @@ namespace Game.UI
 #if UNITY_EDITOR
             SaveAttachmentCalibration();
 #endif
-            var equipped = await api.GetLoadoutAsync(pageCts.Token);
-            if (equipped.Success && equipped.Data != null) session.ApplyLoadout(equipped.Data);
+            var equipped = await api.GetLoadoutAsync(gunsmithBackpack + 1, pageCts.Token);
+            if (equipped.Success && equipped.Data != null) session.ApplyLoadout(equipped.Data, gunsmithBackpack);
             // 保存成功后刷新版本号（SaveAttachmentsAsync 只在成功路径更新状态文本，这里补拉取）
-            var loadout = await api.GetLoadoutAttachmentsAsync(pageCts.Token);
+            var loadout = await api.GetLoadoutAttachmentsAsync(gunsmithBackpack + 1, pageCts.Token);
             if (loadout.Success) gunsmithLoadoutVersion = loadout.Data.version;
         }
 

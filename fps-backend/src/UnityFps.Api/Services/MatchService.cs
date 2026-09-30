@@ -247,7 +247,8 @@ public sealed class MatchService(AppDbContext db, IProgressionRules rules)
         var totalMatches = await db.Matches.CountAsync(x => x.UserId == userId, ct) + 1;
         var hasPurchase = await db.Purchases.AnyAsync(x => x.UserId == userId, ct);
         // gunsmith_wins 近似：结算时读当前配装置 ≥3 配件且本局获胜（服务端可算，无客户端上报）
-        var loadoutId = await db.Loadouts.Where(x => x.UserId == userId).Select(x => x.Id).FirstOrDefaultAsync(ct);
+        // 三背包（2026-09-30）：成就语义锁定活动背包（index 0）
+        var loadoutId = await db.Loadouts.Where(x => x.UserId == userId && x.BackpackIndex == 0).Select(x => x.Id).FirstOrDefaultAsync(ct);
         var attachmentCount = loadoutId == 0 ? 0
             : await db.LoadoutAttachments.CountAsync(x => x.LoadoutId == loadoutId, ct);
         return new MatchStats(totalKills, totalWins, totalMatches, request.Kills, accountLevel, passLevel,

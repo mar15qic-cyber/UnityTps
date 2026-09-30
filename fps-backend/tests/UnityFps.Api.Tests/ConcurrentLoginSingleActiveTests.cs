@@ -57,7 +57,7 @@ public sealed class ConcurrentLoginSingleActiveTests : IDisposable
                 TokenVersion = 1,
             };
             user.Profile = new PlayerProfile { User = user, UpdatedAtUtc = DateTime.UtcNow };
-            user.Loadout = new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow };
+            user.Loadouts.Add(new PlayerLoadout { User = user, UpdatedAtUtc = DateTime.UtcNow });
             seed.Users.Add(user);
             await seed.SaveChangesAsync();
         } // 释放建库连接，避免与并发写竞争文件锁

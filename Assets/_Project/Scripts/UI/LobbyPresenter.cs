@@ -594,7 +594,7 @@ namespace Game.UI
         private async Task<bool> ValidateLoadoutForArenaAsync()
         {
             status.text = "正在验证服务器配装…";
-            var result = await api.GetLoadoutAsync(pageCts.Token);
+            var result = await api.GetLoadoutAsync(cancellationToken: pageCts.Token);
             if (!result.Success)
             {
                 if (result.Code == "AUTH_UNAUTHORIZED") Navigate(LobbyPage.SessionExpired);
@@ -678,7 +678,7 @@ namespace Game.UI
 
         private async Task PurchaseAsync(CatalogItemDto item)
         {
-            if (item == null || !IsLpfpWeaponItem(item))
+            if (item == null || !IsCatalogEquipment(item))
             {
                 status.text = "主线仅支持 LPFP 武器，无法购买该条目";
                 return;
@@ -708,6 +708,8 @@ namespace Game.UI
         }
 
         private bool equipBusy;
+        /// <summary>装备请求作用的背包下标（Phase D：仓库页签选择；其他页面=活动背包 0）。</summary>
+        private int armoryBackpack;
         private async Task EquipWeaponAsync(CatalogItemDto item)
         {
             if (equipBusy || api == null || pageCts == null) return;
@@ -716,13 +718,17 @@ namespace Game.UI
                 status.text = "主线仅支持 LPFP 武器，无法装备该条目";
                 return;
             }
-            if (!item.isOwned || session.Loadout == null) { status.text = "未拥有或配装尚未加载"; return; }
+            int backpack = currentPage == LobbyPage.Armory ? armoryBackpack : 0;
+            var target = session.LoadoutForBackpack(backpack);
+            if (!item.isOwned || target == null) { status.text = "未拥有或配装尚未加载"; return; }
             var request = new LoadoutRequest
             {
-                primaryWeaponId = item.slotType == "Primary" ? item.itemId : session.Loadout.primaryWeaponId,
-                secondaryWeaponId = item.slotType == "Secondary" ? item.itemId : session.Loadout.secondaryWeaponId,
-                throwableId = null,
-                expectedVersion = session.Loadout.version
+                primaryWeaponId = item.slotType == "Primary" ? item.itemId : target.primaryWeaponId,
+                secondaryWeaponId = item.slotType == "Secondary" ? item.itemId : target.secondaryWeaponId,
+                // Phase A 解冻投掷槽后装备武器必须保留当前背包的投掷物（旧实现硬编码 null 会抹槽）
+                throwableId = target.throwableId,
+                throwableIds = target.throwableIds,
+                expectedVersion = target.version
             };
             status.text = "正在保存服务器配装…";
             var token = pageCts.Token;
@@ -730,14 +736,15 @@ namespace Game.UI
             equipBusy = true;
             try
             {
-                var result = await api.UpdateLoadoutAsync(request, token);
+                var result = await api.UpdateLoadoutAsync(request, backpack + 1, token);
                 if (token.IsCancellationRequested || session != owner) return;
                 if (!result.Success) { status.text = ApiErrorMessages.ToUserMessage(result); return; }
-                session.ApplyLoadout(result.Data);
+                session.ApplyLoadout(result.Data, backpack);
                 equipBusy = false;
                 if (currentPage == LobbyPage.Armory || currentPage == LobbyPage.Shop)
                     RenderTacticalCatalog(currentPage == LobbyPage.Shop);
-                status.text = item.slotType == "Secondary" ? "已装备为副武器" : "已装备为主武器";
+                status.text = (item.slotType == "Secondary" ? "已装备为副武器" : "已装备为主武器")
+                    + (backpack > 0 ? $"（背包 {backpack + 1}）" : string.Empty);
             }
             catch (OperationCanceledException) { }
             finally { equipBusy = false; }
@@ -749,7 +756,7 @@ namespace Game.UI
             {
                 expectedVersion = version, weaponSlot = selectedWeapon.slotType == "Secondary" ? "Secondary" : "Primary",
                 weaponItemId = selectedWeapon.itemId, attachments = selections.ToArray()
-            }, pageCts.Token);
+            }, gunsmithBackpack + 1, pageCts.Token);
             if (!result.Success)
             {
                 status.text = ApiErrorMessages.ToUserMessage(result);

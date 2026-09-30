@@ -691,10 +691,18 @@ namespace Game.Gameplay.Network
             if (identity == null)
             {
                 Debug.LogWarning($"[PlayerNetworkAdapter] 服务器权威配装跳过（无认证档案——F1 调试 Host/本地连接）：保留 prefab 调试 Arsenal conn={clientId}", this);
+                GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerResetInventory();
                 return;
             }
 
-            string error = NetworkLoadoutPolicy.TryApplyServerSlots(_arsenal, identity.Loadout);
+            // CF 三背包（2026-09-30 Phase C）：票据携带三背包全集时按活动背包装配；
+            // 旧后端无 backpacks 数组 → 回退单配装语义（Loadout 镜像 = 活动背包）。
+            _authoritativeBackpacks = identity.Backpacks;
+            _activeBackpackIndex = identity.Backpacks != null && identity.Backpacks.Length > 0
+                ? BackpackSwitchPolicy.ClampIndex(identity.ActiveBackpackIndex) : 0;
+            var activeSnapshot = ResolveActiveBackpackSnapshot(identity);
+
+            string error = NetworkLoadoutPolicy.TryApplyServerSlots(_arsenal, activeSnapshot);
             if (!string.IsNullOrEmpty(error))
             {
                 // fail closed（§6 二.3）：拒绝生成 + 断开，明确错误（不含密钥/票据）
@@ -704,11 +712,148 @@ namespace Game.Gameplay.Network
                 return;
             }
 
-            _authoritativeLoadout = identity.Loadout;
+            _authoritativeLoadout = activeSnapshot;
             _serverWeaponController = GetComponentInParent<WeaponController>();
             if (_serverWeaponController != null)
                 _serverWeaponController.OnWeaponEquipped += HandleServerEquipApplyAttachments;
-            Debug.Log($"[PlayerNetworkAdapter] SERVER_LOADOUT_APPLIED user={identity.UserId} conn={clientId} primary={identity.Loadout?.primaryWeaponId} secondary={identity.Loadout?.secondaryWeaponId}", this);
+            // 投掷配包（Phase C）：生成即按活动背包装配（调试 Host 无档案路径已在上面回退默认）
+            GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerApplyLoadout(activeSnapshot?.throwableIds ?? Game.Gameplay.Combat.ThrowableSlots.Legacy(activeSnapshot?.throwableId));
+            // Phase D：Owner 背包清单投递（对局内背包浮层的渲染数据源——票据快照为唯一真相，
+            // 不读 Owner 本地会话缓存以免大厅编辑后滞后）
+            Debug.Log($"[PlayerNetworkAdapter] SERVER_LOADOUT_APPLIED user={identity.UserId} conn={clientId} backpack={_activeBackpackIndex} " +
+                $"primary={activeSnapshot?.primaryWeaponId} secondary={activeSnapshot?.secondaryWeaponId} throwable={activeSnapshot?.throwableId}", this);
+        }
+
+        /// <summary>Owner 侧背包清单（TargetRpc 投递；9 项 itemId = 3 背包 × 主/副/投掷，空串=无）。
+        /// 对局内背包浮层（BackpackSwitchHudView）只读此清单渲染，不做任何本地状态决策。</summary>
+        public string[] OwnerBackpackManifest => _ownerBackpackManifest;
+        private string[] _ownerBackpackManifest;
+        public event System.Action OnOwnerBackpackManifestChanged;
+        public override void OnSpawnServer(FishNet.Connection.NetworkConnection connection)
+        {
+            base.OnSpawnServer(connection);
+            if (connection == Owner && _authoritativeBackpacks != null)
+            {
+                var entries = new string[15];
+                for (int i = 0; i < 3; i++)
+                {
+                    var snapshot = _authoritativeBackpacks[i];
+                    entries[i * 5] = snapshot?.primaryWeaponId ?? string.Empty;
+                    entries[i * 5 + 1] = snapshot?.secondaryWeaponId ?? string.Empty;
+                    var ids = snapshot?.throwableIds ?? Game.Gameplay.Combat.ThrowableSlots.Legacy(snapshot?.throwableId);
+                    for (int j = 0; j < 3; j++) entries[i * 5 + 2 + j] = ids.Length > j ? ids[j] ?? string.Empty : string.Empty;
+                }
+                TargetOwnerBackpackManifest(connection, entries);
+            }
+        }
+
+        [TargetRpc]
+        private void TargetOwnerBackpackManifest(FishNet.Connection.NetworkConnection connection, string[] entries)
+        { _ownerBackpackManifest = entries; OnOwnerBackpackManifestChanged?.Invoke(); }
+
+        private static string[] BuildOwnerBackpackManifest(TicketConsumeResult identity)
+        {
+            var entries = new string[BackpackSwitchPolicy.BackpackCount * 3];
+            for (int i = 0; i < BackpackSwitchPolicy.BackpackCount; i++)
+            {
+                var snapshot = identity.Backpacks != null && i < identity.Backpacks.Length
+                    ? identity.Backpacks[i]
+                    : i == 0 ? identity.Loadout : null;
+                entries[i * 3] = snapshot?.primaryWeaponId ?? string.Empty;
+                entries[i * 3 + 1] = snapshot?.secondaryWeaponId ?? string.Empty;
+                entries[i * 3 + 2] = snapshot?.throwableId ?? string.Empty;
+            }
+            return entries;
+        }
+
+        // ---- CF 三背包（2026-09-30 Phase C）：服务器权威背包数据与切换执行 ----
+
+        private TicketLoadoutSnapshot[] _authoritativeBackpacks;
+        private int _activeBackpackIndex;
+
+        /// <summary>三背包全集（票据 consume 透传；null = 旧后端/调试 Host——对局内换背包不可用）。</summary>
+        public TicketLoadoutSnapshot[] AuthoritativeBackpacks => _authoritativeBackpacks;
+        /// <summary>当前活动背包下标（0/1/2）。</summary>
+        public int ActiveBackpackIndex => _activeBackpackIndex;
+        /// <summary>是否有可用的三背包数据（切换 RPC 的前置闸之一）。</summary>
+        public bool HasBackpackData => _authoritativeBackpacks != null
+            && _authoritativeBackpacks.Length == BackpackSwitchPolicy.BackpackCount;
+        /// <summary>活动背包快照（与 _authoritativeLoadout 同源；null = 无档案）。</summary>
+        public TicketLoadoutSnapshot ActiveBackpackSnapshot => _authoritativeLoadout;
+
+        private TicketLoadoutSnapshot ResolveActiveBackpackSnapshot(TicketConsumeResult identity)
+        {
+            if (identity.Backpacks == null || identity.Backpacks.Length == 0) return identity.Loadout;
+            int index = BackpackSwitchPolicy.ClampIndex(identity.ActiveBackpackIndex);
+            return index < identity.Backpacks.Length && identity.Backpacks[index] != null
+                ? identity.Backpacks[index] : identity.Loadout;
+        }
+
+        /// <summary>按下标取背包快照（越界/无数据 false）。</summary>
+        public bool TryGetBackpack(int backpackIndex, out TicketLoadoutSnapshot snapshot)
+        {
+            snapshot = null;
+            if (_authoritativeBackpacks == null
+                || backpackIndex < 0 || backpackIndex >= _authoritativeBackpacks.Length)
+                return false;
+            snapshot = _authoritativeBackpacks[backpackIndex];
+            return snapshot != null;
+        }
+
+        /// <summary>
+        /// 服务器权威换背包执行（NetworkCombatAuthority 校验通过后调用；薄壳可测）：
+        /// ① 先更新 _authoritativeLoadout/_activeBackpackIndex（EquipDefinition 同步触发的
+        ///    HandleServerEquipApplyAttachments 必须读到新背包的附件）；
+        /// ② NetworkLoadoutPolicy 重配两槽（解析失败回滚快照并返回错误——对局中拒绝切换，
+        ///    绝不沿用生成期的 fail-closed 断开语义）；
+        /// ③ 满弹重置（CF 语义：换包后该背包武器按配装默认满弹）；
+        /// ④ 投掷配包重载；
+        /// ⑤ NetworkWeaponState 重播权威两槽/附件快照/活动下标（全端 SyncVar）。
+        /// 返回 null = 成功；非空 = 拒绝原因（日志可读，不含密钥/票据）。
+        /// </summary>
+        internal string ServerSwitchBackpack(int backpackIndex)
+        {
+            if (!TryGetBackpack(backpackIndex, out var snapshot))
+                return $"backpack-missing（背包 {backpackIndex + 1} 无配装快照）";
+
+            var previousLoadout = _authoritativeLoadout;
+            var previousIndex = _activeBackpackIndex;
+            _authoritativeLoadout = snapshot;
+            _activeBackpackIndex = backpackIndex;
+
+            if (_arsenal == null) _arsenal = GetComponentInParent<Arsenal>();
+            string error = NetworkLoadoutPolicy.TryApplyServerSlots(_arsenal, snapshot);
+            if (!string.IsNullOrEmpty(error))
+            {
+                // 回滚：Arsenal 未变（TryApply 失败于解析阶段不触碰槽位），快照指针必须归位
+                _authoritativeLoadout = previousLoadout;
+                _activeBackpackIndex = previousIndex;
+                Debug.LogWarning($"[PlayerNetworkAdapter] SERVER_BACKPACK_SWITCH_REJECTED backpack={backpackIndex}：{error}", this);
+                return error;
+            }
+
+            // 满弹重置：换包后武器按新配装默认值（含清切枪弹药缓存——旧枪残弹不带入新包）
+            var controllers = GetComponentsInChildren<WeaponController>(true);
+            for (int i = 0; i < controllers.Length; i++)
+                controllers[i].ServerResetAmmoToLoadoutDefault();
+            GetComponent<Game.Gameplay.Combat.ThrowableController>()?.ServerApplyLoadout(snapshot.throwableIds ?? Game.Gameplay.Combat.ThrowableSlots.Legacy(snapshot.throwableId));
+
+            // 权威重播：四槽位/附件 SyncVar + 活动下标（NetworkWeaponState 单写者）
+            var weaponState = GetComponentInChildren<NetworkWeaponState>();
+            weaponState?.ServerPublishBackpack(_arsenal, snapshot, backpackIndex);
+
+            Debug.Log($"[PlayerNetworkAdapter] SERVER_BACKPACK_SWITCHED backpack={backpackIndex} " +
+                $"primary={snapshot.primaryWeaponId} secondary={snapshot.secondaryWeaponId} throwable={snapshot.throwableId}", this);
+            return null;
+        }
+
+        /// <summary>活动背包投掷配包应用（重生边界调用；无档案回退默认库存）。</summary>
+        public void ServerApplyActiveBackpackThrowable()
+        {
+            var throwable = GetComponent<Game.Gameplay.Combat.ThrowableController>();
+            if (throwable == null) return;
+            if (_authoritativeLoadout != null) throwable.ServerApplyLoadout(_authoritativeLoadout.throwableIds ?? Game.Gameplay.Combat.ThrowableSlots.Legacy(_authoritativeLoadout.throwableId));
+            else throwable.ServerResetInventory();
         }
 
         /// <summary>服务器装备期重套权威配件（§6 二.4 六处一致）：EquipDefinition 先 Reset(null)——
@@ -746,6 +891,8 @@ namespace Game.Gameplay.Network
                 _serverWeaponController.OnWeaponEquipped -= HandleServerEquipApplyAttachments;
             _serverWeaponController = null;
             _authoritativeLoadout = null;
+            _authoritativeBackpacks = null;
+            _activeBackpackIndex = 0;
         }
 
         public override void OnStopNetwork()

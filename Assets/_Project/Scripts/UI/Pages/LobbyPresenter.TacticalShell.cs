@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Game.Account;
 using TMPro;
 using UnityEngine;
@@ -11,6 +12,11 @@ namespace Game.UI
         private LobbyCharacterPreview lobbyCharacter;
         private TMP_Text primaryLabel, secondaryLabel, previewError, accountLabel, accountTagLabel, accountStatsLabel;
         private Image primaryIcon;
+        /// <summary>CF 三背包（Phase D）：大厅装配卡的背包预览页签 + 投掷/配件摘要行。</summary>
+        private int lobbyBackpackPreview;
+        private readonly Image[] lobbyThrowableIcons = new Image[3];
+        private readonly TMP_Text[] lobbyThrowableNames = new TMP_Text[3];
+        private TMP_Text throwableLabel, attachmentCountLabel;
         private GameObject accountPanel;
 
         private void RenderTacticalLobby()
@@ -44,22 +50,52 @@ namespace Game.UI
             quitButton.transform.parent.name = "QuitGameButton";
 
             var card = StyledPanel("LoadoutCard", root, new Color(0.10f, 0.15f, 0.16f, 0.94f),
-                new Vector2(0.72f, 0.08f), new Vector2(0.94f, 0.37f));
-            StyledText(card.transform, "当前配装", UITheme.FontCaption, UITheme.TextMuted,
-                new Vector2(0.07f, 0.83f), new Vector2(0.93f, 0.96f), TextAlignmentOptions.Left);
-            primaryIcon = CreateWeaponIcon(card.transform, null, new Vector2(0.07f, 0.37f), new Vector2(0.93f, 0.81f));
-            primaryLabel = StyledText(card.transform, "", UITheme.FontCardTitle, UITheme.TextPrimary,
-                new Vector2(0.07f, 0.26f), new Vector2(0.93f, 0.40f), TextAlignmentOptions.Left, FontStyles.Bold);
+                new Vector2(0.70f, 0.08f), new Vector2(0.96f, 0.51f));
+            StyledText(card.transform, "背包装配", UITheme.FontCaption, UITheme.TextMuted,
+                new Vector2(0.07f, 0.915f), new Vector2(0.55f, 0.995f), TextAlignmentOptions.Left);
+            // 背包预览页签（只读切换预览；3D 角色始终展示出战背包=活动背包）
+            for (int i = 0; i < 3; i++)
+            {
+                var captured = i;
+                var pill = BackpackTab("LobbyBackpack_" + (i + 1), card.transform, "背包 " + (i + 1),
+                    new Vector2(0.06f + i * 0.30f, 0.79f), new Vector2(0.34f + i * 0.30f, 0.90f));
+                pill.name = "LobbyBackpackTab_" + (i + 1);
+                UIComponents.SetNavPillSelected(pill, i == lobbyBackpackPreview);
+                pill.onClick.AddListener(() =>
+                {
+                    if (lobbyBackpackPreview == captured) return;
+                    lobbyBackpackPreview = captured;
+                    RefreshLobbyLoadout();
+                    for (int j = 1; j <= 3; j++)
+                        UIComponents.SetNavPillSelected(
+                            card.transform.Find("LobbyBackpackTab_" + j)?.GetComponent<Button>(), j - 1 == captured);
+                });
+            }
+            primaryIcon = CreateWeaponIcon(card.transform, null, new Vector2(0.07f, 0.515f), new Vector2(0.93f, 0.765f));
+            primaryLabel = StyledText(card.transform, "", UITheme.FontBody, UITheme.TextPrimary,
+                new Vector2(0.07f, 0.43f), new Vector2(0.93f, 0.515f), TextAlignmentOptions.Left, FontStyles.Bold);
             primaryLabel.name = "LoadoutPrimaryName";
             secondaryLabel = StyledText(card.transform, "", UITheme.FontCaption, UITheme.TextMuted,
-                new Vector2(0.07f, 0.13f), new Vector2(0.93f, 0.26f), TextAlignmentOptions.Left);
+                new Vector2(0.07f, 0.36f), new Vector2(0.93f, 0.425f), TextAlignmentOptions.Left);
             secondaryLabel.name = "LoadoutSecondaryName";
+            for (int i=0;i<3;i++)
+            {
+                var slot=StyledPanel("LobbyThrowableSlot"+i,card.transform,UITheme.CardSurface,new Vector2(.06f+i*.30f,.105f),new Vector2(.34f+i*.30f,.345f));
+                lobbyThrowableIcons[i]=CreateWeaponIcon(slot.transform,null,new Vector2(.08f,.35f),new Vector2(.92f,.95f));
+                var label=StyledText(slot.transform,"",UITheme.FontCaption,UITheme.TextMuted,new Vector2(.03f,.015f),new Vector2(.97f,.35f),TextAlignmentOptions.Center);
+                label.textWrappingMode=TextWrappingModes.NoWrap;
+                label.enableAutoSizing=true;label.fontSizeMin=12;label.fontSizeMax=UITheme.FontCaption;
+                lobbyThrowableNames[i]=label;
+            }
+            attachmentCountLabel = StyledText(card.transform, "", UITheme.FontCaption, UITheme.AccentPrimary,
+                new Vector2(0.07f, 0.02f), new Vector2(0.93f, 0.08f), TextAlignmentOptions.Left);
+            attachmentCountLabel.name = "LoadoutAttachmentSummary";
             var button = card.AddComponent<Button>();
             button.targetGraphic = card.GetComponent<Image>();
             card.GetComponent<Image>().raycastTarget = true;
-            button.onClick.AddListener(() => Navigate(LobbyPage.Armory));
+            button.onClick.AddListener(() => { armoryBackpack = lobbyBackpackPreview; Navigate(LobbyPage.Armory); });
             StyledText(card.transform, "查看仓库  →", UITheme.FontCaption, UITheme.AccentPrimary,
-                new Vector2(0.07f, 0.02f), new Vector2(0.93f, 0.13f));
+                new Vector2(0.55f, 0.915f), new Vector2(0.94f, 0.995f), TextAlignmentOptions.Right);
             // Build all controls before starting optional 3D presentation.
             StyledButton(root, "检查地图更新", UIComponents.ButtonKind.Secondary,
                 new Vector2(.75f, .01f), new Vector2(.96f, .065f), () => _ = CheckMapUpdatesAsync());
@@ -81,15 +117,45 @@ namespace Game.UI
             if (accountTagLabel != null) accountTagLabel.text = string.IsNullOrEmpty(profile?.identityTag) ? "" : "#" + profile.identityTag;
             if (accountStatsLabel != null) accountStatsLabel.text = $"Lv.{profile?.level ?? 1}  ·  {profile?.coins ?? 0:N0} 金币";
             if (currentPage != LobbyPage.Lobby || primaryLabel == null) return;
-            var loadout = session?.Loadout;
-            primaryLabel.text = WeaponName(loadout?.primaryWeaponId);
-            secondaryLabel.text = "副武器  " + WeaponName(loadout?.secondaryWeaponId);
+            // 背包装配详情（Phase D）：页签预览对应背包；3D 角色仍展示出战（活动）背包
+            var loadout = session?.LoadoutForBackpack(lobbyBackpackPreview);
+            primaryLabel.text = "主  " + WeaponName(loadout?.primaryWeaponId);
+            secondaryLabel.text = "副  " + WeaponName(loadout?.secondaryWeaponId);
+            var throwableIds=loadout?.throwableIds ?? Game.Gameplay.Combat.ThrowableSlots.Legacy(loadout?.throwableId);
+            for(int i=0;i<3;i++)
+            {
+                var id=throwableIds.Length>i?throwableIds[i]:null;
+                ApplyWeaponIcon(lobbyThrowableIcons[i],id);
+                if(lobbyThrowableNames[i]!=null) lobbyThrowableNames[i].text=Game.Gameplay.Combat.ThrowableSlots.DisplayName(id);
+            }
+            if (attachmentCountLabel != null)
+            {
+                int count = loadout?.attachments?.Length ?? 0;
+                attachmentCountLabel.text = count > 0 ? $"已装配件 {count} 项" : "未改装配件";
+            }
             ApplyWeaponIcon(primaryIcon, loadout?.primaryWeaponId);
             if (lobbyCharacter != null)
             {
-                lobbyCharacter.ApplyLoadout(loadout, weaponAssets);
+                lobbyCharacter.ApplyLoadout(session?.Loadout, weaponAssets);
                 if (previewError != null) previewError.text = lobbyCharacter.Error ?? "";
             }
+        }
+
+        /// <summary>投掷物显示名（目录缓存优先——WeaponName 只解析武器条目）。</summary>
+        private string ThrowableLabelOrId(Game.Account.LoadoutDto loadout)
+        {
+            var item = cachedCatalog?.items?.FirstOrDefault(x => x.itemId == loadout?.throwableId);
+            return item != null ? item.displayName : loadout.throwableId;
+        }
+
+        private Button BackpackTab(string name,Transform parent,string label,Vector2 min,Vector2 max)
+        {
+            var panel=StyledPanel(name,parent,UITheme.CardSurface,min,max);
+            var graphic=panel.GetComponent<Image>();graphic.raycastTarget=true;
+            var button=panel.AddComponent<Button>();button.targetGraphic=graphic;
+            var text=StyledText(panel.transform,label,UITheme.FontBody,UITheme.TextPrimary,new Vector2(.02f,0),new Vector2(.98f,1),TextAlignmentOptions.Center);
+            text.enableAutoSizing=true;text.fontSizeMin=14;text.fontSizeMax=18;text.overflowMode=TextOverflowModes.Overflow;
+            return button;
         }
 
         private Image CreateWeaponIcon(Transform parent, string id, Vector2 min, Vector2 max)
@@ -107,6 +173,9 @@ namespace Game.UI
         private void ApplyWeaponIcon(Image image, string id)
         {
             if (image == null) return;
+            if(string.IsNullOrEmpty(id)){image.sprite=null;image.enabled=false;return;}
+            if (id != null && id.StartsWith("throwable.")) { image.sprite=Resources.Load<Sprite>("UI/WeaponIcons/"+id); image.enabled=image.sprite!=null; return; }
+            image.enabled=true;
             image.sprite = !string.IsNullOrEmpty(id) && weaponAssets != null && weaponAssets.TryGet(id, out var entry) && entry.icon != null
                 ? entry.icon : WeaponIconFallback.Sprite;
             image.color = Color.white;

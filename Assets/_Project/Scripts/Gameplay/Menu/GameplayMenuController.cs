@@ -192,7 +192,7 @@ namespace Game.Gameplay.Menu
             // 退出流程进行中 ESC 不再开菜单（防止断线等待期把菜单又拉起来）；
             // R9 审计修复：聊天聚焦时 ESC 归聊天视图（关闭聊天），不得误开战斗菜单
             var kb = Keyboard.current;
-            if (!_leaveRequested && !GameplayInputGate.ChatFocused
+            if (!_leaveRequested && !GameplayInputGate.ChatFocused && !GameplayInputGate.BackpackUiOpen
                 && kb != null && kb.escapeKey.wasPressedThisFrame && Machine.TryConsumeEscape())
                 OnMenuToggled();
 
@@ -203,19 +203,21 @@ namespace Game.Gameplay.Menu
         /// <summary>光标兜底（2026-09-18 实机问题3：对局内 Windows 光标可见可移动）：
         /// 锁定此前只在 ApplyState（菜单状态迁移）执行，挂载后从未初始锁——进对局后光标永不锁定。
         /// 每帧按守卫补锁；以下任一情况不锁（归属其他写者/页面）：菜单可见（ApplyState 已解锁）、
-        /// 聊天聚焦（ChatHudView 拥有光标）、状态机锁定（SceneTransition/MatchEnded——结算页与
-        /// 场景切换窗口需要自由光标）。</summary>
+        /// 聊天聚焦（ChatHudView 拥有光标）、背包浮层打开（BackpackSwitchHudView 拥有光标，2026-09-30）、
+        /// 状态机锁定（SceneTransition/MatchEnded——结算页与场景切换窗口需要自由光标）。</summary>
         private void EnforceCursorState()
         {
-            if (!ShouldLockCursor(Machine.MenuVisible, GameplayInputGate.ChatFocused, Machine.IsLocked)) return;
+            if (!ShouldLockCursor(Machine.MenuVisible, GameplayInputGate.ChatFocused, Machine.IsLocked,
+                GameplayInputGate.BackpackUiOpen)) return;
             if (Cursor.lockState == CursorLockMode.Locked && !Cursor.visible) return;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
-        /// <summary>光标锁定判定（纯函数，internal=测试接缝）：三个豁免条件见 EnforceCursorState 注释。</summary>
-        internal static bool ShouldLockCursor(bool menuVisible, bool chatFocused, bool machineLocked)
-            => !menuVisible && !chatFocused && !machineLocked;
+        /// <summary>光标锁定判定（纯函数，internal=测试接缝）：四个豁免条件见 EnforceCursorState 注释。</summary>
+        internal static bool ShouldLockCursor(bool menuVisible, bool chatFocused, bool machineLocked,
+            bool backpackUiOpen = false)
+            => !menuVisible && !chatFocused && !machineLocked && !backpackUiOpen;
 
         private void ResolveLocalPlayer()
         {
@@ -259,9 +261,10 @@ namespace Game.Gameplay.Menu
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            else if (!GameplayInputGate.ChatFocused && !Machine.IsLocked)
+            else if (!GameplayInputGate.ChatFocused && !Machine.IsLocked && !GameplayInputGate.BackpackUiOpen)
             {
-                // C4/I2：聊天聚焦时聊天视图拥有光标（菜单未开时），此处不得抢锁
+                // C4/I2：聊天聚焦时聊天视图拥有光标（菜单未开时），此处不得抢锁；
+                // 背包浮层打开时同理（BackpackSwitchHudView 拥有光标）
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }

@@ -27,12 +27,15 @@ public sealed class RetiredOpticCleanupTests
             NormalizedUsername = "RETIRED-OPTICS-TEST",
             PasswordHash = "test",
             CreatedAtUtc = DateTime.UtcNow,
-            Loadout = new PlayerLoadout
+            Loadouts =
             {
-                PrimaryWeaponId = "weapon.m4",
-                SecondaryWeaponId = "weapon.service_pistol",
-                Version = 1,
-                UpdatedAtUtc = DateTime.UtcNow
+                new PlayerLoadout
+                {
+                    PrimaryWeaponId = "weapon.m4",
+                    SecondaryWeaponId = "weapon.service_pistol",
+                    Version = 1,
+                    UpdatedAtUtc = DateTime.UtcNow
+                }
             },
             Profile = new PlayerProfile { UpdatedAtUtc = DateTime.UtcNow },
             Wallet = new PlayerWallet { Coins = 0, UpdatedAtUtc = DateTime.UtcNow }
@@ -61,7 +64,7 @@ public sealed class RetiredOpticCleanupTests
             });
             db.LoadoutAttachments.Add(new PlayerLoadoutAttachment
             {
-                LoadoutId = user.Loadout!.Id, WeaponSlot = "Primary", AttachmentSlot = "Optic" + index,
+                LoadoutId = user.Loadouts[0].Id, WeaponSlot = "Primary", AttachmentSlot = "Optic" + index,
                 AttachmentItemId = optic
             });
         }

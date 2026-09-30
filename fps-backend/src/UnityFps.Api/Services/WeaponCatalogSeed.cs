@@ -64,6 +64,26 @@ public static class WeaponCatalogSeed
                 IsActive = true, IsImplemented = true, CalibrationKey = $"lpw.{family.Key}.{tier:00}.v1"
             });
         }
+
+        // 投掷物（2026-09-30 背包系统 Phase A）：ItemType/SlotType="Throwable"。
+        // standard = 初始全员持有（保持既有"每生命三雷"手感的数据化）；突击破片包商城直购。
+        items.Add(new CatalogItem
+        {
+            ItemId = "throwable.standard", ItemType = "Throwable", SlotType = "Throwable",
+            Category = "Throwable", DisplayName = "标准投掷包", Description = "破片/闪光/烟雾的标准战术配包",
+            AssetKey = "throwable/standard", PriceCoins = 0, UnlockLevel = 1,
+            IsActive = false, IsImplemented = true, CalibrationKey = "throwable.standard.v1", AcquisitionSource = "Initial"
+        });
+        items.Add(new CatalogItem
+        {
+            ItemId = "throwable.frag_assault", ItemType = "Throwable", SlotType = "Throwable",
+            Category = "Throwable", DisplayName = "突击破片包", Description = "全破片手雷的突击配包",
+            AssetKey = "throwable/frag_assault", PriceCoins = 1500, UnlockLevel = 3,
+            IsActive = false, IsImplemented = true, CalibrationKey = "throwable.frag_assault.v1", AcquisitionSource = "Shop"
+        });
+        var grenades = new[] { ("frag", "破片手雷", 500L), ("frag_02", "破片手雷 II", 700L), ("frag_03", "破片手雷 III", 400L), ("flash", "闪光弹", 400L), ("smoke", "烟雾弹", 400L) };
+        foreach (var (id, name, price) in grenades)
+            items.Add(new CatalogItem { ItemId = "throwable." + id, ItemType = "Throwable", SlotType = "Throwable", Category = "Throwable", DisplayName = name, Description = "永久解锁；每个装配槽每生命补充一枚", AssetKey = "throwable/" + id, PriceCoins = price, UnlockLevel = 1, IsActive = true, IsImplemented = true, CalibrationKey = "throwable." + id + ".v1", AcquisitionSource = "Shop" });
         return items;
     }
 
@@ -79,6 +99,8 @@ public static class CatalogSeeder
 {
     public const long InitialCoins = 5_000;
     public static readonly string[] InitialWeapons = ["weapon.m4", "weapon.ak", "weapon.service_pistol"];
+    /// <summary>初始投掷物（2026-09-30 背包系统）：注册即持有，默认装入各背包投掷槽。</summary>
+    public static readonly string[] InitialThrowables = ["throwable.frag", "throwable.flash", "throwable.smoke"];
 
     public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
@@ -90,18 +112,23 @@ public static class CatalogSeeder
         }
         await db.SaveChangesAsync(cancellationToken);
 
-        var users = await db.Users.Include(x => x.Wallet).Include(x => x.Inventory).Include(x => x.Loadout).ToListAsync(cancellationToken);
+        var users = await db.Users.Include(x => x.Wallet).Include(x => x.Inventory).Include(x => x.Loadouts).ToListAsync(cancellationToken);
         foreach (var user in users)
         {
             user.Wallet ??= new PlayerWallet { User = user, Coins = InitialCoins, UpdatedAtUtc = DateTime.UtcNow };
             foreach (var itemId in InitialWeapons)
                 if (user.Inventory.All(x => x.ItemId != itemId))
                     user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
-            if (user.Loadout is not null)
+            foreach (var itemId in InitialThrowables)
+                if (user.Inventory.All(x => x.ItemId != itemId))
+                    user.Inventory.Add(new PlayerInventoryItem { User = user, ItemId = itemId, Quantity = 1, AcquiredAtUtc = DateTime.UtcNow });
+            foreach (var loadout in user.Loadouts)
             {
-                user.Loadout.PrimaryWeaponId = MigrateItemId(user.Loadout.PrimaryWeaponId);
-                user.Loadout.SecondaryWeaponId = MigrateItemId(user.Loadout.SecondaryWeaponId);
-                if (user.Loadout.Version < 1) user.Loadout.Version = 1;
+                loadout.PrimaryWeaponId = MigrateItemId(loadout.PrimaryWeaponId);
+                loadout.SecondaryWeaponId = MigrateItemId(loadout.SecondaryWeaponId);
+                // 投掷槽解冻回填：存量空槽补默认投掷包（明确选择不带雷的玩家此轮尚未存在）
+                if (loadout.Throwables.Count == 0) ThrowableSlotPolicy.Write(loadout, ThrowableSlotPolicy.FromLegacy(loadout.ThrowableId));
+                if (loadout.Version < 1) loadout.Version = 1;
             }
         }
         await db.SaveChangesAsync(cancellationToken);

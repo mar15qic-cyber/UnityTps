@@ -44,7 +44,7 @@ namespace Game.UI
                         if (token.IsCancellationRequested) return;
                         if (profile.Success)
                         {
-                            var loadout = await api.GetLoadoutAsync(token);
+                            var loadout = await api.GetLoadoutAsync(cancellationToken: token);
                             if (token.IsCancellationRequested) return;
                             if (loadout.Success) { saved.profile = profile.Data; saved.loadout = loadout.Data; ApplySession(saved); }
                             else { api.ClearToken(); if (!ApiClientErrorCodes.IsTransportFailure(loadout.Code)) RememberedSession.Clear(); }

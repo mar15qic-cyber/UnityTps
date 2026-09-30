@@ -17,10 +17,16 @@ public sealed class LoginRequest
     [Required] public string Password { get; set; } = string.Empty;
 }
 
-public sealed record AuthSessionDto(string Token, DateTime ExpiresAtUtc, PlayerProfileDto Profile, LoadoutDto Loadout, long Coins);
+public sealed record AuthSessionDto(string Token, DateTime ExpiresAtUtc, PlayerProfileDto Profile, LoadoutDto Loadout, long Coins,
+    BackpackSetDto? Backpacks = null);
 public sealed record PlayerProfileDto(string Username, string IdentityTag, int Level, int Xp, int XpToNextLevel, long Coins);
 public sealed record LoadoutAttachmentDto(string WeaponSlot, string AttachmentSlot, string AttachmentItemId);
-public sealed record LoadoutDto(string PrimaryWeaponId, string SecondaryWeaponId, string? ThrowableId, long Version, LoadoutAttachmentDto[] Attachments);
+/// <summary>单背包配装。BackpackIndex（2026-09-30 三背包，尾部默认 0）：0/1/2 = 背包 1/2/3。</summary>
+public sealed record LoadoutDto(string PrimaryWeaponId, string SecondaryWeaponId, string? ThrowableId, long Version, LoadoutAttachmentDto[] Attachments,
+    int BackpackIndex = 0, string?[]? ThrowableIds = null);
+/// <summary>CF 三背包集合（2026-09-30 Phase A）：Backpacks 恒长 3（缺失背包按 BackpackPolicy 懒默认合成）；
+/// ActiveIndex 本轮恒 0（进入对局固定背包 1，大厅出战背包选择器为后续可选项）。旧客户端只读 Loadout 字段不受影响。</summary>
+public sealed record BackpackSetDto(LoadoutDto[] Backpacks, int ActiveIndex);
 
 
 public sealed class LoadoutRequest
@@ -28,6 +34,7 @@ public sealed class LoadoutRequest
     [Required, StringLength(64)] public string PrimaryWeaponId { get; set; } = string.Empty;
     [Required, StringLength(64)] public string SecondaryWeaponId { get; set; } = string.Empty;
     [StringLength(64)] public string? ThrowableId { get; set; }
+    public string?[]? ThrowableIds { get; set; }
     [Range(0, long.MaxValue)] public long ExpectedVersion { get; set; }
 }
 
@@ -193,7 +200,8 @@ public sealed class JoinTicketConsumeRequest
 public sealed record JoinTicketConsumeDto(bool Valid, string? RoomCode, long? UserId, string? Username,
     DateTime? ExpiresAtUtc, long? SessionId, string? ErrorCode, LoadoutDto? Loadout = null,
     string? MatchId = null, int? MatchGeneration = null, string? TeamId = null,
-    string? MatchMode = null, int? KillTarget = null, int? TimeLimitMinutes = null, int? MaxPlayers = null);
+    string? MatchMode = null, int? KillTarget = null, int? TimeLimitMinutes = null, int? MaxPlayers = null,
+    LoadoutDto[]? Backpacks = null, int ActiveBackpackIndex = 0);
 
 // ---- CF 等待房间：地图目录与终局结果（Docs/27 §4/§7）----
 

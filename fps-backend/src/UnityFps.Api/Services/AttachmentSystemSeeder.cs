@@ -95,6 +95,8 @@ public static class AttachmentSystemSeeder
         ("attach.lpfp.optic.01",  "Optic", "LPFP 低倍瞄具",   "Scope_01；3x 低倍棱镜瞄具",      "lpfp/optic/01", 4000, 6, OTier.LowZoom),
         ("attach.lpfp.optic.03",  "Optic", "LPFP 低倍瞄具 II", "Scope_03；3x 低倍棱镜瞄具",     "lpfp/optic/03", 4000, 6, OTier.LowZoom),
         ("attach.lpfp.optic.02",  "Optic", "LPFP 1x 全息瞄具", "Scope_04；1x 全息瞄具",         "lpfp/optic/02", 3200, 5, OTier.Holo),
+        ("attach.rifle.optic", "Optic", "1x 光学瞄具", "Scope_02；1x 光学瞄具", "attach/rifle/optic", 3200, 1, OTier.Holo),
+        ("attach.pistol.magazine", "Magazine", "手枪加长弹匣", "手枪加长弹匣；保留通行证奖励", "attach/pistol/magazine", 1500, 1, null),
         // 战术
         ("attach.lpw.tactical.laser", "Tactical", "激光指示器", "下挂激光指示模块；开镜对中提示", "lpw/tactical/laser", 1800, 3, null),
         ("attach.lpw.tactical.light", "Tactical", "战术手电",   "下挂照明模块",                   "lpw/tactical/light", 1500, 2, null),
@@ -118,6 +120,7 @@ public static class AttachmentSystemSeeder
         await RemoveRetiredOpticsAsync(db, cancellationToken);
         await SeedConcreteCatalogAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
+        await MigrateRifleSuppressorAsync(db, cancellationToken);
         await MigrateSniperMagazineAsync(db, cancellationToken);
         await SaveSectionTolerantAsync(db, cancellationToken);
         await SeedCompatMatrixAsync(db, cancellationToken);
@@ -259,6 +262,23 @@ public static class AttachmentSystemSeeder
         }
     }
 
+    private static async Task MigrateRifleSuppressorAsync(AppDbContext db, CancellationToken ct)
+    {
+        const string oldId = "attach.rifle.muzzle", newId = "attach.lpfp.muffler.01";
+        var owners = await db.InventoryItems.Where(x => x.ItemId == oldId).ToListAsync(ct);
+        var mapped = (await db.InventoryItems.Where(x => x.ItemId == newId).Select(x => x.UserId).ToListAsync(ct)).ToHashSet();
+        foreach (var owner in owners)
+            if (mapped.Add(owner.UserId)) db.InventoryItems.Add(new PlayerInventoryItem { UserId = owner.UserId, ItemId = newId, Quantity = 1, AcquiredAtUtc = owner.AcquiredAtUtc });
+        foreach (var loadout in await db.Loadouts.Include(x => x.Attachments).ToListAsync(ct))
+        {
+            var changed = false;
+            foreach (var attachment in loadout.Attachments.Where(x => x.AttachmentItemId == oldId)) { attachment.AttachmentItemId = newId; changed = true; }
+            if (changed) { loadout.Version++; loadout.UpdatedAtUtc = DateTime.UtcNow; }
+        }
+        var retired = await db.CatalogItems.SingleOrDefaultAsync(x => x.ItemId == oldId, ct);
+        if (retired is not null) retired.IsActive = false;
+    }
+
     private static IEnumerable<AttachmentCompat> BuildMatrix()
     {
         var tacticals = ConcreteCatalog.Where(x => x.SlotType == "Tactical").Select(x => x.ItemId).ToArray();
@@ -270,16 +290,15 @@ public static class AttachmentSystemSeeder
             if (gun.Optic && native)
             {
                 foreach (var opticId in NativeOpticIds)
-                    if (gun.Class != WClass.Pistol || opticId is "attach.lpfp.optic.01" or "attach.lpfp.optic.03")
-                        yield return Row(gun.WeaponId, opticId, "Optic");
+                    yield return Row(gun.WeaponId, opticId, "Optic");
             }
 
             if (gun.Muzzle)
             {
                 foreach (var muzzle in AllowedMuzzles(gun.Class, native))
                     yield return Row(gun.WeaponId, muzzle, "Muzzle");
-                if (gun.Class != WClass.Classic)
-                    yield return Row(gun.WeaponId, gun.Class == WClass.Pistol ? "attach.pistol.muzzle" : "attach.rifle.muzzle", "Muzzle");
+                if (gun.Class == WClass.Pistol)
+                    yield return Row(gun.WeaponId, "attach.pistol.muzzle", "Muzzle");
             }
 
             if (gun.Tactical)

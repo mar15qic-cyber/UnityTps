@@ -137,7 +137,7 @@ namespace Game.UI
 
         private async Task EnsureLoadoutCachedAsync(System.Threading.CancellationToken token)
         {
-            var result = await api.GetLoadoutAsync(token);
+            var result = await api.GetLoadoutAsync(cancellationToken: token);
             if (token.IsCancellationRequested) return;
             if (!result.Success || result.Data == null) return;
             if (session.Loadout != null) return; // 等待期间已被其他路径加载
