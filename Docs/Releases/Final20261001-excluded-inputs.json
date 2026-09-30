@@ -1,0 +1,432 @@
+[
+  {
+    "path": "Assets/Demigiant/DOTween/DOTween.dll.mdb",
+    "sha256": "d3bb00f5d51da5f76f206dace734acd8855fe7f8c3d035fcbe6552e711b46d6d",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Demigiant/DOTween/Editor/DOTweenEditor.dll.mdb",
+    "sha256": "ff5536dbe27abbe4285af59abd4d6aa5453dfbdec023488aa59b8e42826c251f",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Demigiant/DOTweenPro/DOTweenPro.dll.mdb",
+    "sha256": "2bfc443e3b4e680be130589a16626479146967e2ee74271c242084561480d502",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Demigiant/DOTweenPro/Editor/DOTweenProEditor.dll.mdb",
+    "sha256": "d388953e60d14f4b2e86149bcf6e5875c66fd5719bd7178eba754f5e8c904f79",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Demigiant/DemiLib/Core/DemiLib.dll.mdb",
+    "sha256": "9236ff68b3e9950a54e15d3de46b3ea434de645dfd0a7e832160795d693d032c",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Demigiant/DemiLib/Core/Editor/DemiEditor.dll.mdb",
+    "sha256": "98f48cb6de6ef1d932f8b208d8f5abe6a53f7ad3d9c6f71fca0ff548ddd7525f",
+    "ignored": true
+  },
+  {
+    "path": "Assets/FishNet/CodeGenerating/cecil-0.11.4/Mono.Cecil.sln",
+    "sha256": "15815e79673209f32c1000ff099ee2cabafb1517475b566059fd6d8178e57215",
+    "ignored": true
+  },
+  {
+    "path": "Assets/FishNet/Runtime/Transporting/Transports/Synapse/SynapseSocket/CodeBoost/CodeBoost.csproj",
+    "sha256": "55a27c194e74596ceb31d1e1634fa5a546bd187d756cbe0d7548564e41700a48",
+    "ignored": true
+  },
+  {
+    "path": "Assets/FishNet/Runtime/Transporting/Transports/Synapse/SynapseSocket/SynapseSocket.csproj",
+    "sha256": "ef6798fb7fdb080bde3e7917ed904991fd4054eeba14415dbd3c64de7bcce70b",
+    "ignored": true
+  },
+  {
+    "path": "Assets/FishNet/Runtime/Transporting/Transports/Tugboat/LiteNetLib/LiteNetLib.csproj",
+    "sha256": "c072b432fcb6168f063c991449dd099154f4141c42cb32fdbba2b8b5bcefc321",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestScene51e0ec39-ed27-4e25-97fc-d6072b1e29d4.unity",
+    "sha256": "4977885d278e6c06ebdbefcc4e45cb44bb8aa3ed050a27c41064552947c737a6",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestScene51e0ec39-ed27-4e25-97fc-d6072b1e29d4.unity.meta",
+    "sha256": "194bc8ae992e5e59a9ba4a8d7677aa1ae0b4d2f73bd62d09f3fbc633bec1842a",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestScenea00f6a66-2792-4bb1-8219-42bb4b3405a3.unity",
+    "sha256": "c422145d5d0e23da78e7ca43cecfe42a04487fb490960a3b2d701e95671a4af6",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestScenea00f6a66-2792-4bb1-8219-42bb4b3405a3.unity.meta",
+    "sha256": "21d21a56d800a52ef6dae41ea9a05f45e5530252cc92af18ba932376ada62b5a",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestSceneeb7810cc-aed7-440c-b63a-5273a1f92b24.unity",
+    "sha256": "631646334a6d76862afe080446e9902c1ea2d3644399a86c12ce23c6b8fe0c92",
+    "ignored": true
+  },
+  {
+    "path": "Assets/InitTestSceneeb7810cc-aed7-440c-b63a-5273a1f92b24.unity.meta",
+    "sha256": "7432003627ff38cd8bf93dc65eb9f00c475c6ca2d6d62f74324f97cc58f1441d",
+    "ignored": true
+  },
+  {
+    "path": "Assets/LowPolyFPSLite/LowPolyFPSLite_2021.3.0_HDRP_v1.0.unitypackage",
+    "sha256": "7a17c46c9fbdf0c108c733297acc025bbbeef9421c52f18a273df8c825c32ac7",
+    "ignored": true
+  },
+  {
+    "path": "Assets/LowPolyFPSLite/LowPolyFPSLite_2021.3.0_URP_v1.0.unitypackage",
+    "sha256": "15aadb26bfa258e972c53da182d47c7b2565052bfebf680748be48901850910c",
+    "ignored": true
+  },
+  {
+    "path": "Assets/LowPolyWeapons/LowPolyWeapons_2018.4_1.1_HDRP.unitypackage",
+    "sha256": "44230f805f07355250157f954a91f0ea640a453b803684826f65d89db812b157",
+    "ignored": true
+  },
+  {
+    "path": "Assets/LowPolyWeapons/LowPolyWeapons_2018.4_1.1_LWRP.unitypackage",
+    "sha256": "3086a622cbc1a9a693c40dae8a4c6bf3d3e9e51d747b1dc4770e0b68231c3acd",
+    "ignored": true
+  },
+  {
+    "path": "Assets/LowPolyWeapons/LowPolyWeapons_2019.3_1.1_URP.unitypackage",
+    "sha256": "fe01d2855f08f0f3379d89b258b222acdf58598665d95a27441b61b110ebb2be",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/IK Jobs (Unity 2018.2.4f1).unitypackage",
+    "sha256": "9a392ec159d2008bebef009eceb1b701c6b4f0d509720e14251c24ebba520739",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/IK Jobs (Unity 2019.3).unitypackage",
+    "sha256": "820ed271ccb1be68a377c6083dfb95f29710b0e92864e3aac4f5f8f715be8796",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/Oculus (Unity 2017.4.28f1, Oculus Integration v1.37).unitypackage",
+    "sha256": "1a347667d39a5e4030aadd764d492a29bf1100ba3d3036415158be220849ce84",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/Opsive's UCC3 (Unity 2021.3.13f1, UCC 3.0.5).unitypackage",
+    "sha256": "7dab368ba46f628c77b814ec301a279528eb2a22b1eaba2df54ee0342f2bdedf",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/Playmaker (Unity 2017.4.28f1, PlayMaker 1.9.0).unitypackage",
+    "sha256": "595e86c055a7d3f7ff99909a0883eb48ab9bfe6d846746777217c666cc363fb2",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/ReadyPlayerMe (Unity 2019.4.28f1, RPM v1.13.2, Oculus Integration).unitypackage",
+    "sha256": "af50e2bf180af922dfb58abc667b6011fa6787183608160e6e3d23562ac26b7d",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/Steam VR (Unity 2017.4.28f1, SteamVR Plugin v2.6.1).unitypackage",
+    "sha256": "482eeef890d7bb79baaca05686903c817bd6dea3f1fa433df7dd46c443ea44e4",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/UMA (Unity 2017.4.28f1, UMA 2.8.1).unitypackage",
+    "sha256": "2e95ec71269541f65da4e0ceedfcc202051625106dcca81eb281478baa39aa75",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/VRIK Animated Locomotion-XR Plugin (Unity2020.3.33f1).unitypackage",
+    "sha256": "612d7c2d69a5bf7e6587a202b2d787c41163523bef7d20e1dc589cf411be75ea",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/VRIK Movement Animset Pro.unitypackage",
+    "sha256": "45e076554ad03ab65f0c8164ba0955d2a7eacf31b8b4aaa09eacfaae9ac60a30",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/VRIK Photon Demo (Unity 2017.4.28f1, Oculus Integration, PUN 1.103).unitypackage",
+    "sha256": "a44c3366e28c96bdb51fed22d1a338c358c3b1b2e9c2cd86fd19debe74f7658c",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/FinalIK/_Integration/VRIK Photon2 Demo (Unity 2017.4.28f1, Oculus or SteamVR Integration, PUN 2.20.2).unitypackage",
+    "sha256": "4821d14c2ebe41a6e236cc48b32d11ad239757a1f53b8e2adbf78740f51d411b",
+    "ignored": true
+  },
+  {
+    "path": "Assets/Plugins/RootMotion/Import Assembly Definitions.unitypackage",
+    "sha256": "a4a293654067fcf3bcb7d1791c26fcbb5dd76da49a12816e447034987a94d4da",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205342.png",
+    "sha256": "98fd429b675d07e59be7cad6acc6bc2f4555dcbda8d76ffec965c80288c8dafa",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205342.png.meta",
+    "sha256": "1d64b1d2e62786b39f7103b155764383361adbf93068d93240fe54a8cc6cfb31",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713.jpg",
+    "sha256": "dc2bab8dbecd19118c8f5a64b17cd39d6b2358a2a06dd467a6eb28496f3906d5",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713.jpg.meta",
+    "sha256": "660d34645da2bf9e65249e9c86033971e2c570874df1c40ea328913cd18239f9",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_1.png",
+    "sha256": "506523aaf1c7ba3dfe76cd761707f4f6d19941f7565fd5f251b9da0920e7dd47",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_1.png.meta",
+    "sha256": "94949c0ba343558f921c175716f016e1b46bb8b176675b2b69af276008f89948",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_10.png",
+    "sha256": "6b0f48b31cd4ea0400ac62042b4fa61f00ab5cb73b08e9fb08e6f5cf6cf788e3",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_10.png.meta",
+    "sha256": "41ef9b98ca1431a82fb954ebb30c6d7c72835e01c66f2b3bc753cc6b7eb68cbd",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_11.png",
+    "sha256": "20311c2082140ddcda80f329d72e9a8479d128a1a95849b8a2be0ed6d0a5b962",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_11.png.meta",
+    "sha256": "51a5a7abaab79a0081c48b7e3f166e479708aefac141cece8de1aae05cd4e90c",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_12.png",
+    "sha256": "fedf8dc9322d21a3d31c5235169bd49f52b9efc6ca475193fb30bfe900296af0",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_12.png.meta",
+    "sha256": "b366707d455994f553404c0ab4aa6d70838c6d25795007c4e270d0055587d008",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_13.png",
+    "sha256": "061c005d8b09e1d935d55c14560f62d9377f59008be222618a78db034f8ee47d",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_13.png.meta",
+    "sha256": "1188c8ea5ab903bd82e8c70c31c90d815bdcd474b9422e9b92456b8284728ab9",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_14.png",
+    "sha256": "43cc92f3d660fd1647b3c6a5254363182dee58804f67889889f044058fddec88",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_14.png.meta",
+    "sha256": "cae5148470ad32253d6291e5e985550286c6f97f86a4909f8a1ce8708f7db738",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_15.png",
+    "sha256": "e87aeb84d4370f5777508457a9a5825cda9399a801a2ec3e32607b1bb3b50c49",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_15.png.meta",
+    "sha256": "8348d6728b2c0b234cf0d165c8389347f6d982d654264e5ffd9075606d01da8b",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_16.png",
+    "sha256": "e6ebf4d7bdefb08ae3a0d1381cbb295cfa5f68847adabe7b39b8b6abff9a4cdc",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_16.png.meta",
+    "sha256": "30c5e14997febed4f2e307aa395a017cea494aed8ff94eb7ef7645a6b14329cf",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_2.png",
+    "sha256": "c1331d8a1ecb6bdab7eab460068aab2542daa5bfa09721937699a01eb045c92f",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_2.png.meta",
+    "sha256": "9353970db65e44bfbdbc44ab6ab4a01d11b32c1ffcbc34d34c18a233c230509a",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_3.png",
+    "sha256": "fa5e456c99790f104e07704f3b0c7412185cacfb6ac2e901a1bc26a465b0caea",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_3.png.meta",
+    "sha256": "0585a4c932f58b8551240208ad4cf22cb404f80e8a5f5b0d6b4e062165199a51",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_4.png",
+    "sha256": "ae14467ac32a44eae81627e244bde700092a9d1f0c92083e0b0b81f4e6e7a3cf",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_4.png.meta",
+    "sha256": "64d4df8c6556ae3e2c7d034f3a20705eeb8cb3b14b1ee7735eca63c83ea3b316",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_5.png",
+    "sha256": "78980ac02bd753c9c719d3a27e8ee78aa76898ae27b729d4413875efb2ed5210",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_5.png.meta",
+    "sha256": "2ff62fd2e4b5161c557530de9a7365398e9bc85769346bf1a6feae79c00faa2e",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_6.png",
+    "sha256": "1c57f2c9eff57aa8834c9e38d63b65f0372ade9128bfa70ddd873295786551be",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_6.png.meta",
+    "sha256": "a2303b1cce68cadfcf82b25395d4b1b2a2505bc0493eefdd5e8e48a901197065",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_7.png",
+    "sha256": "c2e3539406b8907b467d29b96b9e7392dc905697d78f4413270dddb9c200493d",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_7.png.meta",
+    "sha256": "8ad5ac6b7abc0a0b22eabea388627192a53d46e08562a6c907600c0ed82ff216",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_8.png",
+    "sha256": "fbbcb53618476a9926476a3337e5b5e9ff87ec022d36ec373003bcc76c9932dd",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_8.png.meta",
+    "sha256": "1d55ce19d77389bc8dee166913818eb08a5c31ebdea22ef788d4a7920676e863",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_9.png",
+    "sha256": "ff0bca60e5cc44092843527609eb34c2a7c2ba48a64f02c1420f9a168101d4d8",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/GameUIKit_20260907_205713_9.png.meta",
+    "sha256": "9acabef927e8daa69b08d4f4371d5863eb0b3febd96657bd8c4daf78b78ad183",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080556.png",
+    "sha256": "d40ca984a7d32f9555e5ead40df0d7d263dd88448bbfbbe880dfd34c7f556341",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080556.png.meta",
+    "sha256": "851ce8051ea8f22efd7b88fbfb6baa6bfbf5bbead28dd73d10de7459904d5679",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080609.png",
+    "sha256": "8cd6752111dd2a807654d9251e7ca578858815b34bc33283adf23051b5771e91",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080609.png.meta",
+    "sha256": "530d345343d0e9cb3f6aa52f8af3f46d421a887d1576bc41b74cf4ee8d02e5db",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080620.png",
+    "sha256": "7a1fc5c0a17ec37887ebff85619f29116fc1a28c886342d830211907c4c4849b",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/Image_20260831_080620.png.meta",
+    "sha256": "99f32a810be2f2cdbdad71ed36c250f96c30860bb88d6dab6999ca54c86fb65b",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113907.wav",
+    "sha256": "5e6c8e3d153a97369b4b98a6498bbce12b8ed76c6fc5d382f75c6d091324c4b5",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113907.wav.meta",
+    "sha256": "f27a4a1534ca2c62750344c2271cc686ed5cd3463512f827426d0237a62455b9",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113923 1.wav",
+    "sha256": "75edb0a358e5a29233e855688ae440261f5fa21d16bc1672e8607efbff0bfe58",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113923 1.wav.meta",
+    "sha256": "78d2075cb646a727644abf75d465321830219315a64356d4b1d47221573ae6e2",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113923.wav",
+    "sha256": "49b0dda07933654621a7902cac79a10ab0bad30747337a076c8c2a562b5a6564",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113923.wav.meta",
+    "sha256": "0706b2678c6a26ccc50fb9e3de1b887817ade24a67bd5fed96934c95b436db95",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113924.wav",
+    "sha256": "a6e3875649282ec7c80250246546fdcb9e4731be3046b604809d42aec45234c1",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113924.wav.meta",
+    "sha256": "baf25b8bd71c4cb0c536d152ca976b950776882da76bbed6160c8617306063bf",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113925.wav",
+    "sha256": "16a43cbcaf354fa1094fdc9eb0e92b66724db5bd6e5b591f2250c38559ffa8a6",
+    "ignored": true
+  },
+  {
+    "path": "Assets/TJGenerators/History/SFX_20260903_113925.wav.meta",
+    "sha256": "a45d93a551fae34d0d3c048302a8c6bbb414b8a4a7db4f6be3f9612fff521557",
+    "ignored": true
+  }
+]

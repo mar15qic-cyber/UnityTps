@@ -95,3 +95,16 @@ Desktop.ini
 
 # ===== agent-relay 运行时状态（任务/信箱/调度留痕，不入库；状态卡快照在 Docs/交接/ 下单独提交） =====
 /Docs/交接/_bridge/
+
+# Official long-lived documentation only; historical reports stay at local paths.
+/Docs/*
+!/Docs/README.md
+!/Docs/Architecture/
+!/Docs/Development/
+!/Docs/Operations/
+!/Docs/Releases/
+/AGENTS.md
+/CODELY.md
+/FULL_PROJECT_REVIEW.md
+/Captures/
+/.qoder/rules/

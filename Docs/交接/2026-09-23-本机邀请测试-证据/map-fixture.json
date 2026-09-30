@@ -1,9 +1,0 @@
-{
-  "inputDigestMatch": true,
-  "gameplayAssemblyMatch": true,
-  "protocolMatch": true,
-  "runtimeJoin": "未验证",
-  "mapBuild": "Builds/PrivateMaps/private_smoke/8",
-  "type": "copied TrainingYard fixture, not a new authored map",
-  "mapBundleSha256": "D89716CEAA9E0B5C883D6E3782A7C30435C7B16865FC53F3852CC986E1F150F8"
-}

@@ -1,6 +1,7 @@
 # Preserve the exact bytes used by the sealed Unity and backend builds.
 # Do not apply autocrlf to source, assets, packages, settings or build tools.
 *.md text eol=lf
+Docs/** text eol=lf
 Assets/** -text
 Packages/** -text
 ProjectSettings/** -text

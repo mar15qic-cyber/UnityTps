@@ -1,4 +1,0 @@
-StaticUiCamera position=(0.0000, 0.0000, 0.0000) forward=(0.0000, 0.0000, 1.0000) mask=32 fov=60 target= clear=SolidColor near=0.1
-Main Camera position=(0.0000, 1.7000, 9.0000) forward=(0.0000, 0.0000, -1.0000) mask=-769 fov=45 target= clear=Skybox near=0.01
-FP View Camera position=(0.0470, 1.7820, 9.2990) forward=(0.0000, 0.0000, -1.0000) mask=512 fov=45 target= clear=Nothing near=0.01
-PhysicalScopeCamera position=(0.0000, 1.7000, 9.0000) forward=(0.0000, 0.0000, -1.0000) mask=-801 fov=0.9799212 target=PhysicalScope_RT (UnityEngine.RenderTexture) clear=Skybox near=0.02

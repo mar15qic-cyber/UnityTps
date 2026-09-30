@@ -1,9 +1,0 @@
-{
-  "releaseId": "private-baseline-20260924-01",
-  "protocol": "fps-net-v15",
-  "sealedFiles": 1526,
-  "zipEntries": 693,
-  "zipBytes": 163167621,
-  "zipSha256": "447544F1267349D88FC271A72AA2B6372FE2FCE459DFA1B3F860F66A10E5D2E7",
-  "verifiedUtc": "2026-09-24T11:37:40.7086801Z"
-}
